@@ -33,6 +33,13 @@ FinTune Platform allows users to easily create fine-tuning datasets for language
 - Project organization and sharing
 - Usage tracking and billing
 
+### Payment System
+- Usage-based billing with Stripe integration
+- Pricing tiers based on file size and processing volume
+- Subscription options for regular users
+- Pay-as-you-go for occasional usage
+- Detailed usage analytics and cost estimation
+
 ## Architecture
 
 ### Backend
@@ -41,17 +48,20 @@ FinTune Platform allows users to easily create fine-tuning datasets for language
 - PostgreSQL for structured data
 - MongoDB for storing documents and datasets
 - Redis for caching and task queue
+- Stripe API integration for payment processing
 
 ### Frontend
 - React with TypeScript
 - Material-UI for component library
 - Redux for state management
+- Stripe Elements for secure payment UI
 
 ### Infrastructure
 - Docker containers for all services
 - Kubernetes for orchestration
 - AWS S3 for file storage
 - AWS ECS/EKS for container management
+- AWS CloudWatch for monitoring and logging
 
 ## API Design
 
@@ -63,6 +73,27 @@ The platform is built around a RESTful API with the following main endpoints:
 - `/api/processing` - Content processing operations
 - `/api/datasets` - Dataset generation and management
 - `/api/fine-tuning` - Fine-tuning job management
+- `/api/billing` - Usage tracking and payment management
+- `/api/webhooks/stripe` - Stripe webhook endpoint for payment events
+
+## Payment Model
+
+The platform uses a hybrid pricing model:
+
+1. **Pay-as-you-go**: 
+   - Base rate per MB of processed content
+   - Additional charges for YouTube transcription
+   - Premium rate for high-priority processing
+
+2. **Subscription Plans**:
+   - Basic: Up to 100MB/month with standard processing
+   - Pro: Up to 1GB/month with priority processing
+   - Enterprise: Custom limits with dedicated support
+
+All plans include:
+- Usage analytics
+- API access
+- Dataset storage (time-limited)
 
 ## Getting Started
 
@@ -71,6 +102,7 @@ The platform is built around a RESTful API with the following main endpoints:
 - Node.js 16+
 - Docker and Docker Compose
 - AWS account (for production deployment)
+- Stripe account for payment processing
 
 ### Development Setup
 ```bash
