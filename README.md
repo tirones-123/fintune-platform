@@ -1,134 +1,133 @@
 # FinTune Platform
 
-A SaaS platform for automated fine-tuning dataset generation from various content sources.
+FinTune est une plateforme complète pour créer, gérer et déployer des modèles d'IA fine-tunés à partir de vos propres données.
 
-## Overview
+## Fonctionnalités
 
-FinTune Platform allows users to easily create fine-tuning datasets for language models like GPT and Claude. The platform can ingest content from various sources (text, PDF, YouTube), process it, and automatically generate question-answer pairs in the format required for fine-tuning.
-
-## Features
-
-### Content Ingestion
-- Upload text files and PDFs
-- Provide YouTube links for automatic transcription
-- Store and manage content in the cloud
-
-### Content Processing
-- Automatic chunking of text into appropriate segments
-- Intelligent processing to maintain context
-- Support for various languages and formats
-
-### Dataset Generation
-- Automatic generation of diverse question-answer pairs
-- Customizable system prompts and generation parameters
-- Preview and edit generated pairs before finalizing
-
-### Fine-Tuning Integration
-- Direct integration with OpenAI and Anthropic APIs
-- Fine-tuning job management and monitoring
-- Testing interface for fine-tuned models
-
-### User Management
-- Multi-user support with role-based access control
-- Project organization and sharing
-- Usage tracking and billing
-
-### Payment System
-- Usage-based billing with Stripe integration
-- Pricing tiers based on file size and processing volume
-- Subscription options for regular users
-- Pay-as-you-go for occasional usage
-- Detailed usage analytics and cost estimation
+- 🚀 **Création de projets** : Organisez vos données et modèles par projet
+- 📄 **Gestion de contenu** : Importez des fichiers texte, PDF et vidéos YouTube
+- 📊 **Création de datasets** : Générez des datasets de fine-tuning à partir de vos contenus
+- 🧠 **Fine-tuning de modèles** : Fine-tunez des modèles OpenAI, Anthropic et Mistral AI
+- 💬 **Interface de chat** : Testez vos modèles fine-tunés via une interface de chat
+- ⚙️ **Gestion des clés API** : Configurez vos clés API pour les différents fournisseurs
 
 ## Architecture
 
-### Backend
-- Python-based API using FastAPI
-- Celery for asynchronous task processing
-- PostgreSQL for structured data
-- MongoDB for storing documents and datasets
-- Redis for caching and task queue
-- Stripe API integration for payment processing
+Le projet est divisé en deux parties principales :
+
+- **Frontend** : Application React avec Material-UI
+- **Backend** : API FastAPI (à implémenter)
+
+## Prérequis
+
+- Node.js (v14+)
+- npm ou yarn
+- Python 3.8+ (pour le backend)
+
+## Installation
 
 ### Frontend
-- React with TypeScript
-- Material-UI for component library
-- Redux for state management
-- Stripe Elements for secure payment UI
 
-### Infrastructure
-- Docker containers for all services
-- Kubernetes for orchestration
-- AWS S3 for file storage
-- AWS ECS/EKS for container management
-- AWS CloudWatch for monitoring and logging
-
-## API Design
-
-The platform is built around a RESTful API with the following main endpoints:
-
-- `/api/auth` - Authentication and user management
-- `/api/projects` - Project CRUD operations
-- `/api/sources` - Content source management
-- `/api/processing` - Content processing operations
-- `/api/datasets` - Dataset generation and management
-- `/api/fine-tuning` - Fine-tuning job management
-- `/api/billing` - Usage tracking and payment management
-- `/api/webhooks/stripe` - Stripe webhook endpoint for payment events
-
-## Payment Model
-
-The platform uses a hybrid pricing model:
-
-1. **Pay-as-you-go**: 
-   - Base rate per MB of processed content
-   - Additional charges for YouTube transcription
-   - Premium rate for high-priority processing
-
-2. **Subscription Plans**:
-   - Basic: Up to 100MB/month with standard processing
-   - Pro: Up to 1GB/month with priority processing
-   - Enterprise: Custom limits with dedicated support
-
-All plans include:
-- Usage analytics
-- API access
-- Dataset storage (time-limited)
-
-## Getting Started
-
-### Prerequisites
-- Python 3.9+
-- Node.js 16+
-- Docker and Docker Compose
-- AWS account (for production deployment)
-- Stripe account for payment processing
-
-### Development Setup
 ```bash
-# Clone the repository
-git clone https://github.com/tirones-123/fintune-platform.git
-cd fintune-platform
+# Cloner le dépôt
+git clone https://github.com/votre-username/fintune-platform.git
+cd fintune-platform/frontend
 
-# Set up backend
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
-
-# Set up frontend
-cd ../frontend
+# Installer les dépendances
 npm install
+
+# Démarrer l'application en mode développement
 npm start
 ```
 
-### Docker Setup
+### Backend (à implémenter)
+
 ```bash
-docker-compose up -d
+# Naviguer vers le dossier backend
+cd ../backend
+
+# Créer un environnement virtuel
+python -m venv venv
+source venv/bin/activate  # Sur Windows : venv\Scripts\activate
+
+# Installer les dépendances
+pip install -r requirements.txt
+
+# Démarrer le serveur
+uvicorn main:app --reload
 ```
 
-## License
+## Configuration
 
-MIT
+### Variables d'environnement
+
+Le frontend utilise des variables d'environnement pour la configuration. Créez un fichier `.env` à la racine du dossier frontend avec les variables suivantes :
+
+```
+REACT_APP_API_URL=http://localhost:8000
+REACT_APP_VERSION=1.0.0
+REACT_APP_ENV=development
+REACT_APP_STORAGE_PREFIX=fintune_
+```
+
+Pour la production, créez un fichier `.env.production` avec les valeurs appropriées.
+
+### Clés API
+
+Pour utiliser les fonctionnalités de fine-tuning, vous devez configurer vos clés API dans l'application :
+
+1. Obtenez vos clés API auprès des fournisseurs :
+   - [OpenAI](https://platform.openai.com/api-keys)
+   - [Anthropic](https://console.anthropic.com/account/keys)
+   - [Mistral AI](https://console.mistral.ai/api-keys/)
+
+2. Configurez-les dans l'application via la page Paramètres.
+
+## Déploiement sur Hostinger
+
+### Préparation du build
+
+```bash
+# Créer un build optimisé pour la production
+npm run build:prod
+```
+
+### Déploiement sur Hostinger
+
+1. Connectez-vous à votre compte Hostinger
+2. Accédez à l'hébergement web
+3. Utilisez le gestionnaire de fichiers ou FTP pour télécharger le contenu du dossier `build` vers le répertoire public de votre hébergement (généralement `public_html`)
+
+### Configuration du serveur
+
+Pour que les routes React fonctionnent correctement, vous devez configurer la redirection des URL vers `index.html`. Créez un fichier `.htaccess` à la racine de votre hébergement avec le contenu suivant :
+
+```apache
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /index.html [L]
+</IfModule>
+```
+
+## Développement futur
+
+Voici quelques fonctionnalités prévues pour les versions futures :
+
+- Authentification et gestion des utilisateurs
+- Intégration avec d'autres fournisseurs d'IA
+- Analyse avancée des performances des modèles
+- API pour intégrer les modèles fine-tunés dans d'autres applications
+- Interface d'administration
+
+## Licence
+
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+
+## Contact
+
+Pour toute question ou suggestion, n'hésitez pas à nous contacter à contact@fintune.ai
