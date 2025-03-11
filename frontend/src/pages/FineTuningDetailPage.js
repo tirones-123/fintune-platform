@@ -15,6 +15,14 @@ import {
   Typography,
   CircularProgress,
   Alert,
+  IconButton,
+  Menu,
+  MenuItem,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  TextField,
 } from '@mui/material';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -24,8 +32,12 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
-import axios from 'axios';
-import { projectService, datasetService, fineTuningService } from '../services/localStorageService';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ChatIcon from '@mui/icons-material/Chat';
+import { useSnackbar } from 'notistack';
+import { projectService, datasetService, fineTuningService } from '../services/apiService';
 
 const FineTuningDetailPage = () => {
   const { fineTuningId } = useParams();
@@ -35,33 +47,28 @@ const FineTuningDetailPage = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [testPrompt, setTestPrompt] = useState('');
+  const [testResponse, setTestResponse] = useState('');
+  const [testError, setTestError] = useState(null);
+  const [testing, setTesting] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   // Fonction pour récupérer les données du fine-tuning
   const fetchFineTuningData = async () => {
     setLoading(true);
     try {
-      console.log('Chargement des données du fine-tuning depuis localStorage:', fineTuningId);
-      
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Récupérer le fine-tuning
-      const fineTuning = fineTuningService.getById(fineTuningId);
-      if (!fineTuning) {
-        setError('Fine-tuning non trouvé');
-        setLoading(false);
-        return;
-      }
-      setFineTuning(fineTuning);
+      // Récupérer le fine-tuning depuis l'API
+      const fineTuningData = await fineTuningService.getById(fineTuningId);
+      setFineTuning(fineTuningData);
       
       // Récupérer le dataset associé
-      const dataset = datasetService.getById(fineTuning.dataset_id);
-      setDataset(dataset);
+      const datasetData = await datasetService.getById(fineTuningData.dataset_id);
+      setDataset(datasetData);
       
       // Récupérer le projet associé
-      const project = projectService.getById(fineTuning.project_id);
-      setProject(project);
-
+      const projectData = await projectService.getById(datasetData.project_id);
+      setProject(projectData);
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching fine-tuning data:', err);
@@ -191,9 +198,55 @@ const FineTuningDetailPage = () => {
     }
   };
 
-  // Simuler le test du modèle
-  const handleTestModel = () => {
-    navigate(`/dashboard/chat/${fineTuningId}`);
+  // Fonction pour tester le modèle
+  const handleTestModel = async () => {
+    if (!testPrompt.trim()) {
+      setTestError('Veuillez entrer un prompt de test');
+      return;
+    }
+    
+    setTesting(true);
+    setTestError(null);
+    
+    try {
+      // Tester le modèle via l'API
+      const response = await fineTuningService.testModel(fineTuningId, testPrompt);
+      setTestResponse(response.completion);
+    } catch (err) {
+      console.error('Error testing model:', err);
+      setTestError(err.message || 'Erreur lors du test du modèle');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  // Fonction pour annuler le fine-tuning
+  const handleCancelFineTuning = async () => {
+    try {
+      // Annuler le fine-tuning via l'API
+      await fineTuningService.cancel(fineTuningId);
+      
+      // Mettre à jour les données
+      fetchFineTuningData();
+      enqueueSnackbar('Fine-tuning annulé avec succès', { variant: 'success' });
+    } catch (err) {
+      console.error('Error canceling fine-tuning:', err);
+      enqueueSnackbar('Erreur lors de l\'annulation du fine-tuning', { variant: 'error' });
+    }
+  };
+
+  // Fonction pour supprimer le fine-tuning
+  const handleDeleteFineTuning = async () => {
+    try {
+      // Supprimer le fine-tuning via l'API
+      await fineTuningService.delete(fineTuningId);
+      
+      enqueueSnackbar('Fine-tuning supprimé avec succès', { variant: 'success' });
+      navigate(`/dashboard/datasets/${dataset.id}`);
+    } catch (err) {
+      console.error('Error deleting fine-tuning:', err);
+      enqueueSnackbar('Erreur lors de la suppression du fine-tuning', { variant: 'error' });
+    }
   };
 
   return (

@@ -13,6 +13,7 @@ import {
   Stack,
   TextField,
   Typography,
+  Alert,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +28,7 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const formik = useFormik({
     initialValues: {
@@ -41,13 +43,14 @@ const LoginForm = () => {
       password: Yup.string()
         .required('Le mot de passe est requis'),
     }),
-    onSubmit: async (values, { setSubmitting, setErrors }) => {
+    onSubmit: async (values, { setSubmitting }) => {
       try {
+        setErrorMessage('');
         await login(values.email, values.password);
         navigate('/dashboard');
       } catch (error) {
         console.error('Login error:', error);
-        setErrors({ submit: error.message });
+        setErrorMessage(error.message || 'Identifiants incorrects. Veuillez réessayer.');
       } finally {
         setSubmitting(false);
       }
@@ -69,6 +72,12 @@ const LoginForm = () => {
           Accédez à votre compte FinTune
         </Typography>
 
+        {errorMessage && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {errorMessage}
+          </Alert>
+        )}
+
         <Button
           fullWidth
           size="large"
@@ -81,6 +90,7 @@ const LoginForm = () => {
             '&:hover': { borderColor: 'primary.main' }
           }}
           startIcon={<GoogleIcon />}
+          disabled
         >
           Continuer avec Google
         </Button>
@@ -159,12 +169,6 @@ const LoginForm = () => {
               Mot de passe oublié?
             </Link>
           </Box>
-
-          {formik.errors.submit && (
-            <Typography color="error" variant="body2" sx={{ mt: 2, mb: 2 }}>
-              {formik.errors.submit}
-            </Typography>
-          )}
 
           <LoadingButton
             fullWidth

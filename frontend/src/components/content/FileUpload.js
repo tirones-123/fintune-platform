@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -16,6 +16,11 @@ import {
   CircularProgress,
   Alert,
   Paper,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -23,9 +28,10 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { contentService, projectService } from '../../services/localStorageService';
+import { useSnackbar } from 'notistack';
+import { contentService, projectService } from '../../services/apiService';
 
 const FileUpload = ({ projectId }) => {
   const navigate = useNavigate();
@@ -37,6 +43,8 @@ const FileUpload = ({ projectId }) => {
   const [success, setSuccess] = useState(false);
   const [contentName, setContentName] = useState('');
   const [contentDescription, setContentDescription] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   // Configuration des types de fichiers acceptés
   const acceptedFileTypes = {
@@ -70,69 +78,34 @@ const FileUpload = ({ projectId }) => {
     }
   };
 
-  // Fonction pour gérer l'upload
+  // Fonction pour télécharger les fichiers
   const handleUpload = async () => {
-    if (uploadType === 'file' && files.length === 0) {
-      setError('Veuillez sélectionner au moins un fichier.');
+    if (files.length === 0) {
+      setError('Veuillez sélectionner au moins un fichier');
       return;
     }
 
-    if (uploadType === 'youtube' && !youtubeUrl) {
-      setError('Veuillez entrer une URL YouTube valide.');
-      return;
-    }
-
-    if (!contentName) {
-      setError('Veuillez donner un nom à votre contenu.');
-      return;
-    }
-
-    setLoading(true);
+    setUploading(true);
     setError(null);
-
+    
     try {
-      // Création du contenu dans le localStorage
-      const newContent = {
-        name: contentName,
-        description: contentDescription,
-        project_id: projectId,
-        type: uploadType === 'file' ? (files[0]?.type.includes('pdf') ? 'pdf' : 'text') : 'youtube',
-        size: uploadType === 'file' ? files.reduce((total, file) => total + file.size, 0) : 0,
-        status: 'processed',
-        url: uploadType === 'youtube' ? youtubeUrl : null,
-        files: uploadType === 'file' ? files.map(f => f.name) : null,
-      };
-      
-      console.log('Création du contenu:', newContent);
-      
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Sauvegarder le contenu
-      const savedContent = contentService.save(newContent);
-      console.log('Contenu créé:', savedContent);
-      
-      // Mettre à jour le compteur de contenus dans le projet
-      const project = projectService.getById(projectId);
-      if (project) {
-        const updatedProject = {
-          ...project,
-          content_count: (project.content_count || 0) + 1
-        };
-        projectService.save(updatedProject);
+      // Télécharger chaque fichier via l'API
+      for (const file of files) {
+        await contentService.uploadFile(projectId, file, {
+          type: file.type.includes('pdf') ? 'pdf' : 'text',
+          description: contentDescription,
+        });
       }
-
-      setSuccess(true);
-      setLoading(false);
       
-      // Redirection après 1 seconde
-      setTimeout(() => {
-        navigate(`/dashboard/projects/${projectId}`);
-      }, 1000);
+      enqueueSnackbar('Fichiers téléchargés avec succès', { variant: 'success' });
+      setFiles([]);
+      setContentDescription('');
+      setUploadType('file');
     } catch (err) {
-      console.error('Error uploading content:', err);
-      setError(err.response?.data?.message || 'Une erreur est survenue lors de l\'upload.');
-      setLoading(false);
+      console.error('Error uploading files:', err);
+      setError(err.message || 'Erreur lors du téléchargement des fichiers');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -275,10 +248,10 @@ const FileUpload = ({ projectId }) => {
           <Button
             variant="contained"
             onClick={handleUpload}
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : null}
+            disabled={uploading}
+            startIcon={uploading ? <CircularProgress size={20} /> : null}
           >
-            {loading ? 'Importation en cours...' : 'Importer le contenu'}
+            {uploading ? 'Importation en cours...' : 'Importer le contenu'}
           </Button>
         </Box>
       </CardContent>

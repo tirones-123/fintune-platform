@@ -1,133 +1,174 @@
 # FinTune Platform
 
-FinTune est une plateforme complète pour créer, gérer et déployer des modèles d'IA fine-tunés à partir de vos propres données.
-
-## Fonctionnalités
-
-- 🚀 **Création de projets** : Organisez vos données et modèles par projet
-- 📄 **Gestion de contenu** : Importez des fichiers texte, PDF et vidéos YouTube
-- 📊 **Création de datasets** : Générez des datasets de fine-tuning à partir de vos contenus
-- 🧠 **Fine-tuning de modèles** : Fine-tunez des modèles OpenAI, Anthropic et Mistral AI
-- 💬 **Interface de chat** : Testez vos modèles fine-tunés via une interface de chat
-- ⚙️ **Gestion des clés API** : Configurez vos clés API pour les différents fournisseurs
+FinTune est une plateforme SaaS qui permet aux utilisateurs de créer facilement des assistants IA personnalisés en utilisant leurs propres données. La plateforme permet d'importer des contenus, de créer des datasets, et de fine-tuner des modèles de langage sans avoir besoin de compétences techniques avancées.
 
 ## Architecture
 
-Le projet est divisé en deux parties principales :
+Le projet est composé de deux parties principales :
 
-- **Frontend** : Application React avec Material-UI
-- **Backend** : API FastAPI (à implémenter)
+- **Frontend** : Une application React qui fournit l'interface utilisateur.
+- **Backend** : Une API FastAPI qui gère la logique métier et les interactions avec les services externes.
 
 ## Prérequis
 
-- Node.js (v14+)
-- npm ou yarn
-- Python 3.8+ (pour le backend)
+- Docker et Docker Compose
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL 15+
+- Redis 7+
 
 ## Installation
 
+### Avec Docker Compose
+
+1. Clonez le dépôt :
+   ```bash
+   git clone https://github.com/votre-utilisateur/fintune-platform.git
+   cd fintune-platform
+   ```
+
+2. Créez un fichier `.env` à la racine du projet en vous basant sur le fichier `.env.example`.
+
+3. Lancez les services avec Docker Compose :
+   ```bash
+   docker-compose up -d
+   ```
+
+4. Accédez à l'application :
+   - Frontend : http://localhost:3000
+   - API : http://localhost:8000
+   - Documentation API : http://localhost:8000/api/docs
+   - pgAdmin : http://localhost:5050 (email: admin@fintune.io, mot de passe: admin)
+
+### Installation manuelle
+
+#### Backend
+
+1. Accédez au répertoire du backend :
+   ```bash
+   cd backend
+   ```
+
+2. Créez un environnement virtuel et activez-le :
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Sur Windows : venv\Scripts\activate
+   ```
+
+3. Installez les dépendances :
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Créez un fichier `.env` en vous basant sur le fichier `.env.example`.
+
+5. Lancez le serveur de développement :
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+#### Frontend
+
+1. Accédez au répertoire du frontend :
+   ```bash
+   cd frontend
+   ```
+
+2. Installez les dépendances :
+   ```bash
+   npm install
+   ```
+
+3. Créez un fichier `.env.development` en vous basant sur le fichier `.env.development.example`.
+
+4. Lancez le serveur de développement :
+   ```bash
+   npm start
+   ```
+
+## Fonctionnalités
+
+- **Authentification** : Inscription, connexion, et gestion des utilisateurs.
+- **Projets** : Création et gestion de projets pour organiser les contenus.
+- **Contenus** : Importation de fichiers PDF, texte, et vidéos YouTube.
+- **Datasets** : Création de datasets à partir des contenus importés.
+- **Fine-tuning** : Fine-tuning de modèles de langage avec les datasets créés.
+- **Chat** : Interface de chat pour tester les modèles fine-tunés.
+- **Abonnements** : Gestion des abonnements avec Stripe.
+
+## Structure du projet
+
+```
+fintune-platform/
+├── backend/                # API FastAPI
+│   ├── app/                # Code source de l'application
+│   │   ├── api/            # Endpoints API
+│   │   ├── core/           # Configuration et sécurité
+│   │   ├── db/             # Configuration de la base de données
+│   │   ├── models/         # Modèles SQLAlchemy
+│   │   ├── schemas/        # Schémas Pydantic
+│   │   ├── services/       # Services métier
+│   │   └── tasks/          # Tâches Celery
+│   ├── migrations/         # Migrations Alembic
+│   ├── main.py             # Point d'entrée de l'application
+│   ├── celery_app.py       # Configuration Celery
+│   └── requirements.txt    # Dépendances Python
+├── frontend/               # Application React
+│   ├── public/             # Fichiers statiques
+│   ├── src/                # Code source
+│   │   ├── assets/         # Images et ressources
+│   │   ├── components/     # Composants React
+│   │   ├── context/        # Contextes React
+│   │   ├── pages/          # Pages de l'application
+│   │   ├── services/       # Services API
+│   │   └── theme/          # Thème Material-UI
+│   ├── package.json        # Dépendances Node.js
+│   └── Dockerfile          # Configuration Docker
+└── docker-compose.yml      # Configuration Docker Compose
+```
+
+## Développement
+
+### Backend
+
+- **Migrations** : Pour créer une nouvelle migration, utilisez Alembic :
+  ```bash
+  cd backend
+  alembic revision --autogenerate -m "Description de la migration"
+  alembic upgrade head
+  ```
+
+- **Tests** : Pour exécuter les tests :
+  ```bash
+  cd backend
+  pytest
+  ```
+
 ### Frontend
 
-```bash
-# Cloner le dépôt
-git clone https://github.com/votre-username/fintune-platform.git
-cd fintune-platform/frontend
+- **Tests** : Pour exécuter les tests :
+  ```bash
+  cd frontend
+  npm test
+  ```
 
-# Installer les dépendances
-npm install
+- **Build** : Pour créer une version de production :
+  ```bash
+  cd frontend
+  npm run build
+  ```
 
-# Démarrer l'application en mode développement
-npm start
-```
+## Déploiement
 
-### Backend (à implémenter)
+### Production
 
-```bash
-# Naviguer vers le dossier backend
-cd ../backend
-
-# Créer un environnement virtuel
-python -m venv venv
-source venv/bin/activate  # Sur Windows : venv\Scripts\activate
-
-# Installer les dépendances
-pip install -r requirements.txt
-
-# Démarrer le serveur
-uvicorn main:app --reload
-```
-
-## Configuration
-
-### Variables d'environnement
-
-Le frontend utilise des variables d'environnement pour la configuration. Créez un fichier `.env` à la racine du dossier frontend avec les variables suivantes :
-
-```
-REACT_APP_API_URL=http://localhost:8000
-REACT_APP_VERSION=1.0.0
-REACT_APP_ENV=development
-REACT_APP_STORAGE_PREFIX=fintune_
-```
-
-Pour la production, créez un fichier `.env.production` avec les valeurs appropriées.
-
-### Clés API
-
-Pour utiliser les fonctionnalités de fine-tuning, vous devez configurer vos clés API dans l'application :
-
-1. Obtenez vos clés API auprès des fournisseurs :
-   - [OpenAI](https://platform.openai.com/api-keys)
-   - [Anthropic](https://console.anthropic.com/account/keys)
-   - [Mistral AI](https://console.mistral.ai/api-keys/)
-
-2. Configurez-les dans l'application via la page Paramètres.
-
-## Déploiement sur Hostinger
-
-### Préparation du build
-
-```bash
-# Créer un build optimisé pour la production
-npm run build:prod
-```
-
-### Déploiement sur Hostinger
-
-1. Connectez-vous à votre compte Hostinger
-2. Accédez à l'hébergement web
-3. Utilisez le gestionnaire de fichiers ou FTP pour télécharger le contenu du dossier `build` vers le répertoire public de votre hébergement (généralement `public_html`)
-
-### Configuration du serveur
-
-Pour que les routes React fonctionnent correctement, vous devez configurer la redirection des URL vers `index.html`. Créez un fichier `.htaccess` à la racine de votre hébergement avec le contenu suivant :
-
-```apache
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME} !-l
-  RewriteRule . /index.html [L]
-</IfModule>
-```
-
-## Développement futur
-
-Voici quelques fonctionnalités prévues pour les versions futures :
-
-- Authentification et gestion des utilisateurs
-- Intégration avec d'autres fournisseurs d'IA
-- Analyse avancée des performances des modèles
-- API pour intégrer les modèles fine-tunés dans d'autres applications
-- Interface d'administration
+1. Mettez à jour les fichiers `.env` avec les valeurs de production.
+2. Construisez et déployez les images Docker :
+   ```bash
+   docker-compose -f docker-compose.prod.yml build
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
 
 ## Licence
 
 Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
-
-## Contact
-
-Pour toute question ou suggestion, n'hésitez pas à nous contacter à contact@fintune.ai

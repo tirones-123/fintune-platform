@@ -14,11 +14,12 @@ import {
   Typography,
   CircularProgress,
   Alert,
+  Grid,
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
-import axios from 'axios';
-import { projectService } from '../services/localStorageService';
+import { useSnackbar } from 'notistack';
+import { projectService } from '../services/apiService';
 
 const NewProjectPage = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const NewProjectPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [nameError, setNameError] = useState('');
+  const { enqueueSnackbar } = useSnackbar();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,27 +43,17 @@ const NewProjectPage = () => {
     setError(null);
     
     try {
-      console.log('Création du projet:', { name, description });
-      
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Créer le projet dans le localStorage
-      const newProject = {
+      // Créer le projet via l'API
+      const newProject = await projectService.create({
         name,
         description,
-        content_count: 0,
-        dataset_count: 0
-      };
+      });
       
-      const savedProject = projectService.save(newProject);
-      console.log('Projet créé:', savedProject);
-      
-      // Redirection vers la page du projet créé
-      navigate(`/dashboard/projects/${savedProject.id}`);
+      enqueueSnackbar('Projet créé avec succès', { variant: 'success' });
+      navigate(`/dashboard/projects/${newProject.id}`);
     } catch (err) {
       console.error('Error creating project:', err);
-      setError(err.response?.data?.message || 'Une erreur est survenue lors de la création du projet.');
+      setError(err.message || 'Erreur lors de la création du projet');
       setLoading(false);
     }
   };

@@ -14,6 +14,10 @@ import {
   CircularProgress,
   Alert,
   Avatar,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
 } from '@mui/material';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -21,8 +25,8 @@ import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import axios from 'axios';
-import { fineTuningService } from '../services/localStorageService';
+import { useSnackbar } from 'notistack';
+import { fineTuningService } from '../services/apiService';
 
 const ChatPage = () => {
   const { fineTuningId } = useParams();
@@ -34,38 +38,20 @@ const ChatPage = () => {
   const [responding, setResponding] = useState(false);
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
+  const { enqueueSnackbar } = useSnackbar();
 
   // Fonction pour récupérer les données du fine-tuning
   const fetchFineTuningData = async () => {
     setLoading(true);
     try {
-      console.log('Chargement des données du fine-tuning depuis localStorage:', fineTuningId);
+      // Récupérer le fine-tuning depuis l'API
+      const fineTuningData = await fineTuningService.getById(fineTuningId);
+      setFineTuning(fineTuningData);
       
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Récupérer le fine-tuning
-      const fineTuning = fineTuningService.getById(fineTuningId);
-      if (!fineTuning) {
-        setError('Fine-tuning non trouvé');
-        setLoading(false);
-        return;
-      }
-      setFineTuning(fineTuning);
-
-      // Message de bienvenue
-      setMessages([
-        {
-          role: 'assistant',
-          content: 'Bonjour ! Je suis votre assistant personnalisé basé sur le modèle ' + fineTuning.name + '. Comment puis-je vous aider aujourd\'hui ?',
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-
       setError(null);
     } catch (err) {
       console.error('Error fetching fine-tuning data:', err);
-      setError('Impossible de récupérer les données du fine-tuning. Veuillez réessayer.');
+      setError('Impossible de récupérer les données du modèle. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -82,54 +68,35 @@ const ChatPage = () => {
     }
   }, [messages]);
 
-  // Simuler l'envoi d'un message au modèle
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    
+  // Fonction pour envoyer un message
+  const handleSendMessage = async () => {
     if (!input.trim()) return;
     
-    const userMessage = {
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date().toISOString(),
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
+    const userMessage = input.trim();
     setInput('');
+    
+    // Ajouter le message de l'utilisateur à la conversation
+    const newMessages = [
+      ...messages,
+      { role: 'user', content: userMessage },
+    ];
+    setMessages(newMessages);
+    
+    // Indiquer que le modèle est en train de répondre
     setResponding(true);
     
     try {
-      // Simuler un délai pour la réponse
-      await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1500));
+      // Tester le modèle via l'API
+      const response = await fineTuningService.testModel(fineTuningId, userMessage);
       
-      // Réponses prédéfinies pour la démo
-      let assistantResponse;
-      const userMessageLower = userMessage.content.toLowerCase();
-      
-      if (userMessageLower.includes('prix') || userMessageLower.includes('tarif') || userMessageLower.includes('coût')) {
-        assistantResponse = 'Nos tarifs sont très compétitifs. Pour un accès standard, comptez 29€/mois. Pour un accès premium avec toutes les fonctionnalités, c\'est 99€/mois. Nous proposons également des offres sur mesure pour les grandes entreprises. Souhaitez-vous que je vous donne plus de détails sur l\'une de ces offres ?';
-      } else if (userMessageLower.includes('fonctionnalité') || userMessageLower.includes('feature') || userMessageLower.includes('option')) {
-        assistantResponse = 'Notre plateforme FinTune offre de nombreuses fonctionnalités : création de datasets personnalisés, fine-tuning de modèles de langage, déploiement facile, analyse des performances, et intégration via API. Quelle fonctionnalité vous intéresse particulièrement ?';
-      } else if (userMessageLower.includes('délai') || userMessageLower.includes('temps') || userMessageLower.includes('durée')) {
-        assistantResponse = 'Le temps nécessaire pour fine-tuner un modèle dépend de la taille de votre dataset et du modèle choisi. En général, comptez entre 30 minutes et 4 heures. Une fois terminé, le déploiement est instantané. Avez-vous un projet spécifique en tête ?';
-      } else if (userMessageLower.includes('contact') || userMessageLower.includes('support') || userMessageLower.includes('aide')) {
-        assistantResponse = 'Notre équipe de support est disponible 24/7. Vous pouvez nous contacter par email à support@fintune.ai ou par téléphone au 01 23 45 67 89. Nous proposons également un chat en direct sur notre site web. Comment préférez-vous nous contacter ?';
-      } else if (userMessageLower.includes('merci') || userMessageLower.includes('au revoir') || userMessageLower.includes('bye')) {
-        assistantResponse = 'Je vous en prie ! N\'hésitez pas à revenir si vous avez d\'autres questions. Bonne journée !';
-      } else {
-        assistantResponse = 'Merci pour votre question. FinTune est une plateforme qui vous permet de créer facilement des assistants IA personnalisés en utilisant vos propres données. Vous pouvez importer vos contenus, créer des datasets, et fine-tuner des modèles de langage sans avoir besoin de compétences techniques avancées. Que souhaitez-vous savoir d\'autre sur notre plateforme ?';
-      }
-      
-      const assistantMessage = {
-        role: 'assistant',
-        content: assistantResponse,
-        timestamp: new Date().toISOString(),
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
+      // Ajouter la réponse du modèle à la conversation
+      setMessages([
+        ...newMessages,
+        { role: 'assistant', content: response.completion },
+      ]);
     } catch (err) {
-      console.error('Error getting response:', err);
-      setError('Impossible d\'obtenir une réponse. Veuillez réessayer.');
+      console.error('Error getting model response:', err);
+      enqueueSnackbar('Erreur lors de la récupération de la réponse du modèle', { variant: 'error' });
     } finally {
       setResponding(false);
     }

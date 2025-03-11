@@ -13,6 +13,7 @@ import {
   Stack,
   TextField,
   Typography,
+  Alert,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +28,8 @@ const RegisterForm = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const formik = useFormik({
     initialValues: {
@@ -52,13 +55,16 @@ const RegisterForm = () => {
         .oneOf([true], 'Vous devez accepter les conditions d\'utilisation')
         .required('Vous devez accepter les conditions d\'utilisation'),
     }),
-    onSubmit: async (values, { setSubmitting, setErrors }) => {
+    onSubmit: async (values, { setSubmitting, resetForm }) => {
       try {
+        setErrorMessage('');
         await register(values.email, values.password, values.name);
-        navigate('/dashboard');
+        setSuccessMessage('Compte créé avec succès ! Redirection vers l\'onboarding...');
+        resetForm();
+        // La redirection est gérée par la fonction register dans AuthContext
       } catch (error) {
         console.error('Register error:', error);
-        setErrors({ submit: error.message });
+        setErrorMessage(error.message || 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.');
       } finally {
         setSubmitting(false);
       }
@@ -80,6 +86,18 @@ const RegisterForm = () => {
           Rejoignez FinTune et commencez à créer vos datasets
         </Typography>
 
+        {errorMessage && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {errorMessage}
+          </Alert>
+        )}
+
+        {successMessage && (
+          <Alert severity="success" sx={{ mb: 3 }}>
+            {successMessage}
+          </Alert>
+        )}
+
         <Button
           fullWidth
           size="large"
@@ -92,6 +110,7 @@ const RegisterForm = () => {
             '&:hover': { borderColor: 'primary.main' }
           }}
           startIcon={<GoogleIcon />}
+          disabled
         >
           S'inscrire avec Google
         </Button>
@@ -179,12 +198,6 @@ const RegisterForm = () => {
               </Typography>
             )}
           </Stack>
-
-          {formik.errors.submit && (
-            <Typography color="error" variant="body2" sx={{ mt: 2, mb: 2 }}>
-              {formik.errors.submit}
-            </Typography>
-          )}
 
           <LoadingButton
             fullWidth

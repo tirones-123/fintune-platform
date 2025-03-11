@@ -24,6 +24,12 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemSecondaryAction,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  TextField,
 } from '@mui/material';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -36,8 +42,9 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import PsychologyIcon from '@mui/icons-material/Psychology';
-import axios from 'axios';
-import { projectService, contentService, datasetService } from '../services/localStorageService';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useSnackbar } from 'notistack';
+import { projectService, contentService, datasetService } from '../services/apiService';
 
 const ProjectDetailPage = () => {
   const { projectId } = useParams();
@@ -52,43 +59,29 @@ const ProjectDetailPage = () => {
   const [datasetAnchorEl, setDatasetAnchorEl] = useState(null);
   const [selectedContent, setSelectedContent] = useState(null);
   const [selectedDataset, setSelectedDataset] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const { enqueueSnackbar } = useSnackbar();
 
   // Fonction pour récupérer les données du projet
   const fetchProjectData = async () => {
     setLoading(true);
     try {
-      console.log('Chargement des données du projet depuis localStorage:', projectId);
-      
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Récupérer le projet
-      const project = projectService.getById(projectId);
-      if (!project) {
-        setError('Projet non trouvé');
-        setLoading(false);
-        return;
-      }
-      setProject(project);
+      // Récupérer le projet depuis l'API
+      const projectData = await projectService.getById(projectId);
+      setProject(projectData);
       
       // Récupérer les contenus du projet
-      const projectContents = contentService.getByProjectId(projectId);
-      setContents(projectContents);
+      const contentsData = await contentService.getByProjectId(projectId);
+      setContents(contentsData);
       
       // Récupérer les datasets du projet
-      const projectDatasets = datasetService.getByProjectId(projectId);
-      setDatasets(projectDatasets);
+      const datasetsData = await datasetService.getByProjectId(projectId);
+      setDatasets(datasetsData);
       
-      // Mettre à jour le compteur de contenus et datasets dans le projet
-      if (project.content_count !== projectContents.length || project.dataset_count !== projectDatasets.length) {
-        const updatedProject = {
-          ...project,
-          content_count: projectContents.length,
-          dataset_count: projectDatasets.length
-        };
-        projectService.save(updatedProject);
-      }
-
       setError(null);
     } catch (err) {
       console.error('Error fetching project data:', err);
@@ -269,6 +262,39 @@ const ProjectDetailPage = () => {
         return 'Erreur';
       default:
         return status;
+    }
+  };
+
+  // Fonction pour mettre à jour le projet
+  const handleUpdateProject = async () => {
+    try {
+      // Mettre à jour le projet via l'API
+      const updatedProject = await projectService.update(projectId, {
+        name: editName,
+        description: editDescription,
+      });
+      
+      setProject(updatedProject);
+      setEditDialogOpen(false);
+      enqueueSnackbar('Projet mis à jour avec succès', { variant: 'success' });
+    } catch (err) {
+      console.error('Error updating project:', err);
+      enqueueSnackbar('Erreur lors de la mise à jour du projet', { variant: 'error' });
+    }
+  };
+
+  // Fonction pour supprimer le projet
+  const handleDeleteProject = async () => {
+    try {
+      // Supprimer le projet via l'API
+      await projectService.delete(projectId);
+      
+      setDeleteDialogOpen(false);
+      enqueueSnackbar('Projet supprimé avec succès', { variant: 'success' });
+      navigate('/dashboard/projects');
+    } catch (err) {
+      console.error('Error deleting project:', err);
+      enqueueSnackbar('Erreur lors de la suppression du projet', { variant: 'error' });
     }
   };
 
@@ -608,6 +634,60 @@ const ProjectDetailPage = () => {
           Supprimer
         </MenuItem>
       </Menu>
+
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Modifier le projet"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              label="Nom"
+              type="text"
+              fullWidth
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+            />
+            <TextField
+              margin="dense"
+              id="description"
+              label="Description"
+              type="text"
+              fullWidth
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+            />
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Annuler</Button>
+          <Button onClick={handleUpdateProject}>Modifier</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Supprimer le projet"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Êtes-vous sûr de vouloir supprimer ce projet ?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
+          <Button onClick={handleDeleteProject} color="error">Supprimer</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

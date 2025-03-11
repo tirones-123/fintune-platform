@@ -24,13 +24,18 @@ import {
   Alert,
   Paper,
   Chip,
+  Stepper,
+  Step,
+  StepLabel,
 } from '@mui/material';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import PsychologyIcon from '@mui/icons-material/Psychology';
-import axios from 'axios';
-import { projectService, datasetService, fineTuningService, apiKeyService } from '../services/localStorageService';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import { useSnackbar } from 'notistack';
+import { projectService, datasetService, fineTuningService, apiKeyService } from '../services/apiService';
 
 const NewFineTuningPage = () => {
   const { datasetId } = useParams();
@@ -47,6 +52,9 @@ const NewFineTuningPage = () => {
   const [learningRate, setLearningRate] = useState(0.0001);
   const [nameError, setNameError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gpt-3.5-turbo');
+  const [batchSize, setBatchSize] = useState(32);
 
   // Modèles disponibles par fournisseur
   const providerModels = {
@@ -68,27 +76,14 @@ const NewFineTuningPage = () => {
   const fetchDatasetData = async () => {
     setLoading(true);
     try {
-      console.log('Chargement des données du dataset depuis localStorage:', datasetId);
+      // Récupérer le dataset depuis l'API
+      const datasetData = await datasetService.getById(datasetId);
+      setDataset(datasetData);
       
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Récupérer le dataset
-      const dataset = datasetService.getById(datasetId);
-      if (!dataset) {
-        setError('Dataset non trouvé');
-        setLoading(false);
-        return;
-      }
-      setDataset(dataset);
-
       // Récupérer le projet associé
-      const project = projectService.getById(dataset.project_id);
-      setProject(project);
-
-      // Initialisation du nom du fine-tuning
-      setName(`${project.name} - Fine-tuning`);
-
+      const projectData = await projectService.getById(datasetData.project_id);
+      setProject(projectData);
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching dataset data:', err);
@@ -107,7 +102,7 @@ const NewFineTuningPage = () => {
     const newProvider = e.target.value;
     setProvider(newProvider);
     // Réinitialiser le modèle au premier modèle disponible pour ce fournisseur
-    setModel(providerModels[newProvider][0].id);
+    setSelectedModel(providerModels[newProvider][0].id);
   };
 
   // Vérifier si la clé API est configurée
@@ -115,61 +110,39 @@ const NewFineTuningPage = () => {
     return apiKeyService.hasKey(provider);
   };
 
-  // Soumission du formulaire
-  const handleSubmit = async (e) => {
+  // Fonction pour créer le fine-tuning
+  const handleCreateFineTuning = async (e) => {
     e.preventDefault();
     
     // Validation
     if (!name.trim()) {
-      setNameError('Le nom du fine-tuning est requis');
+      setError('Le nom du fine-tuning est requis');
       return;
     }
     
-    // Vérifier si la clé API est configurée
-    if (!isApiKeyConfigured(provider)) {
-      setError(`Veuillez configurer votre clé API ${provider} dans les paramètres avant de lancer un fine-tuning.`);
-      return;
-    }
-    
-    setSubmitting(true);
+    setCreating(true);
+    setError(null);
     
     try {
-      // Création du fine-tuning dans le localStorage
-      const newFineTuning = {
+      // Créer le fine-tuning via l'API
+      const newFineTuning = await fineTuningService.create({
         name,
         description,
         dataset_id: datasetId,
-        project_id: dataset.project_id,
-        provider,
-        model,
-        parameters: {
-          epochs,
+        model: selectedModel,
+        hyperparameters: {
+          epochs: epochs,
           learning_rate: learningRate,
+          batch_size: batchSize,
         },
-        status: 'training',
-        progress: 0,
-        created_at: new Date().toISOString(),
-        metrics: {
-          training_loss: 0,
-          validation_loss: 0,
-        },
-      };
+      });
       
-      console.log('Création du fine-tuning:', newFineTuning);
-      
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Sauvegarder le fine-tuning
-      const savedFineTuning = fineTuningService.save(newFineTuning);
-      console.log('Fine-tuning créé:', savedFineTuning);
-      
-      // Redirection vers la page du fine-tuning créé
-      navigate(`/dashboard/fine-tuning/${savedFineTuning.id}`);
+      enqueueSnackbar('Fine-tuning créé avec succès', { variant: 'success' });
+      navigate(`/dashboard/fine-tuning/${newFineTuning.id}`);
     } catch (err) {
       console.error('Error creating fine-tuning:', err);
-      setError(err.response?.data?.message || 'Une erreur est survenue lors de la création du fine-tuning.');
-      setSubmitting(false);
+      setError(err.message || 'Erreur lors de la création du fine-tuning');
+      setCreating(false);
     }
   };
 
@@ -226,7 +199,7 @@ const NewFineTuningPage = () => {
           {error}
         </Alert>
       ) : (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleCreateFineTuning}>
           <Card sx={{ mb: 4 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -324,8 +297,8 @@ const NewFineTuningPage = () => {
               <FormControl fullWidth sx={{ mb: 3 }}>
                 <InputLabel>Modèle</InputLabel>
                 <Select
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
                   label="Modèle"
                 >
                   {providerModels[provider].map((model) => (
@@ -417,10 +390,10 @@ const NewFineTuningPage = () => {
             <Button
               type="submit"
               variant="contained"
-              disabled={submitting}
-              startIcon={submitting ? <CircularProgress size={20} /> : null}
+              disabled={creating}
+              startIcon={creating ? <CircularProgress size={20} /> : null}
             >
-              {submitting ? 'Lancement en cours...' : 'Lancer le fine-tuning'}
+              {creating ? 'Lancement en cours...' : 'Lancer le fine-tuning'}
             </Button>
           </Box>
         </form>

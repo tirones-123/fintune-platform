@@ -4,33 +4,57 @@ import {
   Button,
   Card,
   CardContent,
-  CardHeader,
-  Divider,
   Grid,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  Paper,
   Typography,
   useTheme,
+  Avatar,
+  Stack,
+  Divider,
+  IconButton,
+  LinearProgress,
+  Chip,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import CountUp from 'react-countup';
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
+};
 
 // Composant pour les statistiques
 const StatCard = ({ title, value, icon: Icon, color, suffix = '', prefix = '' }) => {
   const theme = useTheme();
 
   return (
-    <div>
+    <motion.div variants={itemVariants}>
       <Card
         sx={{
           height: '100%',
@@ -38,18 +62,18 @@ const StatCard = ({ title, value, icon: Icon, color, suffix = '', prefix = '' })
           flexDirection: 'column',
           position: 'relative',
           overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: 6,
-            height: '100%',
-            backgroundColor: color,
+          borderRadius: 4,
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: (theme) => 
+              theme.palette.mode === 'dark'
+                ? '0 10px 30px rgba(0, 0, 0, 0.3)'
+                : '0 10px 30px rgba(0, 0, 0, 0.1)',
           },
         }}
       >
-        <CardContent sx={{ flexGrow: 1, pl: 3 }}>
+        <CardContent sx={{ flexGrow: 1, p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Box>
               <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -61,34 +85,57 @@ const StatCard = ({ title, value, icon: Icon, color, suffix = '', prefix = '' })
                 {suffix}
               </Typography>
             </Box>
-            <Box
+            <Avatar
               sx={{
-                backgroundColor: `${color}20`,
-                borderRadius: '50%',
-                p: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                backgroundColor: color,
+                width: 56,
+                height: 56,
+                boxShadow: `0 8px 16px ${color}40`,
               }}
             >
-              <Icon sx={{ fontSize: 32, color: color }} />
-            </Box>
+              <Icon sx={{ fontSize: 28, color: 'white' }} />
+            </Avatar>
           </Box>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 };
 
 // Composant pour les projets récents
 const RecentProjects = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
 
   // Projets fictifs pour la démo
   const projects = [
-    { id: 1, name: 'Documentation produit', updatedAt: '2023-03-07T10:30:00Z', contentCount: 3, datasetCount: 1 },
-    { id: 2, name: 'Blog articles', updatedAt: '2023-03-06T14:20:00Z', contentCount: 5, datasetCount: 2 },
-    { id: 3, name: 'Support client', updatedAt: '2023-03-05T09:15:00Z', contentCount: 8, datasetCount: 3 },
+    { 
+      id: 1, 
+      name: 'Documentation produit', 
+      updatedAt: '2023-03-07T10:30:00Z', 
+      contentCount: 3, 
+      datasetCount: 1,
+      progress: 75,
+      status: 'En cours',
+    },
+    { 
+      id: 2, 
+      name: 'Blog articles', 
+      updatedAt: '2023-03-06T14:20:00Z', 
+      contentCount: 5, 
+      datasetCount: 2,
+      progress: 100,
+      status: 'Terminé',
+    },
+    { 
+      id: 3, 
+      name: 'Support client', 
+      updatedAt: '2023-03-05T09:15:00Z', 
+      contentCount: 8, 
+      datasetCount: 3,
+      progress: 30,
+      status: 'En cours',
+    },
   ];
 
   const formatDate = (dateString) => {
@@ -96,58 +143,125 @@ const RecentProjects = () => {
     return date.toLocaleDateString();
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Terminé':
+        return theme.palette.success.main;
+      case 'En cours':
+        return theme.palette.warning.main;
+      default:
+        return theme.palette.info.main;
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader
-        title="Projets récents"
-        action={
-          <IconButton aria-label="settings">
-            <MoreVertIcon />
-          </IconButton>
-        }
-      />
-      <Divider />
-      <List sx={{ p: 0 }}>
-        {projects.map((project) => (
-          <React.Fragment key={project.id}>
-            <ListItem
-              secondaryAction={
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => navigate(`/dashboard/projects/${project.id}`)}
-                >
-                  Voir
-                </Button>
-              }
-              sx={{ px: 3, py: 2 }}
+    <motion.div variants={itemVariants}>
+      <Card sx={{ borderRadius: 4, height: '100%' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6">Projets récents</Typography>
+            <Button
+              endIcon={<ArrowForwardIcon />}
+              onClick={() => navigate('/dashboard/projects')}
+              sx={{ fontWeight: 600 }}
             >
-              <ListItemText
-                primary={project.name}
-                secondary={
-                  <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
-                    <Typography variant="caption" color="text.secondary" component="span">
-                      Mis à jour le {formatDate(project.updatedAt)} • {project.contentCount} contenus • {project.datasetCount} datasets
+              Voir tous
+            </Button>
+          </Box>
+          
+          <Stack spacing={2}>
+            {projects.map((project) => (
+              <Box
+                key={project.id}
+                component={motion.div}
+                whileHover={{ x: 5 }}
+                sx={{
+                  p: 2,
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  },
+                }}
+                onClick={() => navigate(`/dashboard/projects/${project.id}`)}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    {project.name}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Chip 
+                      label={project.status} 
+                      size="small" 
+                      sx={{ 
+                        backgroundColor: `${getStatusColor(project.status)}20`,
+                        color: getStatusColor(project.status),
+                        fontWeight: 600,
+                        mr: 1,
+                      }} 
+                    />
+                    <IconButton size="small">
+                      <MoreHorizIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+                
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                  Mis à jour le {formatDate(project.updatedAt)}
+                </Typography>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+                    {project.contentCount} contenus
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {project.datasetCount} datasets
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ mt: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Progression
+                    </Typography>
+                    <Typography variant="caption" fontWeight={600}>
+                      {project.progress}%
                     </Typography>
                   </Box>
-                }
-              />
-            </ListItem>
-            <Divider component="li" />
-          </React.Fragment>
-        ))}
-      </List>
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Button
-          variant="text"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/dashboard/projects/new')}
-        >
-          Nouveau projet
-        </Button>
-      </Box>
-    </Card>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={project.progress} 
+                    sx={{ 
+                      height: 6, 
+                      borderRadius: 3,
+                      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 3,
+                        backgroundColor: getStatusColor(project.status),
+                      }
+                    }} 
+                  />
+                </Box>
+              </Box>
+            ))}
+          </Stack>
+          
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/dashboard/projects/new')}
+            sx={{ mt: 3, borderRadius: 3, py: 1.2 }}
+          >
+            Nouveau projet
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 
@@ -188,59 +302,171 @@ const QuickActions = () => {
   ];
 
   return (
-    <Card>
-      <CardHeader title="Actions rapides" />
-      <Divider />
-      <CardContent>
-        <Grid container spacing={2}>
-          {actions.map((action) => (
-            <Grid item xs={12} sm={6} key={action.title}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  '&:hover': {
-                    borderColor: action.color,
-                    boxShadow: `0 4px 8px rgba(0, 0, 0, 0.1)`,
-                    transform: 'translateY(-4px)',
-                  },
-                }}
-                onClick={() => navigate(action.path)}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box
+    <motion.div variants={itemVariants}>
+      <Card sx={{ borderRadius: 4, height: '100%' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 3 }}>Actions rapides</Typography>
+          
+          <Grid container spacing={2}>
+            {actions.map((action) => (
+              <Grid item xs={12} sm={6} key={action.title}>
+                <Box
+                  component={motion.div}
+                  whileHover={{ y: -5, boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)' }}
+                  whileTap={{ y: 0 }}
+                  sx={{
+                    p: 2.5,
+                    borderRadius: 4,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '&:hover': {
+                      borderColor: action.color,
+                    },
+                  }}
+                  onClick={() => navigate(action.path)}
+                >
+                  <Avatar
                     sx={{
-                      mr: 2,
                       backgroundColor: `${action.color}20`,
-                      borderRadius: '50%',
-                      p: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      color: action.color,
+                      width: 48,
+                      height: 48,
+                      mb: 2,
                     }}
                   >
-                    <action.icon sx={{ color: action.color }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                      {action.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {action.description}
-                    </Typography>
-                  </Box>
+                    <action.icon />
+                  </Avatar>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    {action.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {action.description}
+                  </Typography>
                 </Box>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-      </CardContent>
-    </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
+// Composant pour les modèles récents
+const RecentModels = () => {
+  const navigate = useNavigate();
+  const theme = useTheme();
+
+  // Modèles fictifs pour la démo
+  const models = [
+    { 
+      id: 1, 
+      name: 'Support client v1', 
+      provider: 'OpenAI',
+      model: 'GPT-3.5 Turbo',
+      createdAt: '2023-03-05T09:15:00Z',
+      status: 'Actif',
+    },
+    { 
+      id: 2, 
+      name: 'FAQ Produit', 
+      provider: 'Anthropic',
+      model: 'Claude 2',
+      createdAt: '2023-03-02T14:20:00Z',
+      status: 'Actif',
+    },
+  ];
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  return (
+    <motion.div variants={itemVariants}>
+      <Card sx={{ borderRadius: 4, height: '100%' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6">Modèles récents</Typography>
+            <Button
+              endIcon={<ArrowForwardIcon />}
+              onClick={() => navigate('/dashboard/fine-tuning')}
+              sx={{ fontWeight: 600 }}
+            >
+              Voir tous
+            </Button>
+          </Box>
+          
+          {models.length > 0 ? (
+            <Stack spacing={2}>
+              {models.map((model) => (
+                <Box
+                  key={model.id}
+                  component={motion.div}
+                  whileHover={{ x: 5 }}
+                  sx={{
+                    p: 2,
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                    },
+                  }}
+                  onClick={() => navigate(`/dashboard/fine-tuning/${model.id}`)}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {model.name}
+                    </Typography>
+                    <Chip 
+                      label={model.status} 
+                      size="small" 
+                      sx={{ 
+                        backgroundColor: theme.palette.success.main + '20',
+                        color: theme.palette.success.main,
+                        fontWeight: 600,
+                      }} 
+                    />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {model.provider} • {model.model}
+                    </Typography>
+                  </Box>
+                  
+                  <Typography variant="caption" color="text.secondary">
+                    Créé le {formatDate(model.createdAt)}
+                  </Typography>
+                </Box>
+              ))}
+            </Stack>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                Vous n'avez pas encore de modèles fine-tunés
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => navigate('/dashboard/fine-tuning/new')}
+                startIcon={<PsychologyIcon />}
+              >
+                Créer un modèle
+              </Button>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 
@@ -249,9 +475,15 @@ const DashboardPage = () => {
   const { user } = useAuth();
 
   return (
-    <Box sx={{ flexGrow: 1, maxWidth: '100%', px: { xs: 2, md: 0 } }}>
+    <Box 
+      component={motion.div}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      sx={{ flexGrow: 1, maxWidth: '100%' }}
+    >
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
           Bonjour, {user?.name || 'John'}
         </Typography>
         <Typography variant="body1" color="text.secondary">
@@ -259,7 +491,7 @@ const DashboardPage = () => {
         </Typography>
       </Box>
 
-      <Grid container spacing={4}>
+      <Grid container spacing={3}>
         {/* Statistiques */}
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
@@ -296,13 +528,18 @@ const DashboardPage = () => {
         </Grid>
 
         {/* Actions rapides */}
-        <Grid item xs={12} md={6} sx={{ mt: 2 }}>
+        <Grid item xs={12} md={6} lg={4}>
           <QuickActions />
         </Grid>
 
         {/* Projets récents */}
-        <Grid item xs={12} md={6} sx={{ mt: 2 }}>
+        <Grid item xs={12} md={6} lg={4}>
           <RecentProjects />
+        </Grid>
+
+        {/* Modèles récents */}
+        <Grid item xs={12} lg={4}>
+          <RecentModels />
         </Grid>
       </Grid>
     </Box>

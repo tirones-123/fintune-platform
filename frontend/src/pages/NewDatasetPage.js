@@ -28,14 +28,25 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Chip,
+  Grid,
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton,
+  Stepper,
+  Step,
+  StepLabel,
 } from '@mui/material';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import YouTubeIcon from '@mui/icons-material/YouTube';
-import axios from 'axios';
-import { projectService, contentService, datasetService } from '../services/localStorageService';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import { useSnackbar } from 'notistack';
+import { projectService, contentService, datasetService } from '../services/apiService';
 
 const NewDatasetPage = () => {
   const { projectId } = useParams();
@@ -54,34 +65,21 @@ const NewDatasetPage = () => {
   const [nameError, setNameError] = useState('');
   const [contentError, setContentError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   // Fonction pour récupérer les données du projet et ses contenus
   const fetchProjectData = async () => {
     setLoading(true);
     try {
-      console.log('Chargement des données du projet depuis localStorage:', projectId);
-      
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Récupérer le projet
-      const project = projectService.getById(projectId);
-      if (!project) {
-        setError('Projet non trouvé');
-        setLoading(false);
-        return;
-      }
-      setProject(project);
+      // Récupérer le projet depuis l'API
+      const projectData = await projectService.getById(projectId);
+      setProject(projectData);
       
       // Récupérer les contenus du projet
-      const projectContents = contentService.getByProjectId(projectId);
+      const contentsData = await contentService.getByProjectId(projectId);
+      setContents(contentsData);
       
-      // Filtrer les contenus traités uniquement
-      const processedContents = projectContents.filter(
-        content => content.status === 'processed'
-      );
-      
-      setContents(processedContents);
       setError(null);
     } catch (err) {
       console.error('Error fetching project data:', err);
@@ -141,65 +139,38 @@ const NewDatasetPage = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Soumission du formulaire
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  // Fonction pour créer le dataset
+  const handleCreateDataset = async () => {
     // Validation
-    let isValid = true;
-    
     if (!name.trim()) {
-      setNameError('Le nom du dataset est requis');
-      isValid = false;
+      setError('Le nom du dataset est requis');
+      return;
     }
     
     if (selectedContents.length === 0) {
-      setContentError('Veuillez sélectionner au moins un contenu');
-      isValid = false;
+      setError('Veuillez sélectionner au moins un contenu');
+      return;
     }
     
-    if (!isValid) return;
-    
-    setSubmitting(true);
+    setCreating(true);
+    setError(null);
     
     try {
-      // Création du dataset dans le localStorage
-      const newDataset = {
+      // Créer le dataset via l'API
+      const newDataset = await datasetService.create({
         name,
         description,
         project_id: projectId,
         content_ids: selectedContents,
-        generation_method: generationMethod,
-        chunk_size: chunkSize,
-        overlap,
-        pairs_count: pairsCount,
-      };
+        model: selectedModel,
+      });
       
-      console.log('Création du dataset:', newDataset);
-      
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Sauvegarder le dataset
-      const savedDataset = datasetService.save(newDataset);
-      console.log('Dataset créé:', savedDataset);
-      
-      // Mettre à jour le compteur de datasets dans le projet
-      const project = projectService.getById(projectId);
-      if (project) {
-        const updatedProject = {
-          ...project,
-          dataset_count: (project.dataset_count || 0) + 1
-        };
-        projectService.save(updatedProject);
-      }
-      
-      // Redirection vers la page du dataset créé
-      navigate(`/dashboard/datasets/${savedDataset.id}`);
+      enqueueSnackbar('Dataset créé avec succès', { variant: 'success' });
+      navigate(`/dashboard/datasets/${newDataset.id}`);
     } catch (err) {
       console.error('Error creating dataset:', err);
-      setError(err.response?.data?.message || 'Une erreur est survenue lors de la création du dataset.');
-      setSubmitting(false);
+      setError(err.message || 'Erreur lors de la création du dataset');
+      setCreating(false);
     }
   };
 
@@ -258,7 +229,7 @@ const NewDatasetPage = () => {
           </Button>
         </Paper>
       ) : (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleCreateDataset}>
           <Card sx={{ mb: 4 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -451,10 +422,10 @@ const NewDatasetPage = () => {
             <Button
               type="submit"
               variant="contained"
-              disabled={submitting}
-              startIcon={submitting ? <CircularProgress size={20} /> : null}
+              disabled={creating}
+              startIcon={creating ? <CircularProgress size={20} /> : null}
             >
-              {submitting ? 'Création en cours...' : 'Créer le dataset'}
+              {creating ? 'Création en cours...' : 'Créer le dataset'}
             </Button>
           </Box>
         </form>

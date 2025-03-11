@@ -19,6 +19,9 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemSecondaryAction,
+  IconButton,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -27,8 +30,14 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import YouTubeIcon from '@mui/icons-material/YouTube';
-import axios from 'axios';
-import { projectService, contentService, datasetService } from '../services/localStorageService';
+import AddIcon from '@mui/icons-material/Add';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import { useSnackbar } from 'notistack';
+import { projectService, contentService, datasetService } from '../services/apiService';
 
 const DatasetDetailPage = () => {
   const { datasetId } = useParams();
@@ -38,41 +47,25 @@ const DatasetDetailPage = () => {
   const [contents, setContents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pairs, setPairs] = useState([]);
+  const { enqueueSnackbar } = useSnackbar();
 
   // Fonction pour récupérer les données du dataset
   const fetchDatasetData = async () => {
     setLoading(true);
     try {
-      console.log('Chargement des données du dataset depuis localStorage:', datasetId);
-      
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Récupérer le dataset
-      const dataset = datasetService.getById(datasetId);
-      if (!dataset) {
-        setError('Dataset non trouvé');
-        setLoading(false);
-        return;
-      }
-      setDataset(dataset);
+      // Récupérer le dataset depuis l'API
+      const datasetData = await datasetService.getById(datasetId);
+      setDataset(datasetData);
       
       // Récupérer le projet associé
-      const project = projectService.getById(dataset.project_id);
-      setProject(project);
+      const projectData = await projectService.getById(datasetData.project_id);
+      setProject(projectData);
       
-      // Récupérer les contenus utilisés dans le dataset
-      if (dataset.content_ids && dataset.content_ids.length > 0) {
-        const datasetContents = [];
-        for (const contentId of dataset.content_ids) {
-          const content = contentService.getById(contentId);
-          if (content) {
-            datasetContents.push(content);
-          }
-        }
-        setContents(datasetContents);
-      }
-
+      // Récupérer les paires question-réponse
+      const pairsData = await datasetService.getPairs(datasetId);
+      setPairs(pairsData);
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching dataset data:', err);
@@ -152,6 +145,20 @@ const DatasetDetailPage = () => {
   // Lancer un fine-tuning avec ce dataset
   const handleStartFineTuning = () => {
     navigate(`/dashboard/fine-tuning/new/${datasetId}`);
+  };
+
+  // Fonction pour supprimer le dataset
+  const handleDeleteDataset = async () => {
+    try {
+      // Supprimer le dataset via l'API
+      await datasetService.delete(datasetId);
+      
+      enqueueSnackbar('Dataset supprimé avec succès', { variant: 'success' });
+      navigate(`/dashboard/projects/${project.id}`);
+    } catch (err) {
+      console.error('Error deleting dataset:', err);
+      enqueueSnackbar('Erreur lors de la suppression du dataset', { variant: 'error' });
+    }
   };
 
   return (

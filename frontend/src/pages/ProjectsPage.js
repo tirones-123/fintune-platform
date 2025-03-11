@@ -19,8 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import FolderIcon from '@mui/icons-material/Folder';
-import axios from 'axios';
-import { projectService } from '../services/localStorageService';
+import { projectService } from '../services/apiService';
 
 const ProjectsPage = () => {
   const navigate = useNavigate();
@@ -34,14 +33,10 @@ const ProjectsPage = () => {
   const fetchProjects = async () => {
     setLoading(true);
     try {
-      // Récupérer les projets depuis le localStorage
-      console.log('Chargement des projets depuis le localStorage');
+      // Récupérer les projets depuis l'API
+      console.log('Chargement des projets depuis l\'API');
       
-      // Simuler un délai pour montrer le chargement
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Récupérer les projets
-      const projects = projectService.getAll();
+      const projects = await projectService.getAll();
       setProjects(projects);
       
       setError(null);
@@ -88,11 +83,8 @@ const ProjectsPage = () => {
     try {
       console.log('Suppression du projet:', projectId);
       
-      // Simuler un délai
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Supprimer le projet du localStorage
-      projectService.delete(projectId);
+      // Supprimer le projet via l'API
+      await projectService.delete(projectId);
       
       // Mettre à jour l'état local pour refléter la suppression
       setProjects(prevProjects => prevProjects.filter(project => project.id !== projectId));
