@@ -1,3 +1,5 @@
+lol
+
 # Guide de Déploiement de FinTune Platform
 
 Ce guide détaille les étapes nécessaires pour déployer la plateforme FinTune sur un serveur VPS.
