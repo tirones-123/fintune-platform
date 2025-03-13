@@ -98,6 +98,35 @@ class StorageService:
         except Exception as e:
             logger.error(f"Error getting file size: {str(e)}")
             return None
+    
+    def get_file_content(self, file_path: str) -> Optional[str]:
+        """
+        Read and return the content of a file.
+        
+        Args:
+            file_path: The path of the file.
+        
+        Returns:
+            The content of the file as a string, or None if there was an error.
+        """
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    return file.read()
+            else:
+                logger.warning(f"File not found: {file_path}")
+                return None
+        except UnicodeDecodeError:
+            logger.warning(f"File {file_path} is not a text file, trying binary mode")
+            try:
+                # For binary files like PDFs, we'll need specific processing elsewhere
+                return None
+            except Exception as e:
+                logger.error(f"Error reading binary file {file_path}: {str(e)}")
+                return None
+        except Exception as e:
+            logger.error(f"Error reading file {file_path}: {str(e)}")
+            return None
 
 # Create a singleton instance
 storage_service = StorageService() 

@@ -8,6 +8,7 @@ backend/.env.*
 backend/.env.example
 frontend/.env
 frontend/.env.*
+frontend/.env.production
 frontend/.env.example
 
 # Python
@@ -92,4 +93,7 @@ tmp/
 temp/
 
 # Embedded git repositories
-fintune-platform/ 
+fintune-platform/
+
+# Backup files
+*.bak 

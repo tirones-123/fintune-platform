@@ -346,6 +346,16 @@ export const datasetService = {
       throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération des paires');
     }
   },
+  
+  // Exporter un dataset au format JSONL pour le fine-tuning
+  exportDataset: async (id, provider = 'openai') => {
+    try {
+      // Cette fonction retourne l'URL pour télécharger le fichier JSONL
+      return `${API_URL}/api/datasets/${id}/export?provider=${provider}`;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de l\'export du dataset');
+    }
+  }
 };
 
 // Service de gestion des fine-tunings

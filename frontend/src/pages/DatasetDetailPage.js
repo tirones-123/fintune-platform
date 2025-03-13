@@ -36,6 +36,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useSnackbar } from 'notistack';
 import { projectService, contentService, datasetService } from '../services/apiService';
 
@@ -49,6 +50,32 @@ const DatasetDetailPage = () => {
   const [error, setError] = useState(null);
   const [pairs, setPairs] = useState([]);
   const { enqueueSnackbar } = useSnackbar();
+  const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
+
+  // Fonction pour ouvrir le menu d'export
+  const handleOpenExportMenu = (event) => {
+    setExportMenuAnchor(event.currentTarget);
+  };
+
+  // Fonction pour fermer le menu d'export
+  const handleCloseExportMenu = () => {
+    setExportMenuAnchor(null);
+  };
+
+  // Fonction pour exporter le dataset
+  const handleExportDataset = (provider) => {
+    try {
+      // Obtenir l'URL d'export et déclencher le téléchargement
+      const exportUrl = datasetService.exportDataset(datasetId, provider);
+      window.open(exportUrl, '_blank');
+      enqueueSnackbar(`Export pour ${provider} démarré`, { variant: 'success' });
+    } catch (error) {
+      console.error('Error exporting dataset:', error);
+      enqueueSnackbar(`Erreur lors de l'export pour ${provider}`, { variant: 'error' });
+    } finally {
+      handleCloseExportMenu();
+    }
+  };
 
   // Fonction pour récupérer les données du dataset
   const fetchDatasetData = async () => {
@@ -203,13 +230,35 @@ const DatasetDetailPage = () => {
             </Box>
             <Box>
               {dataset.status === 'ready' && (
-                <Button
-                  variant="contained"
-                  startIcon={<PsychologyIcon />}
-                  onClick={handleStartFineTuning}
-                >
-                  Lancer un fine-tuning
-                </Button>
+                <>
+                  <Button
+                    variant="contained"
+                    startIcon={<PsychologyIcon />}
+                    onClick={handleStartFineTuning}
+                    sx={{ mr: 2 }}
+                  >
+                    Lancer un fine-tuning
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleOpenExportMenu}
+                  >
+                    Exporter
+                  </Button>
+                  <Menu
+                    anchorEl={exportMenuAnchor}
+                    open={Boolean(exportMenuAnchor)}
+                    onClose={handleCloseExportMenu}
+                  >
+                    <MenuItem onClick={() => handleExportDataset('openai')}>
+                      Exporter pour OpenAI
+                    </MenuItem>
+                    <MenuItem onClick={() => handleExportDataset('anthropic')}>
+                      Exporter pour Anthropic
+                    </MenuItem>
+                  </Menu>
+                </>
               )}
             </Box>
           </Box>
@@ -306,16 +355,16 @@ const DatasetDetailPage = () => {
                         Taille des chunks
                       </Typography>
                       <Typography variant="body1">
-                        {dataset.chunk_size} caractères
+                        3000 caractères (fixe)
                       </Typography>
                     </Box>
                     
                     <Box>
                       <Typography variant="body2" color="text.secondary">
-                        Chevauchement
+                        Méthode
                       </Typography>
-                      <Typography variant="body1">
-                        {dataset.overlap} caractères
+                      <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
+                        {dataset.generation_method === 'auto' ? 'Automatique' : 'Personnalisée'}
                       </Typography>
                     </Box>
                   </Box>

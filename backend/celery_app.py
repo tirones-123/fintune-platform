@@ -27,9 +27,16 @@ celery_app.conf.update(
     enable_utc=True,
     worker_hijack_root_logger=False,
     task_routes={
+        # Routes pour les tâches avec le préfixe app.tasks
         "app.tasks.content_processing.*": {"queue": "content_processing"},
         "app.tasks.dataset_generation.*": {"queue": "dataset_generation"},
         "app.tasks.fine_tuning.*": {"queue": "fine_tuning"},
+        
+        # Routes pour les tâches sans préfixe (utilisées dans les appels send_task)
+        "generate_dataset": {"queue": "dataset_generation"},
+        "process_pdf_content": {"queue": "content_processing"},
+        "process_text_content": {"queue": "content_processing"},
+        "process_youtube_content": {"queue": "content_processing"},
     },
 )
 

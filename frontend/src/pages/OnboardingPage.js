@@ -19,6 +19,7 @@ import {
   Stack,
   IconButton,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -98,6 +99,38 @@ const OnboardingPage = () => {
     ],
   };
 
+  // Ajouter ces états pour gérer les fichiers
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+  // Ajouter cette fonction pour gérer l'upload
+  const handleFileUpload = async (event) => {
+    const selectedFile = event.target.files[0];
+    if (!selectedFile) return;
+    
+    setFile(selectedFile);
+    setUploading(true);
+    
+    // Simuler un upload ou implémenter un vrai upload vers votre API
+    try {
+      // Remplacer par votre appel API réel
+      // const formData = new FormData();
+      // formData.append('file', selectedFile);
+      // const response = await api.uploadContent(formData);
+      
+      // Simulation d'un délai d'upload
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setUploadSuccess(true);
+      setUploading(false);
+    } catch (error) {
+      console.error('Erreur lors de l\'upload:', error);
+      setUploading(false);
+    }
+  };
+
   // Gérer le changement d'étape
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -107,15 +140,44 @@ const OnboardingPage = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-  // Terminer l'onboarding
-  const completeOnboarding = () => {
-    // Mettre à jour le statut d'onboarding de l'utilisateur
-    if (updateUser) {
-      updateUser({ ...user, hasCompletedOnboarding: true });
+  // Modifier la fonction completeOnboarding pour lancer un fine-tune
+  const completeOnboarding = async () => {
+    try {
+      // Créer le projet
+      // Remplacer par votre appel API réel
+      // const projectResponse = await api.createProject({
+      //   name: projectName,
+      //   description: projectDescription
+      // });
+      
+      // Créer le dataset
+      // const datasetResponse = await api.createDataset({
+      //   name: datasetName,
+      //   projectId: projectResponse.id,
+      //   contentId: uploadedContentId // ID du contenu uploadé précédemment
+      // });
+      
+      // Lancer le fine-tune
+      // const fineTuneResponse = await api.startFineTune({
+      //   datasetId: datasetResponse.id,
+      //   provider: provider,
+      //   model: model
+      // });
+      
+      // Mettre à jour le statut d'onboarding de l'utilisateur
+      if (updateUser) {
+        updateUser({ ...user, hasCompletedOnboarding: true });
+      }
+      
+      // Stocker l'ID du fine-tune dans le localStorage pour pouvoir y accéder depuis le dashboard
+      // localStorage.setItem('lastFineTuneId', fineTuneResponse.id);
+      
+      // Rediriger vers le dashboard
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Erreur lors de la finalisation de l\'onboarding:', error);
+      // Gérer l'erreur (afficher un message, etc.)
     }
-    
-    // Rediriger vers le dashboard
-    navigate('/dashboard');
   };
 
   // Contenu des étapes
@@ -248,7 +310,7 @@ const OnboardingPage = () => {
             <Box
               sx={{
                 border: '2px dashed',
-                borderColor: 'divider',
+                borderColor: uploadSuccess ? 'success.main' : 'divider',
                 borderRadius: 3,
                 p: 4,
                 textAlign: 'center',
@@ -263,20 +325,46 @@ const OnboardingPage = () => {
                       : 'rgba(59, 130, 246, 0.05)',
                 },
               }}
+              onClick={() => fileInputRef.current.click()}
             >
-              <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileUpload}
+                accept={contentType === 'pdf' ? '.pdf' : contentType === 'text' ? '.txt,.doc,.docx' : '*'}
+              />
+              
+              {uploading ? (
+                <CircularProgress size={48} sx={{ mb: 2 }} />
+              ) : uploadSuccess ? (
+                <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
+              ) : (
+                <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+              )}
+              
               <Typography variant="body1" gutterBottom>
-                Glissez-déposez votre fichier ici
+                {uploadSuccess 
+                  ? `Fichier "${file?.name}" uploadé avec succès` 
+                  : uploading 
+                    ? 'Upload en cours...' 
+                    : 'Glissez-déposez votre fichier ici'}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                ou
-              </Typography>
-              <Button
-                variant="outlined"
-                sx={{ mt: 2 }}
-              >
-                Parcourir
-              </Button>
+              
+              {!uploadSuccess && !uploading && (
+                <>
+                  <Typography variant="body2" color="text.secondary">
+                    ou
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    sx={{ mt: 2 }}
+                    component="span"
+                  >
+                    Parcourir
+                  </Button>
+                </>
+              )}
             </Box>
           </Box>
         );

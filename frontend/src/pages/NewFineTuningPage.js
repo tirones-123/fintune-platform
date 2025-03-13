@@ -38,6 +38,7 @@ import { useSnackbar } from 'notistack';
 import { projectService, datasetService, fineTuningService, apiKeyService } from '../services/apiService';
 
 const NewFineTuningPage = () => {
+  const snackbar = useSnackbar();
   const { datasetId } = useParams();
   const navigate = useNavigate();
   const [dataset, setDataset] = useState(null);
@@ -137,7 +138,7 @@ const NewFineTuningPage = () => {
         },
       });
       
-      enqueueSnackbar('Fine-tuning créé avec succès', { variant: 'success' });
+      snackbar.enqueueSnackbar('Fine-tuning créé avec succès', { variant: 'success' });
       navigate(`/dashboard/fine-tuning/${newFineTuning.id}`);
     } catch (err) {
       console.error('Error creating fine-tuning:', err);

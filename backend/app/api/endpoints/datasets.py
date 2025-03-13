@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from celery import current_app as celery_app
 
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -90,8 +91,8 @@ def create_dataset(
     
     db.commit()
     
-    # TODO: Trigger async processing task
-    # celery_app.send_task("app.tasks.dataset_generation.generate_dataset", args=[db_dataset.id])
+    # Trigger async processing task
+    celery_app.send_task("generate_dataset", args=[db_dataset.id])
     
     return db_dataset
 
@@ -319,4 +320,106 @@ def delete_dataset_pair(
     dataset.pairs_count = pairs_count
     db.commit()
     
-    return None 
+    return None
+
+@router.get("/{dataset_id}/export", response_model=str)
+def export_dataset(
+    dataset_id: int,
+    format: str = "jsonl",
+    provider: str = "openai",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Export a dataset in the specified format for fine-tuning.
+    Currently supports JSONL format for OpenAI and Anthropic.
+    """
+    # Verify dataset belongs to user
+    dataset = db.query(Dataset).join(Project).filter(
+        Dataset.id == dataset_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not dataset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dataset not found"
+        )
+    
+    # Get all pairs
+    pairs = db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset_id).all()
+    
+    if not pairs:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dataset has no pairs"
+        )
+    
+    # Format according to provider
+    if provider.lower() == "openai":
+        from fastapi.responses import StreamingResponse
+        import json
+        import io
+        
+        # Create a StringIO object to store the jsonl data
+        jsonl_data = io.StringIO()
+        
+        # Format each pair according to OpenAI's fine-tuning format
+        for pair in pairs:
+            jsonl_obj = {
+                "messages": [
+                    {"role": "system", "content": "Vous êtes un assistant qui génère du contenu dans le style de l'auteur"},
+                    {"role": "user", "content": pair.question},
+                    {"role": "assistant", "content": pair.answer}
+                ]
+            }
+            jsonl_data.write(json.dumps(jsonl_obj, ensure_ascii=False) + "\n")
+        
+        # Reset the pointer to the beginning of the StringIO object
+        jsonl_data.seek(0)
+        
+        # Create a filename
+        filename = f"dataset_{dataset_id}_{dataset.name.replace(' ', '_')}.jsonl"
+        
+        # Return the file as a streaming response
+        return StreamingResponse(
+            jsonl_data,
+            media_type="application/jsonl",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    
+    elif provider.lower() == "anthropic":
+        # Similar implementation for Anthropic's format
+        from fastapi.responses import StreamingResponse
+        import json
+        import io
+        
+        jsonl_data = io.StringIO()
+        
+        for pair in pairs:
+            jsonl_obj = {
+                "messages": [
+                    {"role": "user", "content": pair.question},
+                    {"role": "assistant", "content": pair.answer}
+                ]
+            }
+            jsonl_data.write(json.dumps(jsonl_obj, ensure_ascii=False) + "\n")
+        
+        jsonl_data.seek(0)
+        filename = f"dataset_{dataset_id}_{dataset.name.replace(' ', '_')}.jsonl"
+        
+        return StreamingResponse(
+            jsonl_data,
+            media_type="application/jsonl",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported provider: {provider}. Currently supported: openai, anthropic"
+        ) 

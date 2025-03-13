@@ -66,6 +66,7 @@ const NewDatasetPage = () => {
   const [contentError, setContentError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gpt-3.5-turbo');
   const { enqueueSnackbar } = useSnackbar();
 
   // Fonction pour récupérer les données du projet et ses contenus
@@ -359,35 +360,10 @@ const NewDatasetPage = () => {
                 <>
                   <Box sx={{ mb: 3 }}>
                     <Typography gutterBottom>
-                      Taille des chunks (caractères): {chunkSize}
+                      Taille des chunks: 3000 caractères (fixe)
                     </Typography>
-                    <Slider
-                      value={chunkSize}
-                      onChange={(e, newValue) => setChunkSize(newValue)}
-                      min={500}
-                      max={2000}
-                      step={100}
-                      valueLabelDisplay="auto"
-                    />
                     <FormHelperText>
-                      Détermine la taille des segments de texte qui seront traités.
-                    </FormHelperText>
-                  </Box>
-                  
-                  <Box sx={{ mb: 3 }}>
-                    <Typography gutterBottom>
-                      Chevauchement (caractères): {overlap}
-                    </Typography>
-                    <Slider
-                      value={overlap}
-                      onChange={(e, newValue) => setOverlap(newValue)}
-                      min={0}
-                      max={500}
-                      step={50}
-                      valueLabelDisplay="auto"
-                    />
-                    <FormHelperText>
-                      Détermine le chevauchement entre les segments pour maintenir le contexte.
+                      Les contenus seront divisés en segments de 3000 caractères pour un traitement optimal.
                     </FormHelperText>
                   </Box>
                 </>
