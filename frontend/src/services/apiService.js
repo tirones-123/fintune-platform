@@ -117,10 +117,23 @@ export const authService = {
   // Mettre à jour le profil utilisateur
   updateProfile: async (userData) => {
     try {
+      // Vérifier si le token est présent
+      const token = localStorage.getItem(`${STORAGE_PREFIX}accessToken`);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+      
       const response = await api.put('/api/users/me', userData);
       localStorage.setItem(`${STORAGE_PREFIX}user`, JSON.stringify(response.data));
       return response.data;
     } catch (error) {
+      console.error('Update profile error:', error);
+      
+      // Si l'erreur est 401, c'est un problème d'authentification
+      if (error.response?.status === 401) {
+        throw new Error('Not authenticated');
+      }
+      
       throw new Error(error.response?.data?.detail || 'Erreur lors de la mise à jour du profil');
     }
   },

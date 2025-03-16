@@ -164,16 +164,36 @@ const OnboardingPage = () => {
       //   model: model
       // });
       
-      // Mettre à jour le statut d'onboarding de l'utilisateur
-      if (updateUser) {
-        updateUser({ ...user, hasCompletedOnboarding: true });
+      // Vérifier si le token d'authentification est présent
+      const STORAGE_PREFIX = process.env.REACT_APP_STORAGE_PREFIX || 'fintune_';
+      const token = localStorage.getItem(`${STORAGE_PREFIX}accessToken`);
+      if (!token) {
+        console.error('Token d\'authentification manquant');
+        // Rediriger vers la page de connexion
+        navigate('/login');
+        return;
       }
       
-      // Stocker l'ID du fine-tune dans le localStorage pour pouvoir y accéder depuis le dashboard
-      // localStorage.setItem('lastFineTuneId', fineTuneResponse.id);
-      
-      // Rediriger vers le dashboard
-      navigate('/dashboard');
+      // Mettre à jour le statut d'onboarding de l'utilisateur
+      if (updateUser) {
+        try {
+          await updateUser({ ...user, hasCompletedOnboarding: true });
+          // Rediriger vers le dashboard seulement après la mise à jour réussie
+          navigate('/dashboard');
+        } catch (updateError) {
+          console.error('Erreur lors de la mise à jour du profil:', updateError);
+          // Si l'erreur est liée à l'authentification, rediriger vers la page de connexion
+          if (updateError.message === 'Not authenticated') {
+            navigate('/login');
+          } else {
+            // Sinon, afficher un message d'erreur à l'utilisateur
+            // Vous pouvez ajouter un état pour afficher un message d'erreur dans l'interface
+          }
+        }
+      } else {
+        // Si updateUser n'est pas disponible, rediriger quand même vers le dashboard
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Erreur lors de la finalisation de l\'onboarding:', error);
       // Gérer l'erreur (afficher un message, etc.)
