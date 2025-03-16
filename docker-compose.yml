@@ -12,11 +12,13 @@ services:
       - ./backend:/app
       - uploads:/tmp/uploads
     environment:
-      - POSTGRES_SERVER=${POSTGRES_SERVER}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - REDIS_URL=${REDIS_URL}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=fintune
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - MONGODB_URL=${MONGODB_URL}
       - MONGODB_DB=${MONGODB_DB}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -39,12 +41,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "80:80"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
       - REACT_APP_API_URL=${REACT_APP_API_URL}
+    depends_on:
+      - api
     networks:
       - fintune-network
 
@@ -56,38 +60,40 @@ services:
     volumes:
       - ./backend:/app
       - uploads:/tmp/uploads
+    command: celery -A app.core.celery_app worker --loglevel=info
     environment:
-      - POSTGRES_SERVER=${POSTGRES_SERVER}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - REDIS_URL=${REDIS_URL}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=fintune
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
-      - redis
       - db
+      - redis
     networks:
       - fintune-network
-    command: celery -A celery_app worker --loglevel=info
 
   # PostgreSQL database
   db:
-    image: postgres:15
+    image: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=fintune
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - fintune-network
 
   # Redis for Celery
   redis:
-    image: redis:7
+    image: redis
     ports:
-      - "6380:6379"
+      - "6381:6379"
     volumes:
       - redis-data:/data
     networks:
@@ -99,7 +105,7 @@ services:
     ports:
       - "5050:80"
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@fintune.io
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
       - PGADMIN_DEFAULT_PASSWORD=admin
     volumes:
       - pgadmin-data:/var/lib/pgadmin
@@ -113,7 +119,7 @@ networks:
     driver: bridge
 
 volumes:
-  postgres-data:
+  postgres_data:
   redis-data:
   pgadmin-data:
   uploads:
