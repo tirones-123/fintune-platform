@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     # Redis configuration
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
-    # IA settings
+    # IA settings 
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")

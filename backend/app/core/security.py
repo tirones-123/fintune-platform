@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
 
-# Password hashing
+# Password hashing 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme for token authentication
