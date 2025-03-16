@@ -18,18 +18,16 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "FinTune Platform API"
     
     # CORS configuration
-    BACKEND_CORS_ORIGINS: List[str] = Field(
-        default=[
-            "http://localhost:3000",
-            "https://finetuner.io",
-            "https://www.finetuner.io",
-            "https://api.finetuner.io",
-            "http://finetuner.io",
-            "http://www.finetuner.io",
-            "http://api.finetuner.io",
-            "http://82.29.173.71:8000"
-        ]
-    )
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "https://finetuner.io",
+        "https://www.finetuner.io",
+        "https://api.finetuner.io",
+        "http://finetuner.io",
+        "http://www.finetuner.io",
+        "http://api.finetuner.io",
+        "http://82.29.173.71:8000"
+    ]
     
     # Security configuration
     SECRET_KEY: str = Field(default="your_secret_key_here")
