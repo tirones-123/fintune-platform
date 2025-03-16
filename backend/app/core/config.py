@@ -1,88 +1,77 @@
 import os
 from typing import List, Optional, Dict, Any
-
-from pydantic_settings import BaseSettings
-from pydantic import validator
+from pydantic import Field, computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Configuration pour Pydantic v2
-    model_config = {
-        "extra": "ignore",  # Permet les champs supplémentaires dans .env
-        "env_file": ".env",
-        "case_sensitive": True
-    }
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__"
+    )
 
     # API configuration
     API_V1_STR: str = "/api"
     PROJECT_NAME: str = "FinTune Platform API"
     
     # CORS configuration
-    BACKEND_CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "https://finetuner.io",
-        "https://www.finetuner.io",
-        "https://api.finetuner.io",
-        "http://finetuner.io",
-        "http://www.finetuner.io",
-        "http://api.finetuner.io"
-    ]
+    BACKEND_CORS_ORIGINS: List[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "https://finetuner.io",
+            "https://www.finetuner.io",
+            "https://api.finetuner.io",
+            "http://finetuner.io",
+            "http://www.finetuner.io",
+            "http://api.finetuner.io",
+            "http://82.29.173.71:8000"
+        ]
+    )
     
     # Security configuration
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "your_secret_key_here")
-    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+    SECRET_KEY: str = Field(default="your_secret_key_here")
+    ALGORITHM: str = Field(default="HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
     
     # Database configuration
-    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "fintune")
-    SQLALCHEMY_DATABASE_URI: Optional[str] = None
+    POSTGRES_SERVER: str = Field(default="localhost")
+    POSTGRES_USER: str = Field(default="postgres")
+    POSTGRES_PASSWORD: str = Field(default="postgres")
+    POSTGRES_DB: str = Field(default="fintune")
     
-    @validator("SQLALCHEMY_DATABASE_URI", pre=True)
-    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> str:
-        if isinstance(v, str):
-            return v
-        
-        # Construire manuellement l'URL
-        user = values.get("POSTGRES_USER")
-        password = values.get("POSTGRES_PASSWORD")
-        host = values.get("POSTGRES_SERVER")
-        db = values.get("POSTGRES_DB")
-        
-        # S'assurer que toutes les valeurs sont définies
-        if not all([user, password, host, db]):
-            # Fournir une valeur par défaut si certaines valeurs sont manquantes
+    @computed_field
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        if not all([self.POSTGRES_USER, self.POSTGRES_PASSWORD, self.POSTGRES_SERVER, self.POSTGRES_DB]):
             return "postgresql://postgres:postgres@localhost/fintune"
-        
-        # Retourner une chaîne de connexion
-        return f"postgresql://{user}:{password}@{host}/{db}"
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
     
     # Stripe configuration
-    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
-    STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
-    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    STRIPE_SECRET_KEY: str = Field(default="")
+    STRIPE_PUBLISHABLE_KEY: str = Field(default="")
+    STRIPE_WEBHOOK_SECRET: str = Field(default="")
     
     # Stripe price IDs
-    STRIPE_PRICE_STARTER: str = os.getenv("STRIPE_PRICE_STARTER", "")
-    STRIPE_PRICE_PRO: str = os.getenv("STRIPE_PRICE_PRO", "")
-    STRIPE_PRICE_ENTERPRISE: str = os.getenv("STRIPE_PRICE_ENTERPRISE", "")
+    STRIPE_PRICE_STARTER: str = Field(default="")
+    STRIPE_PRICE_PRO: str = Field(default="")
+    STRIPE_PRICE_ENTERPRISE: str = Field(default="")
     
     # File storage configuration
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "/tmp/uploads")
-    MAX_UPLOAD_SIZE: int = int(os.getenv("MAX_UPLOAD_SIZE", "10485760"))  # 10MB
+    UPLOAD_DIR: str = Field(default="/tmp/uploads")
+    MAX_UPLOAD_SIZE: int = Field(default=10485760)  # 10MB
     
     # Redis configuration
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    REDIS_URL: str = Field(default="redis://redis:6379/0")
 
     # IA settings 
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
+    OPENAI_API_KEY: str = Field(default="")
+    ANTHROPIC_API_KEY: str = Field(default="")
+    MISTRAL_API_KEY: str = Field(default="")
     
     # Content processing settings
-    DEFAULT_AI_MODEL: str = os.getenv("DEFAULT_AI_MODEL", "gpt-4o-mini")
+    DEFAULT_AI_MODEL: str = Field(default="gpt-4o-mini")
 
 
 settings = Settings() 
