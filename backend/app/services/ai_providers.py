@@ -3,6 +3,8 @@ from typing import Dict, Any, Optional, List
 import os
 import json
 from openai import OpenAI
+import anthropic
+import requests
 
 from app.core.config import settings
 
@@ -42,38 +44,84 @@ class OpenAIProvider(AIProviderBase):
     def validate_key(self) -> bool:
         """Validate the OpenAI API key."""
         try:
-            # In a real implementation, this would make a test API call
-            return self.api_key.startswith("sk-")
+            # Make a low-cost API call to verify the key
+            self.client.models.list(limit=1)
+            return True
         except Exception as e:
             logger.error(f"Error validating OpenAI API key: {str(e)}")
             return False
     
     def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any]) -> Dict[str, Any]:
         """Start a fine-tuning job with OpenAI."""
-        # In a real implementation, this would call the OpenAI API
-        logger.info(f"Starting OpenAI fine-tuning for model {model}")
-        return {
-            "status": "success",
-            "job_id": "ft-mock-123456",
-            "model": model,
-        }
+        try:
+            # Create a fine-tuning job
+            response = self.client.fine_tuning.jobs.create(
+                training_file=dataset_path,
+                model=model,
+                hyperparameters=hyperparameters
+            )
+            
+            logger.info(f"Started OpenAI fine-tuning job: {response.id}")
+            
+            return {
+                "status": "success",
+                "job_id": response.id,
+                "model": model,
+                "details": {
+                    "created_at": response.created_at,
+                    "status": response.status
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error starting OpenAI fine-tuning: {str(e)}")
+            raise e
     
     def get_fine_tuning_status(self, job_id: str) -> Dict[str, Any]:
         """Get the status of an OpenAI fine-tuning job."""
-        # In a real implementation, this would call the OpenAI API
-        logger.info(f"Getting status for OpenAI fine-tuning job {job_id}")
-        return {
-            "status": "running",
-            "progress": 50,
-        }
+        try:
+            # Retrieve the fine-tuning job
+            response = self.client.fine_tuning.jobs.retrieve(job_id)
+            
+            progress = 0
+            if response.status == "succeeded":
+                progress = 100
+            elif response.status == "running" and response.training_metrics:
+                # Calculate approximate progress from training metrics
+                if "step" in response.training_metrics and "total_steps" in response.training_metrics:
+                    progress = min(99, int((response.training_metrics["step"] / response.training_metrics["total_steps"]) * 100))
+            
+            return {
+                "status": response.status,
+                "progress": progress,
+                "details": {
+                    "created_at": response.created_at,
+                    "finished_at": response.finished_at,
+                    "training_metrics": response.training_metrics
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting OpenAI fine-tuning status: {str(e)}")
+            raise e
     
     def cancel_fine_tuning(self, job_id: str) -> Dict[str, Any]:
         """Cancel an OpenAI fine-tuning job."""
-        # In a real implementation, this would call the OpenAI API
-        logger.info(f"Cancelling OpenAI fine-tuning job {job_id}")
-        return {
-            "status": "cancelled",
-        }
+        try:
+            # Cancel the fine-tuning job
+            response = self.client.fine_tuning.jobs.cancel(job_id)
+            
+            return {
+                "status": response.status,
+                "details": {
+                    "created_at": response.created_at,
+                    "finished_at": response.finished_at
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error cancelling OpenAI fine-tuning: {str(e)}")
+            raise e
     
     def generate_completion(self, prompt: str, model: str = "gpt-4o-mini") -> str:
         """Generate a completion for a prompt using OpenAI."""
@@ -98,178 +146,567 @@ class OpenAIProvider(AIProviderBase):
         """
         try:
             prompt = (
-                "À partir du texte suivant, génère plusieurs paires de questions-réponses pertinentes "
-                "au format JSON pour le fine-tuning. Chaque paire doit être dans un objet JSON distinct. "
-                "Les questions doivent être variées et représentatives du contenu, et les réponses doivent "
-                "être détaillées et dans le style de l'auteur du texte.\n\n"
-                "Format exact à respecter pour chaque objet JSON (un par ligne) :\n\n"
-                '{"messages": [\n'
-                '  {"role": "system", "content": "Vous êtes un assistant qui génère du contenu dans le style de l\'auteur"},\n'
-                '  {"role": "user", "content": "<QUESTION GÉNÉRÉE À PARTIR DU TEXTE>"},\n'
-                '  {"role": "assistant", "content": "<RÉPONSE DÉTAILLÉE DANS LE STYLE DE L\'AUTEUR>"}\n'
-                "]}\n\n"
-                "Texte source :\n\n"
-                f"{chunk_text}\n\n"
-                "Génère au moins 5 paires de questions-réponses différentes à partir de ce texte. "
-                "Assure-toi que les questions sont variées (questions ouvertes, fermées, demandes d'opinion, etc.) "
-                "et que les réponses sont détaillées et reflètent le style et les idées du texte source.\n\n"
-                "Le résultat doit être plusieurs objets JSON sur plusieurs lignes, sans markdown ni explications."
+                "Create 5 question-answer pairs from the following text chunk. "
+                "The questions should be diverse and cover different aspects of the text. "
+                "The answers should be comprehensive and accurate based on the information provided. "
+                "Format your response as a JSON array with objects containing 'question' and 'answer' fields.\n\n"
+                f"Text chunk: {chunk_text}"
             )
             
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "Tu es un assistant expert en création de datasets pour le fine-tuning, capable de générer des paires de questions-réponses pertinentes."},
+                    {"role": "system", "content": "You are an expert in creating high-quality training data for fine-tuning language models."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
+                response_format={"type": "json_object"}
             )
             
-            json_str = response.choices[0].message.content.strip()
-            # Découpe la chaîne en plusieurs lignes
-            json_lines = json_str.split("\n")
-            parsed_objects = []
-            for line in json_lines:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                    parsed_objects.append(obj)
-                except Exception as parse_e:
-                    logger.error(f"Impossible de parser la ligne: {line}")
-                    logger.error(f"Erreur de parsing: {parse_e}")
+            # Parse JSON from response
+            content = response.choices[0].message.content
+            data = json.loads(content)
             
-            # Transformation au format de notre application
-            qa_pairs = []
-            for obj in parsed_objects:
-                try:
-                    messages = obj.get("messages", [])
-                    user_message = next((m for m in messages if m.get("role") == "user"), None)
-                    assistant_message = next((m for m in messages if m.get("role") == "assistant"), None)
-                    
-                    if user_message and assistant_message:
-                        qa_pairs.append({
-                            "question": user_message.get("content", ""),
-                            "answer": assistant_message.get("content", "")
-                        })
-                except Exception as e:
-                    logger.error(f"Erreur lors du traitement d'un objet: {str(e)}")
-            
-            return qa_pairs
+            # Ensure data has the expected format
+            if "pairs" in data:
+                return data["pairs"]
+            elif isinstance(data, list):
+                return data
+            elif isinstance(data, dict) and all(k in data for k in ["question", "answer"]):
+                return [data]
+            else:
+                # Try to extract qa_pairs or similar key
+                for key in data:
+                    if isinstance(data[key], list) and len(data[key]) > 0:
+                        return data[key]
+                
+                # Fallback to empty list if no valid data
+                logger.warning(f"Unexpected response format: {data}")
+                return []
+                
         except Exception as e:
             logger.error(f"Error generating QA pairs with OpenAI: {str(e)}")
+            logger.error(f"Chunk text (truncated): {chunk_text[:100]}...")
+            return []
+            
+    def upload_training_file(self, file_path: str) -> str:
+        """
+        Upload a training file to OpenAI and return the file ID.
+        """
+        try:
+            with open(file_path, 'rb') as file:
+                response = self.client.files.create(
+                    file=file,
+                    purpose="fine-tune"
+                )
+                
+            return response.id
+            
+        except Exception as e:
+            logger.error(f"Error uploading training file to OpenAI: {str(e)}")
+            raise e
+            
+    def prepare_training_file(self, qa_pairs: List[Dict], output_path: str) -> str:
+        """
+        Prepare a JSONL training file for OpenAI fine-tuning.
+        """
+        try:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            with open(output_path, 'w') as f:
+                for pair in qa_pairs:
+                    # Format as per OpenAI's fine-tuning format
+                    training_example = {
+                        "messages": [
+                            {"role": "system", "content": "You are a helpful assistant."},
+                            {"role": "user", "content": pair["question"]},
+                            {"role": "assistant", "content": pair["answer"]}
+                        ]
+                    }
+                    f.write(json.dumps(training_example) + '\n')
+                    
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"Error preparing training file: {str(e)}")
             raise e
 
 class AnthropicProvider(AIProviderBase):
     """Anthropic provider implementation."""
     
+    def __init__(self, api_key: str):
+        super().__init__(api_key)
+        self.client = anthropic.Anthropic(api_key=api_key)
+    
     def validate_key(self) -> bool:
         """Validate the Anthropic API key."""
         try:
-            # In a real implementation, this would make a test API call
-            return self.api_key.startswith("sk-ant-")
+            # Make a minimal API call to validate the key
+            self.client.models.list()
+            return True
         except Exception as e:
             logger.error(f"Error validating Anthropic API key: {str(e)}")
             return False
     
     def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any]) -> Dict[str, Any]:
         """Start a fine-tuning job with Anthropic."""
-        # In a real implementation, this would call the Anthropic API
-        logger.info(f"Starting Anthropic fine-tuning for model {model}")
-        return {
-            "status": "success",
-            "job_id": "ft-ant-mock-123456",
-            "model": model,
-        }
+        try:
+            # Create a fine-tuning job
+            response = self.client.fine_tuning.create(
+                model=model,
+                training_file=dataset_path,
+                hyperparameters=hyperparameters
+            )
+            
+            logger.info(f"Started Anthropic fine-tuning job: {response.id}")
+            
+            return {
+                "status": "success",
+                "job_id": response.id,
+                "model": model,
+                "details": {
+                    "created_at": response.created_at,
+                    "status": response.status
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error starting Anthropic fine-tuning: {str(e)}")
+            raise e
     
     def get_fine_tuning_status(self, job_id: str) -> Dict[str, Any]:
         """Get the status of an Anthropic fine-tuning job."""
-        # In a real implementation, this would call the Anthropic API
-        logger.info(f"Getting status for Anthropic fine-tuning job {job_id}")
-        return {
-            "status": "running",
-            "progress": 50,
-        }
+        try:
+            # Retrieve the fine-tuning job
+            response = self.client.fine_tuning.retrieve(job_id)
+            
+            # Map Anthropic status to general status
+            status_map = {
+                "created": "preparing",
+                "running": "running",
+                "succeeded": "succeeded",
+                "failed": "failed",
+                "cancelled": "cancelled"
+            }
+            
+            # Calculate progress based on status
+            progress = 0
+            if response.status == "succeeded":
+                progress = 100
+            elif response.status == "running" and hasattr(response, "completion_percentage"):
+                progress = response.completion_percentage
+            elif response.status == "running":
+                progress = 50  # Default progress if no specific indicator
+            
+            return {
+                "status": status_map.get(response.status, response.status),
+                "progress": progress,
+                "details": {
+                    "created_at": response.created_at,
+                    "finished_at": response.finished_at if hasattr(response, "finished_at") else None,
+                    "training_metrics": response.train_loss if hasattr(response, "train_loss") else None,
+                    "error": response.failure_reason if hasattr(response, "failure_reason") else None
+                },
+                "fine_tuned_model": response.fine_tuned_model if hasattr(response, "fine_tuned_model") else None
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting Anthropic fine-tuning status: {str(e)}")
+            raise e
     
     def cancel_fine_tuning(self, job_id: str) -> Dict[str, Any]:
         """Cancel an Anthropic fine-tuning job."""
-        # In a real implementation, this would call the Anthropic API
-        logger.info(f"Cancelling Anthropic fine-tuning job {job_id}")
-        return {
-            "status": "cancelled",
-        }
+        try:
+            # Cancel the fine-tuning job
+            response = self.client.fine_tuning.cancel(job_id)
+            
+            return {
+                "status": "cancelled",
+                "details": {
+                    "created_at": response.created_at if hasattr(response, "created_at") else None,
+                    "finished_at": response.finished_at if hasattr(response, "finished_at") else None
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error cancelling Anthropic fine-tuning: {str(e)}")
+            raise e
     
-    def generate_completion(self, prompt: str, model: str) -> str:
+    def generate_completion(self, prompt: str, model: str = "claude-3-sonnet-20240229") -> str:
         """Generate a completion for a prompt using Anthropic."""
-        # In a real implementation, this would call the Anthropic API
-        logger.info(f"Generating completion with Anthropic model {model}")
-        return f"This is a mock response from Anthropic for prompt: {prompt[:30]}..."
+        try:
+            response = self.client.messages.create(
+                model=model,
+                max_tokens=1024,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+            )
+            return response.content[0].text
+        except Exception as e:
+            logger.error(f"Error generating completion with Anthropic: {str(e)}")
+            raise e
+    
+    def generate_qa_pairs(self, chunk_text: str, model: str = "claude-3-sonnet-20240229") -> List[Dict]:
+        """
+        Generates question-answer pairs from a text chunk using Anthropic.
+        """
+        try:
+            prompt = (
+                "Create 5 question-answer pairs from the following text chunk. "
+                "The questions should be diverse and cover different aspects of the text. "
+                "The answers should be comprehensive and accurate based on the information provided. "
+                "Format your response as a JSON array with objects containing 'question' and 'answer' fields.\n\n"
+                f"Text chunk: {chunk_text}"
+            )
+            
+            response = self.client.messages.create(
+                model=model,
+                max_tokens=1500,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+            )
+            
+            # Parse JSON from response
+            content = response.content[0].text
+            
+            # Extract JSON from the response
+            try:
+                # Try to find JSON object in the response
+                json_start = content.find('[')
+                json_end = content.rfind(']') + 1
+                
+                if json_start >= 0 and json_end > json_start:
+                    json_str = content[json_start:json_end]
+                    data = json.loads(json_str)
+                    return data
+                else:
+                    # If not found, try parsing the entire response
+                    data = json.loads(content)
+                    
+                    # Handle different response formats
+                    if isinstance(data, list):
+                        return data
+                    elif isinstance(data, dict) and "pairs" in data:
+                        return data["pairs"]
+                    else:
+                        logger.warning(f"Unexpected response format: {data}")
+                        return []
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse JSON from Anthropic response")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Error generating QA pairs with Anthropic: {str(e)}")
+            return []
+            
+    def upload_training_file(self, file_path: str) -> str:
+        """
+        Upload a training file to Anthropic and return the file ID.
+        Note: Anthropic may have a different file upload mechanism.
+        """
+        try:
+            with open(file_path, 'rb') as file:
+                response = self.client.files.create(
+                    file=file,
+                    purpose="fine-tune"
+                )
+                
+            return response.id
+            
+        except Exception as e:
+            logger.error(f"Error uploading training file to Anthropic: {str(e)}")
+            raise e
+            
+    def prepare_training_file(self, qa_pairs: List[Dict], output_path: str) -> str:
+        """
+        Prepare a JSONL training file for Anthropic fine-tuning.
+        """
+        try:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            with open(output_path, 'w') as f:
+                for pair in qa_pairs:
+                    # Format as per Anthropic's fine-tuning format
+                    training_example = {
+                        "messages": [
+                            {"role": "user", "content": pair["question"]},
+                            {"role": "assistant", "content": pair["answer"]}
+                        ]
+                    }
+                    f.write(json.dumps(training_example) + '\n')
+                    
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"Error preparing training file for Anthropic: {str(e)}")
+            raise e
 
 class MistralProvider(AIProviderBase):
-    """Mistral provider implementation."""
+    """Mistral AI provider implementation."""
+    
+    def __init__(self, api_key: str):
+        super().__init__(api_key)
+        self.base_url = "https://api.mistral.ai/v1"
+        self.headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
     
     def validate_key(self) -> bool:
         """Validate the Mistral API key."""
         try:
-            # In a real implementation, this would make a test API call
-            return len(self.api_key) > 10
+            # Make a test API call
+            response = requests.get(
+                f"{self.base_url}/models",
+                headers=self.headers
+            )
+            response.raise_for_status()
+            return True
         except Exception as e:
             logger.error(f"Error validating Mistral API key: {str(e)}")
             return False
     
     def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any]) -> Dict[str, Any]:
         """Start a fine-tuning job with Mistral."""
-        # In a real implementation, this would call the Mistral API
-        logger.info(f"Starting Mistral fine-tuning for model {model}")
-        return {
-            "status": "success",
-            "job_id": "ft-mistral-mock-123456",
-            "model": model,
-        }
+        try:
+            # Create a fine-tuning job
+            payload = {
+                "training_file": dataset_path,
+                "model": model,
+                **hyperparameters
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/fine-tuning",
+                headers=self.headers,
+                json=payload
+            )
+            response.raise_for_status()
+            response_data = response.json()
+            
+            job_id = response_data.get("id")
+            logger.info(f"Started Mistral fine-tuning job: {job_id}")
+            
+            return {
+                "status": "success",
+                "job_id": job_id,
+                "model": model,
+                "details": response_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error starting Mistral fine-tuning: {str(e)}")
+            raise e
     
     def get_fine_tuning_status(self, job_id: str) -> Dict[str, Any]:
         """Get the status of a Mistral fine-tuning job."""
-        # In a real implementation, this would call the Mistral API
-        logger.info(f"Getting status for Mistral fine-tuning job {job_id}")
-        return {
-            "status": "running",
-            "progress": 50,
-        }
+        try:
+            # Retrieve the fine-tuning job
+            response = requests.get(
+                f"{self.base_url}/fine-tuning/{job_id}",
+                headers=self.headers
+            )
+            response.raise_for_status()
+            response_data = response.json()
+            
+            status = response_data.get("status", "")
+            
+            # Calculate progress
+            progress = 0
+            if status == "finished":
+                progress = 100
+            elif status == "running":
+                # Try to get progress details if available
+                if "progress" in response_data:
+                    progress = response_data["progress"]
+                else:
+                    progress = 50  # Default if no specific value
+            
+            return {
+                "status": status,
+                "progress": progress,
+                "details": response_data,
+                "fine_tuned_model": response_data.get("fine_tuned_model", "")
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting Mistral fine-tuning status: {str(e)}")
+            raise e
     
     def cancel_fine_tuning(self, job_id: str) -> Dict[str, Any]:
         """Cancel a Mistral fine-tuning job."""
-        # In a real implementation, this would call the Mistral API
-        logger.info(f"Cancelling Mistral fine-tuning job {job_id}")
-        return {
-            "status": "cancelled",
-        }
+        try:
+            # Cancel the fine-tuning job
+            response = requests.post(
+                f"{self.base_url}/fine-tuning/{job_id}/cancel",
+                headers=self.headers
+            )
+            response.raise_for_status()
+            response_data = response.json()
+            
+            return {
+                "status": "cancelled",
+                "details": response_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error cancelling Mistral fine-tuning: {str(e)}")
+            raise e
     
-    def generate_completion(self, prompt: str, model: str) -> str:
+    def generate_completion(self, prompt: str, model: str = "mistral-large-latest") -> str:
         """Generate a completion for a prompt using Mistral."""
-        # In a real implementation, this would call the Mistral API
-        logger.info(f"Generating completion with Mistral model {model}")
-        return f"This is a mock response from Mistral for prompt: {prompt[:30]}..."
+        try:
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers=self.headers,
+                json=payload
+            )
+            response.raise_for_status()
+            response_data = response.json()
+            
+            return response_data["choices"][0]["message"]["content"]
+            
+        except Exception as e:
+            logger.error(f"Error generating completion with Mistral: {str(e)}")
+            raise e
+    
+    def generate_qa_pairs(self, chunk_text: str, model: str = "mistral-large-latest") -> List[Dict]:
+        """
+        Generates question-answer pairs from a text chunk using Mistral.
+        """
+        try:
+            prompt = (
+                "Create 5 question-answer pairs from the following text chunk. "
+                "The questions should be diverse and cover different aspects of the text. "
+                "The answers should be comprehensive and accurate based on the information provided. "
+                "Format your response as a JSON array with objects containing 'question' and 'answer' fields.\n\n"
+                f"Text chunk: {chunk_text}"
+            )
+            
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "response_format": {"type": "json_object"}
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers=self.headers,
+                json=payload
+            )
+            response.raise_for_status()
+            response_data = response.json()
+            
+            # Parse JSON from response
+            content = response_data["choices"][0]["message"]["content"]
+            
+            try:
+                data = json.loads(content)
+                
+                # Handle different response formats
+                if "pairs" in data:
+                    return data["pairs"]
+                elif isinstance(data, list):
+                    return data
+                elif all(k in data for k in ["question", "answer"]):
+                    return [data]
+                else:
+                    # Try to find any array in the response
+                    for key in data:
+                        if isinstance(data[key], list) and len(data[key]) > 0:
+                            return data[key]
+                    
+                    logger.warning(f"Unexpected response format: {data}")
+                    return []
+                    
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse JSON from Mistral response")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Error generating QA pairs with Mistral: {str(e)}")
+            return []
+            
+    def upload_training_file(self, file_path: str) -> str:
+        """
+        Upload a training file to Mistral and return the file ID.
+        """
+        try:
+            with open(file_path, 'rb') as file:
+                files = {
+                    'file': file,
+                    'purpose': (None, 'fine-tune')
+                }
+                
+                response = requests.post(
+                    f"{self.base_url}/files",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    files=files
+                )
+                response.raise_for_status()
+                response_data = response.json()
+                
+            return response_data["id"]
+            
+        except Exception as e:
+            logger.error(f"Error uploading training file to Mistral: {str(e)}")
+            raise e
+            
+    def prepare_training_file(self, qa_pairs: List[Dict], output_path: str) -> str:
+        """
+        Prepare a JSONL training file for Mistral fine-tuning.
+        """
+        try:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            with open(output_path, 'w') as f:
+                for pair in qa_pairs:
+                    # Format as per Mistral's fine-tuning format
+                    training_example = {
+                        "messages": [
+                            {"role": "user", "content": pair["question"]},
+                            {"role": "assistant", "content": pair["answer"]}
+                        ]
+                    }
+                    f.write(json.dumps(training_example) + '\n')
+                    
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"Error preparing training file for Mistral: {str(e)}")
+            raise e
 
-def get_ai_provider(provider_name: str, api_key: Optional[str] = None) -> AIProviderBase:
+def get_ai_provider(provider_name: str, api_key: str = None) -> AIProviderBase:
     """
-    Get an AI provider instance.
+    Get an AI provider implementation based on the provider name.
     
     Args:
-        provider_name: The name of the provider (openai, anthropic, mistral)
-        api_key: The API key for the provider. If not provided, it will be loaded from environment variables.
-    
+        provider_name: Name of the provider (openai, anthropic, mistral)
+        api_key: Optional API key to use (if not provided, the key from settings will be used)
+        
     Returns:
-        An instance of the AI provider.
+        An AIProviderBase implementation
     """
     if provider_name == "openai":
-        key = api_key or os.getenv("OPENAI_API_KEY", "")
-        return OpenAIProvider(key)
+        return OpenAIProvider(api_key or settings.OPENAI_API_KEY)
     elif provider_name == "anthropic":
-        key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
-        return AnthropicProvider(key)
+        return AnthropicProvider(api_key or settings.ANTHROPIC_API_KEY)
     elif provider_name == "mistral":
-        key = api_key or os.getenv("MISTRAL_API_KEY", "")
-        return MistralProvider(key)
+        return MistralProvider(api_key or settings.MISTRAL_API_KEY)
     else:
-        raise ValueError(f"Unknown AI provider: {provider_name}") 
+        raise ValueError(f"Unsupported AI provider: {provider_name}") 

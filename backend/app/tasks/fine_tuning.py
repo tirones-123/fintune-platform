@@ -2,18 +2,21 @@ from celery import shared_task
 from loguru import logger
 from sqlalchemy.orm import Session
 import time
-import random
-import uuid
+import os
+import json
+from datetime import datetime
 
 from app.db.session import SessionLocal
 from app.models.fine_tuning import FineTuning
-from app.models.dataset import Dataset
+from app.models.dataset import Dataset, DatasetPair
 from app.services.ai_providers import get_ai_provider
+from app.services.storage import storage_service
+from app.core.config import settings
 
 @shared_task(name="start_fine_tuning")
 def start_fine_tuning(fine_tuning_id: int):
     """
-    Start a fine-tuning job.
+    Start a fine-tuning job with the actual API provider.
     """
     logger.info(f"Starting fine-tuning {fine_tuning_id}")
     
@@ -38,24 +41,71 @@ def start_fine_tuning(fine_tuning_id: int):
             db.commit()
             return {"status": "error", "message": "Dataset not found"}
         
-        # Update fine-tuning status to training
-        fine_tuning.status = "training"
+        # Update fine-tuning status to preparing
+        fine_tuning.status = "preparing"
         fine_tuning.progress = 0
-        fine_tuning.external_id = str(uuid.uuid4())  # Simulate external ID
         db.commit()
         
         # Get AI provider service
-        # provider_service = get_ai_provider(fine_tuning.provider)
+        provider_service = get_ai_provider(fine_tuning.provider, fine_tuning.api_key or None)
         
-        # Simulate fine-tuning process
-        # In a real implementation, this would call the AI provider's API
-        # and then use a callback or periodic task to update the progress
+        # Fetch all dataset pairs
+        dataset_pairs = db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset.id).all()
         
-        # For demo purposes, we'll simulate progress updates
-        update_fine_tuning_progress.delay(fine_tuning_id)
+        if not dataset_pairs:
+            logger.error(f"No pairs found for dataset {dataset.id}")
+            fine_tuning.status = "error"
+            fine_tuning.error_message = "No pairs found in dataset"
+            db.commit()
+            return {"status": "error", "message": "Dataset is empty"}
         
-        logger.info(f"Fine-tuning {fine_tuning_id} started successfully")
-        return {"status": "success", "fine_tuning_id": fine_tuning_id}
+        # Prepare the training data
+        qa_pairs = [{"question": pair.question, "answer": pair.answer} for pair in dataset_pairs]
+        
+        # Create temp directory for training file
+        temp_dir = os.path.join(settings.UPLOAD_DIR, "fine_tuning", str(fine_tuning_id))
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Create and save the training file
+        training_file_path = os.path.join(temp_dir, f"training_data_{fine_tuning_id}.jsonl")
+        training_file_path = provider_service.prepare_training_file(qa_pairs, training_file_path)
+        
+        # Upload training file to the provider
+        file_id = provider_service.upload_training_file(training_file_path)
+        
+        # Save file ID for reference
+        fine_tuning.file_id = file_id
+        db.commit()
+        
+        # Wait for file processing (may be necessary for some providers)
+        time.sleep(5)
+        
+        # Prepare hyperparameters
+        hyperparameters = {}
+        if fine_tuning.hyperparameters:
+            hyperparameters = fine_tuning.hyperparameters
+        
+        # Start the fine-tuning job
+        response = provider_service.start_fine_tuning(
+            dataset_path=file_id,
+            model=fine_tuning.base_model,
+            hyperparameters=hyperparameters
+        )
+        
+        # Update fine-tuning with job ID
+        fine_tuning.status = "training"
+        fine_tuning.external_id = response.get("job_id")
+        fine_tuning.started_at = datetime.now().isoformat()
+        db.commit()
+        
+        # Schedule periodic status check
+        check_fine_tuning_status.apply_async(
+            args=[fine_tuning_id],
+            countdown=60  # Check after 1 minute
+        )
+        
+        logger.info(f"Fine-tuning {fine_tuning_id} started successfully with job ID {response.get('job_id')}")
+        return {"status": "success", "fine_tuning_id": fine_tuning_id, "job_id": response.get("job_id")}
     
     except Exception as e:
         logger.error(f"Error starting fine-tuning {fine_tuning_id}: {str(e)}")
@@ -72,12 +122,12 @@ def start_fine_tuning(fine_tuning_id: int):
     finally:
         db.close()
 
-@shared_task(name="update_fine_tuning_progress")
-def update_fine_tuning_progress(fine_tuning_id: int):
+@shared_task(name="check_fine_tuning_status")
+def check_fine_tuning_status(fine_tuning_id: int):
     """
-    Update the progress of a fine-tuning job.
+    Check the status of a fine-tuning job with the provider's API.
     """
-    logger.info(f"Updating fine-tuning progress for {fine_tuning_id}")
+    logger.info(f"Checking fine-tuning status for {fine_tuning_id}")
     
     # Create a new database session
     db = SessionLocal()
@@ -95,42 +145,63 @@ def update_fine_tuning_progress(fine_tuning_id: int):
             logger.info(f"Fine-tuning {fine_tuning_id} is not in training status, skipping update")
             return {"status": "skipped", "message": "Fine-tuning is not in training status"}
         
-        # Simulate progress update
-        current_progress = fine_tuning.progress or 0
-        new_progress = min(current_progress + random.uniform(5, 15), 100)
+        # Get provider service
+        provider_service = get_ai_provider(fine_tuning.provider, fine_tuning.api_key or None)
         
-        fine_tuning.progress = new_progress
+        # Get status from provider
+        status_response = provider_service.get_fine_tuning_status(fine_tuning.external_id)
         
-        # If progress is 100%, mark as completed
-        if new_progress >= 100:
+        # Update fine-tuning status
+        fine_tuning.progress = status_response.get("progress", 0)
+        provider_status = status_response.get("status", "")
+        
+        # Map provider status to our app status
+        if provider_status in ["succeeded", "completed"]:
             fine_tuning.status = "completed"
             fine_tuning.progress = 100
-            fine_tuning.completed_at = time.strftime('%Y-%m-%d %H:%M:%S')
-            fine_tuning.metrics = {
-                "training_loss": round(random.uniform(0.01, 0.1), 4),
-                "validation_loss": round(random.uniform(0.05, 0.2), 4),
-            }
+            fine_tuning.completed_at = datetime.now().isoformat()
+            fine_tuning.metrics = status_response.get("details", {})
+            fine_tuning.fine_tuned_model = status_response.get("fine_tuned_model", "")
             logger.info(f"Fine-tuning {fine_tuning_id} completed")
+            
+        elif provider_status in ["failed", "error"]:
+            fine_tuning.status = "error"
+            fine_tuning.error_message = status_response.get("details", {}).get("error", "Unknown error")
+            logger.error(f"Fine-tuning {fine_tuning_id} failed: {fine_tuning.error_message}")
+            
+        elif provider_status in ["cancelled", "canceled"]:
+            fine_tuning.status = "cancelled"
+            fine_tuning.completed_at = datetime.now().isoformat()
+            logger.info(f"Fine-tuning {fine_tuning_id} was cancelled")
+            
         else:
-            # Schedule next update in 10-30 seconds
-            update_delay = random.randint(10, 30)
-            update_fine_tuning_progress.apply_async(
+            # Still in progress, schedule next check
+            fine_tuning.status = "training"
+            check_delay = 300  # 5 minutes by default
+            
+            # Adjust check frequency based on progress
+            if fine_tuning.progress < 30:
+                check_delay = 180  # 3 minutes for early progress
+            elif fine_tuning.progress > 80:
+                check_delay = 120  # 2 minutes for almost done
+                
+            check_fine_tuning_status.apply_async(
                 args=[fine_tuning_id],
-                countdown=update_delay
+                countdown=check_delay
             )
-            logger.info(f"Scheduled next update for fine-tuning {fine_tuning_id} in {update_delay} seconds")
+            logger.info(f"Fine-tuning {fine_tuning_id} in progress ({fine_tuning.progress}%), checking again in {check_delay} seconds")
         
         db.commit()
         
         return {
             "status": "success",
             "fine_tuning_id": fine_tuning_id,
-            "progress": new_progress,
-            "is_completed": new_progress >= 100
+            "progress": fine_tuning.progress,
+            "state": fine_tuning.status
         }
     
     except Exception as e:
-        logger.error(f"Error updating fine-tuning progress {fine_tuning_id}: {str(e)}")
+        logger.error(f"Error checking fine-tuning status {fine_tuning_id}: {str(e)}")
         return {"status": "error", "message": str(e)}
     
     finally:
@@ -139,7 +210,7 @@ def update_fine_tuning_progress(fine_tuning_id: int):
 @shared_task(name="cancel_fine_tuning")
 def cancel_fine_tuning(fine_tuning_id: int):
     """
-    Cancel a fine-tuning job.
+    Cancel a fine-tuning job using the provider's API.
     """
     logger.info(f"Cancelling fine-tuning {fine_tuning_id}")
     
@@ -159,8 +230,17 @@ def cancel_fine_tuning(fine_tuning_id: int):
             logger.info(f"Fine-tuning {fine_tuning_id} is already in {fine_tuning.status} status, skipping cancellation")
             return {"status": "skipped", "message": f"Fine-tuning is already in {fine_tuning.status} status"}
         
+        # Get provider service
+        provider_service = get_ai_provider(fine_tuning.provider, fine_tuning.api_key or None)
+        
+        # Cancel job with provider
+        if fine_tuning.external_id:
+            response = provider_service.cancel_fine_tuning(fine_tuning.external_id)
+            logger.info(f"Provider response for cancellation: {response}")
+        
         # Update fine-tuning status to cancelled
         fine_tuning.status = "cancelled"
+        fine_tuning.completed_at = datetime.now().isoformat()
         db.commit()
         
         logger.info(f"Fine-tuning {fine_tuning_id} cancelled successfully")

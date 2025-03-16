@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 import os
 import time
 import traceback
+import json
+from datetime import datetime
 
 from app.db.session import SessionLocal
 from app.models.dataset import Dataset, DatasetPair, DatasetContent
@@ -45,6 +47,7 @@ def generate_dataset(dataset_id: int):
         
         # Update dataset status to processing
         dataset.status = "processing"
+        dataset.started_at = datetime.now().isoformat()
         db.commit()
         
         # Get all contents associated with this dataset
@@ -63,8 +66,9 @@ def generate_dataset(dataset_id: int):
         # Get contents
         contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
         
-        # Initialize OpenAI provider
-        openai_provider = get_ai_provider("openai")
+        # Initialize OpenAI provider with user's API key if available
+        provider_name = dataset.provider or "openai"
+        provider = get_ai_provider(provider_name, dataset.api_key)
         
         # Model to use for generation
         model = dataset.model or DEFAULT_MODEL
@@ -101,7 +105,7 @@ def generate_dataset(dataset_id: int):
                     
                     try:
                         # Generate QA pairs for this chunk
-                        qa_pairs = openai_provider.generate_qa_pairs(chunk, model)
+                        qa_pairs = provider.generate_qa_pairs(chunk, model)
                         
                         if not qa_pairs:
                             logger.warning(f"No QA pairs generated for chunk {i+1} of content {content.id}")
@@ -109,6 +113,11 @@ def generate_dataset(dataset_id: int):
                         
                         # Add pairs to database
                         for pair in qa_pairs:
+                            # Vérification que les paires contiennent bien question et réponse
+                            if not isinstance(pair, dict) or "question" not in pair or "answer" not in pair:
+                                logger.warning(f"Invalid QA pair format: {pair}")
+                                continue
+                                
                             db_pair = DatasetPair(
                                 question=pair["question"],
                                 answer=pair["answer"],
@@ -148,7 +157,7 @@ def generate_dataset(dataset_id: int):
         dataset.status = "ready"
         dataset.pairs_count = total_pairs
         dataset.size = total_pairs * 1024  # Approximate size calculation
-        
+        dataset.completed_at = datetime.now().isoformat()
         db.commit()
         
         logger.info(f"Dataset {dataset_id} generated successfully with {total_pairs} pairs")
