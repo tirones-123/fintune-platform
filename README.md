@@ -27,9 +27,24 @@ Le projet est composé de deux parties principales :
    cd fintune-platform
    ```
 
-2. Créez un fichier `.env` à la racine du projet en vous basant sur le fichier `.env.example`.
+2. Configurez les variables d'environnement :
+   ```bash
+   # Pour le fichier .env principal
+   cp .env.example .env
+   
+   # Pour le backend
+   cp backend/.env.example backend/.env
+   
+   # Pour le frontend
+   cp frontend/.env.example frontend/.env
+   cp frontend/.env.development.example frontend/.env.development
+   cp frontend/.env.production.example frontend/.env.production
+   ```
 
-3. Lancez les services avec Docker Compose :
+3. Modifiez les fichiers `.env` créés pour y ajouter vos clés API et autres informations sensibles. 
+   **IMPORTANT : Ne commitez jamais ces fichiers dans Git !**
+
+4. Lancez les services avec Docker Compose :
    ```bash
    docker-compose up -d
    ```
@@ -158,16 +173,29 @@ fintune-platform/
   npm run build
   ```
 
-## Déploiement
+## Gestion des variables d'environnement
 
-### Production
+Pour garantir la sécurité de votre application et éviter de pousser des informations sensibles sur Git, suivez ces bonnes pratiques :
 
-1. Mettez à jour les fichiers `.env` avec les valeurs de production.
-2. Construisez et déployez les images Docker :
-   ```bash
-   docker-compose -f docker-compose.prod.yml build
-   docker-compose -f docker-compose.prod.yml up -d
-   ```
+### Structure des fichiers d'environnement
+
+- `.env` : Variables d'environnement principales (racine du projet)
+- `backend/.env` : Variables d'environnement spécifiques au backend
+- `frontend/.env` : Variables d'environnement de base pour le frontend
+- `frontend/.env.development` : Variables pour l'environnement de développement frontend
+- `frontend/.env.production` : Variables pour l'environnement de production frontend
+
+### Bonnes pratiques
+
+1. **Ne jamais commiter les fichiers `.env`** : Tous les fichiers `.env` sont ignorés par Git grâce au `.gitignore`.
+2. **Utiliser les fichiers `.env.example`** : Ces fichiers servent de modèles et ne contiennent pas de valeurs sensibles.
+3. **Documenter les variables requises** : Assurez-vous que les fichiers `.env.example` contiennent toutes les variables nécessaires avec des descriptions claires.
+4. **Utiliser des valeurs par défaut sécurisées** : Pour les environnements de développement, utilisez des valeurs par défaut qui fonctionnent localement.
+5. **Rotation des clés** : Changez régulièrement vos clés API et autres secrets.
+
+### Déploiement
+
+Lors du déploiement, configurez les variables d'environnement directement sur votre serveur ou votre plateforme d'hébergement, plutôt que de les inclure dans vos fichiers de déploiement.
 
 ## Licence
 
