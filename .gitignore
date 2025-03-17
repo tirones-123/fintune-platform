@@ -100,3 +100,6 @@ fintune-platform/
 
 # Backup files
 *.bak 
+
+# Certificats SSL
+frontend/certs
