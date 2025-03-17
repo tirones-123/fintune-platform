@@ -7,12 +7,13 @@
 !*.env.example
 backend/.env
 backend/.env.*
+backend/.env.production
 !backend/.env.example
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
 !frontend/.env.*.example
-
+frontend/.env.production
 # Python
 __pycache__/
 *.py[cod]

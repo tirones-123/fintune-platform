@@ -114,6 +114,24 @@ services:
     networks:
       - fintune-network
 
+  # Nouveau service : reverse proxy
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    depends_on:
+      - frontend
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Montre un exemple de volumes pour stocker vos certificats SSL
+      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - fintune-network
+    # On n'expose PAS le code source dedans, on utilise juste la config Nginx
+
 networks:
   fintune-network:
     driver: bridge
