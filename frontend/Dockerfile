@@ -13,7 +13,7 @@ RUN npm ci
 # Copier le reste de l'application
 COPY . .
 
-# Construire l’application React
+# Construire l'application React
 RUN npm run build
 
 # Production stage

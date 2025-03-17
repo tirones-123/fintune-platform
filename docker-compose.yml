@@ -41,7 +41,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "3000:80"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -50,7 +50,9 @@ services:
     depends_on:
       - api
     networks:
-      - fintune-network
+      fintune-network:
+        aliases:
+          - frontend
 
   # Celery worker
   worker:
@@ -114,23 +116,20 @@ services:
     networks:
       - fintune-network
 
-  # Nouveau service : reverse proxy
+  # Nginx reverse proxy
   nginx-proxy:
     image: nginx:alpine
-    container_name: nginx-proxy
-    depends_on:
-      - frontend
-      - api
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      # Montre un exemple de volumes pour stocker vos certificats SSL
       - ./frontend/certs:/etc/nginx/certs
       - ./frontend/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - frontend
+      - api
     networks:
       - fintune-network
-    # On n'expose PAS le code source dedans, on utilise juste la config Nginx
 
 networks:
   fintune-network:
