@@ -40,6 +40,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    ports:
+      - "80:80"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -123,7 +125,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # Mise à jour des chemins pour monter les fichiers de configuration et les certificats SSL
+      # Montre un exemple de volumes pour stocker vos certificats SSL
       - ./frontend/certs:/etc/nginx/certs
       - ./frontend/conf.d:/etc/nginx/conf.d
     networks:
