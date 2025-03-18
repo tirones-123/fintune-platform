@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 // Configuration de base d'Axios
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL;
+if (!API_URL) {
+  console.error("REACT_APP_API_URL is not defined. Please set it in your environment.");
+}
 const STORAGE_PREFIX = process.env.REACT_APP_STORAGE_PREFIX || 'fintune_';
 
 // Instance Axios avec configuration de base
