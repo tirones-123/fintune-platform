@@ -164,18 +164,8 @@ const OnboardingPage = () => {
       //   model: model
       // });
       
-      // Vérifier si le token d'authentification est présent
-      const STORAGE_PREFIX = process.env.REACT_APP_STORAGE_PREFIX || 'fintune_';
-      const token = localStorage.getItem(`${STORAGE_PREFIX}accessToken`);
-      if (!token) {
-        console.error('Token d\'authentification manquant');
-        // Rediriger vers la page de connexion
-        navigate('/login');
-        return;
-      }
-      
       // Mettre à jour le statut d'onboarding de l'utilisateur
-      if (updateUser) {
+      if (updateUser && user) {
         try {
           await updateUser({ ...user, hasCompletedOnboarding: true });
           // Rediriger vers le dashboard seulement après la mise à jour réussie
@@ -191,8 +181,9 @@ const OnboardingPage = () => {
           }
         }
       } else {
-        // Si updateUser n'est pas disponible, rediriger quand même vers le dashboard
-        navigate('/dashboard');
+        // Si l'utilisateur n'est pas connecté ou si updateUser n'est pas disponible
+        console.error('Utilisateur non connecté ou fonction de mise à jour non disponible');
+        navigate('/login');
       }
     } catch (error) {
       console.error('Erreur lors de la finalisation de l\'onboarding:', error);

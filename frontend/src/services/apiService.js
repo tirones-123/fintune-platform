@@ -72,7 +72,27 @@ export const authService = {
   register: async (userData) => {
     try {
       const response = await api.post('/api/auth/register', userData);
-      return response.data;
+      
+      // Après inscription réussie, connecter automatiquement l'utilisateur
+      const formData = new FormData();
+      formData.append('username', userData.email);
+      formData.append('password', userData.password);
+      
+      // Utiliser un appel API direct pour respecter le format OAuth2
+      const loginResponse = await axios.post(`${API_URL}/api/auth/login`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+      
+      const { access_token, refresh_token, user } = loginResponse.data;
+      
+      // Stocker les tokens et les informations utilisateur
+      localStorage.setItem(`${STORAGE_PREFIX}accessToken`, access_token);
+      localStorage.setItem(`${STORAGE_PREFIX}refreshToken`, refresh_token);
+      localStorage.setItem(`${STORAGE_PREFIX}user`, JSON.stringify(user));
+      
+      return user;
     } catch (error) {
       throw new Error(error.response?.data?.detail || 'Erreur lors de l\'inscription');
     }
@@ -81,7 +101,17 @@ export const authService = {
   // Connexion
   login: async (credentials) => {
     try {
-      const response = await api.post('/api/auth/login', credentials);
+      // Créer un FormData pour respecter le format OAuth2
+      const formData = new FormData();
+      formData.append('username', credentials.email);
+      formData.append('password', credentials.password);
+      
+      const response = await axios.post(`${API_URL}/api/auth/login`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+      
       const { access_token, refresh_token, user } = response.data;
       
       localStorage.setItem(`${STORAGE_PREFIX}accessToken`, access_token);
