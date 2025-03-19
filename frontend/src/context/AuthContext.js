@@ -89,6 +89,8 @@ export const AuthProvider = ({ children }) => {
               subscription = await authService.getSubscription();
             } catch (subscriptionError) {
               console.error('Error fetching subscription:', subscriptionError);
+              // Ne pas lancer d'erreur, simplement laisser subscription à null
+              // C'est normal pour un nouvel utilisateur de ne pas avoir d'abonnement
             }
 
             dispatch({
@@ -206,14 +208,21 @@ export const AuthProvider = ({ children }) => {
       dispatch({
         type: ActionType.UPDATE_SUBSCRIPTION,
         payload: {
-          subscription,
+          subscription, // Peut être null si pas d'abonnement
         },
       });
       
       return subscription;
     } catch (error) {
       console.error('Update subscription error:', error);
-      throw error;
+      // Ne pas propager l'erreur, simplement retourner null
+      dispatch({
+        type: ActionType.UPDATE_SUBSCRIPTION,
+        payload: {
+          subscription: null,
+        },
+      });
+      return null;
     }
   };
 

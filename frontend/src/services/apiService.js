@@ -177,6 +177,10 @@ export const authService = {
       const response = await api.get('/api/users/me/subscription');
       return response.data;
     } catch (error) {
+      // Si l'erreur est 404, cela signifie qu'il n'y a pas d'abonnement, ce qui est normal pour un nouvel utilisateur
+      if (error.response?.status === 404) {
+        return null; // Retourner null au lieu de lancer une erreur
+      }
       throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération de l\'abonnement');
     }
   },
@@ -528,6 +532,10 @@ export const subscriptionService = {
       const response = await api.get('/api/users/me/subscription');
       return response.data;
     } catch (error) {
+      // Si l'erreur est 404, cela signifie qu'il n'y a pas d'abonnement
+      if (error.response?.status === 404) {
+        return null; // Retourner null au lieu de lancer une erreur
+      }
       throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération de l\'abonnement');
     }
   },
@@ -535,8 +543,15 @@ export const subscriptionService = {
   // Créer une session de paiement
   createCheckoutSession: async (priceId) => {
     try {
-      const response = await api.post('/api/checkout/create-session', { price_id: priceId });
-      return response.data;
+      // L'API attend un ID de plan (starter, pro, enterprise) et non un ID de prix Stripe
+      // Extraire le type de plan à partir de l'ID de prix Stripe
+      const planType = priceId === 'STRIPE_PRICE_STARTER' ? 'starter' : 
+                      priceId === 'STRIPE_PRICE_PRO' ? 'pro' : 
+                      priceId === 'STRIPE_PRICE_ENTERPRISE' ? 'enterprise' : 'starter';
+      
+      // Appeler l'API avec le bon format
+      const response = await api.post(`/api/checkout/create-session/${planType}`);
+      return { url: response.data.checkout_url }; // Adapter le format de retour
     } catch (error) {
       throw new Error(error.response?.data?.detail || 'Erreur lors de la création de la session de paiement');
     }
