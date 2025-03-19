@@ -104,6 +104,10 @@ const OnboardingPage = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = React.useRef(null);
+  
+  // Ajout d'un état pour gérer la soumission du formulaire de finalisation
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [completionError, setCompletionError] = useState(null);
 
   // Ajouter cette fonction pour gérer l'upload
   const handleFileUpload = async (event) => {
@@ -142,52 +146,46 @@ const OnboardingPage = () => {
 
   // Modifier la fonction completeOnboarding pour lancer un fine-tune
   const completeOnboarding = async () => {
+    setIsCompleting(true);
+    setCompletionError(null);
+    
     try {
-      // Créer le projet
-      // Remplacer par votre appel API réel
-      // const projectResponse = await api.createProject({
-      //   name: projectName,
-      //   description: projectDescription
-      // });
-      
-      // Créer le dataset
-      // const datasetResponse = await api.createDataset({
-      //   name: datasetName,
-      //   projectId: projectResponse.id,
-      //   contentId: uploadedContentId // ID du contenu uploadé précédemment
-      // });
-      
-      // Lancer le fine-tune
-      // const fineTuneResponse = await api.startFineTune({
-      //   datasetId: datasetResponse.id,
-      //   provider: provider,
-      //   model: model
-      // });
-      
       // Mettre à jour le statut d'onboarding de l'utilisateur
       if (updateUser && user) {
         try {
-          await updateUser({ ...user, hasCompletedOnboarding: true });
-          // Rediriger vers le dashboard seulement après la mise à jour réussie
-          navigate('/dashboard');
+          // Même si on n'a pas créé de projet/dataset/finetune, on marque
+          // l'onboarding comme terminé pour permettre l'accès au dashboard
+          const updatedUser = await updateUser({ ...user, hasCompletedOnboarding: true });
+          
+          // Si la mise à jour a réussi, on vérifie que hasCompletedOnboarding est bien à true
+          if (updatedUser && updatedUser.hasCompletedOnboarding) {
+            // Rediriger vers le dashboard seulement après la mise à jour réussie
+            navigate('/dashboard');
+          } else {
+            // Si la propriété n'a pas été mise à jour malgré le succès de la requête
+            setCompletionError("L'état d'onboarding n'a pas pu être mis à jour correctement");
+            console.error("La mise à jour de l'état d'onboarding a échoué:", updatedUser);
+          }
         } catch (updateError) {
           console.error('Erreur lors de la mise à jour du profil:', updateError);
+          setCompletionError(updateError.message || "Erreur lors de la mise à jour du profil");
+          
           // Si l'erreur est liée à l'authentification, rediriger vers la page de connexion
           if (updateError.message === 'Not authenticated') {
             navigate('/login');
-          } else {
-            // Sinon, afficher un message d'erreur à l'utilisateur
-            // Vous pouvez ajouter un état pour afficher un message d'erreur dans l'interface
           }
         }
       } else {
         // Si l'utilisateur n'est pas connecté ou si updateUser n'est pas disponible
+        setCompletionError("Utilisateur non connecté ou fonction de mise à jour non disponible");
         console.error('Utilisateur non connecté ou fonction de mise à jour non disponible');
         navigate('/login');
       }
     } catch (error) {
       console.error('Erreur lors de la finalisation de l\'onboarding:', error);
-      // Gérer l'erreur (afficher un message, etc.)
+      setCompletionError(error.message || "Une erreur s'est produite lors de la finalisation");
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -555,6 +553,12 @@ const OnboardingPage = () => {
               Votre premier modèle est en cours d'entraînement et sera bientôt disponible.
             </Typography>
             
+            {completionError && (
+              <Typography color="error" sx={{ mb: 3 }}>
+                {completionError}
+              </Typography>
+            )}
+            
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -564,9 +568,17 @@ const OnboardingPage = () => {
                 variant="contained"
                 size="large"
                 onClick={completeOnboarding}
+                disabled={isCompleting}
                 sx={{ px: 4, py: 1.5, borderRadius: 3 }}
               >
-                Accéder au dashboard
+                {isCompleting ? (
+                  <>
+                    <CircularProgress size={24} sx={{ mr: 1 }} color="inherit" />
+                    Traitement en cours...
+                  </>
+                ) : (
+                  'Accéder au dashboard'
+                )}
               </Button>
             </motion.div>
           </Box>
