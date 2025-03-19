@@ -541,18 +541,36 @@ export const subscriptionService = {
   },
 
   // Créer une session de paiement
-  createCheckoutSession: async (priceId) => {
+  createCheckoutSession: async (planId) => {
     try {
-      // L'API attend un ID de plan (starter, pro, enterprise) et non un ID de prix Stripe
-      // Extraire le type de plan à partir de l'ID de prix Stripe
-      const planType = priceId === 'STRIPE_PRICE_STARTER' ? 'starter' : 
-                      priceId === 'STRIPE_PRICE_PRO' ? 'pro' : 
-                      priceId === 'STRIPE_PRICE_ENTERPRISE' ? 'enterprise' : 'starter';
+      // L'API attend un ID de plan (starter, pro, enterprise) directement
+      // Mapper l'ID de plan de manière explicite
+      let planType = 'starter'; // Par défaut
       
-      // Appeler l'API avec le bon format
-      const response = await api.post(`/api/checkout/create-session/${planType}`);
-      return { url: response.data.checkout_url }; // Adapter le format de retour
+      if (planId === 'STRIPE_PRICE_STARTER') {
+        planType = 'starter';
+      } else if (planId === 'STRIPE_PRICE_PRO') {
+        planType = 'pro';
+      } else if (planId === 'STRIPE_PRICE_ENTERPRISE') {
+        planType = 'enterprise';
+      } else {
+        // Si planId est déjà un type de plan (starter, pro, enterprise), l'utiliser directement
+        if (['starter', 'pro', 'enterprise'].includes(planId)) {
+          planType = planId;
+        }
+      }
+      
+      // Appeler l'API avec le bon format - vérifier que l'URL est correcte
+      const response = await api.post(`/api/checkout/create-checkout-session/${planType}`);
+      
+      // Vérifier que l'URL de checkout existe dans la réponse
+      if (!response.data || !response.data.checkout_url) {
+        throw new Error('L\'URL de paiement n\'a pas été reçue');
+      }
+      
+      return { url: response.data.checkout_url };
     } catch (error) {
+      console.error('Erreur lors de la création de la session de paiement:', error);
       throw new Error(error.response?.data?.detail || 'Erreur lors de la création de la session de paiement');
     }
   },
