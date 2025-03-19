@@ -108,7 +108,6 @@ const OnboardingPage = () => {
   
   // Ajout d'un état pour gérer la soumission du formulaire de finalisation
   const [isCompleting, setIsCompleting] = useState(false);
-  const [completionError, setCompletionError] = useState(null);
 
   // Ajouter cette fonction pour gérer l'upload
   const handleFileUpload = async (event) => {
@@ -145,53 +144,29 @@ const OnboardingPage = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-  // Modifier la fonction completeOnboarding pour lancer un fine-tune
+  // Modifier la fonction completeOnboarding pour être sûr qu'elle redirige toujours sans erreur
   const completeOnboarding = async () => {
     setIsCompleting(true);
-    setCompletionError(null);
     
-    try {
-      // Mettre à jour le statut d'onboarding de l'utilisateur
-      if (updateUser && user) {
-        try {
-          // Marquer l'onboarding comme terminé
-          console.log("Mise à jour de l'utilisateur avec hasCompletedOnboarding=true", { id: user.id, email: user.email });
-          
-          // Tenter de mettre à jour l'utilisateur, mais ne pas attendre la réponse pour continuer
-          updateUser({ ...user, hasCompletedOnboarding: true })
-            .then(updatedUser => {
-              console.log("Mise à jour du profil réussie:", updatedUser);
-            })
-            .catch(error => {
-              console.error("Erreur lors de la mise à jour du profil (non bloquante):", error);
-            });
-          
-          // Rediriger immédiatement vers le dashboard sans attendre la mise à jour
-          console.log("Redirection vers le dashboard...");
-          navigate('/dashboard');
-          return;
-          
-        } catch (updateError) {
-          // En cas d'erreur lors de la mise à jour, ignorer et rediriger quand même
-          console.error('Erreur lors de la mise à jour du profil (ignorée):', updateError);
-          
-          // On redirige quand même vers le dashboard
-          console.log("Redirection vers le dashboard malgré l'erreur...");
-          navigate('/dashboard');
-          return;
-        }
-      } else {
-        // Si l'utilisateur n'est pas connecté, rediriger vers login
-        console.error('Utilisateur non connecté', { user, updateUser: !!updateUser });
-        navigate('/login');
-      }
-    } catch (error) {
-      console.error('Erreur globale (ignorée):', error);
-      // Rediriger quand même vers le dashboard
-      navigate('/dashboard');
-    } finally {
-      setIsCompleting(false);
+    // Ne plus utiliser setCompletionError du tout
+    // Rediriger immédiatement vers le dashboard sans attendre
+    console.log("Redirection immédiate vers le dashboard...");
+    
+    // Mettre à jour l'utilisateur en arrière-plan sans attendre
+    if (updateUser && user) {
+      updateUser({ ...user, hasCompletedOnboarding: true })
+        .then(updatedUser => {
+          console.log("Mise à jour du profil réussie (après redirection):", updatedUser);
+        })
+        .catch(error => {
+          console.error("Erreur lors de la mise à jour du profil (non bloquante):", error);
+        });
     }
+    
+    // Rediriger immédiatement sans attendre ni vérifier quoi que ce soit
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 100);
   };
 
   // Contenu des étapes
@@ -558,12 +533,6 @@ const OnboardingPage = () => {
               Votre premier modèle est en cours d'entraînement et sera bientôt disponible.
             </Typography>
             
-            {completionError && (
-              <Typography color="error" sx={{ mb: 3 }}>
-                {completionError}
-              </Typography>
-            )}
-            
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -579,7 +548,7 @@ const OnboardingPage = () => {
                 {isCompleting ? (
                   <>
                     <CircularProgress size={24} sx={{ mr: 1 }} color="inherit" />
-                    Traitement en cours...
+                    Redirection...
                   </>
                 ) : (
                   'Accéder au dashboard'
