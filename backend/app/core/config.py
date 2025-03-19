@@ -1,6 +1,6 @@
 import os
 from typing import List, Optional, Dict, Any
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +28,12 @@ class Settings(BaseSettings):
         "http://api.finetuner.io",
         "http://82.29.173.71:8000"
     ]
+    
+    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    def assemble_cors_origins(cls, v):
+        if isinstance(v, str):
+            return [i.strip() for i in v.split(",")]
+        return v
     
     # Security configuration
     SECRET_KEY: str = Field(default="your_secret_key_here")
