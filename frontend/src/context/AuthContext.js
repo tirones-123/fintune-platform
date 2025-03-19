@@ -195,26 +195,8 @@ export const AuthProvider = ({ children }) => {
       
       return updatedUser;
     } catch (error) {
-      // Ne pas propager l'erreur pour éviter les problèmes d'UI
-      console.error('Update user error - silent handling:', error);
-      
-      // Retourner les données utilisateur originales modifiées plutôt que de lancer une erreur
-      // Cela permet au flux d'onboarding de continuer même si l'API échoue
-      const simulatedSuccess = {
-        ...userData,
-        // S'assurer que hasCompletedOnboarding est bien true
-        hasCompletedOnboarding: true
-      };
-      
-      // Mettre quand même à jour le state avec ces données simulées
-      dispatch({
-        type: ActionType.UPDATE_USER,
-        payload: {
-          user: simulatedSuccess,
-        },
-      });
-      
-      return simulatedSuccess;
+      console.error('Update user error:', error);
+      throw error;
     }
   };
 

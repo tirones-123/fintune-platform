@@ -108,6 +108,7 @@ const OnboardingPage = () => {
   
   // Ajout d'un état pour gérer la soumission du formulaire de finalisation
   const [isCompleting, setIsCompleting] = useState(false);
+  const [completionError, setCompletionError] = useState(null);
 
   // Ajouter cette fonction pour gérer l'upload
   const handleFileUpload = async (event) => {
@@ -144,27 +145,84 @@ const OnboardingPage = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-  // Fonction simplifiée au maximum pour terminer l'onboarding
-  const completeOnboarding = () => {
-    // Indiquer que nous sommes en train de compléter
+  // Modifier la fonction completeOnboarding pour lancer un fine-tune
+  const completeOnboarding = async () => {
     setIsCompleting(true);
+    setCompletionError(null);
     
-    // Rediriger directement vers le dashboard sans aucune logique conditionnelle
-    console.log("Redirection immédiate vers le dashboard...");
-    
-    // Utiliser window.location.href au lieu de navigate pour forcer un rechargement complet
-    window.location.href = '/dashboard';
-    
-    // En parallèle, essayer de mettre à jour l'utilisateur sans attendre ou vérifier le résultat
-    if (updateUser && user) {
-      try {
-        updateUser({ ...user, hasCompletedOnboarding: true })
-          .then(() => console.log("Profil mis à jour en arrière-plan"))
-          .catch(e => console.log("Erreur de mise à jour ignorée:", e));
-      } catch (e) {
-        // Ignorer complètement toute erreur
-        console.log("Exception ignorée:", e);
+    try {
+      // Mettre à jour le statut d'onboarding de l'utilisateur
+      if (updateUser && user) {
+        try {
+          // Marquer l'onboarding comme terminé
+          console.log("Mise à jour de l'utilisateur avec hasCompletedOnboarding=true", { id: user.id, email: user.email });
+          const updatedUser = await updateUser({ ...user, hasCompletedOnboarding: true });
+          console.log("Résultat de la mise à jour:", updatedUser);
+          
+          // Si la mise à jour a réussi, on vérifie que hasCompletedOnboarding est bien à true
+          if (updatedUser && updatedUser.hasCompletedOnboarding) {
+            // Rediriger vers la page de checkout pour souscrire au plan Starter
+            // L'utilisateur doit s'abonner pour continuer
+            try {
+              // Utiliser directement "starter" comme type de plan au lieu de la constante
+              console.log("Tentative de création d'une session de paiement pour le plan 'starter'");
+              const session = await subscriptionService.createCheckoutSession('starter');
+              console.log("Session de paiement créée avec succès:", session);
+              
+              // Rediriger vers l'URL de checkout Stripe
+              if (session && session.url) {
+                console.log("Redirection vers:", session.url);
+                window.location.href = session.url;
+              } else {
+                console.error("URL de redirection non reçue dans la session:", session);
+                setCompletionError("Erreur de redirection: URL de paiement non disponible");
+              }
+            } catch (checkoutError) {
+              console.error('Erreur lors de la création de la session de paiement:', checkoutError);
+              // Log plus détaillé de l'erreur pour le débogage
+              if (checkoutError.response) {
+                console.error('Détails de la réponse d\'erreur:', {
+                  status: checkoutError.response.status,
+                  data: checkoutError.response.data,
+                  headers: checkoutError.response.headers
+                });
+              }
+              setCompletionError(`Erreur lors de la redirection vers la page de paiement: ${checkoutError.message}`);
+            }
+          } else {
+            // Si la propriété n'a pas été mise à jour malgré le succès de la requête
+            console.error("La mise à jour de l'état d'onboarding a échoué. Données reçues:", JSON.stringify(updatedUser, null, 2));
+            setCompletionError("L'état d'onboarding n'a pas pu être mis à jour correctement");
+          }
+        } catch (updateError) {
+          console.error('Erreur lors de la mise à jour du profil:', updateError);
+          // Log plus détaillé pour comprendre l'erreur
+          if (updateError.response) {
+            console.error('Détails de la réponse d\'erreur:', {
+              status: updateError.response.status,
+              data: updateError.response.data,
+              headers: updateError.response.headers
+            });
+          }
+          setCompletionError(updateError.message || "Erreur lors de la mise à jour du profil");
+          
+          // Si l'erreur est liée à l'authentification, rediriger vers la page de connexion
+          if (updateError.message === 'Not authenticated') {
+            navigate('/login');
+          }
+        }
+      } else {
+        // Si l'utilisateur n'est pas connecté ou si updateUser n'est pas disponible
+        const errorMsg = !user ? "Utilisateur non connecté" : "Fonction de mise à jour non disponible";
+        console.error(errorMsg, { user, updateUser: !!updateUser });
+        setCompletionError(errorMsg);
+        navigate('/login');
       }
+    } catch (error) {
+      console.error('Erreur globale lors de la finalisation de l\'onboarding:', error);
+      setCompletionError(error.message || "Une erreur s'est produite lors de la finalisation");
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -532,6 +590,12 @@ const OnboardingPage = () => {
               Votre premier modèle est en cours d'entraînement et sera bientôt disponible.
             </Typography>
             
+            {completionError && (
+              <Typography color="error" sx={{ mb: 3 }}>
+                {completionError}
+              </Typography>
+            )}
+            
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -547,7 +611,7 @@ const OnboardingPage = () => {
                 {isCompleting ? (
                   <>
                     <CircularProgress size={24} sx={{ mr: 1 }} color="inherit" />
-                    Redirection...
+                    Traitement en cours...
                   </>
                 ) : (
                   'Accéder au dashboard'
