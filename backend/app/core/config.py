@@ -26,7 +26,7 @@ class Settings(BaseSettings):
         "http://finetuner.io",
         "http://www.finetuner.io",
         "http://api.finetuner.io",
-        "http://82.29.173.71:8000"
+        "https://82.29.173.71:8000"
     ]
     
     @validator("BACKEND_CORS_ORIGINS", pre=True)
