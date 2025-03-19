@@ -54,11 +54,12 @@ const OnboardingCheck = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  // Si l'utilisateur n'a pas complété l'onboarding, le rediriger vers l'onboarding
-  if (user && !user.hasCompletedOnboarding) {
-    return <Navigate to="/onboarding" />;
-  }
+  // Désactiver temporairement la vérification d'onboarding
+  // if (user && !user.hasCompletedOnboarding) {
+  //   return <Navigate to="/onboarding" />;
+  // }
 
+  // Toujours autoriser l'accès
   return children;
 };
 
