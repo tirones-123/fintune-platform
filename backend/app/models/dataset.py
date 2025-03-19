@@ -43,7 +43,7 @@ class DatasetPair(Base):
     id = Column(Integer, primary_key=True, index=True)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
-    metadata = Column(JSON, nullable=True)
+    pair_metadata = Column(JSON, nullable=True)
     dataset_id = Column(Integer, ForeignKey("datasets.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     

@@ -221,7 +221,7 @@ def add_dataset_pair(
     db_pair = DatasetPair(
         question=pair_in.question,
         answer=pair_in.answer,
-        metadata=pair_in.metadata,
+        pair_metadata=pair_in.pair_metadata,
         dataset_id=dataset_id
     )
     
@@ -263,7 +263,7 @@ def add_bulk_pairs(
         db_pair = DatasetPair(
             question=pair.question,
             answer=pair.answer,
-            metadata=pair.metadata,
+            pair_metadata=pair.pair_metadata,
             dataset_id=dataset_id
         )
         db.add(db_pair)

@@ -56,7 +56,7 @@ CONFEND
 # Modifier également le frontend pour utiliser l'API en HTTP directement
 cat > frontend/.env.production << 'ENVEND'
 # Indique l'URL de l'API backend
-REACT_APP_API_URL=http://82.29.173.71:8000
+REACT_APP_API_URL=https://api.finetuner.io
 
 # Clé publique Stripe (version test ou live, selon votre config)
 REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_test_51R13k4DF7Ri19VjwgSJkdKpjaF0em37GGoXp6Yi7XEg9CPWZYmmOUJtnDQ6TanPpIG4iukaEj25FSAvKJwVnRIgB000QdbEkV0

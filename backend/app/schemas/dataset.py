@@ -23,7 +23,7 @@ class DatasetUpdate(BaseModel):
 class DatasetPairBase(BaseModel):
     question: str
     answer: str
-    metadata: Optional[Dict[str, Any]] = None
+    pair_metadata: Optional[Dict[str, Any]] = None
 
 # Model for creating a Dataset Pair
 class DatasetPairCreate(DatasetPairBase):

@@ -41,16 +41,16 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
     
     # Database configuration
-    POSTGRES_SERVER: str = Field(default="localhost")
+    POSTGRES_HOST: str = Field(default="localhost")
     POSTGRES_USER: str = Field(default="postgres")
     POSTGRES_PASSWORD: str = Field(default="postgres")
     POSTGRES_DB: str = Field(default="fintune")
     
     @computed_field
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        if not all([self.POSTGRES_USER, self.POSTGRES_PASSWORD, self.POSTGRES_SERVER, self.POSTGRES_DB]):
+        if not all([self.POSTGRES_USER, self.POSTGRES_PASSWORD, self.POSTGRES_HOST, self.POSTGRES_DB]):
             return "postgresql://postgres:postgres@localhost/fintune"
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}/{self.POSTGRES_DB}"
     
     # Stripe configuration
     STRIPE_SECRET_KEY: str = Field(default="")
