@@ -31,6 +31,7 @@ import FolderIcon from '@mui/icons-material/Folder';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
+import { subscriptionService } from '../services/apiService';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -153,14 +154,21 @@ const OnboardingPage = () => {
       // Mettre à jour le statut d'onboarding de l'utilisateur
       if (updateUser && user) {
         try {
-          // Même si on n'a pas créé de projet/dataset/finetune, on marque
-          // l'onboarding comme terminé pour permettre l'accès au dashboard
+          // Marquer l'onboarding comme terminé
           const updatedUser = await updateUser({ ...user, hasCompletedOnboarding: true });
           
           // Si la mise à jour a réussi, on vérifie que hasCompletedOnboarding est bien à true
           if (updatedUser && updatedUser.hasCompletedOnboarding) {
-            // Rediriger vers le dashboard seulement après la mise à jour réussie
-            navigate('/dashboard');
+            // Rediriger vers la page de checkout pour souscrire au plan Starter
+            // L'utilisateur doit s'abonner pour continuer
+            try {
+              const session = await subscriptionService.createCheckoutSession('STRIPE_PRICE_STARTER');
+              // Rediriger vers l'URL de checkout Stripe
+              window.location.href = session.url;
+            } catch (checkoutError) {
+              console.error('Erreur lors de la création de la session de paiement:', checkoutError);
+              setCompletionError("Erreur lors de la redirection vers la page de paiement. Veuillez réessayer.");
+            }
           } else {
             // Si la propriété n'a pas été mise à jour malgré le succès de la requête
             setCompletionError("L'état d'onboarding n'a pas pu être mis à jour correctement");
