@@ -542,6 +542,8 @@ export const subscriptionService = {
 
   // Créer une session de paiement
   createCheckoutSession: async (planId) => {
+    console.log(`Création de session de paiement pour plan: ${planId}`);
+    
     try {
       // L'API attend un ID de plan (starter, pro, enterprise) directement
       // Mapper l'ID de plan de manière explicite
@@ -560,18 +562,42 @@ export const subscriptionService = {
         }
       }
       
-      // Appeler l'API avec le bon format - vérifier que l'URL est correcte
-      const response = await api.post(`/api/checkout/create-checkout-session/${planType}`);
+      console.log(`Type de plan mappé: ${planType}`);
+      const apiUrl = `/api/checkout/create-checkout-session/${planType}`;
+      console.log(`Appel API: ${apiUrl}`);
+      
+      // Appeler l'API avec le bon format
+      const response = await api.post(apiUrl);
+      console.log('Réponse API reçue:', response.data);
       
       // Vérifier que l'URL de checkout existe dans la réponse
       if (!response.data || !response.data.checkout_url) {
+        console.error('URL de checkout manquante dans la réponse:', response.data);
         throw new Error('L\'URL de paiement n\'a pas été reçue');
       }
       
       return { url: response.data.checkout_url };
     } catch (error) {
       console.error('Erreur lors de la création de la session de paiement:', error);
-      throw new Error(error.response?.data?.detail || 'Erreur lors de la création de la session de paiement');
+      
+      // Logs détaillés pour le débogage
+      if (error.response) {
+        console.error('Détails de la réponse d\'erreur:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers,
+          config: {
+            url: error.response.config.url,
+            method: error.response.config.method,
+            data: error.response.config.data
+          }
+        });
+        
+        throw new Error(`Erreur ${error.response.status}: ${error.response.data?.detail || error.message}`);
+      }
+      
+      throw error; // Rethrow l'erreur originale si pas de réponse
     }
   },
 

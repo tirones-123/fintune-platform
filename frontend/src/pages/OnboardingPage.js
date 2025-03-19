@@ -162,12 +162,30 @@ const OnboardingPage = () => {
             // Rediriger vers la page de checkout pour souscrire au plan Starter
             // L'utilisateur doit s'abonner pour continuer
             try {
-              const session = await subscriptionService.createCheckoutSession('STRIPE_PRICE_STARTER');
+              // Utiliser directement "starter" comme type de plan au lieu de la constante
+              console.log("Tentative de création d'une session de paiement pour le plan 'starter'");
+              const session = await subscriptionService.createCheckoutSession('starter');
+              console.log("Session de paiement créée avec succès:", session);
+              
               // Rediriger vers l'URL de checkout Stripe
-              window.location.href = session.url;
+              if (session && session.url) {
+                console.log("Redirection vers:", session.url);
+                window.location.href = session.url;
+              } else {
+                console.error("URL de redirection non reçue dans la session:", session);
+                setCompletionError("Erreur de redirection: URL de paiement non disponible");
+              }
             } catch (checkoutError) {
               console.error('Erreur lors de la création de la session de paiement:', checkoutError);
-              setCompletionError("Erreur lors de la redirection vers la page de paiement. Veuillez réessayer.");
+              // Log plus détaillé de l'erreur pour le débogage
+              if (checkoutError.response) {
+                console.error('Détails de la réponse d\'erreur:', {
+                  status: checkoutError.response.status,
+                  data: checkoutError.response.data,
+                  headers: checkoutError.response.headers
+                });
+              }
+              setCompletionError(`Erreur lors de la redirection vers la page de paiement: ${checkoutError.message}`);
             }
           } else {
             // Si la propriété n'a pas été mise à jour malgré le succès de la requête
