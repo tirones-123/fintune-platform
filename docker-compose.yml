@@ -37,7 +37,9 @@ services:
 
   # Frontend
   frontend:
-    image: fintune-platform-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "3000:80"
     volumes:

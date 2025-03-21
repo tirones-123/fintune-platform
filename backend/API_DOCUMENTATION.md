@@ -871,7 +871,7 @@ Exporte un dataset dans le format spécifié pour le fine-tuning.
 
 **Paramètres de requête**
 - `format` (optionnel): Format d'export (défaut: jsonl)
-- `provider` (optionnel): Fournisseur cible (openai, anthropic) (défaut: openai)
+- `provider` (optionnel): Fournisseur cible (openai, anthropic, mistral) (défaut: openai)
 
 **Réponse**
 Un fichier JSONL téléchargeable contenant les paires formatées selon le fournisseur spécifié.
@@ -901,17 +901,44 @@ Récupère tous les fine-tunings de l'utilisateur courant.
     "model": "gpt-3.5-turbo",
     "provider": "openai",
     "status": "training",
+    "progress": 45.5,
     "hyperparameters": {
       "epochs": 3,
       "learning_rate": 0.0001
     },
-    "provider_model_id": null,
+    "external_id": null,
+    "metrics": {
+      "training_loss": 0.056,
+      "validation_loss": 0.062,
+      "step": 500,
+      "total_steps": 1000
+    },
     "error_message": null,
     "created_at": "2023-03-10T12:00:00",
-    "updated_at": "2023-03-10T12:00:00"
+    "updated_at": "2023-03-10T12:30:00",
+    "completed_at": null
   }
 ]
 ```
+
+**Champs de fine-tuning supplémentaires:**
+
+- `progress`: Pourcentage de progression du fine-tuning (0-100)
+- `external_id`: Identifiant du job chez le fournisseur d'IA (OpenAI, Anthropic, Mistral)
+- `metrics`: Statistiques d'entraînement retournées par le fournisseur d'IA
+  - `training_loss`: Perte sur l'ensemble d'entraînement
+  - `validation_loss`: Perte sur l'ensemble de validation (si disponible)
+  - `step`: Étape d'entraînement actuelle
+  - `total_steps`: Nombre total d'étapes prévues
+- `completed_at`: Date de fin du fine-tuning (uniquement pour les statuts "completed", "cancelled" ou "error")
+
+**Statuts possibles:**
+- `queued`: Le job est en attente de démarrage
+- `preparing`: Le job est en préparation (traitement des données)
+- `training`: L'entraînement est en cours
+- `completed`: L'entraînement est terminé avec succès
+- `cancelled`: L'entraînement a été annulé par l'utilisateur
+- `error`: Une erreur s'est produite pendant l'entraînement
 
 ### Créer un nouveau fine-tuning
 
@@ -950,7 +977,7 @@ Crée un nouveau job de fine-tuning.
     "epochs": 3,
     "learning_rate": 0.0001
   },
-  "provider_model_id": null,
+  "external_id": null,
   "error_message": null,
   "created_at": "2023-03-10T13:00:00",
   "updated_at": "2023-03-10T13:00:00"
@@ -975,14 +1002,22 @@ Récupère les détails d'un fine-tuning spécifique.
   "model": "gpt-3.5-turbo",
   "provider": "openai",
   "status": "training",
+  "progress": 45.5,
   "hyperparameters": {
     "epochs": 3,
     "learning_rate": 0.0001
   },
-  "provider_model_id": null,
+  "external_id": null,
+  "metrics": {
+    "training_loss": 0.056,
+    "validation_loss": 0.062,
+    "step": 500,
+    "total_steps": 1000
+  },
   "error_message": null,
   "created_at": "2023-03-10T12:00:00",
-  "updated_at": "2023-03-10T12:00:00"
+  "updated_at": "2023-03-10T12:30:00",
+  "completed_at": null
 }
 ```
 
@@ -1012,14 +1047,22 @@ Met à jour un fine-tuning existant.
   "model": "gpt-3.5-turbo",
   "provider": "openai",
   "status": "training",
+  "progress": 45.5,
   "hyperparameters": {
     "epochs": 3,
     "learning_rate": 0.0001
   },
-  "provider_model_id": null,
+  "external_id": null,
+  "metrics": {
+    "training_loss": 0.056,
+    "validation_loss": 0.062,
+    "step": 500,
+    "total_steps": 1000
+  },
   "error_message": null,
   "created_at": "2023-03-10T12:00:00",
-  "updated_at": "2023-03-10T13:00:00"
+  "updated_at": "2023-03-10T13:00:00",
+  "completed_at": null
 }
 ```
 
@@ -1061,14 +1104,22 @@ Annule un job de fine-tuning en cours.
   "model": "gpt-3.5-turbo",
   "provider": "openai",
   "status": "cancelled",
+  "progress": 45.5,
   "hyperparameters": {
     "epochs": 3,
     "learning_rate": 0.0001
   },
-  "provider_model_id": null,
+  "external_id": null,
+  "metrics": {
+    "training_loss": 0.056,
+    "validation_loss": 0.062,
+    "step": 500,
+    "total_steps": 1000
+  },
   "error_message": "Coût trop élevé",
   "created_at": "2023-03-10T12:00:00",
-  "updated_at": "2023-03-10T13:00:00"
+  "updated_at": "2023-03-10T13:00:00",
+  "completed_at": null
 }
 ```
 
@@ -1110,6 +1161,18 @@ Un événement Stripe conforme à leur format de webhook.
 }
 ```
 
+**Événements gérés par le webhook Stripe**
+
+L'endpoint `/checkout/webhook` gère les événements Stripe suivants:
+
+- `checkout.session.completed`: Déclenché lorsqu'une session de paiement est complétée avec succès. Crée ou met à jour l'abonnement de l'utilisateur.
+  
+- `customer.subscription.updated`: Déclenché lorsqu'un abonnement est modifié (changement de plan, informations de facturation, etc.). Met à jour les informations d'abonnement dans la base de données.
+  
+- `customer.subscription.deleted`: Déclenché lorsqu'un abonnement est supprimé. Marque l'abonnement comme "canceled" dans la base de données.
+
+Pour chaque événement, le système vérifie l'authenticité à l'aide de la signature Stripe et met à jour la base de données en conséquence.
+
 ## Formats de données
 
 ### Format JSONL pour OpenAI
@@ -1122,4 +1185,9 @@ Un événement Stripe conforme à leur format de webhook.
 
 ```jsonl
 {"messages": [{"role": "user", "content": "Question"}, {"role": "assistant", "content": "Réponse"}]}
-``` 
+```
+
+### Format JSONL pour Mistral
+
+```jsonl
+{"messages": [{"role": "user", "content": "Question"}, {"role": "assistant", "content": "Réponse"}]} 

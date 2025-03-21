@@ -20,6 +20,7 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  FormHelperText,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -31,7 +32,15 @@ import FolderIcon from '@mui/icons-material/Folder';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
-import { subscriptionService } from '../services/apiService';
+import { 
+  subscriptionService, 
+  projectService, 
+  contentService, 
+  datasetService, 
+  fineTuningService,
+  apiKeyService,
+} from '../services/apiService';
+import { useSnackbar } from 'notistack';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -68,21 +77,34 @@ const OnboardingPage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [activeStep, setActiveStep] = useState(0);
   
   // Données du projet
   const [projectName, setProjectName] = useState("Mon premier projet");
   const [projectDescription, setProjectDescription] = useState("Projet créé pendant l'onboarding");
+  const [createdProject, setCreatedProject] = useState(null);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [projectError, setProjectError] = useState(null);
   
   // Données du contenu
   const [contentType, setContentType] = useState('text');
+  const [contentUrl, setContentUrl] = useState('');
+  const [contentName, setContentName] = useState('');
+  const [createdContent, setCreatedContent] = useState(null);
   
   // Données du dataset
   const [datasetName, setDatasetName] = useState("Mon premier dataset");
+  const [creatingDataset, setCreatingDataset] = useState(false);
+  const [createdDataset, setCreatedDataset] = useState(null);
+  const [datasetError, setDatasetError] = useState(null);
   
   // Données du fine-tuning
   const [provider, setProvider] = useState('openai');
   const [model, setModel] = useState('gpt-3.5-turbo');
+  const [creatingFineTuning, setCreatingFineTuning] = useState(false);
+  const [createdFineTuning, setCreatedFineTuning] = useState(null);
+  const [fineTuningError, setFineTuningError] = useState(null);
   
   // Modèles disponibles par fournisseur
   const providerModels = {
@@ -104,40 +126,264 @@ const OnboardingPage = () => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
   const fileInputRef = React.useRef(null);
   
   // Ajout d'un état pour gérer la soumission du formulaire de finalisation
   const [isCompleting, setIsCompleting] = useState(false);
   const [completionError, setCompletionError] = useState(null);
 
-  // Ajouter cette fonction pour gérer l'upload
+  // Ajouter un nouvel état pour gérer la clé API
+  const [apiKey, setApiKey] = useState('');
+  const [savingApiKey, setSavingApiKey] = useState(false);
+  const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState(null);
+
+  // Ajouter une fonction pour sauvegarder la clé API
+  const saveApiKey = async () => {
+    if (!apiKey) {
+      setApiKeyError("Une clé API est requise pour le fine-tuning");
+      return false;
+    }
+    
+    setSavingApiKey(true);
+    setApiKeyError(null);
+    
+    try {
+      // Appel API pour sauvegarder la clé API
+      await apiKeyService.addKey(provider, apiKey);
+      
+      setApiKeySaved(true);
+      enqueueSnackbar('Clé API enregistrée avec succès', { variant: 'success' });
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement de la clé API:', error);
+      setApiKeyError(error.message || "Erreur lors de l'enregistrement de la clé API");
+      enqueueSnackbar(`Erreur: ${error.message || "Échec de l'enregistrement de la clé API"}`, { variant: 'error' });
+      return false;
+    } finally {
+      setSavingApiKey(false);
+    }
+  };
+
+  // Ajouter cette fonction pour gérer l'upload réel via l'API
   const handleFileUpload = async (event) => {
     const selectedFile = event.target.files[0];
     if (!selectedFile) return;
     
     setFile(selectedFile);
     setUploading(true);
+    setUploadError(null);
     
-    // Simuler un upload ou implémenter un vrai upload vers votre API
     try {
-      // Remplacer par votre appel API réel
-      // const formData = new FormData();
-      // formData.append('file', selectedFile);
-      // const response = await api.uploadContent(formData);
+      // Vérifier si le projet a été créé
+      if (!createdProject) {
+        throw new Error("Veuillez d'abord créer un projet");
+      }
       
-      // Simulation d'un délai d'upload
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Créer un objet FormData pour l'upload
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('project_id', createdProject.id);
+      formData.append('name', selectedFile.name);
+      formData.append('file_type', contentType);
       
+      // Appel API réel
+      const response = await contentService.upload(formData);
+      
+      setCreatedContent(response);
       setUploadSuccess(true);
-      setUploading(false);
+      enqueueSnackbar('Contenu uploadé avec succès', { variant: 'success' });
     } catch (error) {
       console.error('Erreur lors de l\'upload:', error);
+      setUploadError(error.message || "Erreur lors de l'upload du fichier");
+      enqueueSnackbar(`Erreur: ${error.message || "Échec de l'upload"}`, { variant: 'error' });
+    } finally {
       setUploading(false);
     }
   };
+  
+  // Ajouter une fonction pour gérer l'ajout d'URL
+  const handleUrlContent = async () => {
+    if (!contentUrl || !contentName) {
+      setUploadError("L'URL et le nom du contenu sont requis");
+      return;
+    }
+    
+    setUploading(true);
+    setUploadError(null);
+    
+    try {
+      // Vérifier si le projet a été créé
+      if (!createdProject) {
+        throw new Error("Veuillez d'abord créer un projet");
+      }
+      
+      const urlContent = {
+        project_id: createdProject.id,
+        name: contentName,
+        url: contentUrl,
+        type: contentType
+      };
+      
+      // Appel API réel
+      const response = await contentService.addUrl(urlContent);
+      
+      setCreatedContent(response);
+      setUploadSuccess(true);
+      enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'URL:', error);
+      setUploadError(error.message || "Erreur lors de l'ajout de l'URL");
+      enqueueSnackbar(`Erreur: ${error.message || "Échec de l'ajout d'URL"}`, { variant: 'error' });
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  // Fonction pour créer un projet
+  const createProject = async () => {
+    if (!projectName) {
+      setProjectError("Le nom du projet est requis");
+      return false;
+    }
+    
+    setCreatingProject(true);
+    setProjectError(null);
+    
+    try {
+      const projectData = {
+        name: projectName,
+        description: projectDescription
+      };
+      
+      // Appel API réel
+      const response = await projectService.create(projectData);
+      
+      setCreatedProject(response);
+      enqueueSnackbar('Projet créé avec succès', { variant: 'success' });
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la création du projet:', error);
+      setProjectError(error.message || "Erreur lors de la création du projet");
+      enqueueSnackbar(`Erreur: ${error.message || "Échec de la création du projet"}`, { variant: 'error' });
+      return false;
+    } finally {
+      setCreatingProject(false);
+    }
+  };
+  
+  // Fonction pour créer un dataset
+  const createDataset = async () => {
+    if (!datasetName) {
+      setDatasetError("Le nom du dataset est requis");
+      return false;
+    }
+    
+    if (!createdContent) {
+      setDatasetError("Veuillez d'abord ajouter du contenu");
+      return false;
+    }
+    
+    setCreatingDataset(true);
+    setDatasetError(null);
+    
+    try {
+      const datasetData = {
+        name: datasetName,
+        project_id: createdProject.id,
+        content_ids: [createdContent.id],
+        model: 'gpt-3.5-turbo'
+      };
+      
+      // Appel API réel
+      const response = await datasetService.create(datasetData);
+      
+      setCreatedDataset(response);
+      enqueueSnackbar('Dataset créé avec succès', { variant: 'success' });
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la création du dataset:', error);
+      setDatasetError(error.message || "Erreur lors de la création du dataset");
+      enqueueSnackbar(`Erreur: ${error.message || "Échec de la création du dataset"}`, { variant: 'error' });
+      return false;
+    } finally {
+      setCreatingDataset(false);
+    }
+  };
+  
+  // Fonction pour créer un fine-tuning
+  const createFineTuning = async () => {
+    if (!createdDataset) {
+      setFineTuningError("Veuillez d'abord créer un dataset");
+      return false;
+    }
+    
+    setCreatingFineTuning(true);
+    setFineTuningError(null);
+    
+    try {
+      const fineTuningData = {
+        name: `Fine-tuning de ${datasetName}`,
+        dataset_id: createdDataset.id,
+        model: model,
+        provider: provider,
+        hyperparameters: {
+          epochs: 3,
+          learning_rate: 0.0002,
+          batch_size: 4
+        }
+      };
+      
+      // Appel API réel
+      const response = await fineTuningService.create(fineTuningData);
+      
+      setCreatedFineTuning(response);
+      enqueueSnackbar('Fine-tuning lancé avec succès', { variant: 'success' });
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la création du fine-tuning:', error);
+      setFineTuningError(error.message || "Erreur lors de la création du fine-tuning");
+      enqueueSnackbar(`Erreur: ${error.message || "Échec du lancement du fine-tuning"}`, { variant: 'error' });
+      return false;
+    } finally {
+      setCreatingFineTuning(false);
+    }
+  };
 
-  // Gérer le changement d'étape
-  const handleNext = () => {
+  // Modifier la fonction handleNext pour exécuter les actions API à chaque étape
+  const handleNext = async () => {
+    // Vérifier s'il y a des actions à effectuer selon l'étape
+    switch (activeStep) {
+      case 1: // Après étape projet, créer le projet
+        const projectSuccess = await createProject();
+        if (!projectSuccess) return; // Ne pas avancer si échec
+        break;
+      
+      case 2: // Après étape contenu, vérifier que le contenu est uploadé
+        if (!uploadSuccess) {
+          setUploadError("Veuillez d'abord uploader un contenu");
+          return;
+        }
+        break;
+      
+      case 3: // Après étape dataset, créer le dataset
+        const datasetSuccess = await createDataset();
+        if (!datasetSuccess) return; // Ne pas avancer si échec
+        break;
+      
+      case 4: // Après étape fine-tuning
+        // Vérifier d'abord la clé API
+        const apiKeySuccess = await saveApiKey();
+        if (!apiKeySuccess) return;
+        
+        // Puis lancer le fine-tuning
+        const fineTuningSuccess = await createFineTuning();
+        if (!fineTuningSuccess) return;
+        break;
+    }
+    
+    // Si tout s'est bien passé, avancer à l'étape suivante
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
@@ -316,6 +562,12 @@ const OnboardingPage = () => {
                 placeholder="Décrivez l'objectif de ce projet..."
               />
             </FormControl>
+            
+            {projectError && (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {projectError}
+              </Typography>
+            )}
           </Box>
         );
       case 2:
@@ -345,6 +597,7 @@ const OnboardingPage = () => {
                 value={contentType}
                 onChange={(e) => setContentType(e.target.value)}
                 label="Type de contenu"
+                disabled={uploading || uploadSuccess}
               >
                 <MenuItem value="text">Texte brut</MenuItem>
                 <MenuItem value="pdf">Document PDF</MenuItem>
@@ -353,65 +606,104 @@ const OnboardingPage = () => {
               </Select>
             </FormControl>
             
-            <Box
-              sx={{
-                border: '2px dashed',
-                borderColor: uploadSuccess ? 'success.main' : 'divider',
-                borderRadius: 3,
-                p: 4,
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                backgroundColor: 'background.paper',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  backgroundColor: (theme) => 
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(96, 165, 250, 0.05)'
-                      : 'rgba(59, 130, 246, 0.05)',
-                },
-              }}
-              onClick={() => fileInputRef.current.click()}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileUpload}
-                accept={contentType === 'pdf' ? '.pdf' : contentType === 'text' ? '.txt,.doc,.docx' : '*'}
-              />
-              
-              {uploading ? (
-                <CircularProgress size={48} sx={{ mb: 2 }} />
-              ) : uploadSuccess ? (
-                <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
-              ) : (
-                <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-              )}
-              
-              <Typography variant="body1" gutterBottom>
-                {uploadSuccess 
-                  ? `Fichier "${file?.name}" uploadé avec succès` 
-                  : uploading 
-                    ? 'Upload en cours...' 
-                    : 'Glissez-déposez votre fichier ici'}
+            {/* Interface différente selon le type de contenu */}
+            {(contentType === 'youtube' || contentType === 'website') ? (
+              <Box sx={{ mb: 3 }}>
+                <TextField
+                  fullWidth
+                  label="URL"
+                  value={contentUrl}
+                  onChange={(e) => setContentUrl(e.target.value)}
+                  placeholder={contentType === 'youtube' ? "https://www.youtube.com/watch?v=..." : "https://example.com"}
+                  disabled={uploading || uploadSuccess}
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Nom du contenu"
+                  value={contentName}
+                  onChange={(e) => setContentName(e.target.value)}
+                  placeholder="Nom descriptif pour ce contenu"
+                  disabled={uploading || uploadSuccess}
+                  sx={{ mb: 2 }}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleUrlContent}
+                  disabled={uploading || uploadSuccess || !contentUrl || !contentName}
+                  startIcon={uploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                >
+                  {uploading ? 'Ajout en cours...' : 'Ajouter l\'URL'}
+                </Button>
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  border: '2px dashed',
+                  borderColor: uploadSuccess ? 'success.main' : uploadError ? 'error.main' : 'divider',
+                  borderRadius: 3,
+                  p: 4,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  backgroundColor: 'background.paper',
+                  '&:hover': {
+                    borderColor: uploadError ? 'error.main' : 'primary.main',
+                    backgroundColor: (theme) => 
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(96, 165, 250, 0.05)'
+                        : 'rgba(59, 130, 246, 0.05)',
+                  },
+                }}
+                onClick={() => !uploadSuccess && !uploading && fileInputRef.current.click()}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleFileUpload}
+                  accept={contentType === 'pdf' ? '.pdf' : contentType === 'text' ? '.txt,.doc,.docx' : '*'}
+                  disabled={uploading || uploadSuccess}
+                />
+                
+                {uploading ? (
+                  <CircularProgress size={48} sx={{ mb: 2 }} />
+                ) : uploadSuccess ? (
+                  <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
+                ) : (
+                  <CloudUploadIcon sx={{ fontSize: 48, color: uploadError ? 'error.main' : 'text.secondary', mb: 2 }} />
+                )}
+                
+                <Typography variant="body1" gutterBottom>
+                  {uploadSuccess 
+                    ? `Fichier "${file?.name}" uploadé avec succès` 
+                    : uploading 
+                      ? 'Upload en cours...' 
+                      : 'Glissez-déposez votre fichier ici'}
+                </Typography>
+                
+                {!uploadSuccess && !uploading && (
+                  <>
+                    <Typography variant="body2" color="text.secondary">
+                      ou
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      sx={{ mt: 2 }}
+                      component="span"
+                    >
+                      Parcourir
+                    </Button>
+                  </>
+                )}
+              </Box>
+            )}
+            
+            {uploadError && (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {uploadError}
               </Typography>
-              
-              {!uploadSuccess && !uploading && (
-                <>
-                  <Typography variant="body2" color="text.secondary">
-                    ou
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    sx={{ mt: 2 }}
-                    component="span"
-                  >
-                    Parcourir
-                  </Button>
-                </>
-              )}
-            </Box>
+            )}
           </Box>
         );
       case 3:
@@ -476,6 +768,18 @@ const OnboardingPage = () => {
                 </Box>
               </Stack>
             </Paper>
+            
+            {datasetError && (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {datasetError}
+              </Typography>
+            )}
+            
+            {creatingDataset && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                <CircularProgress />
+              </Box>
+            )}
           </Box>
         );
       case 4:
@@ -558,6 +862,42 @@ const OnboardingPage = () => {
                 </Box>
               </Stack>
             </Paper>
+            
+            <Typography variant="body1" paragraph>
+              Entrez votre clé API {provider} pour permettre le fine-tuning de votre modèle.
+            </Typography>
+            
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <TextField
+                label={`Clé API ${provider}`}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                required
+                type="password"
+                placeholder={provider === 'openai' ? "sk-..." : provider === 'anthropic' ? "sk-ant-..." : "Votre clé API"}
+                sx={{ mb: 2 }}
+                error={!!apiKeyError}
+              />
+              <FormHelperText>
+                {apiKeyError ? (
+                  <Typography color="error">{apiKeyError}</Typography>
+                ) : (
+                  `Cette clé est nécessaire pour lancer le fine-tuning de votre modèle ${provider}. Elle sera stockée de manière sécurisée.`
+                )}
+              </FormHelperText>
+            </FormControl>
+            
+            {fineTuningError && (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {fineTuningError}
+              </Typography>
+            )}
+            
+            {creatingFineTuning && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                <CircularProgress />
+              </Box>
+            )}
           </Box>
         );
       case 5:
@@ -685,14 +1025,16 @@ const OnboardingPage = () => {
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
                   sx={{ borderRadius: 3 }}
+                  disabled={creatingProject || uploading || creatingDataset || creatingFineTuning}
                 >
                   Retour
                 </Button>
                 <Button
                   variant="contained"
                   onClick={handleNext}
-                  endIcon={<ArrowForwardIcon />}
+                  endIcon={activeStep === 1 && creatingProject ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
                   sx={{ borderRadius: 3 }}
+                  disabled={creatingProject || uploading || creatingDataset || creatingFineTuning}
                 >
                   {activeStep === steps.length - 2 ? 'Terminer' : 'Suivant'}
                 </Button>
