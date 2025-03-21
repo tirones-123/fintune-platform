@@ -293,8 +293,12 @@ const OnboardingPage = () => {
         name: datasetName,
         project_id: createdProject.id,
         content_ids: [createdContent.id],
-        model: 'gpt-3.5-turbo'
+        model: 'gpt-3.5-turbo',
+        description: `Dataset généré depuis le contenu "${createdContent.name || 'importé'}" pendant l'onboarding`
       };
+      
+      // Ajouter des logs de débogage
+      console.log("Tentative de création de dataset avec:", datasetData);
       
       // Appel API réel
       const response = await datasetService.create(datasetData);
@@ -303,7 +307,14 @@ const OnboardingPage = () => {
       enqueueSnackbar('Dataset créé avec succès', { variant: 'success' });
       return true;
     } catch (error) {
-      console.error('Erreur lors de la création du dataset:', error);
+      console.error('Erreur détaillée lors de la création du dataset:', error);
+      // Afficher plus de détails sur l'erreur si disponible
+      if (error.response) {
+        console.error('Détails de l'erreur:', {
+          status: error.response.status,
+          data: error.response.data
+        });
+      }
       setDatasetError(error.message || "Erreur lors de la création du dataset");
       enqueueSnackbar(`Erreur: ${error.message || "Échec de la création du dataset"}`, { variant: 'error' });
       return false;
