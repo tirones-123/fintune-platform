@@ -181,15 +181,15 @@ const OnboardingPage = () => {
         throw new Error("Veuillez d'abord créer un projet");
       }
       
-      // Créer un objet FormData pour l'upload
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('project_id', createdProject.id);
-      formData.append('name', selectedFile.name);
-      formData.append('file_type', contentType);
-      
       // Appel API réel
-      const response = await contentService.upload(formData);
+      const response = await contentService.uploadFile(
+        createdProject.id,  // Premier paramètre: project_id
+        selectedFile,       // Deuxième paramètre: le fichier lui-même
+        {                   // Troisième paramètre: métadonnées (optionnel)
+          name: selectedFile.name,
+          file_type: contentType
+        }
+      );
       
       setCreatedContent(response);
       setUploadSuccess(true);
