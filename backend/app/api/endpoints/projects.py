@@ -7,6 +7,10 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.project import Project
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
+from app.models.content import Content
+from app.models.dataset import Dataset
+from app.schemas.content import ContentResponse
+from app.schemas.dataset import DatasetResponse
 
 router = APIRouter()
 
@@ -118,4 +122,52 @@ def delete_project(
     db.delete(project)
     db.commit()
     
-    return None 
+    return None
+
+@router.get("/{project_id}/contents", response_model=List[ContentResponse])
+def get_project_contents(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all contents for a specific project.
+    """
+    # Vérifier que le projet appartient à l'utilisateur
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+    
+    contents = db.query(Content).filter(Content.project_id == project_id).all()
+    return contents
+
+@router.get("/{project_id}/datasets", response_model=List[DatasetResponse])
+def get_project_datasets(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all datasets for a specific project.
+    """
+    # Vérifier que le projet appartient à l'utilisateur
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+    
+    datasets = db.query(Dataset).filter(Dataset.project_id == project_id).all()
+    return datasets 

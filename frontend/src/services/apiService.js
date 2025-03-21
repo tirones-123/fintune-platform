@@ -265,7 +265,9 @@ export const contentService = {
   // Récupérer les contenus d'un projet
   getByProjectId: async (projectId) => {
     try {
-      const response = await api.get(`/api/projects/${projectId}/contents`);
+      const response = await api.get('/api/contents', { 
+        params: { project_id: projectId } 
+      });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération des contenus du projet');
@@ -287,12 +289,22 @@ export const contentService = {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('project_id', projectId);
       
+      // Ajouter les métadonnées au formData
       if (metadata) {
-        formData.append('metadata', JSON.stringify(metadata));
+        if (metadata.name) {
+          formData.append('name', metadata.name);
+        }
+        if (metadata.file_type) {
+          formData.append('file_type', metadata.file_type);
+        }
+        if (metadata.description) {
+          formData.append('description', metadata.description);
+        }
       }
 
-      const response = await api.post(`/api/projects/${projectId}/contents/upload`, formData, {
+      const response = await api.post('/api/contents/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -305,9 +317,9 @@ export const contentService = {
   },
 
   // Ajouter un contenu par URL
-  addUrl: async (projectId, urlData) => {
+  addUrl: async (urlContent) => {
     try {
-      const response = await api.post(`/api/projects/${projectId}/contents/url`, urlData);
+      const response = await api.post('/api/contents/url', urlContent);
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.detail || 'Erreur lors de l\'ajout de l\'URL');
@@ -340,7 +352,9 @@ export const datasetService = {
   // Récupérer les datasets d'un projet
   getByProjectId: async (projectId) => {
     try {
-      const response = await api.get(`/api/projects/${projectId}/datasets`);
+      const response = await api.get('/api/datasets', { 
+        params: { project_id: projectId } 
+      });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération des datasets du projet');
@@ -423,7 +437,9 @@ export const fineTuningService = {
   // Récupérer les fine-tunings d'un dataset
   getByDatasetId: async (datasetId) => {
     try {
-      const response = await api.get(`/api/datasets/${datasetId}/fine-tunings`);
+      const response = await api.get('/api/fine-tunings', { 
+        params: { dataset_id: datasetId } 
+      });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération des fine-tunings du dataset');

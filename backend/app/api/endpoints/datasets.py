@@ -9,11 +9,13 @@ from app.models.user import User
 from app.models.project import Project
 from app.models.dataset import Dataset, DatasetContent, DatasetPair
 from app.models.content import Content
+from app.models.fine_tuning import FineTuning
 from app.schemas.dataset import (
     DatasetCreate, DatasetResponse, DatasetUpdate, 
     DatasetPairCreate, DatasetPairResponse, DatasetWithPairs,
     BulkPairUpload
 )
+from app.schemas.fine_tuning import FineTuningResponse
 
 router = APIRouter()
 
@@ -422,4 +424,28 @@ def export_dataset(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported provider: {provider}. Currently supported: openai, anthropic"
-        ) 
+        )
+
+@router.get("/{dataset_id}/fine-tunings", response_model=List[FineTuningResponse])
+def get_dataset_fine_tunings(
+    dataset_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all fine-tunings for a specific dataset.
+    """
+    # Vérifier que le dataset appartient à l'utilisateur
+    dataset = db.query(Dataset).join(Project).filter(
+        Dataset.id == dataset_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not dataset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dataset not found"
+        )
+    
+    fine_tunings = db.query(FineTuning).filter(FineTuning.dataset_id == dataset_id).all()
+    return fine_tunings 
