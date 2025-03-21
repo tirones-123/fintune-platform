@@ -65,7 +65,7 @@ services:
     volumes:
       - ./backend:/app
       - uploads:/tmp/uploads
-    command: celery -A app.core.celery_app worker --loglevel=info
+    command: celery -A celery_app worker --loglevel=info
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
