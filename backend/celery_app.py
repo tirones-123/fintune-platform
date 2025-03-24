@@ -54,7 +54,7 @@ def example_task(name):
     logger.info(f"Running example task for {name}")
     return f"Hello {name}!"
 
-# Après la configuration existante, ajoutez:
+# Définir explicitement les queues
 celery_app.conf.task_queues = (
     Queue('celery', routing_key='celery'),
     Queue('content_processing', routing_key='content_processing'),
