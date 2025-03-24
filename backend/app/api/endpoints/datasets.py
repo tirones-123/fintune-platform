@@ -94,7 +94,21 @@ def create_dataset(
     db.commit()
     
     # Trigger async processing task
-    celery_app.send_task("generate_dataset", args=[db_dataset.id])
+    try:
+        from loguru import logger
+        logger.info(f"Envoi de la tâche pour le dataset {db_dataset.id}")
+        # Spécifier explicitement la queue
+        celery_app.send_task(
+            "generate_dataset", 
+            args=[db_dataset.id], 
+            queue='dataset_generation'
+        )
+        logger.info(f"Tâche envoyée avec succès pour le dataset {db_dataset.id}")
+    except Exception as e:
+        logger.error(f"Erreur lors de l'envoi de la tâche Celery: {str(e)}")
+        # Le dataset est créé de toute façon, mais marqué comme en attente
+        db_dataset.status = "pending"
+        db.commit()
     
     return db_dataset
 

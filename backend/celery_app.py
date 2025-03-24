@@ -2,18 +2,21 @@ from celery import Celery
 import os
 from dotenv import load_dotenv
 from loguru import logger
+from kombu import Queue
 
 # Load environment variables
 load_dotenv()
 
-# Get Redis URL from environment or use default
-redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+# Spécifier explicitement le schéma de transport
+redis_host = os.getenv("REDIS_HOST", "redis")
+redis_port = os.getenv("REDIS_PORT", "6379")
+redis_url = f"redis://{redis_host}:{redis_port}/0"
 
 # Create Celery instance
 celery_app = Celery(
     "fintune_tasks",
-    broker=redis_url,
-    backend=redis_url,
+    broker=f"redis://{redis_host}:{redis_port}/0",
+    backend=f"redis://{redis_host}:{redis_port}/0",
 )
 
 # Configure Celery
@@ -38,6 +41,10 @@ celery_app.conf.update(
     },
 )
 
+# Ajouter cette configuration supplémentaire
+celery_app.conf.broker_transport_options = {'visibility_timeout': 3600}  # 1 heure
+celery_app.conf.broker_url = f"redis://{redis_host}:{redis_port}/0"
+
 # Import tasks to register them
 from app.tasks import content_processing, dataset_generation, fine_tuning
 
@@ -46,6 +53,14 @@ from app.tasks import content_processing, dataset_generation, fine_tuning
 def example_task(name):
     logger.info(f"Running example task for {name}")
     return f"Hello {name}!"
+
+# Après la configuration existante, ajoutez:
+celery_app.conf.task_queues = (
+    Queue('celery', routing_key='celery'),
+    Queue('content_processing', routing_key='content_processing'),
+    Queue('dataset_generation', routing_key='dataset_generation'),
+    Queue('fine_tuning', routing_key='fine_tuning'),
+)
 
 if __name__ == "__main__":
     celery_app.start() 

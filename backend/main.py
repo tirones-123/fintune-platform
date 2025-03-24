@@ -5,6 +5,8 @@ import logging
 import os
 from pathlib import Path
 import stripe
+from celery_app import celery_app
+from loguru import logger
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -71,7 +73,7 @@ def mock_payment():
 
 # Initialize database on startup
 @app.on_event("startup")
-def setup_db():
+async def startup_db_client():
     logger.info("Creating database tables")
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created")
@@ -85,6 +87,19 @@ def setup_db():
         finally:
             db.close()
         logger.info("Database initialized with test data")
+
+    # Vérifier la connexion Celery
+    try:
+        redis_host = os.getenv("REDIS_HOST", "redis")
+        redis_port = os.getenv("REDIS_PORT", "6379")
+        logger.info(f"Configuration Celery: redis://{redis_host}:{redis_port}/0")
+        
+        # Ping Redis via Celery
+        celery_app.control.ping()
+        logger.info("Connexion Celery testée avec succès")
+    except Exception as e:
+        logger.error(f"Erreur de connexion Celery: {str(e)}")
+        logger.warning("La génération asynchrone de datasets pourrait ne pas fonctionner")
 
 # Run the app
 if __name__ == "__main__":
