@@ -17,8 +17,8 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relations - utiliser des chaînes pour éviter les importations circulaires
+    # Revenir à la forme originale
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
-    # Commentez ces lignes si les modèles n'existent pas
+    # Supprimez ces lignes si elles n'existaient pas dans le code original
     # subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
     # api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete-orphan") 
