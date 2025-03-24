@@ -19,5 +19,6 @@ class User(Base):
     
     # Relations - utiliser des chaînes pour éviter les importations circulaires
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
-    subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
-    api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete-orphan") 
+    # Commentez ces lignes si les modèles n'existent pas
+    # subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
+    # api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete-orphan") 

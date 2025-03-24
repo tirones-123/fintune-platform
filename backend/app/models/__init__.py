@@ -1,7 +1,7 @@
-# Déclarer l'ordre d'importation correct pour éviter les erreurs circulaires
+# Déclarer uniquement les modèles qui existent réellement
 from app.models.user import User
-from app.models.api_key import ApiKey  # Assurez-vous que ce fichier existe 
-from app.models.subscription import Subscription  # Assurez-vous que ce fichier existe
+# from app.models.api_key import ApiKey  # Commentez ou supprimez si n'existe pas
+# from app.models.subscription import Subscription  # Commentez ou supprimez si n'existe pas
 from app.models.project import Project
 from app.models.content import Content
 from app.models.dataset import Dataset, DatasetContent, DatasetPair
