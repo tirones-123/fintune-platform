@@ -17,7 +17,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Revenir à la forme originale
+    # Relation originale uniquement
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
     # Supprimez ces lignes si elles n'existaient pas dans le code original
     # subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
