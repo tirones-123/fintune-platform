@@ -70,9 +70,10 @@ def generate_dataset(dataset_id: int):
         # Get contents
         contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
         
-        # Initialize OpenAI provider with user's API key if available
-        provider_name = dataset.provider or "openai"
-        provider = get_ai_provider(provider_name, dataset.api_key)
+        # Récupérer le provider et de la clé API :
+        provider_name = getattr(dataset, "provider", "openai")
+        dataset_api_key = getattr(dataset, "api_key", None) or os.getenv("OPENAI_API_KEY")
+        provider = get_ai_provider(provider_name, dataset_api_key)
         
         # Model to use for generation
         model = dataset.model or DEFAULT_MODEL
