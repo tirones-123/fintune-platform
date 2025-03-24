@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
 from celery import Celery
 import os
 from dotenv import load_dotenv
@@ -7,7 +10,7 @@ from kombu import Queue
 # Load environment variables
 load_dotenv()
 
-# Spécifier explicitement le schéma de transport
+# Get Redis URL from environment or use default
 redis_host = os.getenv("REDIS_HOST", "redis")
 redis_port = os.getenv("REDIS_PORT", "6379")
 redis_url = f"redis://{redis_host}:{redis_port}/0"
@@ -15,8 +18,8 @@ redis_url = f"redis://{redis_host}:{redis_port}/0"
 # Create Celery instance
 celery_app = Celery(
     "fintune_tasks",
-    broker=f"redis://{redis_host}:{redis_port}/0",
-    backend=f"redis://{redis_host}:{redis_port}/0",
+    broker=redis_url,
+    backend=redis_url,
 )
 
 # Configure Celery
@@ -43,7 +46,7 @@ celery_app.conf.update(
 
 # Ajouter cette configuration supplémentaire
 celery_app.conf.broker_transport_options = {'visibility_timeout': 3600}  # 1 heure
-celery_app.conf.broker_url = f"redis://{redis_host}:{redis_port}/0"
+celery_app.conf.broker_url = redis_url
 
 # Import tasks to register them
 from app.tasks import content_processing, dataset_generation, fine_tuning

@@ -50,6 +50,10 @@ def generate_dataset(dataset_id: int):
         dataset.started_at = datetime.now().isoformat()
         db.commit()
         
+        # Important: Import the model classes here to avoid circular imports
+        from app.models.dataset import DatasetContent
+        from app.models.content import Content
+        
         # Get all contents associated with this dataset
         dataset_contents = db.query(DatasetContent).filter(DatasetContent.dataset_id == dataset_id).all()
         

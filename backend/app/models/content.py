@@ -20,6 +20,6 @@ class Content(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationships
+    # Relationships - utilisez toujours des chaînes pour éviter les importations circulaires
     project = relationship("Project", back_populates="contents")
     dataset_contents = relationship("DatasetContent", back_populates="content", cascade="all, delete-orphan") 
