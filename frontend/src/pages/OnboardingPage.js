@@ -310,7 +310,7 @@ const OnboardingPage = () => {
       console.error('Erreur détaillée lors de la création du dataset:', error);
       // Afficher plus de détails sur l'erreur si disponible
       if (error.response) {
-        console.error('Détails de l'erreur:', {
+        console.error("Détails de l'erreur:", {
           status: error.response.status,
           data: error.response.data
         });
