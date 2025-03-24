@@ -3,8 +3,6 @@ import os
 from dotenv import load_dotenv
 from loguru import logger
 
-from app.core.config import settings
-
 # Load environment variables
 load_dotenv()
 
@@ -14,8 +12,8 @@ redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
 # Create Celery instance
 celery_app = Celery(
     "fintune_tasks",
-    broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL,
+    broker=redis_url,
+    backend=redis_url,
 )
 
 # Configure Celery
