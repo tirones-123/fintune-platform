@@ -441,7 +441,29 @@ const OnboardingPage = () => {
       console.log("Résultat de la mise à jour:", updatedUser);
       
       if (updatedUser && updatedUser.has_completed_onboarding) {
-        // ... suite pour créer la session de paiement, rediriger, etc.
+        try {
+          console.log("Tentative de création d'une session de paiement pour le plan 'starter'");
+          const session = await subscriptionService.createCheckoutSession('starter');
+          console.log("Session de paiement créée avec succès:", session);
+          
+          if (session && session.url) {
+            console.log("Redirection vers:", session.url);
+            window.location.href = session.url;
+          } else {
+            console.error("URL de redirection non reçue dans la session:", session);
+            setCompletionError("Erreur de redirection: URL de paiement non disponible");
+          }
+        } catch (checkoutError) {
+          console.error('Erreur lors de la création de la session de paiement:', checkoutError);
+          if (checkoutError.response) {
+            console.error('Détails de la réponse d’erreur:', {
+              status: checkoutError.response.status,
+              data: checkoutError.response.data,
+              headers: checkoutError.response.headers,
+            });
+          }
+          setCompletionError(`Erreur lors de la redirection vers la page de paiement: ${checkoutError.message}`);
+        }
       } else {
         console.error("La mise à jour de l'état d'onboarding a échoué. Données reçues:", JSON.stringify(updatedUser, null, 2));
         setCompletionError("L'état d'onboarding n'a pas pu être mis à jour correctement");
