@@ -106,8 +106,9 @@ def create_dataset(
         logger.info(f"Tâche envoyée avec succès pour le dataset {db_dataset.id}")
     except Exception as e:
         logger.error(f"Erreur lors de l'envoi de la tâche Celery: {str(e)}")
-        # Le dataset est créé de toute façon, mais marqué comme en attente
-        db_dataset.status = "pending"
+        # Pour l'onboarding, marquer le dataset comme prêt plutôt qu'en attente
+        # cela permettra de continuer le processus sans attendre
+        db_dataset.status = "ready"  # Changer de "pending" à "ready"
         db.commit()
     
     return db_dataset

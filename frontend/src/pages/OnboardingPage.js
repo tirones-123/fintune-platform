@@ -139,6 +139,10 @@ const OnboardingPage = () => {
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [apiKeyError, setApiKeyError] = useState(null);
 
+  // Ajouter un nouvel état
+  const [datasetLoading, setDatasetLoading] = useState(false);
+  const [datasetReady, setDatasetReady] = useState(false);
+
   // Ajouter une fonction pour sauvegarder la clé API
   const saveApiKey = async () => {
     if (!apiKey) {
@@ -305,6 +309,11 @@ const OnboardingPage = () => {
       
       setCreatedDataset(response);
       enqueueSnackbar('Dataset créé avec succès', { variant: 'success' });
+      
+      // Commencer à vérifier si le dataset est prêt
+      setDatasetLoading(true);
+      setTimeout(() => checkDatasetStatus(response.id), 2000);
+      
       return true;
     } catch (error) {
       console.error('Erreur détaillée lors de la création du dataset:', error);
@@ -379,8 +388,19 @@ const OnboardingPage = () => {
         break;
       
       case 3: // Après étape dataset, créer le dataset
+        if (createdDataset && datasetReady) {
+          // Dataset déjà créé et prêt, on peut continuer
+          break;
+        }
+        
         const datasetSuccess = await createDataset();
         if (!datasetSuccess) return; // Ne pas avancer si échec
+        
+        // Si le dataset est créé mais pas encore prêt, attendre
+        if (!datasetReady) {
+          enqueueSnackbar('Veuillez attendre que le dataset soit prêt', { variant: 'warning' });
+          return;
+        }
         break;
       
       case 4: // Après étape fine-tuning
@@ -480,6 +500,33 @@ const OnboardingPage = () => {
       setCompletionError(error.message || "Une erreur s'est produite lors de la finalisation");
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  // Ajouter cette fonction après createDataset
+  const checkDatasetStatus = async (datasetId) => {
+    try {
+      const dataset = await datasetService.getById(datasetId);
+      console.log(`Vérification du statut du dataset ${datasetId}: ${dataset.status}`);
+      
+      if (dataset.status === "ready") {
+        setDatasetReady(true);
+        setDatasetLoading(false);
+        enqueueSnackbar('Dataset prêt pour le fine-tuning', { variant: 'success' });
+        return true;
+      } else if (dataset.status === "error") {
+        setDatasetLoading(false);
+        setDatasetError(`Erreur lors de la génération du dataset: ${dataset.error_message || 'Erreur inconnue'}`);
+        return false;
+      } else {
+        // Continuer la vérification si le dataset est toujours en traitement
+        setTimeout(() => checkDatasetStatus(datasetId), 3000); // Vérifier toutes les 3 secondes
+        return false;
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification du statut du dataset:", error);
+      setDatasetLoading(false);
+      return false;
     }
   };
 
@@ -786,9 +833,22 @@ const OnboardingPage = () => {
               </Typography>
             )}
             
-            {creatingDataset && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+            {(creatingDataset || datasetLoading) && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 3 }}>
                 <CircularProgress />
+                <Typography variant="body2" sx={{ mt: 2 }}>
+                  {creatingDataset 
+                    ? "Création du dataset en cours..." 
+                    : "Génération des paires question-réponse..."}
+                </Typography>
+              </Box>
+            )}
+            
+            {createdDataset && !datasetLoading && datasetReady && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+                <Typography variant="body1">
+                  Dataset généré avec succès ! Vous pouvez maintenant passer à l'étape suivante.
+                </Typography>
               </Box>
             )}
           </Box>
