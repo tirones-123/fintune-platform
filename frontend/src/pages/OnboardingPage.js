@@ -428,76 +428,30 @@ const OnboardingPage = () => {
     setCompletionError(null);
     
     try {
-      // Mettre à jour le statut d'onboarding de l'utilisateur
-      if (updateUser && user) {
-        try {
-          // Marquer l'onboarding comme terminé
-          console.log("Mise à jour de l'utilisateur avec hasCompletedOnboarding=true", { id: user.id, email: user.email });
-          const updatedUser = await updateUser({ ...user, hasCompletedOnboarding: true });
-          console.log("Résultat de la mise à jour:", updatedUser);
-          
-          // Si la mise à jour a réussi, on vérifie que hasCompletedOnboarding est bien à true
-          if (updatedUser && updatedUser.hasCompletedOnboarding) {
-            // Rediriger vers la page de checkout pour souscrire au plan Starter
-            // L'utilisateur doit s'abonner pour continuer
-            try {
-              // Utiliser directement "starter" comme type de plan au lieu de la constante
-              console.log("Tentative de création d'une session de paiement pour le plan 'starter'");
-              const session = await subscriptionService.createCheckoutSession('starter');
-              console.log("Session de paiement créée avec succès:", session);
-              
-              // Rediriger vers l'URL de checkout Stripe
-              if (session && session.url) {
-                console.log("Redirection vers:", session.url);
-                window.location.href = session.url;
-              } else {
-                console.error("URL de redirection non reçue dans la session:", session);
-                setCompletionError("Erreur de redirection: URL de paiement non disponible");
-              }
-            } catch (checkoutError) {
-              console.error('Erreur lors de la création de la session de paiement:', checkoutError);
-              // Log plus détaillé de l'erreur pour le débogage
-              if (checkoutError.response) {
-                console.error('Détails de la réponse d\'erreur:', {
-                  status: checkoutError.response.status,
-                  data: checkoutError.response.data,
-                  headers: checkoutError.response.headers
-                });
-              }
-              setCompletionError(`Erreur lors de la redirection vers la page de paiement: ${checkoutError.message}`);
-            }
-          } else {
-            // Si la propriété n'a pas été mise à jour malgré le succès de la requête
-            console.error("La mise à jour de l'état d'onboarding a échoué. Données reçues:", JSON.stringify(updatedUser, null, 2));
-            setCompletionError("L'état d'onboarding n'a pas pu être mis à jour correctement");
-          }
-        } catch (updateError) {
-          console.error('Erreur lors de la mise à jour du profil:', updateError);
-          // Log plus détaillé pour comprendre l'erreur
-          if (updateError.response) {
-            console.error('Détails de la réponse d\'erreur:', {
-              status: updateError.response.status,
-              data: updateError.response.data,
-              headers: updateError.response.headers
-            });
-          }
-          setCompletionError(updateError.message || "Erreur lors de la mise à jour du profil");
-          
-          // Si l'erreur est liée à l'authentification, rediriger vers la page de connexion
-          if (updateError.message === 'Not authenticated') {
-            navigate('/login');
-          }
-        }
+      // Créer un payload normalisé avec des clés en snake_case
+      const payload = {
+        email: user.email,
+        name: user.name,
+        is_active: user.is_active,
+        has_completed_onboarding: true,  // Utiliser le nom attendu par le backend
+      };
+
+      console.log("Mise à jour de l'utilisateur avec payload:", payload);
+      const updatedUser = await updateUser(payload);
+      console.log("Résultat de la mise à jour:", updatedUser);
+      
+      if (updatedUser && updatedUser.has_completed_onboarding) {
+        // ... suite pour créer la session de paiement, rediriger, etc.
       } else {
-        // Si l'utilisateur n'est pas connecté ou si updateUser n'est pas disponible
-        const errorMsg = !user ? "Utilisateur non connecté" : "Fonction de mise à jour non disponible";
-        console.error(errorMsg, { user, updateUser: !!updateUser });
-        setCompletionError(errorMsg);
+        console.error("La mise à jour de l'état d'onboarding a échoué. Données reçues:", JSON.stringify(updatedUser, null, 2));
+        setCompletionError("L'état d'onboarding n'a pas pu être mis à jour correctement");
+      }
+    } catch (updateError) {
+      console.error('Erreur lors de la mise à jour du profil:', updateError);
+      setCompletionError(updateError.message || "Erreur lors de la mise à jour du profil");
+      if (updateError.message === 'Not authenticated') {
         navigate('/login');
       }
-    } catch (error) {
-      console.error('Erreur globale lors de la finalisation de l\'onboarding:', error);
-      setCompletionError(error.message || "Une erreur s'est produite lors de la finalisation");
     } finally {
       setIsCompleting(false);
     }
