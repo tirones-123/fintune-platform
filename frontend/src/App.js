@@ -55,7 +55,7 @@ const OnboardingCheck = ({ children }) => {
   }
 
   // Si l'utilisateur n'a pas complété l'onboarding, le rediriger vers l'onboarding
-  if (user && !user.hasCompletedOnboarding) {
+  if (user && !(user.hasCompletedOnboarding || user.has_completed_onboarding)) {
     return <Navigate to="/onboarding" />;
   }
 
