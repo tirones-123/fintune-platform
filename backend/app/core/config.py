@@ -89,5 +89,8 @@ class Settings(BaseSettings):
     # Content processing settings
     DEFAULT_AI_MODEL: str = Field(default="gpt-4o-mini")
 
+    # Frontend configuration
+    FRONTEND_URL: str = Field(default="http://localhost:3000")
+
 
 settings = Settings() 

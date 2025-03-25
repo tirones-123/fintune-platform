@@ -56,8 +56,8 @@ async def create_checkout_session(
                 },
             ],
             mode="subscription",
-            success_url=f"{settings.BACKEND_CORS_ORIGINS[0]}/dashboard?success=true",
-            cancel_url=f"{settings.BACKEND_CORS_ORIGINS[0]}/pricing?canceled=true",
+            success_url=f"{settings.FRONTEND_URL}/dashboard?success=true",
+            cancel_url=f"{settings.FRONTEND_URL}/pricing?canceled=true",
             metadata={
                 "user_id": str(current_user.id),
                 "plan_id": plan_id,
