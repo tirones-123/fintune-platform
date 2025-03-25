@@ -80,7 +80,7 @@ def create_fine_tuning(
     db.refresh(db_fine_tuning)
     
     # TODO: Trigger async processing task
-    # celery_app.send_task("app.tasks.fine_tuning.start_fine_tuning", args=[db_fine_tuning.id])
+    celery_app.send_task("app.tasks.fine_tuning.start_fine_tuning", args=[db_fine_tuning.id])
     
     return db_fine_tuning
 
