@@ -56,11 +56,7 @@ def init_db(db: Session) -> None:
             user_id=test_user.id,
             stripe_subscription_id="sub_test",
             plan="Starter",
-            status="active",
-            current_period_start=datetime.now(),
-            current_period_end=datetime.now() + timedelta(days=30),
-            max_projects=3,
-            max_fine_tunings=1
+            status="active"
         )
         db.add(test_subscription)
         db.commit()

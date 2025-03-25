@@ -96,76 +96,25 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks, db
         session = event["data"]["object"]
         logger.info(f"Session object: {session}")
 
-        # Loggez les métadonnées pour vérifier la présence des champs attendus
-        metadata = session.get("metadata")
-        logger.info(f"Metadata: {metadata}")
-
-        # Loggez l'ID d'abonnement envoyé dans la session
+        # Récupération des informations essentielles
         subscription_id = session.get("subscription")
         logger.info(f"Subscription ID from session: {subscription_id}")
 
-        try:
-            # Get user ID from metadata
-            user_id = int(metadata.get("user_id", 0))
-            if not user_id:
-                raise ValueError("user_id missing in metadata")
-            plan_id = metadata.get("plan_id")
-            is_upgrade = metadata.get("is_upgrade") == "true"
-            
-            # Get subscription details
-            subscription_data = stripe.Subscription.retrieve(subscription_id)
-            
-            # Create or update subscription in database
-            user = db.query(User).filter(User.id == user_id).first()
-            if not user:
-                return {"status": "error", "message": "User not found"}
-            
-            # Determine plan details
-            plan_name = plan_id.capitalize()
-            if plan_id == "starter":
-                max_projects = 3
-                max_fine_tunings = 1
-            elif plan_id == "pro":
-                max_projects = 10
-                max_fine_tunings = 5
-            elif plan_id == "enterprise":
-                max_projects = 100
-                max_fine_tunings = 20
+        # Mettre à jour la souscription correspondante sans utiliser les champs non définis
+        if subscription_id:
+            subscription = db.query(Subscription).filter(
+                Subscription.stripe_subscription_id == subscription_id
+            ).first()
+            if subscription:
+                subscription.status = "active"
+                subscription.stripe_customer_id = session.get("customer")
+                # On supprime l'utilisation de current_period_start, current_period_end, max_projects et max_fine_tunings
+                db.commit()
+                logger.info("Subscription updated successfully without extra fields.")
             else:
-                max_projects = 1
-                max_fine_tunings = 0
-            
-            # Create or update subscription
-            existing_subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
-            
-            if existing_subscription:
-                # Update existing subscription
-                existing_subscription.stripe_subscription_id = subscription_id
-                existing_subscription.plan = plan_name
-                existing_subscription.status = subscription_data["status"]
-                existing_subscription.current_period_end = datetime.fromtimestamp(subscription_data["current_period_end"])
-                existing_subscription.max_projects = max_projects
-                existing_subscription.max_fine_tunings = max_fine_tunings
-            else:
-                # Create new subscription
-                new_subscription = Subscription(
-                    user_id=user_id,
-                    stripe_subscription_id=subscription_id,
-                    plan=plan_name,
-                    status=subscription_data["status"],
-                    current_period_end=datetime.fromtimestamp(subscription_data["current_period_end"]),
-                    max_projects=max_projects,
-                    max_fine_tunings=max_fine_tunings
-                )
-                db.add(new_subscription)
-            
-            db.commit()
-            
-            # TODO: Send confirmation email
-            # background_tasks.add_task(send_subscription_email, user.email, plan_name, is_upgrade)
-        except Exception as e:
-            logger.error(f"Error processing checkout.session.completed event: {e}")
-            raise HTTPException(status_code=500, detail="Internal Server Error")
+                logger.error("Subscription not found in database.")
+        else:
+            logger.error("No subscription ID provided in session.")
     
     elif event["type"] == "customer.subscription.updated":
         subscription_data = event["data"]["object"]
