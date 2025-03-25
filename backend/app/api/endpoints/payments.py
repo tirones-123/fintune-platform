@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import stripe
 from datetime import datetime
+import logging
 
 from app.core.security import get_current_user
 from app.core.config import settings
@@ -14,6 +15,8 @@ from app.models.subscription import Subscription
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 @router.post("/create-checkout-session/{plan_id}")
 async def create_checkout_session(
@@ -75,91 +78,95 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks, db
     """
     Handle Stripe webhook events.
     """
-    # Get the webhook signature
+    payload = await request.body()
     signature = request.headers.get("stripe-signature")
     
-    if not signature:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing Stripe signature"
-        )
-    
-    # Get the request body
-    payload = await request.body()
-    
     try:
-        # Verify the event
         event = stripe.Webhook.construct_event(
             payload, signature, settings.STRIPE_WEBHOOK_SECRET
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        logger.error(f"Webhook verification failed: {e}")
+        raise HTTPException(status_code=400, detail="Webhook Error")
     
-    # Handle the event
+    logger.info(f"Received event type: {event['type']}")
+
     if event["type"] == "checkout.session.completed":
+        logger.info("Handling checkout.session.completed event")
         session = event["data"]["object"]
-        
-        # Get user ID from metadata
-        user_id = int(session["metadata"]["user_id"])
-        plan_id = session["metadata"]["plan_id"]
-        is_upgrade = session["metadata"]["is_upgrade"] == "true"
-        
-        # Get subscription details
-        subscription_id = session["subscription"]
-        subscription_data = stripe.Subscription.retrieve(subscription_id)
-        
-        # Create or update subscription in database
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            return {"status": "error", "message": "User not found"}
-        
-        # Determine plan details
-        plan_name = plan_id.capitalize()
-        if plan_id == "starter":
-            max_projects = 3
-            max_fine_tunings = 1
-        elif plan_id == "pro":
-            max_projects = 10
-            max_fine_tunings = 5
-        elif plan_id == "enterprise":
-            max_projects = 100
-            max_fine_tunings = 20
-        else:
-            max_projects = 1
-            max_fine_tunings = 0
-        
-        # Create or update subscription
-        existing_subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
-        
-        if existing_subscription:
-            # Update existing subscription
-            existing_subscription.stripe_subscription_id = subscription_id
-            existing_subscription.plan = plan_name
-            existing_subscription.status = subscription_data["status"]
-            existing_subscription.current_period_end = datetime.fromtimestamp(subscription_data["current_period_end"])
-            existing_subscription.max_projects = max_projects
-            existing_subscription.max_fine_tunings = max_fine_tunings
-        else:
-            # Create new subscription
-            new_subscription = Subscription(
-                user_id=user_id,
-                stripe_subscription_id=subscription_id,
-                plan=plan_name,
-                status=subscription_data["status"],
-                current_period_start=datetime.fromtimestamp(subscription_data["current_period_start"]),
-                current_period_end=datetime.fromtimestamp(subscription_data["current_period_end"]),
-                max_projects=max_projects,
-                max_fine_tunings=max_fine_tunings
-            )
-            db.add(new_subscription)
-        
-        db.commit()
-        
-        # TODO: Send confirmation email
-        # background_tasks.add_task(send_subscription_email, user.email, plan_name, is_upgrade)
+        logger.info(f"Session object: {session}")
+
+        # Loggez les métadonnées pour vérifier la présence des champs attendus
+        metadata = session.get("metadata")
+        logger.info(f"Metadata: {metadata}")
+
+        # Loggez l'ID d'abonnement envoyé dans la session
+        subscription_id = session.get("subscription")
+        logger.info(f"Subscription ID from session: {subscription_id}")
+
+        try:
+            # Get user ID from metadata
+            user_id = int(metadata.get("user_id", 0))
+            if not user_id:
+                raise ValueError("user_id missing in metadata")
+            plan_id = metadata.get("plan_id")
+            is_upgrade = metadata.get("is_upgrade") == "true"
+            
+            # Get subscription details
+            subscription_data = stripe.Subscription.retrieve(subscription_id)
+            
+            # Create or update subscription in database
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return {"status": "error", "message": "User not found"}
+            
+            # Determine plan details
+            plan_name = plan_id.capitalize()
+            if plan_id == "starter":
+                max_projects = 3
+                max_fine_tunings = 1
+            elif plan_id == "pro":
+                max_projects = 10
+                max_fine_tunings = 5
+            elif plan_id == "enterprise":
+                max_projects = 100
+                max_fine_tunings = 20
+            else:
+                max_projects = 1
+                max_fine_tunings = 0
+            
+            # Create or update subscription
+            existing_subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+            
+            if existing_subscription:
+                # Update existing subscription
+                existing_subscription.stripe_subscription_id = subscription_id
+                existing_subscription.plan = plan_name
+                existing_subscription.status = subscription_data["status"]
+                existing_subscription.current_period_end = datetime.fromtimestamp(subscription_data["current_period_end"])
+                existing_subscription.max_projects = max_projects
+                existing_subscription.max_fine_tunings = max_fine_tunings
+            else:
+                # Create new subscription
+                new_subscription = Subscription(
+                    user_id=user_id,
+                    stripe_subscription_id=subscription_id,
+                    plan=plan_name,
+                    status=subscription_data["status"],
+                    current_period_start=datetime.fromtimestamp(subscription_data["current_period_start"]),
+                    current_period_end=datetime.fromtimestamp(subscription_data["current_period_end"]),
+                    max_projects=max_projects,
+                    max_fine_tunings=max_fine_tunings
+                )
+                db.add(new_subscription)
+            
+            db.commit()
+            
+            # TODO: Send confirmation email
+            # background_tasks.add_task(send_subscription_email, user.email, plan_name, is_upgrade)
+        except Exception as e:
+            logger.error(f"Error processing checkout.session.completed event: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
     
     elif event["type"] == "customer.subscription.updated":
         subscription_data = event["data"]["object"]
