@@ -112,7 +112,21 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks, db
                 db.commit()
                 logger.info("Subscription updated successfully without extra fields.")
             else:
-                logger.error("Subscription not found in database.")
+                # Si aucun record n'est trouvé, on peut utiliser metadata pour créer un nouvel enregistrement
+                user_id = session.get("metadata", {}).get("user_id")
+                if user_id:
+                    subscription = Subscription(
+                        user_id=int(user_id),
+                        plan="starter",  # ou selon le plan choisi
+                        status="active",
+                        stripe_customer_id=session.get("customer"),
+                        stripe_subscription_id=subscription_id
+                    )
+                    db.add(subscription)
+                    db.commit()
+                    logger.info("Nouvelle souscription créée via webhook.")
+                else:
+                    logger.error("Aucun user_id trouvé dans les métadonnées du webhook.")
         else:
             logger.error("No subscription ID provided in session.")
     
