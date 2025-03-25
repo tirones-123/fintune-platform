@@ -153,7 +153,6 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks, db
                     stripe_subscription_id=subscription_id,
                     plan=plan_name,
                     status=subscription_data["status"],
-                    current_period_start=datetime.fromtimestamp(subscription_data["current_period_start"]),
                     current_period_end=datetime.fromtimestamp(subscription_data["current_period_end"]),
                     max_projects=max_projects,
                     max_fine_tunings=max_fine_tunings
