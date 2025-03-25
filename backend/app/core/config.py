@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     DEFAULT_AI_MODEL: str = Field(default="gpt-4o-mini")
 
     # Frontend configuration
-    FRONTEND_URL: str = Field(default="http://localhost:3000")
+    FRONTEND_URL: str = Field(default="https://finetuner.io")
 
 
 settings = Settings() 
