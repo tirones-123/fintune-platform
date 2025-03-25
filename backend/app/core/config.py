@@ -1,4 +1,5 @@
 import os
+import json
 from typing import List, Optional, Dict, Any
 from pydantic import Field, computed_field, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -30,10 +31,21 @@ class Settings(BaseSettings):
     ]
     
     @validator("BACKEND_CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v):
-        if isinstance(v, str):
-            return [i.strip() for i in v.split(",")]
-        return v
+    def assemble_cors_origins(cls, value):
+        if isinstance(value, str):
+            value = value.strip()
+            # Si la chaîne est un tableau JSON (commence par '['), essayer de le décoder
+            if value.startswith("["):
+                try:
+                    parsed = json.loads(value)
+                    if isinstance(parsed, list):
+                        return [str(item) for item in parsed]
+                except json.JSONDecodeError:
+                    # Si le parsing échoue, fallback à une séparation par virgule
+                    pass
+            # Sinon, se baser sur le split par virgule
+            return [i.strip() for i in value.split(",")]
+        return value
     
     # Security configuration
     SECRET_KEY: str = Field(default="your_secret_key_here")
