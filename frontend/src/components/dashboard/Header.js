@@ -1,230 +1,245 @@
 import React, { useState } from 'react';
 import {
   AppBar,
-  Avatar,
-  Badge,
-  Box,
+  Toolbar,
   IconButton,
+  Box,
+  Avatar,
+  Tooltip,
   Menu,
   MenuItem,
-  Toolbar,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme as useMuiTheme,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Badge,
+  useTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import SearchIcon from '@mui/icons-material/Search';
-import { useAuth } from '../../context/AuthContext';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import SettingsIcon from '@mui/icons-material/Settings';
+import HelpIcon from '@mui/icons-material/Help';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
-import { motion } from 'framer-motion';
 
-const Header = ({ handleDrawerToggle }) => {
-  const muiTheme = useMuiTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
-  const { user, logout } = useAuth();
+const drawerWidth = 280;
+
+const Header = ({ onDrawerToggle }) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null);
   const navigate = useNavigate();
-  
-  const [anchorElUser, setAnchorElUser] = useState(null);
-  const [anchorElNotifications, setAnchorElNotifications] = useState(null);
+  const { user, logout } = useAuth();
+  const theme = useTheme();
 
   const handleOpenUserMenu = (event) => {
-    setAnchorElUser(event.currentTarget);
+    setAnchorEl(event.currentTarget);
   };
 
   const handleCloseUserMenu = () => {
-    setAnchorElUser(null);
+    setAnchorEl(null);
   };
 
-  const handleOpenNotificationsMenu = (event) => {
-    setAnchorElNotifications(event.currentTarget);
+  const handleOpenNotifications = (event) => {
+    setNotificationsAnchorEl(event.currentTarget);
   };
 
-  const handleCloseNotificationsMenu = () => {
-    setAnchorElNotifications(null);
+  const handleCloseNotifications = () => {
+    setNotificationsAnchorEl(null);
   };
 
   const handleLogout = () => {
-    handleCloseUserMenu();
     logout();
-  };
-
-  const handleNavigate = (path) => {
     handleCloseUserMenu();
-    navigate(path);
   };
 
   return (
-    <AppBar 
-      position="fixed" 
+    <AppBar
+      position="fixed"
+      color="transparent"
       elevation={0}
       sx={{
-        width: { xs: '100%', md: `calc(100% - 280px)` },
-        ml: { xs: 0, md: '280px' },
-        backdropFilter: 'blur(8px)',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        bgcolor: 'background.default',
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        width: { sm: `calc(100% - ${drawerWidth}px)` },
+        ml: { sm: `${drawerWidth}px` },
+        backgroundColor: theme.palette.background.default,
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        boxShadow: 'none',
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
-        {/* Bouton du menu mobile et logo */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {isMobile && (
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
-          
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{ 
-              display: { xs: 'none', sm: 'block' },
-              fontWeight: 700,
-              background: (theme) => 
-                theme.palette.mode === 'dark'
-                  ? `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.accent.main} 100%)`
-                  : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.accent.main} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            FinTune
-          </Typography>
-        </Box>
-
-        {/* Barre de recherche */}
-        <Box 
-          sx={{ 
-            display: { xs: 'none', md: 'flex' },
-            alignItems: 'center',
-            backgroundColor: 'background.paper',
-            borderRadius: 2,
-            px: 2,
-            py: 0.5,
-            width: '40%',
-            border: '1px solid',
-            borderColor: 'divider',
-            '&:hover': {
-              boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)',
-            },
-          }}
+      <Toolbar
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          px: { xs: 2, sm: 3 },
+        }}
+      >
+        <IconButton
+          color="inherit"
+          aria-label="open drawer"
+          edge="start"
+          onClick={onDrawerToggle}
+          sx={{ mr: 2, display: { md: 'none' } }}
         >
-          <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
-          <Typography variant="body2" color="text.secondary">
-            Rechercher...
-          </Typography>
-        </Box>
+          <MenuIcon />
+        </IconButton>
 
-        {/* Actions */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {/* Bouton de recherche mobile */}
-          <IconButton 
-            color="inherit" 
-            sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }}
-          >
-            <SearchIcon />
-          </IconButton>
+        <Box sx={{ flexGrow: 1 }} />
 
-          {/* Bouton de changement de thème */}
-          <Box sx={{ mr: 1 }}>
-            <ThemeToggle />
-          </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Notifications */}
           <Tooltip title="Notifications">
-            <IconButton 
-              color="inherit" 
-              onClick={handleOpenNotificationsMenu}
-              sx={{ mr: 1 }}
-            >
+            <IconButton color="inherit" onClick={handleOpenNotifications}>
               <Badge badgeContent={3} color="error">
                 <NotificationsIcon />
               </Badge>
             </IconButton>
           </Tooltip>
-          
-          <Menu
-            sx={{ mt: '45px' }}
-            id="notifications-menu"
-            anchorEl={anchorElNotifications}
-            anchorOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            keepMounted
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            open={Boolean(anchorElNotifications)}
-            onClose={handleCloseNotificationsMenu}
-          >
-            <MenuItem onClick={handleCloseNotificationsMenu}>
-              <Typography variant="body2">Fine-tuning terminé : Modèle support client</Typography>
-            </MenuItem>
-            <MenuItem onClick={handleCloseNotificationsMenu}>
-              <Typography variant="body2">Nouveau dataset généré : FAQ produit</Typography>
-            </MenuItem>
-            <MenuItem onClick={handleCloseNotificationsMenu}>
-              <Typography variant="body2">Contenu traité : Documentation technique</Typography>
-            </MenuItem>
-          </Menu>
 
-          {/* Menu utilisateur */}
-          <Box sx={{ flexShrink: 0 }}>
-            <Tooltip title="Paramètres du compte">
-              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                  <Avatar 
-                    alt={user?.name || 'User'} 
-                    src="/static/images/avatar/1.jpg"
-                    sx={{ 
-                      width: 40, 
-                      height: 40,
-                      border: '2px solid',
-                      borderColor: 'primary.main',
-                    }}
-                  />
-                </motion.div>
-              </IconButton>
-            </Tooltip>
-            <Menu
-              sx={{ mt: '45px' }}
-              id="menu-appbar"
-              anchorEl={anchorElUser}
-              anchorOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              keepMounted
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              open={Boolean(anchorElUser)}
-              onClose={handleCloseUserMenu}
-            >
-              <MenuItem onClick={() => handleNavigate('/dashboard/settings')}>
-                <Typography textAlign="center">Mon compte</Typography>
-              </MenuItem>
-              <MenuItem onClick={handleLogout}>
-                <Typography textAlign="center">Déconnexion</Typography>
-              </MenuItem>
-            </Menu>
-          </Box>
+          {/* User Menu */}
+          <Tooltip title="Options du compte">
+            <IconButton onClick={handleOpenUserMenu} sx={{ ml: 1 }}>
+              <Avatar
+                alt={user?.displayName || 'User'}
+                src={user?.photoURL}
+                sx={{
+                  width: 38,
+                  height: 38,
+                  bgcolor: 'primary.main',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    boxShadow: '0 0 0 2px ' + theme.palette.primary.main,
+                  },
+                }}
+              >
+                {!user?.photoURL && (
+                  <AccountCircleIcon fontSize="small" />
+                )}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
         </Box>
       </Toolbar>
+
+      {/* Notifications Menu */}
+      <Menu
+        id="notifications-menu"
+        anchorEl={notificationsAnchorEl}
+        open={Boolean(notificationsAnchorEl)}
+        onClose={handleCloseNotifications}
+        PaperProps={{
+          elevation: 2,
+          sx: {
+            overflow: 'visible',
+            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
+            mt: 1.5,
+            minWidth: 250,
+            maxWidth: 350,
+            '&:before': {
+              content: '""',
+              display: 'block',
+              position: 'absolute',
+              top: 0,
+              right: 14,
+              width: 10,
+              height: 10,
+              bgcolor: 'background.paper',
+              transform: 'translateY(-50%) rotate(45deg)',
+              zIndex: 0,
+            },
+          },
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <MenuItem onClick={() => navigate('/dashboard/notifications')}>
+          <ListItemText 
+            primary="Nouveau modèle disponible" 
+            secondary="Il y a 1 heure"
+          />
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => navigate('/dashboard/notifications')}>
+          <ListItemText 
+            primary="Fine-tuning terminé" 
+            secondary="Il y a 3 heures"
+          />
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => navigate('/dashboard/notifications')}>
+          <ListItemText 
+            primary="Bienvenue sur FinTune" 
+            secondary="Il y a 1 jour"
+          />
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => navigate('/dashboard/notifications')}>
+          <ListItemText 
+            primary="Voir toutes les notifications" 
+            sx={{ color: 'primary.main' }}
+          />
+        </MenuItem>
+      </Menu>
+
+      {/* User Menu */}
+      <Menu
+        id="menu-appbar"
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseUserMenu}
+        PaperProps={{
+          elevation: 2,
+          sx: {
+            overflow: 'visible',
+            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
+            mt: 1.5,
+            minWidth: 200,
+            '&:before': {
+              content: '""',
+              display: 'block',
+              position: 'absolute',
+              top: 0,
+              right: 14,
+              width: 10,
+              height: 10,
+              bgcolor: 'background.paper',
+              transform: 'translateY(-50%) rotate(45deg)',
+              zIndex: 0,
+            },
+          },
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/dashboard/profile'); }}>
+          <ListItemIcon>
+            <AccountCircleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Mon profil" />
+        </MenuItem>
+        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/dashboard/settings'); }}>
+          <ListItemIcon>
+            <SettingsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Paramètres" />
+        </MenuItem>
+        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/help'); }}>
+          <ListItemIcon>
+            <HelpIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Aide" />
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" sx={{ color: 'error.main' }} />
+          </ListItemIcon>
+          <ListItemText primary="Déconnexion" sx={{ color: 'error.main' }} />
+        </MenuItem>
+      </Menu>
     </AppBar>
   );
 };

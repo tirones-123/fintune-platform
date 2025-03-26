@@ -239,7 +239,12 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   return (
     <Box
       component="nav"
-      sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+      sx={{ 
+        position: 'fixed',
+        width: drawerWidth,
+        height: '100%',
+        zIndex: 1200,
+      }}
     >
       {/* Mobile drawer */}
       <Drawer
@@ -254,9 +259,8 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           '& .MuiDrawer-paper': { 
             boxSizing: 'border-box', 
             width: drawerWidth,
-            borderRight: '1px solid',
-            borderColor: 'divider',
-            bgcolor: 'background.default',
+            borderRight: 'none',
+            boxShadow: 3,
           },
         }}
       >
@@ -271,11 +275,8 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: drawerWidth,
-            borderRight: '1px solid',
-            borderColor: 'divider',
+            borderRight: 'none',
             boxShadow: 'none',
-            bgcolor: 'background.default',
-            zIndex: (theme) => theme.zIndex.drawer,
           },
         }}
         open
