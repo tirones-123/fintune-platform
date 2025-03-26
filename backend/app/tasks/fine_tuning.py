@@ -12,6 +12,7 @@ from app.models.dataset import Dataset, DatasetPair
 from app.services.ai_providers import get_ai_provider
 from app.services.storage import storage_service
 from app.core.config import settings
+from app.models.project import Project
 
 @shared_task(name="start_fine_tuning")
 def start_fine_tuning(fine_tuning_id: int):
@@ -46,8 +47,18 @@ def start_fine_tuning(fine_tuning_id: int):
         fine_tuning.progress = 0
         db.commit()
         
-        # Get AI provider service
-        provider_service = get_ai_provider(fine_tuning.provider, fine_tuning.api_key or None)
+        # Récupérer la clé API depuis le User via le projet
+        project = db.query(Project).filter(Project.id == dataset.project_id).first()
+        
+        user_api_key = None
+        if project and project.user and project.user.api_keys:
+            for api in project.user.api_keys:
+                if api.provider.lower() == fine_tuning.provider.lower():
+                    user_api_key = api.key
+                    break
+        
+        # Utiliser la clé récupérée pour initialiser le provider
+        provider_service = get_ai_provider(fine_tuning.provider, user_api_key)
         
         # Fetch all dataset pairs
         dataset_pairs = db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset.id).all()
