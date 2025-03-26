@@ -99,7 +99,7 @@ def start_fine_tuning(fine_tuning_id: int):
         # Start the fine-tuning job
         response = provider_service.start_fine_tuning(
             dataset_path=file_id,
-            model=fine_tuning.base_model,
+            model=fine_tuning.model,
             hyperparameters=hyperparameters
         )
         
