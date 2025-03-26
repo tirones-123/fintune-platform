@@ -4,7 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import { PageTransition } from '../common/PageTransition';
+import PageTransition from '../common/PageTransition';
 
 const drawerWidth = 280;
 
