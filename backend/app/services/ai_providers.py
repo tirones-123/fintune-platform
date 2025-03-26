@@ -129,7 +129,7 @@ class OpenAIProvider(AIProviderBase):
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "system", "content": ""},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
@@ -145,44 +145,75 @@ class OpenAIProvider(AIProviderBase):
         Returns a list of dictionaries with question and answer keys.
         """
         try:
-            prompt = (
-                "Create 5 question-answer pairs from the following text chunk. "
-                "The questions should be diverse and cover different aspects of the text. "
-                "The answers should be comprehensive and accurate based on the information provided. "
-                "Format your response as a JSON array with objects containing 'question' and 'answer' fields.\n\n"
-                f"Text chunk: {chunk_text}"
-            )
+            system_prompt = """You are a training data creation assistant specialized in creating ChatML format data.
+Your task is to read a given text chunk and produce high-quality question-answer pairs in the correct ChatML format for fine-tuning.
+
+Important rules:
+1. Each entry MUST follow this exact format:
+   {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
+2. Do NOT sanitize or correct anything from the original text's style and language.
+3. Do NOT introduce any facts not present in the text.
+4. If the text uses casual grammar, slang, or specific terminology, preserve it exactly.
+5. Generate between 3 and 10 high-quality pairs that truly represent valuable Q&A scenarios.
+6. Questions should be direct and focused on extracting key information from the text.
+7. Answers should be comprehensive yet concise, containing only information found in the text.
+8. Return EACH pair as a complete, valid JSONL line (not as an array).
+"""
+            
+            user_prompt = f"""Veuillez lire ce texte et générer des paires question-réponse au format ChatML:
+
+[TEXT]
+{chunk_text}
+[/TEXT]
+
+Créez 3 à 10 paires questions-réponses de haute qualité au format JSONL, chaque ligne suivant exactement cette structure:
+{{"messages": [{{"role": "system", "content": "You are a helpful assistant."}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "RÉPONSE"}}]}}
+
+Chaque question doit être pertinente et la réponse doit contenir uniquement des informations présentes dans le texte. Conservez le style, le ton et le vocabulaire du texte original.
+
+Retournez simplement les lignes JSONL, une par ligne, sans explication ni texte supplémentaire.
+"""
             
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are an expert in creating high-quality training data for fine-tuning language models."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.7,
-                response_format={"type": "json_object"}
+                temperature=0.7
             )
             
-            # Parse JSON from response
+            # Extraire le contenu de la réponse
             content = response.choices[0].message.content
-            data = json.loads(content)
             
-            # Ensure data has the expected format
-            if "pairs" in data:
-                return data["pairs"]
-            elif isinstance(data, list):
-                return data
-            elif isinstance(data, dict) and all(k in data for k in ["question", "answer"]):
-                return [data]
-            else:
-                # Try to extract qa_pairs or similar key
-                for key in data:
-                    if isinstance(data[key], list) and len(data[key]) > 0:
-                        return data[key]
-                
-                # Fallback to empty list if no valid data
-                logger.warning(f"Unexpected response format: {data}")
-                return []
+            # Traiter le contenu ligne par ligne pour extraire les objets JSONL
+            qa_pairs = []
+            for line in content.strip().split('\n'):
+                line = line.strip()
+                if not line or line.startswith('```') or line.startswith('#'):
+                    continue
+                    
+                try:
+                    # Essayer de parser la ligne comme un objet JSON
+                    data = json.loads(line)
+                    
+                    # Vérifier si c'est un objet ChatML valide
+                    if 'messages' in data and len(data['messages']) >= 3:
+                        messages = data['messages']
+                        user_msg = next((m for m in messages if m['role'] == 'user'), None)
+                        assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                        
+                        if user_msg and assistant_msg:
+                            # Transformer au format attendu par le reste du code
+                            qa_pairs.append({
+                                'question': user_msg['content'],
+                                'answer': assistant_msg['content']
+                            })
+                except json.JSONDecodeError:
+                    # Ignorer les lignes qui ne sont pas du JSON valide
+                    continue
+            
+            return qa_pairs
                 
         except Exception as e:
             logger.error(f"Error generating QA pairs with OpenAI: {str(e)}")
@@ -215,7 +246,7 @@ class OpenAIProvider(AIProviderBase):
             
             with open(output_path, 'w') as f:
                 for pair in qa_pairs:
-                    # Format as per OpenAI's fine-tuning format
+                    # Format en ChatML pour OpenAI
                     training_example = {
                         "messages": [
                             {"role": "system", "content": "You are a helpful assistant."},
@@ -223,7 +254,7 @@ class OpenAIProvider(AIProviderBase):
                             {"role": "assistant", "content": pair["answer"]}
                         ]
                     }
-                    f.write(json.dumps(training_example) + '\n')
+                    f.write(json.dumps(training_example, ensure_ascii=False) + '\n')
                     
             return output_path
             
@@ -353,51 +384,76 @@ class AnthropicProvider(AIProviderBase):
         Generates question-answer pairs from a text chunk using Anthropic.
         """
         try:
-            prompt = (
-                "Create 5 question-answer pairs from the following text chunk. "
-                "The questions should be diverse and cover different aspects of the text. "
-                "The answers should be comprehensive and accurate based on the information provided. "
-                "Format your response as a JSON array with objects containing 'question' and 'answer' fields.\n\n"
-                f"Text chunk: {chunk_text}"
-            )
+            system_prompt = """You are a training data creation assistant specialized in creating ChatML format data.
+Your task is to read a given text chunk and produce high-quality question-answer pairs in the correct ChatML format for fine-tuning.
+
+Important rules:
+1. Each entry MUST follow this exact format:
+   {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
+2. Do NOT sanitize or correct anything from the original text's style and language.
+3. Do NOT introduce any facts not present in the text.
+4. If the text uses casual grammar, slang, or specific terminology, preserve it exactly.
+5. Generate between 3 and 10 high-quality pairs that truly represent valuable Q&A scenarios.
+6. Questions should be direct and focused on extracting key information from the text.
+7. Answers should be comprehensive yet concise, containing only information found in the text.
+8. Return EACH pair as a complete, valid JSONL line (not as an array).
+"""
+            
+            user_prompt = f"""Veuillez lire ce texte et générer des paires question-réponse au format ChatML:
+
+[TEXT]
+{chunk_text}
+[/TEXT]
+
+Créez 3 à 10 paires questions-réponses de haute qualité au format JSONL, chaque ligne suivant exactement cette structure:
+{{"messages": [{{"role": "system", "content": "You are a helpful assistant."}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "RÉPONSE"}}]}}
+
+Chaque question doit être pertinente et la réponse doit contenir uniquement des informations présentes dans le texte. Conservez le style, le ton et le vocabulaire du texte original.
+
+Retournez simplement les lignes JSONL, une par ligne, sans explication ni texte supplémentaire.
+"""
             
             response = self.client.messages.create(
                 model=model,
                 max_tokens=1500,
                 messages=[
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.7,
             )
             
-            # Parse JSON from response
+            # Extraire le contenu de la réponse
             content = response.content[0].text
             
-            # Extract JSON from the response
-            try:
-                # Try to find JSON object in the response
-                json_start = content.find('[')
-                json_end = content.rfind(']') + 1
-                
-                if json_start >= 0 and json_end > json_start:
-                    json_str = content[json_start:json_end]
-                    data = json.loads(json_str)
-                    return data
-                else:
-                    # If not found, try parsing the entire response
-                    data = json.loads(content)
+            # Traiter le contenu ligne par ligne pour extraire les objets JSONL
+            qa_pairs = []
+            for line in content.strip().split('\n'):
+                line = line.strip()
+                if not line or line.startswith('```') or line.startswith('#'):
+                    continue
                     
-                    # Handle different response formats
-                    if isinstance(data, list):
-                        return data
-                    elif isinstance(data, dict) and "pairs" in data:
-                        return data["pairs"]
-                    else:
-                        logger.warning(f"Unexpected response format: {data}")
-                        return []
-            except json.JSONDecodeError:
-                logger.error(f"Failed to parse JSON from Anthropic response")
-                return []
+                try:
+                    # Essayer de parser la ligne comme un objet JSON
+                    data = json.loads(line)
+                    
+                    # Vérifier si c'est un objet ChatML valide
+                    if 'messages' in data and len(data['messages']) >= 3:
+                        messages = data['messages']
+                        user_msg = next((m for m in messages if m['role'] == 'user'), None)
+                        assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                        
+                        if user_msg and assistant_msg:
+                            # Transformer au format attendu par le reste du code
+                            qa_pairs.append({
+                                'question': user_msg['content'],
+                                'answer': assistant_msg['content']
+                            })
+                except json.JSONDecodeError:
+                    # Ignorer les lignes qui ne sont pas du JSON valide
+                    continue
+            
+            return qa_pairs
                 
         except Exception as e:
             logger.error(f"Error generating QA pairs with Anthropic: {str(e)}")
@@ -430,14 +486,15 @@ class AnthropicProvider(AIProviderBase):
             
             with open(output_path, 'w') as f:
                 for pair in qa_pairs:
-                    # Format as per Anthropic's fine-tuning format
+                    # Format en ChatML
                     training_example = {
                         "messages": [
+                            {"role": "system", "content": "You are a helpful assistant."},
                             {"role": "user", "content": pair["question"]},
                             {"role": "assistant", "content": pair["answer"]}
                         ]
                     }
-                    f.write(json.dumps(training_example) + '\n')
+                    f.write(json.dumps(training_example, ensure_ascii=False) + '\n')
                     
             return output_path
             
@@ -587,21 +644,42 @@ class MistralProvider(AIProviderBase):
         Generates question-answer pairs from a text chunk using Mistral.
         """
         try:
-            prompt = (
-                "Create 5 question-answer pairs from the following text chunk. "
-                "The questions should be diverse and cover different aspects of the text. "
-                "The answers should be comprehensive and accurate based on the information provided. "
-                "Format your response as a JSON array with objects containing 'question' and 'answer' fields.\n\n"
-                f"Text chunk: {chunk_text}"
-            )
+            system_prompt = """You are a training data creation assistant specialized in creating ChatML format data.
+Your task is to read a given text chunk and produce high-quality question-answer pairs in the correct ChatML format for fine-tuning.
+
+Important rules:
+1. Each entry MUST follow this exact format:
+   {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
+2. Do NOT sanitize or correct anything from the original text's style and language.
+3. Do NOT introduce any facts not present in the text.
+4. If the text uses casual grammar, slang, or specific terminology, preserve it exactly.
+5. Generate between 3 and 10 high-quality pairs that truly represent valuable Q&A scenarios.
+6. Questions should be direct and focused on extracting key information from the text.
+7. Answers should be comprehensive yet concise, containing only information found in the text.
+8. Return EACH pair as a complete, valid JSONL line (not as an array).
+"""
+            
+            user_prompt = f"""Veuillez lire ce texte et générer des paires question-réponse au format ChatML:
+
+[TEXT]
+{chunk_text}
+[/TEXT]
+
+Créez 3 à 10 paires questions-réponses de haute qualité au format JSONL, chaque ligne suivant exactement cette structure:
+{{"messages": [{{"role": "system", "content": "You are a helpful assistant."}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "RÉPONSE"}}]}}
+
+Chaque question doit être pertinente et la réponse doit contenir uniquement des informations présentes dans le texte. Conservez le style, le ton et le vocabulaire du texte original.
+
+Retournez simplement les lignes JSONL, une par ligne, sans explication ni texte supplémentaire.
+"""
             
             payload = {
                 "model": model,
                 "messages": [
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
-                "temperature": 0.7,
-                "response_format": {"type": "json_object"}
+                "temperature": 0.7
             }
             
             response = requests.post(
@@ -612,31 +690,37 @@ class MistralProvider(AIProviderBase):
             response.raise_for_status()
             response_data = response.json()
             
-            # Parse JSON from response
+            # Extraire le contenu de la réponse
             content = response_data["choices"][0]["message"]["content"]
             
-            try:
-                data = json.loads(content)
-                
-                # Handle different response formats
-                if "pairs" in data:
-                    return data["pairs"]
-                elif isinstance(data, list):
-                    return data
-                elif all(k in data for k in ["question", "answer"]):
-                    return [data]
-                else:
-                    # Try to find any array in the response
-                    for key in data:
-                        if isinstance(data[key], list) and len(data[key]) > 0:
-                            return data[key]
+            # Traiter le contenu ligne par ligne pour extraire les objets JSONL
+            qa_pairs = []
+            for line in content.strip().split('\n'):
+                line = line.strip()
+                if not line or line.startswith('```') or line.startswith('#'):
+                    continue
                     
-                    logger.warning(f"Unexpected response format: {data}")
-                    return []
+                try:
+                    # Essayer de parser la ligne comme un objet JSON
+                    data = json.loads(line)
                     
-            except json.JSONDecodeError:
-                logger.error(f"Failed to parse JSON from Mistral response")
-                return []
+                    # Vérifier si c'est un objet ChatML valide
+                    if 'messages' in data and len(data['messages']) >= 3:
+                        messages = data['messages']
+                        user_msg = next((m for m in messages if m['role'] == 'user'), None)
+                        assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                        
+                        if user_msg and assistant_msg:
+                            # Transformer au format attendu par le reste du code
+                            qa_pairs.append({
+                                'question': user_msg['content'],
+                                'answer': assistant_msg['content']
+                            })
+                except json.JSONDecodeError:
+                    # Ignorer les lignes qui ne sont pas du JSON valide
+                    continue
+            
+            return qa_pairs
                 
         except Exception as e:
             logger.error(f"Error generating QA pairs with Mistral: {str(e)}")
@@ -676,14 +760,15 @@ class MistralProvider(AIProviderBase):
             
             with open(output_path, 'w') as f:
                 for pair in qa_pairs:
-                    # Format as per Mistral's fine-tuning format
+                    # Format en ChatML
                     training_example = {
                         "messages": [
+                            {"role": "system", "content": "You are a helpful assistant."},
                             {"role": "user", "content": pair["question"]},
                             {"role": "assistant", "content": pair["answer"]}
                         ]
                     }
-                    f.write(json.dumps(training_example) + '\n')
+                    f.write(json.dumps(training_example, ensure_ascii=False) + '\n')
                     
             return output_path
             
