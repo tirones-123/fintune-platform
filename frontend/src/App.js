@@ -23,6 +23,10 @@ import ChatPage from './pages/ChatPage';
 import DatasetDetailPage from './pages/DatasetDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import OnboardingPage from './pages/OnboardingPage';
+import ContentsPage from './pages/ContentsPage';
+import DatasetsPage from './pages/DatasetsPage';
+import FineTuningsPage from './pages/FineTuningsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 // Layouts
 import DashboardLayout from './components/dashboard/DashboardLayout';
@@ -105,23 +109,24 @@ const AppRoutes = () => {
           <Route path="projects/:projectId" element={<ProjectDetailPage />} />
           
           {/* Routes du contenu */}
+          <Route path="content" element={<ContentsPage />} />
           <Route path="content/upload/:projectId" element={<ContentUploadPage />} />
+          <Route path="content/upload" element={<ContentUploadPage />} />
+          <Route path="content/:contentId" element={<ContentUploadPage />} />
           
           {/* Routes des datasets */}
+          <Route path="datasets" element={<DatasetsPage />} />
           <Route path="datasets/new/:projectId" element={<NewDatasetPage />} />
+          <Route path="datasets/:datasetId" element={<DatasetDetailPage />} />
           
           {/* Routes du fine-tuning */}
+          <Route path="fine-tuning" element={<FineTuningsPage />} />
           <Route path="fine-tuning/new/:datasetId" element={<NewFineTuningPage />} />
           <Route path="fine-tuning/:fineTuningId" element={<FineTuningDetailPage />} />
           <Route path="chat/:fineTuningId" element={<ChatPage />} />
           
-          {/* Autres routes à implémenter */}
-          <Route path="content" element={<div>Liste des contenus</div>} />
-          <Route path="content/:contentId" element={<div>Détail du contenu</div>} />
-          <Route path="datasets" element={<div>Liste des datasets</div>} />
-          <Route path="datasets/:datasetId" element={<DatasetDetailPage />} />
-          <Route path="fine-tuning" element={<div>Liste des fine-tunings</div>} />
-          <Route path="analytics" element={<div>Analyse</div>} />
+          {/* Autres routes */}
+          <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 

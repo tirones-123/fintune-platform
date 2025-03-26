@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -13,6 +13,7 @@ import {
   IconButton,
   LinearProgress,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +26,7 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import CountUp from 'react-countup';
+import { projectService, contentService, datasetService, fineTuningService } from '../services/apiService';
 
 // Animation variants
 const containerVariants = {
@@ -106,37 +108,58 @@ const StatCard = ({ title, value, icon: Icon, color, suffix = '', prefix = '' })
 const RecentProjects = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Projets fictifs pour la démo
-  const projects = [
-    { 
-      id: 1, 
-      name: 'Documentation produit', 
-      updatedAt: '2023-03-07T10:30:00Z', 
-      contentCount: 3, 
-      datasetCount: 1,
-      progress: 75,
-      status: 'En cours',
-    },
-    { 
-      id: 2, 
-      name: 'Blog articles', 
-      updatedAt: '2023-03-06T14:20:00Z', 
-      contentCount: 5, 
-      datasetCount: 2,
-      progress: 100,
-      status: 'Terminé',
-    },
-    { 
-      id: 3, 
-      name: 'Support client', 
-      updatedAt: '2023-03-05T09:15:00Z', 
-      contentCount: 8, 
-      datasetCount: 3,
-      progress: 30,
-      status: 'En cours',
-    },
-  ];
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const data = await projectService.getAll();
+        // Trier par date de mise à jour (les plus récents d'abord)
+        const sortedProjects = data.sort((a, b) => 
+          new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
+        ).slice(0, 3); // Prendre les 3 plus récents
+        
+        // Pour chaque projet, récupérer les contenus et datasets associés
+        const projectsWithCounts = await Promise.all(sortedProjects.map(async (project) => {
+          try {
+            const contents = await contentService.getByProjectId(project.id);
+            const datasets = await datasetService.getByProjectId(project.id);
+            
+            // Calculer la progression du projet (simple exemple)
+            const progress = datasets.length > 0 ? 100 : (contents.length > 0 ? 50 : 25);
+            const status = progress === 100 ? 'Terminé' : 'En cours';
+            
+            return {
+              ...project,
+              contentCount: contents.length,
+              datasetCount: datasets.length,
+              progress,
+              status
+            };
+          } catch (error) {
+            console.error(`Erreur lors de la récupération des détails pour le projet ${project.id}:`, error);
+            return {
+              ...project,
+              contentCount: 0,
+              datasetCount: 0,
+              progress: 0,
+              status: 'En cours'
+            };
+          }
+        }));
+        
+        setProjects(projectsWithCounts);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des projets:', error);
+        setProjects([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -169,96 +192,117 @@ const RecentProjects = () => {
             </Button>
           </Box>
           
-          <Stack spacing={2}>
-            {projects.map((project) => (
-              <Box
-                key={project.id}
-                component={motion.div}
-                whileHover={{ x: 5 }}
-                sx={{
-                  p: 2,
-                  borderRadius: 3,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                  },
-                }}
-                onClick={() => navigate(`/dashboard/projects/${project.id}`)}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    {project.name}
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : projects.length > 0 ? (
+            <Stack spacing={2}>
+              {projects.map((project) => (
+                <Box
+                  key={project.id}
+                  component={motion.div}
+                  whileHover={{ x: 5 }}
+                  sx={{
+                    p: 2,
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                    },
+                  }}
+                  onClick={() => navigate(`/dashboard/projects/${project.id}`)}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {project.name}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Chip 
+                        label={project.status} 
+                        size="small" 
+                        sx={{ 
+                          backgroundColor: `${getStatusColor(project.status)}20`,
+                          color: getStatusColor(project.status),
+                          fontWeight: 600,
+                          mr: 1,
+                        }} 
+                      />
+                      <IconButton size="small">
+                        <MoreHorizIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                  
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                    Mis à jour le {formatDate(project.updated_at || project.created_at)}
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Chip 
-                      label={project.status} 
-                      size="small" 
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+                      {project.contentCount} contenus
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {project.datasetCount} datasets
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ mt: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Progression
+                      </Typography>
+                      <Typography variant="caption" fontWeight={600}>
+                        {project.progress}%
+                      </Typography>
+                    </Box>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={project.progress} 
                       sx={{ 
-                        backgroundColor: `${getStatusColor(project.status)}20`,
-                        color: getStatusColor(project.status),
-                        fontWeight: 600,
-                        mr: 1,
+                        height: 6, 
+                        borderRadius: 3,
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                        '& .MuiLinearProgress-bar': {
+                          borderRadius: 3,
+                          backgroundColor: getStatusColor(project.status),
+                        }
                       }} 
                     />
-                    <IconButton size="small">
-                      <MoreHorizIcon fontSize="small" />
-                    </IconButton>
                   </Box>
                 </Box>
-                
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                  Mis à jour le {formatDate(project.updatedAt)}
-                </Typography>
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-                    {project.contentCount} contenus
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {project.datasetCount} datasets
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ mt: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Progression
-                    </Typography>
-                    <Typography variant="caption" fontWeight={600}>
-                      {project.progress}%
-                    </Typography>
-                  </Box>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={project.progress} 
-                    sx={{ 
-                      height: 6, 
-                      borderRadius: 3,
-                      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                      '& .MuiLinearProgress-bar': {
-                        borderRadius: 3,
-                        backgroundColor: getStatusColor(project.status),
-                      }
-                    }} 
-                  />
-                </Box>
-              </Box>
-            ))}
-          </Stack>
+              ))}
+            </Stack>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                Vous n'avez pas encore de projets
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => navigate('/dashboard/projects/new')}
+                startIcon={<AddIcon />}
+              >
+                Créer un projet
+              </Button>
+            </Box>
+          )}
           
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/dashboard/projects/new')}
-            sx={{ mt: 3, borderRadius: 3, py: 1.2 }}
-          >
-            Nouveau projet
-          </Button>
+          {projects.length > 0 && (
+            <Button
+              variant="outlined"
+              fullWidth
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/dashboard/projects/new')}
+              sx={{ mt: 3, borderRadius: 3, py: 1.2 }}
+            >
+              Nouveau projet
+            </Button>
+          )}
         </CardContent>
       </Card>
     </motion.div>
@@ -361,26 +405,33 @@ const QuickActions = () => {
 const RecentModels = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const [models, setModels] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Modèles fictifs pour la démo
-  const models = [
-    { 
-      id: 1, 
-      name: 'Support client v1', 
-      provider: 'OpenAI',
-      model: 'GPT-3.5 Turbo',
-      createdAt: '2023-03-05T09:15:00Z',
-      status: 'Actif',
-    },
-    { 
-      id: 2, 
-      name: 'FAQ Produit', 
-      provider: 'Anthropic',
-      model: 'Claude 2',
-      createdAt: '2023-03-02T14:20:00Z',
-      status: 'Actif',
-    },
-  ];
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const data = await fineTuningService.getAll();
+        // Trier par date de création (les plus récents d'abord)
+        const sortedModels = data
+          .filter(model => model.status === 'completed')
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 3); // Prendre les 3 plus récents
+        
+        setModels(sortedModels.map(model => ({
+          ...model,
+          status: 'Actif' // Simplification pour l'affichage
+        })));
+      } catch (error) {
+        console.error('Erreur lors de la récupération des modèles:', error);
+        setModels([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModels();
+  }, []);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -402,7 +453,11 @@ const RecentModels = () => {
             </Button>
           </Box>
           
-          {models.length > 0 ? (
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : models.length > 0 ? (
             <Stack spacing={2}>
               {models.map((model) => (
                 <Box
@@ -445,7 +500,7 @@ const RecentModels = () => {
                   </Box>
                   
                   <Typography variant="caption" color="text.secondary">
-                    Créé le {formatDate(model.createdAt)}
+                    Créé le {formatDate(model.created_at)}
                   </Typography>
                 </Box>
               ))}
@@ -473,6 +528,39 @@ const RecentModels = () => {
 const DashboardPage = () => {
   const theme = useTheme();
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    projectCount: 0,
+    contentCount: 0,
+    datasetCount: 0,
+    creditBalance: user?.creditBalance || 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Récupérer les statistiques
+        const [projects, contents, datasets] = await Promise.all([
+          projectService.getAll(),
+          contentService.getAll(),
+          datasetService.getAll()
+        ]);
+
+        setStats({
+          projectCount: projects.length,
+          contentCount: contents.length,
+          datasetCount: datasets.length,
+          creditBalance: user?.creditBalance || 0
+        });
+      } catch (error) {
+        console.error('Erreur lors de la récupération des statistiques:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [user]);
 
   return (
     <Box 
@@ -484,7 +572,7 @@ const DashboardPage = () => {
     >
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-          Bonjour, {user?.name || 'John'}
+          Bonjour, {user?.name || 'utilisateur'}
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Voici un aperçu de votre activité et de vos projets récents.
@@ -496,7 +584,7 @@ const DashboardPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Projets"
-            value={5}
+            value={loading ? 0 : stats.projectCount}
             icon={AddIcon}
             color={theme.palette.primary.main}
           />
@@ -504,7 +592,7 @@ const DashboardPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Contenus"
-            value={24}
+            value={loading ? 0 : stats.contentCount}
             icon={CloudUploadIcon}
             color={theme.palette.info.main}
           />
@@ -512,7 +600,7 @@ const DashboardPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Datasets"
-            value={12}
+            value={loading ? 0 : stats.datasetCount}
             icon={DatasetIcon}
             color={theme.palette.success.main}
           />
@@ -520,7 +608,7 @@ const DashboardPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Crédit"
-            value={user?.creditBalance || 100}
+            value={stats.creditBalance}
             icon={BarChartIcon}
             color={theme.palette.warning.main}
             prefix="€"

@@ -209,7 +209,9 @@ Récupère les informations de l'abonnement de l'utilisateur courant.
 
 ### Clés API
 
-#### Obtenir les clés API
+Les clés API sont nécessaires pour utiliser les services de fine-tuning. Elles sont stockées de manière sécurisée et associées au profil utilisateur.
+
+#### Obtenir les clés API configurées
 
 ```
 GET /users/me/api-keys
@@ -226,24 +228,17 @@ Récupère les clés API configurées pour l'utilisateur courant.
     "provider": "openai",
     "key": "sk_xxxxxxxxxxxxxxxx",
     "created_at": "2023-03-10T12:00:00"
-  },
-  {
-    "id": 2,
-    "user_id": 1,
-    "provider": "anthropic",
-    "key": "sk_ant_xxxxxxxxxxxxxxxx",
-    "created_at": "2023-03-11T12:00:00"
   }
 ]
 ```
 
-#### Ajouter une clé API
+#### Ajouter ou mettre à jour une clé API
 
 ```
 POST /users/me/api-keys
 ```
 
-Ajoute ou met à jour une clé API pour l'utilisateur courant.
+Ajoute une nouvelle clé API ou met à jour une clé existante pour un provider.
 
 **Corps de la requête**
 ```json
@@ -253,16 +248,12 @@ Ajoute ou met à jour une clé API pour l'utilisateur courant.
 }
 ```
 
-**Réponse**
-```json
-{
-  "id": 1,
-  "user_id": 1,
-  "provider": "openai",
-  "key": "sk_xxxxxxxxxxxxxxxx",
-  "created_at": "2023-03-10T12:00:00"
-}
-```
+**Providers supportés**:
+- `openai`: Clés commençant par "sk-..."
+- `anthropic`: Clés commençant par "sk-ant-..."
+- `mistral`: Format spécifique à Mistral AI
+
+**Note**: La clé API est requise avant de pouvoir lancer un fine-tuning avec le provider correspondant.
 
 #### Supprimer une clé API
 
@@ -957,11 +948,14 @@ Crée un nouveau job de fine-tuning.
   "model": "gpt-3.5-turbo",
   "provider": "openai",
   "hyperparameters": {
-    "epochs": 3,
-    "learning_rate": 0.0001
+    "n_epochs": 3  // Seul hyperparamètre actuellement supporté par OpenAI
   }
 }
 ```
+
+**Note importante**: Pour les fine-tunings OpenAI :
+- Seul le paramètre `n_epochs` est supporté dans l'objet `hyperparameters`
+- Les paramètres `learning_rate` et `batch_size` ne sont pas acceptés par l'API OpenAI
 
 **Réponse**
 ```json
@@ -974,8 +968,7 @@ Crée un nouveau job de fine-tuning.
   "provider": "openai",
   "status": "queued",
   "hyperparameters": {
-    "epochs": 3,
-    "learning_rate": 0.0001
+    "n_epochs": 3
   },
   "external_id": null,
   "error_message": null,
@@ -983,6 +976,19 @@ Crée un nouveau job de fine-tuning.
   "updated_at": "2023-03-10T13:00:00"
 }
 ```
+
+**Traitement asynchrone**
+
+Lorsqu'un fine-tuning est créé, le traitement est géré de manière asynchrone par des tâches Celery en arrière-plan:
+1. Une tâche `start_fine_tuning` est déclenchée immédiatement après la création
+2. Cette tâche communique avec l'API du provider (OpenAI, Anthropic, Mistral) 
+3. Le statut et la progression sont mis à jour périodiquement dans la base de données
+4. Des tâches périodiques vérifient l'état du fine-tuning auprès du provider
+
+**Codes d'erreur possibles**
+- `404 Not Found`: Dataset non trouvé ou n'appartenant pas à l'utilisateur
+- `400 Bad Request`: Dataset non prêt pour le fine-tuning ou paramètres invalides
+- `401 Unauthorized`: Clé API manquante pour le provider spécifié
 
 ### Récupérer un fine-tuning spécifique
 
@@ -1143,6 +1149,10 @@ Crée une session Stripe pour l'abonnement.
 }
 ```
 
+**Codes d'erreur possibles**
+- `400 Bad Request`: ID de plan invalide
+- `500 Internal Server Error`: Erreur lors de la création de la session Stripe (détails dans le corps de la réponse)
+
 ### Webhook Stripe
 
 ```
@@ -1152,7 +1162,7 @@ POST /checkout/webhook
 Gère les événements de webhook de Stripe.
 
 **Corps de la requête**
-Un événement Stripe conforme à leur format de webhook.
+Un événement Stripe conforme à leur format de webhook, avec en-tête `stripe-signature`.
 
 **Réponse**
 ```json
@@ -1160,6 +1170,33 @@ Un événement Stripe conforme à leur format de webhook.
   "status": "success"
 }
 ```
+
+**Codes d'erreur possibles**
+- `400 Bad Request`: Erreur de vérification de signature ou événement non reconnu
+
+**Détails d'implémentation des webhooks Stripe**
+
+L'endpoint `/checkout/webhook` traite les événements Stripe avec les spécificités suivantes:
+
+1. **Vérification de la signature**: Chaque requête entrante est vérifiée à l'aide de la signature Stripe pour garantir son authenticité.
+
+2. **Gestion de `checkout.session.completed`**: 
+   - Vérifie si un ID de souscription est présent dans la session
+   - Recherche une souscription existante avec cet ID
+   - Si trouvé, met à jour son statut à "active" et enregistre l'ID client Stripe
+   - Si non trouvé, crée une nouvelle souscription en utilisant les métadonnées de la session, notamment:
+     - `user_id`: ID de l'utilisateur 
+     - `plan_id`: Type de plan (starter, pro, enterprise)
+     - `is_upgrade`: Booléen indiquant s'il s'agit d'une mise à niveau
+
+3. **Gestion de `customer.subscription.updated`**:
+   - Met à jour le statut de l'abonnement et les dates de période
+   - Préserve les informations spécifiques à l'application (comme les limites de projets)
+
+4. **Gestion de `customer.subscription.deleted`**:
+   - Marque l'abonnement comme "canceled" sans le supprimer de la base
+
+5. **Journalisation**: Tous les événements sont journalisés pour le débogage et l'audit
 
 **Événements gérés par le webhook Stripe**
 
@@ -1191,3 +1228,25 @@ Pour chaque événement, le système vérifie l'authenticité à l'aide de la si
 
 ```jsonl
 {"messages": [{"role": "user", "content": "Question"}, {"role": "assistant", "content": "Réponse"}]} 
+```
+
+## Workflow de Fine-tuning
+
+Le processus de fine-tuning suit les étapes suivantes :
+
+1. **Configuration de la clé API**
+   - L'utilisateur doit d'abord configurer sa clé API pour le provider souhaité via l'endpoint `/users/me/api-keys`
+
+2. **Création du Dataset**
+   - Créer un dataset à partir des contenus via l'endpoint `/datasets`
+   - Attendre que le status du dataset passe à "ready"
+
+3. **Lancement du Fine-tuning**
+   - Créer un job de fine-tuning via l'endpoint `/fine-tunings`
+   - Le système récupère automatiquement la clé API associée au provider choisi
+   - Le job passe par différents états : "queued" → "preparing" → "training" → "completed"
+
+4. **Suivi du Progrès**
+   - Utiliser l'endpoint GET `/fine-tunings/{fine_tuning_id}` pour suivre l'avancement
+   - Le champ `progress` indique le pourcentage de progression (0-100)
+   - Le champ `status` indique l'état actuel du job 
