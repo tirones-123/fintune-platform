@@ -349,9 +349,7 @@ const OnboardingPage = () => {
         model: model,
         provider: provider,
         hyperparameters: {
-          n_epochs: 3,
-          learning_rate: 0.0002,
-          batch_size: 4
+          n_epochs: 3
         }
       };
       
@@ -456,10 +454,10 @@ const OnboardingPage = () => {
         } catch (checkoutError) {
           console.error('Erreur lors de la création de la session de paiement:', checkoutError);
           if (checkoutError.response) {
-            console.error('Détails de la réponse d\'erreur:', {
+            console.error('Détails de la réponse d'erreur:', {
               status: checkoutError.response.status,
               data: checkoutError.response.data,
-              headers: checkoutError.response.headers
+              headers: checkoutError.response.headers,
             });
           }
           setCompletionError(`Erreur lors de la redirection vers la page de paiement: ${checkoutError.message}`);
