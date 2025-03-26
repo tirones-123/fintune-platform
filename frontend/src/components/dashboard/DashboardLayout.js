@@ -25,13 +25,14 @@ const DashboardLayout = () => {
         sx={{
           flexGrow: 1,
           p: { xs: 2, md: 3 },
-          width: { md: `calc(100% - 280px)` },
-          ml: { md: '280px' },
+          width: { xs: '100%', md: `calc(100% - 280px)` },
+          ml: { xs: 0, md: '280px' },
           backgroundColor: 'background.default',
           overflow: 'hidden',
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
+          position: 'relative',
         }}
       >
         <Toolbar /> {/* Placeholder pour l'espace occupé par l'en-tête */}

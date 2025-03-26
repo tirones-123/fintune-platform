@@ -256,6 +256,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
             width: drawerWidth,
             borderRight: '1px solid',
             borderColor: 'divider',
+            bgcolor: 'background.default',
           },
         }}
       >
@@ -273,6 +274,8 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
             borderRight: '1px solid',
             borderColor: 'divider',
             boxShadow: 'none',
+            bgcolor: 'background.default',
+            zIndex: (theme) => theme.zIndex.drawer,
           },
         }}
         open

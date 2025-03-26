@@ -61,11 +61,13 @@ const Header = ({ handleDrawerToggle }) => {
       position="fixed" 
       elevation={0}
       sx={{
-        width: { md: `calc(100% - 280px)` },
-        ml: { md: '280px' },
+        width: { xs: '100%', md: `calc(100% - 280px)` },
+        ml: { xs: 0, md: '280px' },
         backdropFilter: 'blur(8px)',
         borderBottom: '1px solid',
         borderColor: 'divider',
+        bgcolor: 'background.default',
+        zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
       <Toolbar sx={{ justifyContent: 'space-between' }}>
