@@ -167,6 +167,36 @@ def generate_dataset(dataset_id: int):
         
         logger.info(f"Dataset {dataset_id} generated successfully with {total_pairs} pairs")
         
+        # Créer automatiquement un fine-tuning pour ce dataset
+        try:
+            from app.models.fine_tuning import FineTuning
+            from celery_app import celery_app
+            
+            # Créer un fine-tuning avec des valeurs par défaut
+            fine_tuning = FineTuning(
+                name=f"Auto-generated fine-tuning for {dataset.name}",
+                description=f"Automatically created fine-tuning for dataset {dataset.name}",
+                model=dataset.model or "gpt-3.5-turbo",
+                provider="openai",  # Utilisation d'OpenAI par défaut
+                hyperparameters={"n_epochs": 3},  # Paramètres par défaut
+                status="queued",
+                dataset_id=dataset_id
+            )
+            
+            db.add(fine_tuning)
+            db.commit()
+            db.refresh(fine_tuning)
+            
+            # Démarrer le fine-tuning avec la tâche asynchrone
+            celery_app.send_task("start_fine_tuning", args=[fine_tuning.id])
+            
+            logger.info(f"Auto-created and started fine-tuning {fine_tuning.id} for dataset {dataset_id}")
+        
+        except Exception as e:
+            logger.error(f"Error auto-creating fine-tuning for dataset {dataset_id}: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Continue anyway as the dataset generation succeeded
+        
         # Mettre à jour le statut des contenus utilisés à "processed" s'ils sont encore en "processing"
         try:
             for content in contents:
