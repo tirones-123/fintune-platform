@@ -389,6 +389,17 @@ const OnboardingPage = () => {
         setDatasetReady(true);
         setDatasetLoading(false);
         enqueueSnackbar('Dataset prêt pour le fine-tuning', { variant: 'success' });
+
+        // Lancer automatiquement le fine-tuning si le dataset est prêt et qu'aucun fine-tuning n'existe
+        if (!createdFineTuning) {
+          console.log("Dataset prêt, lancement automatique du fine-tuning...");
+          try {
+            await createFineTuning();
+          } catch (error) {
+            console.error("Erreur lors du lancement automatique du fine-tuning:", error);
+          }
+        }
+        
         return true;
       } else if (dataset.status === "error") {
         setDatasetLoading(false);
@@ -478,83 +489,44 @@ const OnboardingPage = () => {
     setProcessingFineTuning(true);
     
     try {
-      // Stocker l'ID du dataset localement si disponible
-      let datasetId = createdDataset?.id;
-      let datasetIsReady = datasetReady;
+      // 1. Commencer la création du dataset en arrière-plan si nécessaire
+      let datasetCreationStarted = false;
       
-      // 1. Créer le dataset s'il n'existe pas encore
-      if (!datasetId) {
-        console.log("Aucun dataset existant, création d'un nouveau dataset...");
-        const datasetSuccess = await createDataset();
-        if (!datasetSuccess || !createdDataset) {
-          throw new Error("Échec de la création du dataset");
-        }
-        
-        // Stocker l'ID du dataset après création
-        datasetId = createdDataset.id;
-        console.log(`Dataset créé avec succès, ID: ${datasetId}`);
-        
-        // Attendre que le dataset soit prêt
-        console.log("Attente que le dataset soit prêt...");
-        let retries = 0;
-        const maxRetries = 20; // Maximum 60 secondes d'attente (20 × 3s)
-        
-        while (retries < maxRetries && !datasetIsReady) {
-          await new Promise(resolve => setTimeout(resolve, 3000)); // Attendre 3 secondes
-          
-          // Utiliser l'ID stocké localement pour vérifier le statut
-          if (!datasetId) {
-            console.error("ID du dataset perdu pendant l'attente");
-            throw new Error("ID du dataset perdu");
+      if (!createdDataset) {
+        console.log("Aucun dataset existant, démarrage de la création en arrière-plan...");
+        // Lancer la création du dataset sans attendre
+        createDataset().then(success => {
+          if (success && createdDataset) {
+            console.log(`Dataset créé avec succès en arrière-plan, ID: ${createdDataset.id}`);
+            // Le timer dans createDataset s'occupera de vérifier quand il est prêt
+            // et lancera le fine-tuning automatiquement lorsqu'il sera prêt
+          } else {
+            console.error("Échec de la création du dataset en arrière-plan");
           }
-          
-          console.log(`Vérification du statut du dataset (tentative ${retries + 1}/${maxRetries})...`);
-          const isReady = await checkDatasetStatus(datasetId);
-          if (isReady) {
-            console.log("Dataset prêt!");
-            datasetIsReady = true;
-            break;
-          }
-          retries++;
-        }
+        }).catch(error => {
+          console.error("Erreur lors de la création du dataset en arrière-plan:", error);
+        });
         
-        if (!datasetIsReady) {
-          throw new Error("Le dataset n'est pas prêt après le délai d'attente");
-        }
+        datasetCreationStarted = true;
       } else {
-        console.log(`Dataset déjà existant, ID: ${datasetId}, prêt: ${datasetIsReady}`);
+        console.log(`Dataset déjà existant, ID: ${createdDataset.id}, prêt: ${datasetReady}`);
+        
+        // Si le dataset existe mais n'est pas prêt, on continue de vérifier en arrière-plan
+        if (!datasetReady && createdDataset.id) {
+          console.log("Dataset existant mais pas encore prêt, vérification en arrière-plan...");
+          checkDatasetStatus(createdDataset.id);
+        }
+        
+        // Si le dataset est prêt mais qu'aucun fine-tuning n'a été lancé, on le lance en arrière-plan
+        if (datasetReady && !createdFineTuning) {
+          console.log("Dataset prêt, lancement du fine-tuning en arrière-plan...");
+          createFineTuning().catch(error => {
+            console.error("Erreur lors du lancement du fine-tuning en arrière-plan:", error);
+          });
+        }
       }
       
-      // 2. Lancer le fine-tuning
-      if (!createdFineTuning) {
-        console.log("Lancement du fine-tuning...");
-        // S'assurer que le datasetId est toujours disponible
-        if (!datasetId) {
-          throw new Error("ID du dataset non disponible pour le fine-tuning");
-        }
-        
-        // Créer un payload de fine-tuning avec l'ID du dataset stocké localement
-        const fineTuningData = {
-          name: `Fine-tuning de ${datasetName}`,
-          dataset_id: datasetId,
-          model: model,
-          provider: provider,
-          hyperparameters: {
-            n_epochs: 3
-          }
-        };
-        
-        // Appel API pour créer le fine-tuning
-        const response = await fineTuningService.create(fineTuningData);
-        
-        setCreatedFineTuning(response);
-        console.log("Fine-tuning lancé avec succès");
-        enqueueSnackbar('Fine-tuning lancé avec succès', { variant: 'success' });
-      } else {
-        console.log("Fine-tuning déjà existant");
-      }
-      
-      // 3. Mettre à jour le profil utilisateur
+      // 2. Mettre à jour le profil utilisateur immédiatement
       const payload = {
         email: user.email,
         name: user.name,
@@ -566,7 +538,7 @@ const OnboardingPage = () => {
       const updatedUser = await updateUser(payload);
       console.log("Résultat de la mise à jour:", updatedUser);
       
-      // 4. Redirection vers la page de paiement si nécessaire
+      // 3. Redirection vers la page de paiement immédiatement
       if (updatedUser && updatedUser.has_completed_onboarding) {
         try {
           console.log("Tentative de création d'une session de paiement pour le plan 'starter'");
@@ -579,6 +551,7 @@ const OnboardingPage = () => {
           } else {
             console.error("URL de redirection non reçue dans la session:", session);
             setCompletionError("Erreur de redirection: URL de paiement non disponible");
+            setProcessingFineTuning(false);
           }
         } catch (checkoutError) {
           console.error('Erreur lors de la création de la session de paiement:', checkoutError);
@@ -590,10 +563,12 @@ const OnboardingPage = () => {
             });
           }
           setCompletionError(`Erreur lors de la redirection vers la page de paiement: ${checkoutError.message}`);
+          setProcessingFineTuning(false);
         }
       } else {
         console.error("La mise à jour de l'état d'onboarding a échoué. Données reçues:", JSON.stringify(updatedUser, null, 2));
         setCompletionError("L'état d'onboarding n'a pas pu être mis à jour correctement");
+        setProcessingFineTuning(false);
       }
     } catch (error) {
       console.error('Erreur lors de la finalisation:', error);
@@ -603,7 +578,7 @@ const OnboardingPage = () => {
         navigate('/login');
       }
     } finally {
-      setIsCompleting(false);
+      // Ne pas désactiver isCompleting car nous allons être redirigés
     }
   };
 
