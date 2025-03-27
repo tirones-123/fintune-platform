@@ -140,10 +140,7 @@ class OpenAIProvider(AIProviderBase):
             raise e
     
     def generate_qa_pairs(self, chunk_text: str, model: str = "gpt-4o-mini") -> List[Dict]:
-        """
-        Generates question-answer pairs from a text chunk using OpenAI.
-        Returns a list of dictionaries with question and answer keys.
-        """
+        """Generate question-answer pairs from a text chunk using OpenAI."""
         try:
             system_prompt = """You are a training data creation assistant. 
 Your task is to read a given text chunk and produce high-quality question-answer pairs that replicate 
@@ -178,7 +175,8 @@ Based on this text, generate between 2 and 15 question-answer pairs.
 Each pair should appear as an object with "question" and "answer" fields. 
 Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
 Do not add any information not found in the text. 
-Your response must be a valid JSONl array (with no additional text outside of it)."""
+Your response must be a valid JSONl array (with no additional text outside of it).
+IMPORTANT: Each JSON object must be on its own line, and each line must be a complete, valid JSON object."""
             
             response = self.client.chat.completions.create(
                 model=model,
@@ -195,25 +193,74 @@ Your response must be a valid JSONl array (with no additional text outside of it
             # Ajouter un log pour voir la réponse brute
             logger.debug(f"Raw response from OpenAI: {content[:500]}...")
             
-            # Si la réponse contient des délimiteurs de bloc de code pour JSON, les supprimer
+            # Nettoyer le contenu avant traitement
+            # 1. Supprimer les délimiteurs de bloc de code
             if "```json" in content or "```" in content:
-                # Extraire le contenu entre les délimiteurs de bloc de code
                 import re
                 json_content = re.search(r'```(?:json)?\n([\s\S]*?)\n```', content)
                 if json_content:
                     content = json_content.group(1)
                     logger.debug(f"Extracted JSON content: {content[:500]}...")
             
-            # Vérifier si le contenu est un tableau JSON
+            # 2. Supprimer tout texte explicatif avant/après le JSON
+            if content.strip().startswith('[') and ']' in content:
+                array_end = content.rindex(']')
+                content = content[:array_end+1]
+            
+            # 3. Essayer plusieurs approches de parsing
+            qa_pairs = []
+            
+            # Approche 1: Parser comme un tableau JSON complet
             if content.strip().startswith('[') and content.strip().endswith(']'):
                 try:
-                    # Essayer de parser directement comme un tableau JSON
                     array_data = json.loads(content)
-                    qa_pairs = []
+                    logger.info(f"Successfully parsed content as a JSON array with {len(array_data)} items")
                     
                     for item in array_data:
-                        if isinstance(item, dict) and 'messages' in item:
-                            messages = item['messages']
+                        if isinstance(item, dict):
+                            if 'messages' in item:
+                                # Format ChatML
+                                messages = item['messages']
+                                user_msg = next((m for m in messages if m['role'] == 'user'), None)
+                                assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                                
+                                if user_msg and assistant_msg:
+                                    qa_pairs.append({
+                                        'question': user_msg['content'],
+                                        'answer': assistant_msg['content']
+                                    })
+                            elif 'question' in item and 'answer' in item:
+                                # Format direct Q&A
+                                qa_pairs.append({
+                                    'question': item['question'],
+                                    'answer': item['answer']
+                                })
+                    
+                    if qa_pairs:
+                        logger.info(f"Successfully extracted {len(qa_pairs)} QA pairs from JSON array")
+                        return qa_pairs
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse response as JSON array: {str(e)}")
+            
+            # Approche 2: Parser ligne par ligne pour JSONL
+            lines = [line.strip() for line in content.split('\n') if line.strip() 
+                    and not line.strip().startswith('```') 
+                    and not line.strip().startswith('#')]
+            
+            for line in lines:
+                # Essayer de trouver un objet JSON valide dans cette ligne
+                try:
+                    # Rechercher des accolades de début et de fin dans la ligne
+                    start_idx = line.find('{')
+                    end_idx = line.rfind('}')
+                    
+                    if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
+                        json_obj = line[start_idx:end_idx+1]
+                        data = json.loads(json_obj)
+                        
+                        # Vérifier le format
+                        if 'messages' in data:
+                            messages = data['messages']
                             user_msg = next((m for m in messages if m['role'] == 'user'), None)
                             assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
                             
@@ -222,42 +269,38 @@ Your response must be a valid JSONl array (with no additional text outside of it
                                     'question': user_msg['content'],
                                     'answer': assistant_msg['content']
                                 })
-                    
-                    if qa_pairs:
-                        logger.info(f"Successfully parsed {len(qa_pairs)} QA pairs as JSON array")
-                        return qa_pairs
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Failed to parse response as JSON array: {str(e)}")
-            
-            # Traiter le contenu ligne par ligne pour extraire les objets JSONL
-            qa_pairs = []
-            for line in content.strip().split('\n'):
-                line = line.strip()
-                if not line or line.startswith('```') or line.startswith('#'):
-                    continue
-                    
-                try:
-                    # Essayer de parser la ligne comme un objet JSON
-                    data = json.loads(line)
-                    
-                    # Vérifier si c'est un objet ChatML valide
-                    if 'messages' in data and len(data['messages']) >= 3:
-                        messages = data['messages']
-                        user_msg = next((m for m in messages if m['role'] == 'user'), None)
-                        assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
-                        
-                        if user_msg and assistant_msg:
-                            # Transformer au format attendu par le reste du code
+                        elif 'question' in data and 'answer' in data:
                             qa_pairs.append({
-                                'question': user_msg['content'],
-                                'answer': assistant_msg['content']
+                                'question': data['question'],
+                                'answer': data['answer']
                             })
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, ValueError) as e:
                     # Ignorer les lignes qui ne sont pas du JSON valide
+                    logger.debug(f"Failed to parse line as JSON: {line[:50]}...")
                     continue
+            
+            # Approche 3: Parser en dernier recours avec des expressions régulières
+            if not qa_pairs:
+                logger.warning("Trying to extract Q&A pairs with regex as last resort")
+                import re
+                # Rechercher des objets messages avec question/réponse
+                message_pattern = r'"messages"\s*:\s*\[\s*{.*?"role"\s*:\s*"user".*?"content"\s*:\s*"(.*?)".*?},\s*{.*?"role"\s*:\s*"assistant".*?"content"\s*:\s*"(.*?)".*?}\s*\]'
+                matches = re.finditer(message_pattern, content, re.DOTALL)
+                
+                for match in matches:
+                    question, answer = match.groups()
+                    # Nettoyer les caractères d'échappement JSON
+                    question = question.replace('\\"', '"').replace('\\\\', '\\')
+                    answer = answer.replace('\\"', '"').replace('\\\\', '\\')
+                    qa_pairs.append({
+                        'question': question,
+                        'answer': answer
+                    })
             
             if not qa_pairs:
-                logger.warning(f"No valid QA pairs found in response. Content sample: {content[:200]}...")
+                logger.warning(f"No valid QA pairs found in response despite multiple parsing attempts. Content sample: {content[:200]}...")
+            else:
+                logger.info(f"Successfully extracted {len(qa_pairs)} QA pairs after multiple parsing attempts")
             
             return qa_pairs
                 
@@ -463,7 +506,8 @@ Based on this text, generate between 2 and 15 question-answer pairs.
 Each pair should appear as an object with "question" and "answer" fields. 
 Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
 Do not add any information not found in the text. 
-Your response must be a valid JSONl array (with no additional text outside of it)."""
+Your response must be a valid JSONl array (with no additional text outside of it).
+IMPORTANT: Each JSON object must be on its own line, and each line must be a complete, valid JSON object."""
             
             response = self.client.messages.create(
                 model=model,
@@ -478,37 +522,123 @@ Your response must be a valid JSONl array (with no additional text outside of it
             # Extraire le contenu de la réponse
             content = response.content[0].text
             
-            # Traiter le contenu ligne par ligne pour extraire les objets JSONL
+            # Ajouter un log pour voir la réponse brute
+            logger.debug(f"Raw response from Anthropic: {content[:500]}...")
+            
+            # Nettoyer le contenu avant traitement
+            # 1. Supprimer les délimiteurs de bloc de code
+            if "```json" in content or "```" in content:
+                import re
+                json_content = re.search(r'```(?:json)?\n([\s\S]*?)\n```', content)
+                if json_content:
+                    content = json_content.group(1)
+                    logger.debug(f"Extracted JSON content: {content[:500]}...")
+            
+            # 2. Supprimer tout texte explicatif avant/après le JSON
+            if content.strip().startswith('[') and ']' in content:
+                array_end = content.rindex(']')
+                content = content[:array_end+1]
+            
+            # 3. Essayer plusieurs approches de parsing
             qa_pairs = []
-            for line in content.strip().split('\n'):
-                line = line.strip()
-                if not line or line.startswith('```') or line.startswith('#'):
-                    continue
-                    
+            
+            # Approche 1: Parser comme un tableau JSON complet
+            if content.strip().startswith('[') and content.strip().endswith(']'):
                 try:
-                    # Essayer de parser la ligne comme un objet JSON
-                    data = json.loads(line)
+                    array_data = json.loads(content)
+                    logger.info(f"Successfully parsed content as a JSON array with {len(array_data)} items")
                     
-                    # Vérifier si c'est un objet ChatML valide
-                    if 'messages' in data and len(data['messages']) >= 3:
-                        messages = data['messages']
-                        user_msg = next((m for m in messages if m['role'] == 'user'), None)
-                        assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                    for item in array_data:
+                        if isinstance(item, dict):
+                            if 'messages' in item:
+                                # Format ChatML
+                                messages = item['messages']
+                                user_msg = next((m for m in messages if m['role'] == 'user'), None)
+                                assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                                
+                                if user_msg and assistant_msg:
+                                    qa_pairs.append({
+                                        'question': user_msg['content'],
+                                        'answer': assistant_msg['content']
+                                    })
+                            elif 'question' in item and 'answer' in item:
+                                # Format direct Q&A
+                                qa_pairs.append({
+                                    'question': item['question'],
+                                    'answer': item['answer']
+                                })
+                    
+                    if qa_pairs:
+                        logger.info(f"Successfully extracted {len(qa_pairs)} QA pairs from JSON array")
+                        return qa_pairs
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse response as JSON array: {str(e)}")
+            
+            # Approche 2: Parser ligne par ligne pour JSONL
+            lines = [line.strip() for line in content.split('\n') if line.strip() 
+                    and not line.strip().startswith('```') 
+                    and not line.strip().startswith('#')]
+            
+            for line in lines:
+                # Essayer de trouver un objet JSON valide dans cette ligne
+                try:
+                    # Rechercher des accolades de début et de fin dans la ligne
+                    start_idx = line.find('{')
+                    end_idx = line.rfind('}')
+                    
+                    if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
+                        json_obj = line[start_idx:end_idx+1]
+                        data = json.loads(json_obj)
                         
-                        if user_msg and assistant_msg:
-                            # Transformer au format attendu par le reste du code
+                        # Vérifier le format
+                        if 'messages' in data:
+                            messages = data['messages']
+                            user_msg = next((m for m in messages if m['role'] == 'user'), None)
+                            assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                            
+                            if user_msg and assistant_msg:
+                                qa_pairs.append({
+                                    'question': user_msg['content'],
+                                    'answer': assistant_msg['content']
+                                })
+                        elif 'question' in data and 'answer' in data:
                             qa_pairs.append({
-                                'question': user_msg['content'],
-                                'answer': assistant_msg['content']
+                                'question': data['question'],
+                                'answer': data['answer']
                             })
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, ValueError) as e:
                     # Ignorer les lignes qui ne sont pas du JSON valide
+                    logger.debug(f"Failed to parse line as JSON: {line[:50]}...")
                     continue
+            
+            # Approche 3: Parser en dernier recours avec des expressions régulières
+            if not qa_pairs:
+                logger.warning("Trying to extract Q&A pairs with regex as last resort")
+                import re
+                # Rechercher des objets messages avec question/réponse
+                message_pattern = r'"messages"\s*:\s*\[\s*{.*?"role"\s*:\s*"user".*?"content"\s*:\s*"(.*?)".*?},\s*{.*?"role"\s*:\s*"assistant".*?"content"\s*:\s*"(.*?)".*?}\s*\]'
+                matches = re.finditer(message_pattern, content, re.DOTALL)
+                
+                for match in matches:
+                    question, answer = match.groups()
+                    # Nettoyer les caractères d'échappement JSON
+                    question = question.replace('\\"', '"').replace('\\\\', '\\')
+                    answer = answer.replace('\\"', '"').replace('\\\\', '\\')
+                    qa_pairs.append({
+                        'question': question,
+                        'answer': answer
+                    })
+            
+            if not qa_pairs:
+                logger.warning(f"No valid QA pairs found in response despite multiple parsing attempts. Content sample: {content[:200]}...")
+            else:
+                logger.info(f"Successfully extracted {len(qa_pairs)} QA pairs after multiple parsing attempts")
             
             return qa_pairs
                 
         except Exception as e:
             logger.error(f"Error generating QA pairs with Anthropic: {str(e)}")
+            logger.error(f"Chunk text (truncated): {chunk_text[:100]}...")
             return []
             
     def upload_training_file(self, file_path: str) -> str:
@@ -729,7 +859,8 @@ Based on this text, generate between 2 and 15 question-answer pairs.
 Each pair should appear as an object with "question" and "answer" fields. 
 Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
 Do not add any information not found in the text. 
-Your response must be a valid JSONl array (with no additional text outside of it)."""
+Your response must be a valid JSONl array (with no additional text outside of it).
+IMPORTANT: Each JSON object must be on its own line, and each line must be a complete, valid JSON object."""
             
             payload = {
                 "model": model,
@@ -751,37 +882,123 @@ Your response must be a valid JSONl array (with no additional text outside of it
             # Extraire le contenu de la réponse
             content = response_data["choices"][0]["message"]["content"]
             
-            # Traiter le contenu ligne par ligne pour extraire les objets JSONL
+            # Ajouter un log pour voir la réponse brute
+            logger.debug(f"Raw response from Mistral: {content[:500]}...")
+            
+            # Nettoyer le contenu avant traitement
+            # 1. Supprimer les délimiteurs de bloc de code
+            if "```json" in content or "```" in content:
+                import re
+                json_content = re.search(r'```(?:json)?\n([\s\S]*?)\n```', content)
+                if json_content:
+                    content = json_content.group(1)
+                    logger.debug(f"Extracted JSON content: {content[:500]}...")
+            
+            # 2. Supprimer tout texte explicatif avant/après le JSON
+            if content.strip().startswith('[') and ']' in content:
+                array_end = content.rindex(']')
+                content = content[:array_end+1]
+            
+            # 3. Essayer plusieurs approches de parsing
             qa_pairs = []
-            for line in content.strip().split('\n'):
-                line = line.strip()
-                if not line or line.startswith('```') or line.startswith('#'):
-                    continue
-                    
+            
+            # Approche 1: Parser comme un tableau JSON complet
+            if content.strip().startswith('[') and content.strip().endswith(']'):
                 try:
-                    # Essayer de parser la ligne comme un objet JSON
-                    data = json.loads(line)
+                    array_data = json.loads(content)
+                    logger.info(f"Successfully parsed content as a JSON array with {len(array_data)} items")
                     
-                    # Vérifier si c'est un objet ChatML valide
-                    if 'messages' in data and len(data['messages']) >= 3:
-                        messages = data['messages']
-                        user_msg = next((m for m in messages if m['role'] == 'user'), None)
-                        assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                    for item in array_data:
+                        if isinstance(item, dict):
+                            if 'messages' in item:
+                                # Format ChatML
+                                messages = item['messages']
+                                user_msg = next((m for m in messages if m['role'] == 'user'), None)
+                                assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                                
+                                if user_msg and assistant_msg:
+                                    qa_pairs.append({
+                                        'question': user_msg['content'],
+                                        'answer': assistant_msg['content']
+                                    })
+                            elif 'question' in item and 'answer' in item:
+                                # Format direct Q&A
+                                qa_pairs.append({
+                                    'question': item['question'],
+                                    'answer': item['answer']
+                                })
+                    
+                    if qa_pairs:
+                        logger.info(f"Successfully extracted {len(qa_pairs)} QA pairs from JSON array")
+                        return qa_pairs
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse response as JSON array: {str(e)}")
+            
+            # Approche 2: Parser ligne par ligne pour JSONL
+            lines = [line.strip() for line in content.split('\n') if line.strip() 
+                    and not line.strip().startswith('```') 
+                    and not line.strip().startswith('#')]
+            
+            for line in lines:
+                # Essayer de trouver un objet JSON valide dans cette ligne
+                try:
+                    # Rechercher des accolades de début et de fin dans la ligne
+                    start_idx = line.find('{')
+                    end_idx = line.rfind('}')
+                    
+                    if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
+                        json_obj = line[start_idx:end_idx+1]
+                        data = json.loads(json_obj)
                         
-                        if user_msg and assistant_msg:
-                            # Transformer au format attendu par le reste du code
+                        # Vérifier le format
+                        if 'messages' in data:
+                            messages = data['messages']
+                            user_msg = next((m for m in messages if m['role'] == 'user'), None)
+                            assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                            
+                            if user_msg and assistant_msg:
+                                qa_pairs.append({
+                                    'question': user_msg['content'],
+                                    'answer': assistant_msg['content']
+                                })
+                        elif 'question' in data and 'answer' in data:
                             qa_pairs.append({
-                                'question': user_msg['content'],
-                                'answer': assistant_msg['content']
+                                'question': data['question'],
+                                'answer': data['answer']
                             })
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, ValueError) as e:
                     # Ignorer les lignes qui ne sont pas du JSON valide
+                    logger.debug(f"Failed to parse line as JSON: {line[:50]}...")
                     continue
+            
+            # Approche 3: Parser en dernier recours avec des expressions régulières
+            if not qa_pairs:
+                logger.warning("Trying to extract Q&A pairs with regex as last resort")
+                import re
+                # Rechercher des objets messages avec question/réponse
+                message_pattern = r'"messages"\s*:\s*\[\s*{.*?"role"\s*:\s*"user".*?"content"\s*:\s*"(.*?)".*?},\s*{.*?"role"\s*:\s*"assistant".*?"content"\s*:\s*"(.*?)".*?}\s*\]'
+                matches = re.finditer(message_pattern, content, re.DOTALL)
+                
+                for match in matches:
+                    question, answer = match.groups()
+                    # Nettoyer les caractères d'échappement JSON
+                    question = question.replace('\\"', '"').replace('\\\\', '\\')
+                    answer = answer.replace('\\"', '"').replace('\\\\', '\\')
+                    qa_pairs.append({
+                        'question': question,
+                        'answer': answer
+                    })
+            
+            if not qa_pairs:
+                logger.warning(f"No valid QA pairs found in response despite multiple parsing attempts. Content sample: {content[:200]}...")
+            else:
+                logger.info(f"Successfully extracted {len(qa_pairs)} QA pairs after multiple parsing attempts")
             
             return qa_pairs
                 
         except Exception as e:
             logger.error(f"Error generating QA pairs with Mistral: {str(e)}")
+            logger.error(f"Chunk text (truncated): {chunk_text[:100]}...")
             return []
             
     def upload_training_file(self, file_path: str) -> str:

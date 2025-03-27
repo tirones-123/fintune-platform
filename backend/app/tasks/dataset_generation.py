@@ -166,6 +166,17 @@ def generate_dataset(dataset_id: int):
         db.commit()
         
         logger.info(f"Dataset {dataset_id} generated successfully with {total_pairs} pairs")
+        
+        # Mettre à jour le statut des contenus utilisés à "processed" s'ils sont encore en "processing"
+        try:
+            for content in contents:
+                if content.status == "processing":
+                    content.status = "processed"
+                    logger.info(f"Updated content {content.id} status from 'processing' to 'processed'")
+            db.commit()
+        except Exception as e:
+            logger.error(f"Error updating content statuses: {str(e)}")
+        
         return {"status": "success", "dataset_id": dataset_id, "pairs_count": total_pairs}
     
     except Exception as e:
