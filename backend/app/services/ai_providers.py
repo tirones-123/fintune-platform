@@ -145,34 +145,40 @@ class OpenAIProvider(AIProviderBase):
         Returns a list of dictionaries with question and answer keys.
         """
         try:
-            system_prompt = """You are a training data creation assistant specialized in creating ChatML format data.
-Your task is to read a given text chunk and produce high-quality question-answer pairs in the correct ChatML format for fine-tuning.
+            system_prompt = """You are a training data creation assistant. 
+Your task is to read a given text chunk and produce high-quality question-answer pairs that replicate 
+the original style, tone, slang, vocabulary, and even spelling quirks. 
 
 Important rules:
-1. Each entry MUST follow this exact format:
+1. Do NOT sanitize or correct anything: if the text says "No biggi" or "Gimme a sec", keep it exactly like that.
+2. Do NOT introduce any facts not present in the text.
+4. If the texte use words that you don't know about, keep it
+5. If the texte does not mean anything, keep it
+6. If the text uses casual or "incorrect" grammar, keep it. If it uses comedic or childish language, keep it.
+7. Return the result strictly as valid JSONl (an array of objects, each with "question" and "answer").
+8. Include no extra commentary, explanation, or text outside the JSON.
+9. You must produce between 2 and 15 Q&A pairs, no fewer and no more.
+
+Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
-2. Do NOT sanitize or correct anything from the original text's style and language.
-3. Do NOT introduce any facts not present in the text.
-4. If the text uses casual grammar, slang, or specific terminology, preserve it exactly.
-5. Generate between 3 and 10 high-quality pairs that truly represent valuable Q&A scenarios.
-6. Questions should be direct and focused on extracting key information from the text.
-7. Answers should be comprehensive yet concise, containing only information found in the text.
-8. Return EACH pair as a complete, valid JSONL line (not as an array).
-"""
+
+Here is an EXAMPLE of the desired style output (fictional sample to illustrate how to preserve style):
+
+EXAMPLE Q&A:
+
+{"messages": [{"role": "system", "content": ""}, {"role": "user", "content": "Yo, did you see that giant robot stomping around the city? "}, {"role": "assistant", "content": "It was crashin' through buildings like a bulldozer on steroids, man! "}]},
+
+Notice how we kept the casual/familiar language exactly as is, with no corrections."""
             
-            user_prompt = f"""Veuillez lire ce texte et générer des paires question-réponse au format ChatML:
+            user_prompt = f"""Please read the following text chunk:
 
-[TEXT]
 {chunk_text}
-[/TEXT]
 
-Créez 3 à 10 paires questions-réponses de haute qualité au format JSONL, chaque ligne suivant exactement cette structure:
-{{"messages": [{{"role": "system", "content": "You are a helpful assistant."}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "RÉPONSE"}}]}}
-
-Chaque question doit être pertinente et la réponse doit contenir uniquement des informations présentes dans le texte. Conservez le style, le ton et le vocabulaire du texte original.
-
-Retournez simplement les lignes JSONL, une par ligne, sans explication ni texte supplémentaire.
-"""
+Based on this text, generate between 2 and 15 question-answer pairs. 
+Each pair should appear as an object with "question" and "answer" fields. 
+Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
+Do not add any information not found in the text. 
+Your response must be a valid JSONl array (with no additional text outside of it)."""
             
             response = self.client.chat.completions.create(
                 model=model,
@@ -249,7 +255,7 @@ Retournez simplement les lignes JSONL, une par ligne, sans explication ni texte 
                     # Format en ChatML pour OpenAI
                     training_example = {
                         "messages": [
-                            {"role": "system", "content": "You are a helpful assistant."},
+                            {"role": "system", "content": ""},
                             {"role": "user", "content": pair["question"]},
                             {"role": "assistant", "content": pair["answer"]}
                         ]
@@ -384,34 +390,40 @@ class AnthropicProvider(AIProviderBase):
         Generates question-answer pairs from a text chunk using Anthropic.
         """
         try:
-            system_prompt = """You are a training data creation assistant specialized in creating ChatML format data.
-Your task is to read a given text chunk and produce high-quality question-answer pairs in the correct ChatML format for fine-tuning.
+            system_prompt = """You are a training data creation assistant. 
+Your task is to read a given text chunk and produce high-quality question-answer pairs that replicate 
+the original style, tone, slang, vocabulary, and even spelling quirks. 
 
 Important rules:
-1. Each entry MUST follow this exact format:
+1. Do NOT sanitize or correct anything: if the text says "No biggi" or "Gimme a sec", keep it exactly like that.
+2. Do NOT introduce any facts not present in the text.
+4. If the texte use words that you don't know about, keep it
+5. If the texte does not mean anything, keep it
+6. If the text uses casual or "incorrect" grammar, keep it. If it uses comedic or childish language, keep it.
+7. Return the result strictly as valid JSONl (an array of objects, each with "question" and "answer").
+8. Include no extra commentary, explanation, or text outside the JSON.
+9. You must produce between 2 and 15 Q&A pairs, no fewer and no more.
+
+Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
-2. Do NOT sanitize or correct anything from the original text's style and language.
-3. Do NOT introduce any facts not present in the text.
-4. If the text uses casual grammar, slang, or specific terminology, preserve it exactly.
-5. Generate between 3 and 10 high-quality pairs that truly represent valuable Q&A scenarios.
-6. Questions should be direct and focused on extracting key information from the text.
-7. Answers should be comprehensive yet concise, containing only information found in the text.
-8. Return EACH pair as a complete, valid JSONL line (not as an array).
-"""
+
+Here is an EXAMPLE of the desired style output (fictional sample to illustrate how to preserve style):
+
+EXAMPLE Q&A:
+
+{"messages": [{"role": "system", "content": ""}, {"role": "user", "content": "Yo, did you see that giant robot stomping around the city? "}, {"role": "assistant", "content": "It was crashin' through buildings like a bulldozer on steroids, man! "}]},
+
+Notice how we kept the casual/familiar language exactly as is, with no corrections."""
             
-            user_prompt = f"""Veuillez lire ce texte et générer des paires question-réponse au format ChatML:
+            user_prompt = f"""Please read the following text chunk:
 
-[TEXT]
 {chunk_text}
-[/TEXT]
 
-Créez 3 à 10 paires questions-réponses de haute qualité au format JSONL, chaque ligne suivant exactement cette structure:
-{{"messages": [{{"role": "system", "content": "You are a helpful assistant."}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "RÉPONSE"}}]}}
-
-Chaque question doit être pertinente et la réponse doit contenir uniquement des informations présentes dans le texte. Conservez le style, le ton et le vocabulaire du texte original.
-
-Retournez simplement les lignes JSONL, une par ligne, sans explication ni texte supplémentaire.
-"""
+Based on this text, generate between 2 and 15 question-answer pairs. 
+Each pair should appear as an object with "question" and "answer" fields. 
+Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
+Do not add any information not found in the text. 
+Your response must be a valid JSONl array (with no additional text outside of it)."""
             
             response = self.client.messages.create(
                 model=model,
@@ -489,7 +501,7 @@ Retournez simplement les lignes JSONL, une par ligne, sans explication ni texte 
                     # Format en ChatML
                     training_example = {
                         "messages": [
-                            {"role": "system", "content": "You are a helpful assistant."},
+                            {"role": "system", "content": ""},
                             {"role": "user", "content": pair["question"]},
                             {"role": "assistant", "content": pair["answer"]}
                         ]
@@ -644,34 +656,40 @@ class MistralProvider(AIProviderBase):
         Generates question-answer pairs from a text chunk using Mistral.
         """
         try:
-            system_prompt = """You are a training data creation assistant specialized in creating ChatML format data.
-Your task is to read a given text chunk and produce high-quality question-answer pairs in the correct ChatML format for fine-tuning.
+            system_prompt = """You are a training data creation assistant. 
+Your task is to read a given text chunk and produce high-quality question-answer pairs that replicate 
+the original style, tone, slang, vocabulary, and even spelling quirks. 
 
 Important rules:
-1. Each entry MUST follow this exact format:
+1. Do NOT sanitize or correct anything: if the text says "No biggi" or "Gimme a sec", keep it exactly like that.
+2. Do NOT introduce any facts not present in the text.
+4. If the texte use words that you don't know about, keep it
+5. If the texte does not mean anything, keep it
+6. If the text uses casual or "incorrect" grammar, keep it. If it uses comedic or childish language, keep it.
+7. Return the result strictly as valid JSONl (an array of objects, each with "question" and "answer").
+8. Include no extra commentary, explanation, or text outside the JSON.
+9. You must produce between 2 and 15 Q&A pairs, no fewer and no more.
+
+Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
-2. Do NOT sanitize or correct anything from the original text's style and language.
-3. Do NOT introduce any facts not present in the text.
-4. If the text uses casual grammar, slang, or specific terminology, preserve it exactly.
-5. Generate between 3 and 10 high-quality pairs that truly represent valuable Q&A scenarios.
-6. Questions should be direct and focused on extracting key information from the text.
-7. Answers should be comprehensive yet concise, containing only information found in the text.
-8. Return EACH pair as a complete, valid JSONL line (not as an array).
-"""
+
+Here is an EXAMPLE of the desired style output (fictional sample to illustrate how to preserve style):
+
+EXAMPLE Q&A:
+
+{"messages": [{"role": "system", "content": ""}, {"role": "user", "content": "Yo, did you see that giant robot stomping around the city? "}, {"role": "assistant", "content": "It was crashin' through buildings like a bulldozer on steroids, man! "}]},
+
+Notice how we kept the casual/familiar language exactly as is, with no corrections."""
             
-            user_prompt = f"""Veuillez lire ce texte et générer des paires question-réponse au format ChatML:
+            user_prompt = f"""Please read the following text chunk:
 
-[TEXT]
 {chunk_text}
-[/TEXT]
 
-Créez 3 à 10 paires questions-réponses de haute qualité au format JSONL, chaque ligne suivant exactement cette structure:
-{{"messages": [{{"role": "system", "content": "You are a helpful assistant."}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "RÉPONSE"}}]}}
-
-Chaque question doit être pertinente et la réponse doit contenir uniquement des informations présentes dans le texte. Conservez le style, le ton et le vocabulaire du texte original.
-
-Retournez simplement les lignes JSONL, une par ligne, sans explication ni texte supplémentaire.
-"""
+Based on this text, generate between 2 and 15 question-answer pairs. 
+Each pair should appear as an object with "question" and "answer" fields. 
+Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
+Do not add any information not found in the text. 
+Your response must be a valid JSONl array (with no additional text outside of it)."""
             
             payload = {
                 "model": model,
@@ -763,7 +781,7 @@ Retournez simplement les lignes JSONL, une par ligne, sans explication ni texte 
                     # Format en ChatML
                     training_example = {
                         "messages": [
-                            {"role": "system", "content": "You are a helpful assistant."},
+                            {"role": "system", "content": ""},
                             {"role": "user", "content": pair["question"]},
                             {"role": "assistant", "content": pair["answer"]}
                         ]
