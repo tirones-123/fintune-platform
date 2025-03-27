@@ -478,39 +478,80 @@ const OnboardingPage = () => {
     setProcessingFineTuning(true);
     
     try {
+      // Stocker l'ID du dataset localement si disponible
+      let datasetId = createdDataset?.id;
+      let datasetIsReady = datasetReady;
+      
       // 1. Créer le dataset s'il n'existe pas encore
-      if (!createdDataset) {
+      if (!datasetId) {
+        console.log("Aucun dataset existant, création d'un nouveau dataset...");
         const datasetSuccess = await createDataset();
-        if (!datasetSuccess) {
+        if (!datasetSuccess || !createdDataset) {
           throw new Error("Échec de la création du dataset");
         }
         
+        // Stocker l'ID du dataset après création
+        datasetId = createdDataset.id;
+        console.log(`Dataset créé avec succès, ID: ${datasetId}`);
+        
         // Attendre que le dataset soit prêt
+        console.log("Attente que le dataset soit prêt...");
         let retries = 0;
         const maxRetries = 20; // Maximum 60 secondes d'attente (20 × 3s)
         
-        while (retries < maxRetries && !datasetReady) {
+        while (retries < maxRetries && !datasetIsReady) {
           await new Promise(resolve => setTimeout(resolve, 3000)); // Attendre 3 secondes
-          // Vérifier si createdDataset existe toujours avant d'appeler checkDatasetStatus
-          if (!createdDataset) {
-            throw new Error("Le dataset n'est plus accessible");
+          
+          // Utiliser l'ID stocké localement pour vérifier le statut
+          if (!datasetId) {
+            console.error("ID du dataset perdu pendant l'attente");
+            throw new Error("ID du dataset perdu");
           }
-          const isReady = await checkDatasetStatus(createdDataset.id);
-          if (isReady) break;
+          
+          console.log(`Vérification du statut du dataset (tentative ${retries + 1}/${maxRetries})...`);
+          const isReady = await checkDatasetStatus(datasetId);
+          if (isReady) {
+            console.log("Dataset prêt!");
+            datasetIsReady = true;
+            break;
+          }
           retries++;
         }
         
-        if (!datasetReady) {
+        if (!datasetIsReady) {
           throw new Error("Le dataset n'est pas prêt après le délai d'attente");
         }
+      } else {
+        console.log(`Dataset déjà existant, ID: ${datasetId}, prêt: ${datasetIsReady}`);
       }
       
       // 2. Lancer le fine-tuning
       if (!createdFineTuning) {
-        const fineTuningSuccess = await createFineTuning();
-        if (!fineTuningSuccess) {
-          throw new Error("Échec du lancement du fine-tuning");
+        console.log("Lancement du fine-tuning...");
+        // S'assurer que le datasetId est toujours disponible
+        if (!datasetId) {
+          throw new Error("ID du dataset non disponible pour le fine-tuning");
         }
+        
+        // Créer un payload de fine-tuning avec l'ID du dataset stocké localement
+        const fineTuningData = {
+          name: `Fine-tuning de ${datasetName}`,
+          dataset_id: datasetId,
+          model: model,
+          provider: provider,
+          hyperparameters: {
+            n_epochs: 3
+          }
+        };
+        
+        // Appel API pour créer le fine-tuning
+        const response = await fineTuningService.create(fineTuningData);
+        
+        setCreatedFineTuning(response);
+        console.log("Fine-tuning lancé avec succès");
+        enqueueSnackbar('Fine-tuning lancé avec succès', { variant: 'success' });
+      } else {
+        console.log("Fine-tuning déjà existant");
       }
       
       // 3. Mettre à jour le profil utilisateur
