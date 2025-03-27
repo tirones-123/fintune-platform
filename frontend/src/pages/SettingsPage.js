@@ -45,6 +45,7 @@ const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [savingKey, setSavingKey] = useState(false);
+  const [fetchingRealKey, setFetchingRealKey] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
   // Charger les clés API au chargement de la page
@@ -84,6 +85,48 @@ const SettingsPage = () => {
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+  };
+
+  // Fonction pour récupérer la vraie valeur d'une clé API
+  const fetchRealApiKey = async (provider, setKeyState, setShowState) => {
+    setFetchingRealKey(true);
+    try {
+      // Récupérer la clé complète depuis l'API
+      const apiKeys = await apiKeyService.getKeys();
+      const apiKey = apiKeys.find(key => key.provider === provider);
+      
+      if (apiKey && apiKey.key) {
+        setKeyState(apiKey.key);
+        setShowState(true); // Afficher automatiquement la clé
+      } else {
+        enqueueSnackbar(`Impossible de récupérer la clé ${provider}`, { variant: 'error' });
+      }
+    } catch (error) {
+      console.error(`Error fetching real ${provider} key:`, error);
+      enqueueSnackbar(`Erreur lors de la récupération de la clé ${provider}`, { variant: 'error' });
+    } finally {
+      setFetchingRealKey(false);
+    }
+  };
+
+  // Gérer le toggle de visibilité des clés API
+  const handleToggleKeyVisibility = (provider, isVisible, setShowState) => {
+    if (isVisible) {
+      // Si on cache la clé, pas besoin d'API call
+      setShowState(false);
+    } else {
+      // Si on montre la clé, il faut récupérer la vraie valeur
+      if (provider === 'openai' && hasOpenaiKey && openaiKey === '•'.repeat(16)) {
+        fetchRealApiKey('openai', setOpenaiKey, setShowOpenaiKey);
+      } else if (provider === 'anthropic' && hasAnthropicKey && anthropicKey === '•'.repeat(16)) {
+        fetchRealApiKey('anthropic', setAnthropicKey, setShowAnthropicKey);
+      } else if (provider === 'mistral' && hasMistralKey && mistralKey === '•'.repeat(16)) {
+        fetchRealApiKey('mistral', setMistralKey, setShowMistralKey);
+      } else {
+        // Si ce n'est pas une clé masquée, on change juste la visibilité
+        setShowState(true);
+      }
+    }
   };
 
   const handleSaveApiKey = async (provider, key, setStateHasKey) => {
@@ -214,10 +257,12 @@ const SettingsPage = () => {
                           <InputAdornment position="end">
                             <IconButton
                               aria-label="toggle password visibility"
-                              onClick={() => setShowOpenaiKey(!showOpenaiKey)}
+                              onClick={() => handleToggleKeyVisibility('openai', showOpenaiKey, setShowOpenaiKey)}
                               edge="end"
+                              disabled={fetchingRealKey}
                             >
-                              {showOpenaiKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                              {fetchingRealKey ? <CircularProgress size={20} /> : 
+                                showOpenaiKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
                             </IconButton>
                           </InputAdornment>
                         }
@@ -276,10 +321,12 @@ const SettingsPage = () => {
                           <InputAdornment position="end">
                             <IconButton
                               aria-label="toggle password visibility"
-                              onClick={() => setShowAnthropicKey(!showAnthropicKey)}
+                              onClick={() => handleToggleKeyVisibility('anthropic', showAnthropicKey, setShowAnthropicKey)}
                               edge="end"
+                              disabled={fetchingRealKey}
                             >
-                              {showAnthropicKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                              {fetchingRealKey ? <CircularProgress size={20} /> : 
+                                showAnthropicKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
                             </IconButton>
                           </InputAdornment>
                         }
@@ -338,10 +385,12 @@ const SettingsPage = () => {
                           <InputAdornment position="end">
                             <IconButton
                               aria-label="toggle password visibility"
-                              onClick={() => setShowMistralKey(!showMistralKey)}
+                              onClick={() => handleToggleKeyVisibility('mistral', showMistralKey, setShowMistralKey)}
                               edge="end"
+                              disabled={fetchingRealKey}
                             >
-                              {showMistralKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                              {fetchingRealKey ? <CircularProgress size={20} /> : 
+                                showMistralKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
                             </IconButton>
                           </InputAdornment>
                         }

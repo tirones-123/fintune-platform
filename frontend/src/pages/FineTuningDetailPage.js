@@ -82,34 +82,18 @@ const FineTuningDetailPage = () => {
   useEffect(() => {
     fetchFineTuningData();
     
-    // Simuler des mises à jour de progression toutes les 5 secondes
-    const progressInterval = setInterval(() => {
-      setFineTuning(prev => {
-        if (!prev || prev.status !== 'training' || prev.progress >= 100) {
-          clearInterval(progressInterval);
-          return prev;
-        }
-        
-        const newProgress = Math.min(prev.progress + 5, 100);
-        const newStatus = newProgress === 100 ? 'completed' : 'training';
-        const newCompletedAt = newProgress === 100 ? new Date().toISOString() : null;
-        
-        // Mettre à jour le fine-tuning dans le localStorage
-        const updatedFineTuning = {
-          ...prev,
-          progress: newProgress,
-          status: newStatus,
-          completed_at: newCompletedAt,
-        };
-        
-        fineTuningService.save(updatedFineTuning);
-        
-        return updatedFineTuning;
-      });
-    }, 5000);
+    // Mettre en place un intervalle pour rafraîchir les données toutes les 10 secondes
+    // si le fine-tuning est en cours
+    const refreshInterval = setInterval(() => {
+      if (fineTuning && (fineTuning.status === 'training' || fineTuning.status === 'queued' || fineTuning.status === 'preparing')) {
+        fetchFineTuningData();
+      } else {
+        clearInterval(refreshInterval);
+      }
+    }, 10000);
     
-    return () => clearInterval(progressInterval);
-  }, [fineTuningId]);
+    return () => clearInterval(refreshInterval);
+  }, [fineTuningId, fineTuning?.status]);
 
   // Formatage de la date
   const formatDate = (dateString) => {
@@ -136,11 +120,15 @@ const FineTuningDetailPage = () => {
   // Obtenir la couleur du statut
   const getStatusColor = (status) => {
     switch (status) {
+      case 'queued':
+      case 'preparing':
       case 'training':
         return 'primary';
       case 'completed':
         return 'success';
       case 'failed':
+      case 'cancelled':
+      case 'error':
         return 'error';
       default:
         return 'default';
@@ -150,11 +138,18 @@ const FineTuningDetailPage = () => {
   // Obtenir le libellé du statut
   const getStatusLabel = (status) => {
     switch (status) {
+      case 'queued':
+        return 'En attente';
+      case 'preparing':
+        return 'En préparation';
       case 'training':
         return 'En cours';
       case 'completed':
         return 'Terminé';
+      case 'cancelled':
+        return 'Annulé';
       case 'failed':
+      case 'error':
         return 'Échoué';
       default:
         return 'Inconnu';
@@ -164,38 +159,33 @@ const FineTuningDetailPage = () => {
   // Obtenir l'icône du statut
   const getStatusIcon = (status) => {
     switch (status) {
+      case 'queued':
+      case 'preparing':
       case 'training':
         return <CircularProgress size={16} />;
       case 'completed':
         return <CheckCircleIcon fontSize="small" />;
+      case 'cancelled':
       case 'failed':
+      case 'error':
         return <ErrorIcon fontSize="small" />;
       default:
         return null;
     }
   };
 
-  // Simuler l'arrêt du fine-tuning
-  const handleStopFineTuning = async () => {
+  // Fonction pour annuler le fine-tuning
+  const handleCancelFineTuning = async () => {
     try {
-      console.log('Arrêt du fine-tuning:', fineTuningId);
+      // Annuler le fine-tuning via l'API
+      await fineTuningService.cancel(fineTuningId);
       
-      // Simuler un délai
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mettre à jour l'état local et le localStorage
-      const updatedFineTuning = {
-        ...fineTuning,
-        status: 'completed',
-        progress: 100,
-        completed_at: new Date().toISOString(),
-      };
-      
-      fineTuningService.save(updatedFineTuning);
-      setFineTuning(updatedFineTuning);
+      // Mettre à jour les données
+      fetchFineTuningData();
+      enqueueSnackbar('Fine-tuning annulé avec succès', { variant: 'success' });
     } catch (err) {
-      console.error('Error stopping fine-tuning:', err);
-      setError('Impossible d\'arrêter le fine-tuning. Veuillez réessayer.');
+      console.error('Error canceling fine-tuning:', err);
+      enqueueSnackbar('Erreur lors de l\'annulation du fine-tuning', { variant: 'error' });
     }
   };
 
@@ -221,21 +211,6 @@ const FineTuningDetailPage = () => {
     }
   };
 
-  // Fonction pour annuler le fine-tuning
-  const handleCancelFineTuning = async () => {
-    try {
-      // Annuler le fine-tuning via l'API
-      await fineTuningService.cancel(fineTuningId);
-      
-      // Mettre à jour les données
-      fetchFineTuningData();
-      enqueueSnackbar('Fine-tuning annulé avec succès', { variant: 'success' });
-    } catch (err) {
-      console.error('Error canceling fine-tuning:', err);
-      enqueueSnackbar('Erreur lors de l\'annulation du fine-tuning', { variant: 'error' });
-    }
-  };
-
   // Fonction pour supprimer le fine-tuning
   const handleDeleteFineTuning = async () => {
     try {
@@ -243,7 +218,7 @@ const FineTuningDetailPage = () => {
       await fineTuningService.delete(fineTuningId);
       
       enqueueSnackbar('Fine-tuning supprimé avec succès', { variant: 'success' });
-      navigate(`/dashboard/datasets/${dataset.id}`);
+      navigate(`/dashboard/projects/${project.id}`);
     } catch (err) {
       console.error('Error deleting fine-tuning:', err);
       enqueueSnackbar('Erreur lors de la suppression du fine-tuning', { variant: 'error' });
@@ -284,25 +259,16 @@ const FineTuningDetailPage = () => {
             {project.name}
           </Link>
         )}
-        {dataset && (
-          <Link component={RouterLink} to={`/dashboard/datasets/${dataset.id}`} color="inherit">
-            {dataset.name}
-          </Link>
-        )}
         <Typography color="text.primary">Fine-tuning</Typography>
       </Breadcrumbs>
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
+        <CircularProgress sx={{ display: 'block', margin: '40px auto' }} />
       ) : error ? (
-        <Alert severity="error" sx={{ mb: 4 }}>
-          {error}
-        </Alert>
-      ) : (
+        <Alert severity="error" sx={{ mb: 4 }}>{error}</Alert>
+      ) : fineTuning ? (
         <>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 4 }}>
             <Box>
               <Typography variant="h4" gutterBottom>
                 {fineTuning.name}
@@ -311,6 +277,8 @@ const FineTuningDetailPage = () => {
                 {fineTuning.description || 'Aucune description'}
               </Typography>
             </Box>
+            
+            {/* Actions pour le fine-tuning */}
             <Box sx={{ display: 'flex', gap: 2 }}>
               {dataset && (
                 <Button
@@ -322,6 +290,7 @@ const FineTuningDetailPage = () => {
                   Télécharger le dataset
                 </Button>
               )}
+              
               {fineTuning.status === 'training' && (
                 <Button
                   variant="outlined"
@@ -332,6 +301,7 @@ const FineTuningDetailPage = () => {
                   Annuler
                 </Button>
               )}
+              
               {fineTuning.status === 'completed' && (
                 <Button
                   variant="contained"
@@ -345,170 +315,18 @@ const FineTuningDetailPage = () => {
             </Box>
           </Box>
 
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={8}>
-              <Card sx={{ mb: 4 }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6">
-                      Statut du fine-tuning
-                    </Typography>
-                    <Chip
-                      icon={getStatusIcon(fineTuning.status)}
-                      label={getStatusLabel(fineTuning.status)}
-                      color={getStatusColor(fineTuning.status)}
-                    />
-                  </Box>
-                  
-                  {fineTuning.status === 'training' && (
-                    <Box sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="body2">
-                          Progression
-                        </Typography>
-                        <Typography variant="body2" fontWeight="bold">
-                          {fineTuning.progress}%
-                        </Typography>
-                      </Box>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={fineTuning.progress} 
-                        sx={{ height: 8, borderRadius: 1 }}
-                      />
-                    </Box>
-                  )}
-                  
-                  {fineTuning.error_message && (
-                    <Alert severity="error" sx={{ mb: 2 }}>
-                      {fineTuning.error_message}
-                    </Alert>
-                  )}
-                  
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Démarré le
-                      </Typography>
-                      <Typography variant="body1">
-                        {formatDate(fineTuning.created_at)}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Terminé le
-                      </Typography>
-                      <Typography variant="body1">
-                        {formatDate(fineTuning.completed_at)}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Fournisseur
-                      </Typography>
-                      <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                        {fineTuning.provider}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Modèle
-                      </Typography>
-                      <Typography variant="body1">
-                        {fineTuning.model}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-              
-              {fineTuning.status === 'completed' && fineTuning.metrics && (
-                <Card sx={{ mb: 4 }}>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Métriques d'entraînement
-                    </Typography>
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" color="text.secondary">
-                          Perte d'entraînement
-                        </Typography>
-                        <Typography variant="h6" color="primary">
-                          {fineTuning.metrics.training_loss.toFixed(4)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" color="text.secondary">
-                          Perte de validation
-                        </Typography>
-                        <Typography variant="h6" color="primary">
-                          {fineTuning.metrics.validation_loss.toFixed(4)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              )}
-            </Grid>
-            
-            <Grid item xs={12} md={4}>
-              <Card sx={{ mb: 4 }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Dataset utilisé
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <DatasetIcon color="secondary" sx={{ mr: 1 }} />
-                    <Typography variant="subtitle1">
-                      {dataset.name}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    {dataset.description || 'Aucune description'}
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {dataset.pairs_count} paires Q/R
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Taille: {formatSize(dataset.size)}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Paramètres d'entraînement
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Nombre d'époques
-                      </Typography>
-                      <Typography variant="body1">
-                        {fineTuning.parameters.epochs}
-                      </Typography>
-                    </Box>
-                    
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        Taux d'apprentissage
-                      </Typography>
-                      <Typography variant="body1">
-                        {fineTuning.parameters.learning_rate}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          {/* Afficher la progression si en cours */}
+          {fineTuning.status === 'training' && fineTuning.progress && (
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+                  Progression: {Math.round(fineTuning.progress)}%
+                </Typography>
+                <CircularProgress size={20} />
+              </Box>
+              <LinearProgress variant="determinate" value={fineTuning.progress} color="primary" sx={{ height: 8, borderRadius: 4 }} />
+            </Box>
+          )}
 
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
@@ -604,7 +422,75 @@ const FineTuningDetailPage = () => {
               </Paper>
             </Grid>
           </Grid>
+
+          {/* Section de test du modèle */}
+          {fineTuning.status === 'completed' && (
+            <Card sx={{ mt: 4 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Tester le modèle
+                </Typography>
+                
+                <TextField
+                  fullWidth
+                  label="Prompt de test"
+                  value={testPrompt}
+                  onChange={(e) => setTestPrompt(e.target.value)}
+                  multiline
+                  rows={3}
+                  variant="outlined"
+                  sx={{ mb: 2 }}
+                  error={!!testError}
+                  helperText={testError}
+                />
+                
+                <Button
+                  variant="contained"
+                  onClick={handleTestModel}
+                  disabled={testing || !testPrompt.trim()}
+                  startIcon={testing ? <CircularProgress size={20} /> : <PlayArrowIcon />}
+                  sx={{ mb: 2 }}
+                >
+                  {testing ? 'Test en cours...' : 'Tester'}
+                </Button>
+                
+                {testResponse && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Réponse du modèle:
+                    </Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {testResponse}
+                    </Typography>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Actions supplémentaires */}
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate(`/dashboard/projects/${project.id}`)}
+            >
+              Retour au projet
+            </Button>
+            
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={handleDeleteFineTuning}
+            >
+              Supprimer ce fine-tuning
+            </Button>
+          </Box>
         </>
+      ) : (
+        <Alert severity="info">Aucune information trouvée pour ce fine-tuning.</Alert>
       )}
     </Container>
   );
