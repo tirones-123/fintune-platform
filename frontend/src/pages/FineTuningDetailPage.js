@@ -36,6 +36,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ChatIcon from '@mui/icons-material/Chat';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useSnackbar } from 'notistack';
 import { projectService, datasetService, fineTuningService } from '../services/apiService';
 
@@ -249,6 +250,22 @@ const FineTuningDetailPage = () => {
     }
   };
 
+  // Fonction pour télécharger le dataset
+  const handleDownloadDataset = (datasetId) => {
+    try {
+      // Construire l'URL pour télécharger le dataset
+      const downloadUrl = `${process.env.REACT_APP_API_URL}/api/datasets/${datasetId}/export`;
+      
+      // Ouvrir l'URL dans un nouvel onglet
+      window.open(downloadUrl, '_blank');
+      
+      enqueueSnackbar('Téléchargement du dataset commencé', { variant: 'success' });
+    } catch (error) {
+      console.error('Erreur lors du téléchargement du dataset:', error);
+      enqueueSnackbar('Erreur lors du téléchargement du dataset', { variant: 'error' });
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Breadcrumbs 
@@ -290,26 +307,37 @@ const FineTuningDetailPage = () => {
               <Typography variant="h4" gutterBottom>
                 {fineTuning.name}
               </Typography>
-              <Typography variant="body1" color="text.secondary">
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
                 {fineTuning.description || 'Aucune description'}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>
+              {dataset && (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<DownloadIcon />}
+                  onClick={() => handleDownloadDataset(dataset.id)}
+                >
+                  Télécharger le dataset
+                </Button>
+              )}
               {fineTuning.status === 'training' && (
                 <Button
                   variant="outlined"
-                  color="error"
+                  color="primary"
                   startIcon={<StopIcon />}
-                  onClick={handleStopFineTuning}
+                  onClick={handleCancelFineTuning}
                 >
-                  Arrêter
+                  Annuler
                 </Button>
               )}
               {fineTuning.status === 'completed' && (
                 <Button
                   variant="contained"
-                  startIcon={<PlayArrowIcon />}
-                  onClick={handleTestModel}
+                  color="primary"
+                  startIcon={<ChatIcon />}
+                  onClick={() => navigate(`/dashboard/chat/${fineTuning.id}`)}
                 >
                   Tester le modèle
                 </Button>
@@ -479,6 +507,101 @@ const FineTuningDetailPage = () => {
                   </Box>
                 </CardContent>
               </Card>
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 3, height: '100%' }}>
+                <Typography variant="h6" gutterBottom>
+                  Informations sur le fine-tuning
+                </Typography>
+                <List>
+                  <ListItem>
+                    <ListItemText 
+                      primary="Statut" 
+                      secondary={
+                        <Chip 
+                          label={getStatusLabel(fineTuning.status)} 
+                          color={getStatusColor(fineTuning.status)}
+                          size="small"
+                          icon={getStatusIcon(fineTuning.status)}
+                          sx={{ mt: 1 }}
+                        />
+                      }
+                    />
+                  </ListItem>
+                  <Divider component="li" />
+                  <ListItem>
+                    <ListItemText primary="Modèle" secondary={fineTuning.model} />
+                  </ListItem>
+                  <Divider component="li" />
+                  <ListItem>
+                    <ListItemText primary="Provider" secondary={fineTuning.provider} />
+                  </ListItem>
+                  <Divider component="li" />
+                  <ListItem>
+                    <ListItemText primary="Créé le" secondary={formatDate(fineTuning.created_at)} />
+                  </ListItem>
+                  {fineTuning.completed_at && (
+                    <>
+                      <Divider component="li" />
+                      <ListItem>
+                        <ListItemText primary="Terminé le" secondary={formatDate(fineTuning.completed_at)} />
+                      </ListItem>
+                    </>
+                  )}
+                </List>
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 3, height: '100%' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Dataset associé
+                  </Typography>
+                  {dataset && (
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => handleDownloadDataset(dataset.id)}
+                      size="small"
+                    >
+                      Télécharger
+                    </Button>
+                  )}
+                </Box>
+                
+                {dataset ? (
+                  <List>
+                    <ListItem>
+                      <ListItemText primary="Nom" secondary={dataset.name} />
+                    </ListItem>
+                    <Divider component="li" />
+                    <ListItem>
+                      <ListItemText primary="Description" secondary={dataset.description || 'Aucune description'} />
+                    </ListItem>
+                    <Divider component="li" />
+                    <ListItem>
+                      <ListItemText primary="Nombre de paires" secondary={dataset.pairs_count || 0} />
+                    </ListItem>
+                    <Divider component="li" />
+                    <ListItem>
+                      <ListItemText primary="Taille" secondary={dataset.size ? formatSize(dataset.size) : 'N/A'} />
+                    </ListItem>
+                    <Divider component="li" />
+                    <ListItem>
+                      <ListItemText primary="Créé le" secondary={formatDate(dataset.created_at)} />
+                    </ListItem>
+                  </List>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Information du dataset non disponible
+                  </Typography>
+                )}
+              </Paper>
             </Grid>
           </Grid>
         </>

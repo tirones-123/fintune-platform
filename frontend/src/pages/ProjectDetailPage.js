@@ -535,7 +535,7 @@ const ProjectDetailPage = () => {
               <>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Typography variant="h5">
-                    Datasets & Fine-tunings
+                    Fine-tunings
                   </Typography>
                   <Button
                     variant="contained"
@@ -547,107 +547,103 @@ const ProjectDetailPage = () => {
                   </Button>
                 </Box>
 
-                {datasets.length === 0 ? (
+                {fineTunings.length === 0 ? (
                   <Paper sx={{ p: 4, textAlign: 'center' }}>
-                    <DatasetIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+                    <PsychologyIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
                     <Typography variant="h6" gutterBottom>
-                      Aucun dataset
+                      Aucun fine-tuning
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                      {contents.length === 0 
-                        ? 'Ajoutez d\'abord du contenu à votre projet avant de créer un dataset.'
-                        : 'Créez un dataset à partir de vos contenus pour fine-tuner un modèle.'}
+                      {datasets.length === 0 
+                        ? 'Créez d\'abord un dataset avant de fine-tuner un modèle.'
+                        : 'Fine-tunez un modèle à partir de vos datasets.'}
                     </Typography>
-                    {contents.length === 0 ? (
-                      <Button
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                        onClick={() => navigate(`/dashboard/content/upload/${projectId}`)}
-                      >
-                        Ajouter du contenu
-                      </Button>
-                    ) : (
+                    {datasets.length === 0 ? (
                       <Button
                         variant="contained"
                         startIcon={<AddIcon />}
                         onClick={() => navigate(`/dashboard/datasets/new/${projectId}`)}
+                        disabled={contents.length === 0}
                       >
                         Créer un dataset
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="contained"
+                        startIcon={<PsychologyIcon />}
+                        onClick={() => {
+                          // Rediriger vers le dataset prêt le plus récent
+                          const readyDataset = datasets.find(d => d.status === 'ready');
+                          if (readyDataset) {
+                            navigate(`/dashboard/fine-tuning/new/${readyDataset.id}`);
+                          } else {
+                            enqueueSnackbar('Aucun dataset prêt pour le fine-tuning', { variant: 'warning' });
+                          }
+                        }}
+                      >
+                        Fine-tuner un modèle
                       </Button>
                     )}
                   </Paper>
                 ) : (
                   <>
-                    {/* Section des datasets */}
-                    <Typography variant="h6" sx={{ mb: 2, mt: 4 }}>
-                      Datasets ({datasets.length})
-                    </Typography>
-                    <List component={Paper} sx={{ mb: 4 }}>
-                      {datasets.map((dataset) => (
-                        <React.Fragment key={dataset.id}>
+                    {/* Liste des fine-tunings */}
+                    <List component={Paper}>
+                      {fineTunings.map((fineTuning) => (
+                        <React.Fragment key={fineTuning.id}>
                           <ListItem 
                             button 
-                            onClick={() => handleViewDataset(dataset.id)}
+                            onClick={() => handleViewFineTuning(fineTuning.id)}
                             sx={{ py: 2 }}
                           >
                             <ListItemIcon>
-                              <DatasetIcon color="secondary" />
+                              <PsychologyIcon color="primary" />
                             </ListItemIcon>
                             <ListItemText
                               primary={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  {dataset.name}
+                                  {fineTuning.name}
                                   <Chip 
-                                    label={getStatusLabel(dataset.status)} 
+                                    label={getStatusLabel(fineTuning.status)} 
                                     size="small"
-                                    color={getStatusColor(dataset.status)}
+                                    color={getStatusColor(fineTuning.status)}
                                     sx={{ ml: 1 }}
                                   />
                                 </Box>
                               }
                               secondary={
-                                <>
-                                  <Typography variant="body2" component="span" color="text.secondary">
-                                    {dataset.description || 'Aucune description'}
+                                <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Modèle: {fineTuning.model}
                                   </Typography>
-                                  <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                                    {dataset.status === 'ready' && (
-                                      <Typography variant="caption" color="text.secondary">
-                                        {dataset.pairs_count} paires Q/R
-                                      </Typography>
-                                    )}
-                                    {dataset.size > 0 && (
-                                      <Typography variant="caption" color="text.secondary">
-                                        Taille: {formatSize(dataset.size)}
-                                      </Typography>
-                                    )}
-                                    <Typography variant="caption" color="text.secondary">
-                                      Créé le: {formatDate(dataset.created_at)}
-                                    </Typography>
-                                  </Box>
-                                </>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Provider: {fineTuning.provider}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Créé le: {formatDate(fineTuning.created_at)}
+                                  </Typography>
+                                </Box>
                               }
                             />
                             <ListItemSecondaryAction>
-                              {dataset.status === 'ready' && (
+                              {fineTuning.status === 'completed' && (
                                 <Button
                                   variant="outlined"
                                   size="small"
-                                  startIcon={<PsychologyIcon />}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleFineTuneDataset(dataset.id);
+                                    handleChatWithFineTuning(fineTuning.id);
                                   }}
                                   sx={{ mr: 1 }}
                                 >
-                                  Fine-tuner
+                                  Tester
                                 </Button>
                               )}
                               <IconButton
                                 edge="end"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDatasetMenuOpen(e, dataset);
+                                  handleFineTuningMenuOpen(e, fineTuning);
                                 }}
                               >
                                 <MoreVertIcon />
@@ -658,86 +654,6 @@ const ProjectDetailPage = () => {
                         </React.Fragment>
                       ))}
                     </List>
-                    
-                    {/* Section des fine-tunings */}
-                    {fineTunings.length > 0 && (
-                      <>
-                        <Typography variant="h6" sx={{ mb: 2 }}>
-                          Fine-tunings ({fineTunings.length})
-                        </Typography>
-                        <List component={Paper}>
-                          {fineTunings.map((fineTuning) => (
-                            <React.Fragment key={fineTuning.id}>
-                              <ListItem 
-                                button 
-                                onClick={() => handleViewFineTuning(fineTuning.id)}
-                                sx={{ py: 2 }}
-                              >
-                                <ListItemIcon>
-                                  <PsychologyIcon color="primary" />
-                                </ListItemIcon>
-                                <ListItemText
-                                  primary={
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      {fineTuning.name}
-                                      <Chip 
-                                        label={getStatusLabel(fineTuning.status)} 
-                                        size="small"
-                                        color={getStatusColor(fineTuning.status)}
-                                        sx={{ ml: 1 }}
-                                      />
-                                    </Box>
-                                  }
-                                  secondary={
-                                    <>
-                                      <Typography variant="body2" component="span" color="text.secondary">
-                                        Dataset: {fineTuning.dataset_name || 'Inconnu'}
-                                      </Typography>
-                                      <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                                        <Typography variant="caption" color="text.secondary">
-                                          Modèle: {fineTuning.model}
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary">
-                                          Provider: {fineTuning.provider}
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary">
-                                          Créé le: {formatDate(fineTuning.created_at)}
-                                        </Typography>
-                                      </Box>
-                                    </>
-                                  }
-                                />
-                                <ListItemSecondaryAction>
-                                  {fineTuning.status === 'completed' && (
-                                    <Button
-                                      variant="outlined"
-                                      size="small"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleChatWithFineTuning(fineTuning.id);
-                                      }}
-                                      sx={{ mr: 1 }}
-                                    >
-                                      Tester
-                                    </Button>
-                                  )}
-                                  <IconButton
-                                    edge="end"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleFineTuningMenuOpen(e, fineTuning);
-                                    }}
-                                  >
-                                    <MoreVertIcon />
-                                  </IconButton>
-                                </ListItemSecondaryAction>
-                              </ListItem>
-                              <Divider />
-                            </React.Fragment>
-                          ))}
-                        </List>
-                      </>
-                    )}
                   </>
                 )}
               </>
