@@ -375,6 +375,12 @@ const OnboardingPage = () => {
   
   // Fonction pour vérifier l'état du dataset
   const checkDatasetStatus = async (datasetId) => {
+    if (!datasetId) {
+      console.error("ID du dataset manquant");
+      setDatasetLoading(false);
+      return false;
+    }
+
     try {
       const dataset = await datasetService.getById(datasetId);
       console.log(`Vérification du statut du dataset ${datasetId}: ${dataset.status}`);
@@ -485,6 +491,10 @@ const OnboardingPage = () => {
         
         while (retries < maxRetries && !datasetReady) {
           await new Promise(resolve => setTimeout(resolve, 3000)); // Attendre 3 secondes
+          // Vérifier si createdDataset existe toujours avant d'appeler checkDatasetStatus
+          if (!createdDataset) {
+            throw new Error("Le dataset n'est plus accessible");
+          }
           const isReady = await checkDatasetStatus(createdDataset.id);
           if (isReady) break;
           retries++;
@@ -987,19 +997,6 @@ const OnboardingPage = () => {
                   disabled={uploading || creatingProject}
                 >
                   {activeStep === steps.length - 2 ? 'Terminer' : 'Suivant'}
-                </Button>
-              </Box>
-            )}
-            
-            {/* Bouton final - uniquement à la dernière étape */}
-            {activeStep === steps.length - 1 && !processingFineTuning && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate('/dashboard')}
-                  sx={{ borderRadius: 3, mr: 2 }}
-                >
-                  Aller au dashboard
                 </Button>
               </Box>
             )}
