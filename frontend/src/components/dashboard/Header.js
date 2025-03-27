@@ -74,16 +74,18 @@ const Header = ({ onDrawerToggle }) => {
           px: { xs: 2, sm: 3 },
         }}
       >
+        {/* Bouton menu uniquement visible sur mobile */}
         <IconButton
           color="inherit"
           aria-label="open drawer"
           edge="start"
           onClick={onDrawerToggle}
-          sx={{ mr: 2, display: { md: 'none' } }}
+          sx={{ mr: 2, display: { xs: 'flex', sm: 'none' } }}
         >
           <MenuIcon />
         </IconButton>
 
+        {/* Espace vide à gauche */}
         <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
