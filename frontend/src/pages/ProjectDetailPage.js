@@ -174,6 +174,11 @@ const ProjectDetailPage = () => {
     try {
       console.log('Suppression du contenu:', contentId);
       
+      // Demander confirmation avant suppression
+      if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) {
+        return;
+      }
+      
       // Supprimer le contenu via l'API
       await contentService.delete(contentId);
       
@@ -183,7 +188,6 @@ const ProjectDetailPage = () => {
       enqueueSnackbar('Contenu supprimé avec succès', { variant: 'success' });
     } catch (err) {
       console.error('Error deleting content:', err);
-      setError('Impossible de supprimer le contenu. Veuillez réessayer.');
       enqueueSnackbar('Erreur lors de la suppression du contenu', { variant: 'error' });
     }
     handleContentMenuClose();
@@ -363,6 +367,27 @@ const ProjectDetailPage = () => {
     }
   };
 
+  // Ajouter cette fonction pour le téléchargement des contenus
+  const handleDownloadContent = (content) => {
+    if (!content.file_path) {
+      enqueueSnackbar('Ce contenu ne peut pas être téléchargé', { variant: 'warning' });
+      return;
+    }
+    
+    try {
+      // Construire l'URL de téléchargement
+      const downloadUrl = `${process.env.REACT_APP_API_URL}/api/contents/${content.id}/download`;
+      
+      // Ouvrir l'URL dans un nouvel onglet pour télécharger
+      window.open(downloadUrl, '_blank');
+      
+      enqueueSnackbar('Téléchargement démarré', { variant: 'success' });
+    } catch (error) {
+      console.error('Erreur lors du téléchargement du contenu:', error);
+      enqueueSnackbar('Erreur lors du téléchargement', { variant: 'error' });
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Breadcrumbs 
@@ -469,8 +494,6 @@ const ProjectDetailPage = () => {
                     {contents.map((content) => (
                       <React.Fragment key={content.id}>
                         <ListItem 
-                          button 
-                          onClick={() => handleViewContent(content.id)}
                           sx={{ py: 2 }}
                         >
                           <ListItemIcon>
@@ -515,15 +538,25 @@ const ProjectDetailPage = () => {
                             }
                           />
                           <ListItemSecondaryAction>
-                            <IconButton
-                              edge="end"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleContentMenuOpen(e, content);
-                              }}
-                            >
-                              <MoreVertIcon />
-                            </IconButton>
+                            <Box sx={{ display: 'flex' }}>
+                              {content.file_path && (
+                                <IconButton 
+                                  edge="end" 
+                                  onClick={() => handleDownloadContent(content)}
+                                  title="Télécharger"
+                                >
+                                  <DownloadIcon />
+                                </IconButton>
+                              )}
+                              <IconButton 
+                                edge="end" 
+                                onClick={() => handleDeleteContent(content.id)}
+                                title="Supprimer"
+                                sx={{ ml: 1 }}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
                           </ListItemSecondaryAction>
                         </ListItem>
                         <Divider />
