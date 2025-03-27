@@ -101,26 +101,22 @@ const AppRoutes = () => {
             </OnboardingCheck>
           }
         >
-          <Route index element={<DashboardPage />} />
+          <Route index element={<ProjectsPage />} />
           
           {/* Routes des projets */}
-          <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/new" element={<NewProjectPage />} />
           <Route path="projects/:projectId" element={<ProjectDetailPage />} />
           
-          {/* Routes du contenu */}
-          <Route path="content" element={<ContentsPage />} />
+          {/* Routes du contenu - Conservées pour la compatibilité */}
           <Route path="content/upload/:projectId" element={<ContentUploadPage />} />
           <Route path="content/upload" element={<ContentUploadPage />} />
           <Route path="content/:contentId" element={<ContentUploadPage />} />
           
-          {/* Routes des datasets */}
-          <Route path="datasets" element={<DatasetsPage />} />
+          {/* Routes des datasets - Conservées pour la compatibilité */}
           <Route path="datasets/new/:projectId" element={<NewDatasetPage />} />
           <Route path="datasets/:datasetId" element={<DatasetDetailPage />} />
           
-          {/* Routes du fine-tuning */}
-          <Route path="fine-tuning" element={<FineTuningsPage />} />
+          {/* Routes du fine-tuning - Conservées pour la compatibilité */}
           <Route path="fine-tuning/new/:datasetId" element={<NewFineTuningPage />} />
           <Route path="fine-tuning/:fineTuningId" element={<FineTuningDetailPage />} />
           <Route path="chat/:fineTuningId" element={<ChatPage />} />

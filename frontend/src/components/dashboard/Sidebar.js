@@ -43,11 +43,7 @@ const itemVariants = {
 };
 
 const menuItems = [
-  { name: 'Dashboard', icon: DashboardIcon, path: '/dashboard', description: 'Vue d\'ensemble' },
-  { name: 'Projets', icon: FolderIcon, path: '/dashboard/projects', description: 'Gérer vos projets' },
-  { name: 'Contenu', icon: CloudUploadIcon, path: '/dashboard/content', description: 'Vos documents importés' },
-  { name: 'Datasets', icon: DatasetIcon, path: '/dashboard/datasets', description: 'Paires question-réponse' },
-  { name: 'Fine-tuning', icon: PsychologyIcon, path: '/dashboard/fine-tuning', description: 'Modèles entraînés' },
+  { name: 'Projets', icon: FolderIcon, path: '/dashboard', description: 'Gérer vos projets' },
   { name: 'Analyse', icon: BarChartIcon, path: '/dashboard/analytics', description: 'Statistiques et métriques' },
 ];
 

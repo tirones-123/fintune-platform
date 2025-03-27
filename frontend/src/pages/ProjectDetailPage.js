@@ -43,8 +43,9 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useSnackbar } from 'notistack';
-import { projectService, contentService, datasetService } from '../services/apiService';
+import { projectService, contentService, datasetService, fineTuningService } from '../services/apiService';
 
 const ProjectDetailPage = () => {
   const { projectId } = useParams();
@@ -52,13 +53,16 @@ const ProjectDetailPage = () => {
   const [project, setProject] = useState(null);
   const [contents, setContents] = useState([]);
   const [datasets, setDatasets] = useState([]);
+  const [fineTunings, setFineTunings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [contentAnchorEl, setContentAnchorEl] = useState(null);
   const [datasetAnchorEl, setDatasetAnchorEl] = useState(null);
+  const [fineTuningAnchorEl, setFineTuningAnchorEl] = useState(null);
   const [selectedContent, setSelectedContent] = useState(null);
   const [selectedDataset, setSelectedDataset] = useState(null);
+  const [selectedFineTuning, setSelectedFineTuning] = useState(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -81,6 +85,34 @@ const ProjectDetailPage = () => {
       // Récupérer les datasets du projet
       const datasetsData = await datasetService.getByProjectId(projectId);
       setDatasets(datasetsData);
+      
+      // Récupérer les fine-tunings du projet
+      try {
+        const fineTuningsData = await Promise.all(
+          datasetsData.map(async (dataset) => {
+            try {
+              const fineTunings = await fineTuningService.getByDatasetId(dataset.id);
+              return fineTunings.map(ft => ({
+                ...ft,
+                dataset_name: dataset.name,
+                dataset: dataset
+              }));
+            } catch (error) {
+              console.error(`Erreur lors de la récupération des fine-tunings pour le dataset ${dataset.id}:`, error);
+              return [];
+            }
+          })
+        );
+        
+        // Aplatir le tableau de tableaux et trier par date de création (ordre décroissant)
+        const allFineTunings = fineTuningsData
+          .flat()
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        
+        setFineTunings(allFineTunings);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des fine-tunings:", error);
+      }
       
       setError(null);
     } catch (err) {
@@ -121,6 +153,17 @@ const ProjectDetailPage = () => {
     setSelectedDataset(null);
   };
 
+  // Nouveau gestionnaire pour le menu des fine-tunings
+  const handleFineTuningMenuOpen = (event, fineTuning) => {
+    setFineTuningAnchorEl(event.currentTarget);
+    setSelectedFineTuning(fineTuning);
+  };
+
+  const handleFineTuningMenuClose = () => {
+    setFineTuningAnchorEl(null);
+    setSelectedFineTuning(null);
+  };
+
   // Actions sur les contenus
   const handleViewContent = (contentId) => {
     navigate(`/dashboard/content/${contentId}`);
@@ -131,27 +174,17 @@ const ProjectDetailPage = () => {
     try {
       console.log('Suppression du contenu:', contentId);
       
-      // Simuler un délai
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Supprimer le contenu du localStorage
-      contentService.delete(contentId);
+      // Supprimer le contenu via l'API
+      await contentService.delete(contentId);
       
       // Mettre à jour l'état local pour refléter la suppression
       setContents(prevContents => prevContents.filter(content => content.id !== contentId));
       
-      // Mettre à jour le compteur de contenus dans le projet
-      if (project) {
-        const updatedProject = {
-          ...project,
-          content_count: project.content_count - 1
-        };
-        projectService.save(updatedProject);
-        setProject(updatedProject);
-      }
+      enqueueSnackbar('Contenu supprimé avec succès', { variant: 'success' });
     } catch (err) {
       console.error('Error deleting content:', err);
       setError('Impossible de supprimer le contenu. Veuillez réessayer.');
+      enqueueSnackbar('Erreur lors de la suppression du contenu', { variant: 'error' });
     }
     handleContentMenuClose();
   };
@@ -171,29 +204,46 @@ const ProjectDetailPage = () => {
     try {
       console.log('Suppression du dataset:', datasetId);
       
-      // Simuler un délai
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Supprimer le dataset du localStorage
-      datasetService.delete(datasetId);
+      // Supprimer le dataset via l'API
+      await datasetService.delete(datasetId);
       
       // Mettre à jour l'état local pour refléter la suppression
       setDatasets(prevDatasets => prevDatasets.filter(dataset => dataset.id !== datasetId));
       
-      // Mettre à jour le compteur de datasets dans le projet
-      if (project) {
-        const updatedProject = {
-          ...project,
-          dataset_count: project.dataset_count - 1
-        };
-        projectService.save(updatedProject);
-        setProject(updatedProject);
-      }
+      enqueueSnackbar('Dataset supprimé avec succès', { variant: 'success' });
     } catch (err) {
       console.error('Error deleting dataset:', err);
       setError('Impossible de supprimer le dataset. Veuillez réessayer.');
+      enqueueSnackbar('Erreur lors de la suppression du dataset', { variant: 'error' });
     }
     handleDatasetMenuClose();
+  };
+
+  // Actions sur les fine-tunings
+  const handleViewFineTuning = (fineTuningId) => {
+    navigate(`/dashboard/fine-tuning/${fineTuningId}`);
+    handleFineTuningMenuClose();
+  };
+
+  const handleChatWithFineTuning = (fineTuningId) => {
+    navigate(`/dashboard/chat/${fineTuningId}`);
+    handleFineTuningMenuClose();
+  };
+
+  const handleDownloadDataset = (datasetId) => {
+    try {
+      // Construire l'URL pour télécharger le dataset
+      const downloadUrl = `${process.env.REACT_APP_API_URL}/api/datasets/${datasetId}/export`;
+      
+      // Ouvrir l'URL dans un nouvel onglet
+      window.open(downloadUrl, '_blank');
+      
+      enqueueSnackbar('Téléchargement du dataset commencé', { variant: 'success' });
+    } catch (error) {
+      console.error('Erreur lors du téléchargement du dataset:', error);
+      enqueueSnackbar('Erreur lors du téléchargement du dataset', { variant: 'error' });
+    }
+    handleFineTuningMenuClose();
   };
 
   // Formatage de la date
@@ -236,11 +286,16 @@ const ProjectDetailPage = () => {
     switch (status) {
       case 'processed':
       case 'ready':
+      case 'completed':
         return 'success';
       case 'processing':
       case 'generating':
+      case 'training':
+      case 'queued':
+      case 'preparing':
         return 'warning';
       case 'error':
+      case 'cancelled':
         return 'error';
       default:
         return 'default';
@@ -260,6 +315,16 @@ const ProjectDetailPage = () => {
         return 'En génération';
       case 'error':
         return 'Erreur';
+      case 'queued':
+        return 'En attente';
+      case 'preparing':
+        return 'En préparation';
+      case 'training':
+        return 'En entraînement';
+      case 'completed':
+        return 'Terminé';
+      case 'cancelled':
+        return 'Annulé';
       default:
         return status;
     }
@@ -291,7 +356,7 @@ const ProjectDetailPage = () => {
       
       setDeleteDialogOpen(false);
       enqueueSnackbar('Projet supprimé avec succès', { variant: 'success' });
-      navigate('/dashboard/projects');
+      navigate('/dashboard');
     } catch (err) {
       console.error('Error deleting project:', err);
       enqueueSnackbar('Erreur lors de la suppression du projet', { variant: 'error' });
@@ -306,9 +371,6 @@ const ProjectDetailPage = () => {
         sx={{ mb: 3 }}
       >
         <Link component={RouterLink} to="/dashboard" color="inherit">
-          Dashboard
-        </Link>
-        <Link component={RouterLink} to="/dashboard/projects" color="inherit">
           Projets
         </Link>
         <Typography color="text.primary">
@@ -350,7 +412,11 @@ const ProjectDetailPage = () => {
                 <Button
                   variant="outlined"
                   startIcon={<EditIcon />}
-                  onClick={() => navigate(`/dashboard/projects/${projectId}/edit`)}
+                  onClick={() => {
+                    setEditName(project.name);
+                    setEditDescription(project.description || '');
+                    setEditDialogOpen(true);
+                  }}
                 >
                   Modifier
                 </Button>
@@ -361,7 +427,7 @@ const ProjectDetailPage = () => {
           <Box sx={{ mb: 4 }}>
             <Tabs value={tabValue} onChange={handleTabChange} aria-label="project tabs">
               <Tab label="Contenus" id="tab-0" />
-              <Tab label="Datasets" id="tab-1" />
+              <Tab label="Finetune" id="tab-1" />
             </Tabs>
           </Box>
 
@@ -469,7 +535,7 @@ const ProjectDetailPage = () => {
               <>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Typography variant="h5">
-                    Datasets ({datasets.length})
+                    Datasets & Fine-tunings
                   </Typography>
                   <Button
                     variant="contained"
@@ -511,82 +577,168 @@ const ProjectDetailPage = () => {
                     )}
                   </Paper>
                 ) : (
-                  <List component={Paper}>
-                    {datasets.map((dataset) => (
-                      <React.Fragment key={dataset.id}>
-                        <ListItem 
-                          button 
-                          onClick={() => handleViewDataset(dataset.id)}
-                          sx={{ py: 2 }}
-                        >
-                          <ListItemIcon>
-                            <DatasetIcon color="secondary" />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {dataset.name}
-                                <Chip 
-                                  label={getStatusLabel(dataset.status)} 
-                                  size="small"
-                                  color={getStatusColor(dataset.status)}
-                                  sx={{ ml: 1 }}
-                                />
-                              </Box>
-                            }
-                            secondary={
-                              <>
-                                <Typography variant="body2" component="span" color="text.secondary">
-                                  {dataset.description || 'Aucune description'}
-                                </Typography>
-                                <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                                  {dataset.status === 'ready' && (
-                                    <Typography variant="caption" color="text.secondary">
-                                      {dataset.pairs_count} paires Q/R
-                                    </Typography>
-                                  )}
-                                  {dataset.size > 0 && (
-                                    <Typography variant="caption" color="text.secondary">
-                                      Taille: {formatSize(dataset.size)}
-                                    </Typography>
-                                  )}
-                                  <Typography variant="caption" color="text.secondary">
-                                    Créé le: {formatDate(dataset.created_at)}
-                                  </Typography>
+                  <>
+                    {/* Section des datasets */}
+                    <Typography variant="h6" sx={{ mb: 2, mt: 4 }}>
+                      Datasets ({datasets.length})
+                    </Typography>
+                    <List component={Paper} sx={{ mb: 4 }}>
+                      {datasets.map((dataset) => (
+                        <React.Fragment key={dataset.id}>
+                          <ListItem 
+                            button 
+                            onClick={() => handleViewDataset(dataset.id)}
+                            sx={{ py: 2 }}
+                          >
+                            <ListItemIcon>
+                              <DatasetIcon color="secondary" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {dataset.name}
+                                  <Chip 
+                                    label={getStatusLabel(dataset.status)} 
+                                    size="small"
+                                    color={getStatusColor(dataset.status)}
+                                    sx={{ ml: 1 }}
+                                  />
                                 </Box>
-                              </>
-                            }
-                          />
-                          <ListItemSecondaryAction>
-                            {dataset.status === 'ready' && (
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                startIcon={<PsychologyIcon />}
+                              }
+                              secondary={
+                                <>
+                                  <Typography variant="body2" component="span" color="text.secondary">
+                                    {dataset.description || 'Aucune description'}
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                                    {dataset.status === 'ready' && (
+                                      <Typography variant="caption" color="text.secondary">
+                                        {dataset.pairs_count} paires Q/R
+                                      </Typography>
+                                    )}
+                                    {dataset.size > 0 && (
+                                      <Typography variant="caption" color="text.secondary">
+                                        Taille: {formatSize(dataset.size)}
+                                      </Typography>
+                                    )}
+                                    <Typography variant="caption" color="text.secondary">
+                                      Créé le: {formatDate(dataset.created_at)}
+                                    </Typography>
+                                  </Box>
+                                </>
+                              }
+                            />
+                            <ListItemSecondaryAction>
+                              {dataset.status === 'ready' && (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  startIcon={<PsychologyIcon />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleFineTuneDataset(dataset.id);
+                                  }}
+                                  sx={{ mr: 1 }}
+                                >
+                                  Fine-tuner
+                                </Button>
+                              )}
+                              <IconButton
+                                edge="end"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleFineTuneDataset(dataset.id);
+                                  handleDatasetMenuOpen(e, dataset);
                                 }}
-                                sx={{ mr: 1 }}
                               >
-                                Fine-tuner
-                              </Button>
-                            )}
-                            <IconButton
-                              edge="end"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDatasetMenuOpen(e, dataset);
-                              }}
-                            >
-                              <MoreVertIcon />
-                            </IconButton>
-                          </ListItemSecondaryAction>
-                        </ListItem>
-                        <Divider />
-                      </React.Fragment>
-                    ))}
-                  </List>
+                                <MoreVertIcon />
+                              </IconButton>
+                            </ListItemSecondaryAction>
+                          </ListItem>
+                          <Divider />
+                        </React.Fragment>
+                      ))}
+                    </List>
+                    
+                    {/* Section des fine-tunings */}
+                    {fineTunings.length > 0 && (
+                      <>
+                        <Typography variant="h6" sx={{ mb: 2 }}>
+                          Fine-tunings ({fineTunings.length})
+                        </Typography>
+                        <List component={Paper}>
+                          {fineTunings.map((fineTuning) => (
+                            <React.Fragment key={fineTuning.id}>
+                              <ListItem 
+                                button 
+                                onClick={() => handleViewFineTuning(fineTuning.id)}
+                                sx={{ py: 2 }}
+                              >
+                                <ListItemIcon>
+                                  <PsychologyIcon color="primary" />
+                                </ListItemIcon>
+                                <ListItemText
+                                  primary={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      {fineTuning.name}
+                                      <Chip 
+                                        label={getStatusLabel(fineTuning.status)} 
+                                        size="small"
+                                        color={getStatusColor(fineTuning.status)}
+                                        sx={{ ml: 1 }}
+                                      />
+                                    </Box>
+                                  }
+                                  secondary={
+                                    <>
+                                      <Typography variant="body2" component="span" color="text.secondary">
+                                        Dataset: {fineTuning.dataset_name || 'Inconnu'}
+                                      </Typography>
+                                      <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                                        <Typography variant="caption" color="text.secondary">
+                                          Modèle: {fineTuning.model}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                          Provider: {fineTuning.provider}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                          Créé le: {formatDate(fineTuning.created_at)}
+                                        </Typography>
+                                      </Box>
+                                    </>
+                                  }
+                                />
+                                <ListItemSecondaryAction>
+                                  {fineTuning.status === 'completed' && (
+                                    <Button
+                                      variant="outlined"
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleChatWithFineTuning(fineTuning.id);
+                                      }}
+                                      sx={{ mr: 1 }}
+                                    >
+                                      Tester
+                                    </Button>
+                                  )}
+                                  <IconButton
+                                    edge="end"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleFineTuningMenuOpen(e, fineTuning);
+                                    }}
+                                  >
+                                    <MoreVertIcon />
+                                  </IconButton>
+                                </ListItemSecondaryAction>
+                              </ListItem>
+                              <Divider />
+                            </React.Fragment>
+                          ))}
+                        </List>
+                      </>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -626,6 +778,9 @@ const ProjectDetailPage = () => {
             Fine-tuner ce dataset
           </MenuItem>
         )}
+        <MenuItem onClick={() => handleDownloadDataset(selectedDataset?.id)}>
+          Télécharger le dataset
+        </MenuItem>
         <Divider />
         <MenuItem 
           onClick={() => handleDeleteDataset(selectedDataset?.id)}
@@ -634,7 +789,29 @@ const ProjectDetailPage = () => {
           Supprimer
         </MenuItem>
       </Menu>
+      
+      {/* Menu contextuel pour les fine-tunings */}
+      <Menu
+        anchorEl={fineTuningAnchorEl}
+        open={Boolean(fineTuningAnchorEl)}
+        onClose={handleFineTuningMenuClose}
+      >
+        <MenuItem onClick={() => handleViewFineTuning(selectedFineTuning?.id)}>
+          Voir les détails
+        </MenuItem>
+        {selectedFineTuning?.status === 'completed' && (
+          <MenuItem onClick={() => handleChatWithFineTuning(selectedFineTuning?.id)}>
+            Tester le modèle
+          </MenuItem>
+        )}
+        {selectedFineTuning?.dataset && (
+          <MenuItem onClick={() => handleDownloadDataset(selectedFineTuning.dataset.id)}>
+            Télécharger le dataset
+          </MenuItem>
+        )}
+      </Menu>
 
+      {/* Dialogue de modification du projet */}
       <Dialog
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
@@ -671,6 +848,7 @@ const ProjectDetailPage = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Dialogue de suppression du projet */}
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
