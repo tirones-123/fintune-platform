@@ -493,6 +493,11 @@ const ProjectDetailPage = () => {
                                 <Typography variant="body2" component="span" color="text.secondary">
                                   {content.description || 'Aucune description'}
                                 </Typography>
+                                {content.status === 'error' && content.error_message && (
+                                  <Typography variant="body2" color="error.main" sx={{ mt: 1 }}>
+                                    Erreur: {content.error_message}
+                                  </Typography>
+                                )}
                                 <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                                   <Typography variant="caption" color="text.secondary">
                                     Type: {content.type.toUpperCase()}

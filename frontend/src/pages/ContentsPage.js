@@ -98,6 +98,7 @@ const ContentsPage = () => {
       case 'processed':
         return 'Traité';
       case 'failed':
+      case 'error':
         return 'Échec';
       default:
         return status;
@@ -111,6 +112,7 @@ const ContentsPage = () => {
       case 'processed':
         return 'success';
       case 'failed':
+      case 'error':
         return 'error';
       default:
         return 'default';
@@ -212,6 +214,12 @@ const ContentsPage = () => {
                   {content.description && (
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       {content.description}
+                    </Typography>
+                  )}
+
+                  {(content.status === 'error' || content.status === 'failed') && content.error_message && (
+                    <Typography variant="body2" color="error.main" sx={{ mb: 2 }}>
+                      Erreur: {content.error_message}
                     </Typography>
                   )}
 
