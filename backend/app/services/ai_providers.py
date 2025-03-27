@@ -192,6 +192,43 @@ Your response must be a valid JSONl array (with no additional text outside of it
             # Extraire le contenu de la réponse
             content = response.choices[0].message.content
             
+            # Ajouter un log pour voir la réponse brute
+            logger.debug(f"Raw response from OpenAI: {content[:500]}...")
+            
+            # Si la réponse contient des délimiteurs de bloc de code pour JSON, les supprimer
+            if "```json" in content or "```" in content:
+                # Extraire le contenu entre les délimiteurs de bloc de code
+                import re
+                json_content = re.search(r'```(?:json)?\n([\s\S]*?)\n```', content)
+                if json_content:
+                    content = json_content.group(1)
+                    logger.debug(f"Extracted JSON content: {content[:500]}...")
+            
+            # Vérifier si le contenu est un tableau JSON
+            if content.strip().startswith('[') and content.strip().endswith(']'):
+                try:
+                    # Essayer de parser directement comme un tableau JSON
+                    array_data = json.loads(content)
+                    qa_pairs = []
+                    
+                    for item in array_data:
+                        if isinstance(item, dict) and 'messages' in item:
+                            messages = item['messages']
+                            user_msg = next((m for m in messages if m['role'] == 'user'), None)
+                            assistant_msg = next((m for m in messages if m['role'] == 'assistant'), None)
+                            
+                            if user_msg and assistant_msg:
+                                qa_pairs.append({
+                                    'question': user_msg['content'],
+                                    'answer': assistant_msg['content']
+                                })
+                    
+                    if qa_pairs:
+                        logger.info(f"Successfully parsed {len(qa_pairs)} QA pairs as JSON array")
+                        return qa_pairs
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse response as JSON array: {str(e)}")
+            
             # Traiter le contenu ligne par ligne pour extraire les objets JSONL
             qa_pairs = []
             for line in content.strip().split('\n'):
@@ -218,6 +255,9 @@ Your response must be a valid JSONl array (with no additional text outside of it
                 except json.JSONDecodeError:
                     # Ignorer les lignes qui ne sont pas du JSON valide
                     continue
+            
+            if not qa_pairs:
+                logger.warning(f"No valid QA pairs found in response. Content sample: {content[:200]}...")
             
             return qa_pairs
                 
