@@ -413,6 +413,19 @@ const FineTuningDetailPage = () => {
                     <ListItem>
                       <ListItemText primary="Créé le" secondary={formatDate(dataset.created_at)} />
                     </ListItem>
+                    <Divider component="li" />
+                    <ListItem>
+                      <ListItemText 
+                        primary="System Prompt" 
+                        secondary={
+                          <Paper variant="outlined" sx={{ p: 1, mt: 1, bgcolor: 'background.default' }}>
+                            <Typography variant="body2" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                              {dataset.system_content || "You are a helpful assistant."}
+                            </Typography>
+                          </Paper>
+                        } 
+                      />
+                    </ListItem>
                   </List>
                 ) : (
                   <Typography variant="body2" color="text.secondary">

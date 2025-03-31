@@ -371,6 +371,53 @@ const DatasetDetailPage = () => {
                 </CardContent>
               </Card>
               
+              <Card sx={{ mb: 4 }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>
+                      System Prompt
+                    </Typography>
+                    <Button 
+                      size="small" 
+                      startIcon={<EditIcon />}
+                      variant="outlined"
+                      onClick={() => {
+                        // Ouvrir la boîte de dialogue pour éditer le system content
+                        const newSystemContent = prompt(
+                          "Modifier le system prompt", 
+                          dataset.system_content || "You are a helpful assistant."
+                        );
+                        
+                        if (newSystemContent !== null && newSystemContent.trim() !== "") {
+                          // Mettre à jour le system content via l'API
+                          datasetService.updateSystemContent(datasetId, newSystemContent)
+                            .then(() => {
+                              fetchDatasetData(); // Rafraîchir les données
+                              enqueueSnackbar('System prompt mis à jour avec succès', { variant: 'success' });
+                            })
+                            .catch(error => {
+                              console.error('Error updating system content:', error);
+                              enqueueSnackbar('Erreur lors de la mise à jour du system prompt', { variant: 'error' });
+                            });
+                        }
+                      }}
+                    >
+                      Modifier
+                    </Button>
+                  </Box>
+                  
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                      {dataset.system_content || "You are a helpful assistant."}
+                    </Typography>
+                  </Paper>
+                  
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                    Le system prompt définit le comportement et le rôle de l'assistant pendant le fine-tuning. Cette instruction sera utilisée pour tous les exemples d'entraînement.
+                  </Typography>
+                </CardContent>
+              </Card>
+              
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
