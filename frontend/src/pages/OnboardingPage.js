@@ -52,6 +52,7 @@ import {
   apiKeyService,
 } from '../services/apiService';
 import { useSnackbar } from 'notistack';
+import FileUpload from '../components/common/FileUpload';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -243,94 +244,6 @@ const OnboardingPage = () => {
     }
   };
 
-  // Ajouter cette fonction pour gérer l'upload de fichier
-  const handleFileUpload = async (event) => {
-    const selectedFiles = Array.from(event.target.files);
-    if (selectedFiles.length === 0) return;
-    
-    setUploading(true);
-    setUploadError(null);
-    
-    try {
-      // Vérifier si le projet a été créé
-      if (!createdProject) {
-        throw new Error("Le projet n'a pas encore été créé. Veuillez réessayer.");
-      }
-      
-      for (const file of selectedFiles) {
-        const fileType = detectFileType(file);
-        
-        // Appel API pour uploader le fichier
-        const response = await contentService.uploadFile(
-          createdProject.id,
-          file,
-          {
-            name: file.name,
-            file_type: fileType
-          }
-        );
-        
-        setUploadedFiles(prev => [...prev, response]);
-        enqueueSnackbar(`Fichier "${file.name}" uploadé avec succès`, { variant: 'success' });
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'upload:', error);
-      setUploadError(error.message || "Erreur lors de l'upload du fichier");
-      enqueueSnackbar(`Erreur: ${error.message || "Échec de l'upload"}`, { variant: 'error' });
-    } finally {
-      setUploading(false);
-      // Réinitialiser l'input file pour permettre de sélectionner à nouveau les mêmes fichiers
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-  
-  // Fonction pour ajouter une URL
-  const handleAddUrl = async () => {
-    if (!newUrl || !newUrlName) {
-      setUploadError("L'URL et le nom sont requis");
-      return;
-    }
-    
-    setUploading(true);
-    setUploadError(null);
-    
-    try {
-      // Vérifier si le projet a été créé
-      if (!createdProject) {
-        throw new Error("Le projet n'a pas encore été créé. Veuillez réessayer.");
-      }
-      
-      // Déterminer le type de contenu basé sur l'URL
-      let contentType = 'website';
-      if (newUrl.includes('youtube.com') || newUrl.includes('youtu.be')) {
-        contentType = 'youtube';
-      }
-      
-      const urlContent = {
-        project_id: createdProject.id,
-        name: newUrlName,
-        url: newUrl,
-        type: contentType
-      };
-      
-      // Appel API pour ajouter l'URL
-      const response = await contentService.addUrl(urlContent);
-      
-      setUploadedUrls(prev => [...prev, response]);
-      setNewUrl('');
-      setNewUrlName('');
-      enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout de l\'URL:', error);
-      setUploadError(error.message || "Erreur lors de l'ajout de l'URL");
-      enqueueSnackbar(`Erreur: ${error.message || "Échec de l'ajout d'URL"}`, { variant: 'error' });
-    } finally {
-      setUploading(false);
-    }
-  };
-  
   // Fonction pour supprimer un contenu
   const handleDeleteContent = async (content, type) => {
     try {
@@ -736,67 +649,28 @@ const OnboardingPage = () => {
               Ajoutez vos fichiers et/ou URLs qui serviront de base pour fine-tuner votre modèle.
             </Typography>
             
-            {/* Zone de drag & drop pour les fichiers */}
-            <Box
-              sx={{
-                border: '2px dashed',
-                borderColor: uploadError ? 'error.main' : 'divider',
-                borderRadius: 3,
-                p: 4,
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                backgroundColor: 'background.paper',
-                '&:hover': {
-                  borderColor: uploadError ? 'error.main' : 'primary.main',
-                  backgroundColor: (theme) => 
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(96, 165, 250, 0.05)'
-                      : 'rgba(59, 130, 246, 0.05)',
-                },
-                mb: 3,
-              }}
-              onClick={() => !uploading && fileInputRef.current.click()}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileUpload}
-                accept=".pdf,.txt,.doc,.docx"
-                multiple
-              />
-              
-              {uploading ? (
-                <CircularProgress size={48} sx={{ mb: 2 }} />
-              ) : (
-                <CloudUploadIcon sx={{ fontSize: 48, color: uploadError ? 'error.main' : 'text.secondary', mb: 2 }} />
-              )}
-              
-              <Typography variant="body1" gutterBottom>
-                {uploading 
-                  ? 'Upload en cours...' 
-                  : 'Glissez-déposez vos fichiers ici'}
-              </Typography>
-              
-              {!uploading && (
-                <>
-                  <Typography variant="body2" color="text.secondary">
-                    ou
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    sx={{ mt: 2 }}
-                    component="span"
-                  >
-                    Parcourir
-                  </Button>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Formats acceptés: PDF, TXT, DOC, DOCX
-                  </Typography>
-                </>
-              )}
-            </Box>
+            {/* Utilisation du composant FileUpload au lieu du code personnalisé */}
+            {createdProject && (
+              <Box sx={{ mb: 3 }}>
+                <FileUpload 
+                  projectId={createdProject.id} 
+                  onSuccess={(uploadedContent) => {
+                    if (uploadedContent) {
+                      // Si c'est un fichier
+                      if (uploadedContent.file_path) {
+                        setUploadedFiles(prev => [...prev, uploadedContent]);
+                        enqueueSnackbar(`Fichier "${uploadedContent.name}" uploadé avec succès`, { variant: 'success' });
+                      } 
+                      // Si c'est une URL
+                      else if (uploadedContent.url) {
+                        setUploadedUrls(prev => [...prev, uploadedContent]);
+                        enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
+                      }
+                    }
+                  }}
+                />
+              </Box>
+            )}
             
             {/* Liste des fichiers uploadés */}
             {uploadedFiles.length > 0 && (
@@ -824,48 +698,6 @@ const OnboardingPage = () => {
                 </List>
               </Paper>
             )}
-            
-            {/* Section pour ajouter des URLs */}
-            <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-                Ajouter une URL
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                  fullWidth
-                  label="Nom du contenu"
-                  value={newUrlName}
-                  onChange={(e) => setNewUrlName(e.target.value)}
-                  placeholder="ex: Documentation produit, Vidéo tutoriel..."
-                  disabled={uploading}
-                />
-                
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                    fullWidth
-                    label="URL"
-                    value={newUrl}
-                    onChange={(e) => setNewUrl(e.target.value)}
-                    placeholder="https://..."
-                    disabled={uploading}
-                  />
-                  
-                  <Button
-                    variant="contained"
-                    onClick={handleAddUrl}
-                    disabled={uploading || !newUrl || !newUrlName}
-                    startIcon={uploading ? <CircularProgress size={20} /> : <InsertLinkIcon />}
-                  >
-                    Ajouter
-                  </Button>
-                </Box>
-                
-                <Typography variant="body2" color="text.secondary">
-                  Vous pouvez ajouter des liens vers des sites web ou des vidéos YouTube
-                </Typography>
-              </Box>
-            </Paper>
             
             {/* Liste des URLs ajoutées */}
             {uploadedUrls.length > 0 && (

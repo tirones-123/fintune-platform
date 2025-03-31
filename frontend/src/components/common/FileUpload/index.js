@@ -34,7 +34,7 @@ import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
-import { contentService, projectService } from '../../services/apiService';
+import { contentService } from '../../../services/apiService';
 
 const FileUpload = ({ projectId, onSuccess }) => {
   const navigate = useNavigate();
