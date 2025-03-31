@@ -23,9 +23,8 @@ def generate_system_content(
     db: Session = Depends(get_db)
 ):
     """
-    Génère un system content optimisé à partir de la description de l'utilisateur
-    en utilisant OpenAI. Ce system content sera utilisé dans les datasets pour
-    le fine-tuning des modèles.
+    Generate an optimized system content from the user's description using OpenAI. 
+    This system content will be used in datasets for model fine-tuning.
     """
     if not request.purpose.strip():
         raise HTTPException(
@@ -39,8 +38,7 @@ def generate_system_content(
         
         # Construire le prompt
         prompt = f"""
-        Je suis en train de fine-tuner un modèle d'IA et j'ai besoin d'un "system prompt" 
-        optimisé basé sur la description suivante de l'assistant que je souhaite créer:
+        I’m currently fine-tuning an AI model and need an optimized "system prompt" based on the following description of the assistant I want to create:
         
         "{request.purpose}"
         

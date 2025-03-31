@@ -70,8 +70,26 @@ def start_fine_tuning(fine_tuning_id: int):
             db.commit()
             return {"status": "error", "message": "Dataset is empty"}
         
-        # Prepare the training data
-        qa_pairs = [{"question": pair.question, "answer": pair.answer} for pair in dataset_pairs]
+        # Récupérer le system_content du dataset (ou utiliser une valeur par défaut si vide)
+        system_content = dataset.system_content
+        if not system_content or system_content.strip() == "":
+            logger.warning(f"System content is empty for dataset {dataset.id}, using default")
+            system_content = "You are a helpful assistant."
+        else:
+            logger.info(f"Using system content from dataset: {system_content}")
+            
+        # Prepare the training data with the system_content
+        qa_pairs = [
+            {
+                "question": pair.question, 
+                "answer": pair.answer, 
+                "system_content": system_content  # Utiliser le system_content du dataset
+            } 
+            for pair in dataset_pairs
+        ]
+        
+        # Log pour vérifier les données
+        logger.info(f"Prepared {len(qa_pairs)} QA pairs with system content: {system_content}")
         
         # Create temp directory for training file
         temp_dir = os.path.join(settings.UPLOAD_DIR, "fine_tuning", str(fine_tuning_id))
@@ -79,7 +97,10 @@ def start_fine_tuning(fine_tuning_id: int):
         
         # Create and save the training file
         training_file_path = os.path.join(temp_dir, f"training_data_{fine_tuning_id}.jsonl")
-        training_file_path = provider_service.prepare_training_file(qa_pairs, training_file_path)
+        
+        # Utiliser le system_content lors de la préparation du fichier d'entraînement
+        # Modification de l'appel pour inclure explicitement le system_content
+        training_file_path = provider_service.prepare_training_file(qa_pairs, training_file_path, system_content)
         
         # Upload training file to the provider
         file_id = provider_service.upload_training_file(training_file_path)

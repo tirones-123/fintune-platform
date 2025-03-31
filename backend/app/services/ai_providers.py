@@ -155,6 +155,7 @@ Important rules:
 7. Return the result strictly as valid JSONl (an array of objects, each with "question" and "answer").
 8. Include no extra commentary, explanation, or text outside the JSON.
 9. You must produce between 2 and 15 Q&A pairs, no fewer and no more.
+10. Use the language of the text to generate the Q&A pairs.
 
 Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
@@ -326,7 +327,7 @@ IMPORTANT: Each JSON object must be on its own line, and each line must be a com
             logger.error(f"Error uploading training file to OpenAI: {str(e)}")
             raise e
             
-    def prepare_training_file(self, qa_pairs: List[Dict], output_path: str) -> str:
+    def prepare_training_file(self, qa_pairs: List[Dict], output_path: str, system_content: str = "You are a helpful assistant.") -> str:
         """
         Prepare a JSONL training file for OpenAI fine-tuning.
         """
@@ -338,7 +339,7 @@ IMPORTANT: Each JSON object must be on its own line, and each line must be a com
                     # Format en ChatML pour OpenAI
                     training_example = {
                         "messages": [
-                            {"role": "system", "content": ""},
+                            {"role": "system", "content": system_content},
                             {"role": "user", "content": pair["question"]},
                             {"role": "assistant", "content": pair["answer"]}
                         ]
@@ -486,6 +487,7 @@ Important rules:
 7. Return the result strictly as valid JSONl (an array of objects, each with "question" and "answer").
 8. Include no extra commentary, explanation, or text outside the JSON.
 9. You must produce between 2 and 15 Q&A pairs, no fewer and no more.
+10. Use the language of the text to generate the Q&A pairs.
 
 Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
@@ -659,7 +661,7 @@ IMPORTANT: Each JSON object must be on its own line, and each line must be a com
             logger.error(f"Error uploading training file to Anthropic: {str(e)}")
             raise e
             
-    def prepare_training_file(self, qa_pairs: List[Dict], output_path: str) -> str:
+    def prepare_training_file(self, qa_pairs: List[Dict], output_path: str, system_content: str = "You are a helpful assistant.") -> str:
         """
         Prepare a JSONL training file for Anthropic fine-tuning.
         """
@@ -671,7 +673,7 @@ IMPORTANT: Each JSON object must be on its own line, and each line must be a com
                     # Format en ChatML
                     training_example = {
                         "messages": [
-                            {"role": "system", "content": ""},
+                            {"role": "system", "content": system_content},
                             {"role": "user", "content": pair["question"]},
                             {"role": "assistant", "content": pair["answer"]}
                         ]
@@ -839,6 +841,7 @@ Important rules:
 7. Return the result strictly as valid JSONl (an array of objects, each with "question" and "answer").
 8. Include no extra commentary, explanation, or text outside the JSON.
 9. You must produce between 2 and 15 Q&A pairs, no fewer and no more.
+10. Use the language of the text to generate the Q&A pairs.
 
 Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
@@ -1026,7 +1029,7 @@ IMPORTANT: Each JSON object must be on its own line, and each line must be a com
             logger.error(f"Error uploading training file to Mistral: {str(e)}")
             raise e
             
-    def prepare_training_file(self, qa_pairs: List[Dict], output_path: str) -> str:
+    def prepare_training_file(self, qa_pairs: List[Dict], output_path: str, system_content: str = "You are a helpful assistant.") -> str:
         """
         Prepare a JSONL training file for Mistral fine-tuning.
         """
@@ -1038,7 +1041,7 @@ IMPORTANT: Each JSON object must be on its own line, and each line must be a com
                     # Format en ChatML
                     training_example = {
                         "messages": [
-                            {"role": "system", "content": ""},
+                            {"role": "system", "content": system_content},
                             {"role": "user", "content": pair["question"]},
                             {"role": "assistant", "content": pair["answer"]}
                         ]
