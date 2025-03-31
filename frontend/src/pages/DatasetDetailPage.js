@@ -65,9 +65,12 @@ const DatasetDetailPage = () => {
   // Fonction pour exporter le dataset
   const handleExportDataset = (provider) => {
     try {
-      // Obtenir l'URL d'export et déclencher le téléchargement
-      const exportUrl = datasetService.exportDataset(datasetId, provider);
+      // Construire l'URL pour télécharger le dataset
+      const exportUrl = `${process.env.REACT_APP_API_URL}/api/datasets/${datasetId}/export?provider=${provider}`;
+      
+      // Ouvrir l'URL dans un nouvel onglet
       window.open(exportUrl, '_blank');
+      
       enqueueSnackbar(`Export pour ${provider} démarré`, { variant: 'success' });
     } catch (error) {
       console.error('Error exporting dataset:', error);

@@ -340,7 +340,7 @@ def delete_dataset_pair(
     
     return None
 
-@router.get("/{dataset_id}/export", response_model=str)
+@router.get("/{dataset_id}/export")
 def export_dataset(
     dataset_id: int,
     format: str = "jsonl",

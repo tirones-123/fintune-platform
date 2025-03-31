@@ -229,7 +229,7 @@ const FineTuningDetailPage = () => {
   const handleDownloadDataset = (datasetId) => {
     try {
       // Construire l'URL pour télécharger le dataset
-      const downloadUrl = `${process.env.REACT_APP_API_URL}/api/datasets/${datasetId}/export`;
+      const downloadUrl = `${process.env.REACT_APP_API_URL}/api/datasets/${datasetId}/export?provider=${fineTuning.provider || 'openai'}`;
       
       // Ouvrir l'URL dans un nouvel onglet
       window.open(downloadUrl, '_blank');
