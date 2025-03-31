@@ -60,6 +60,7 @@ import { useSnackbar } from 'notistack';
 import FileUpload from '../components/common/FileUpload';
 import HelpIcon from '@mui/icons-material/Help';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import UploadStatusCard from '../components/content/UploadStatusCard';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -95,31 +96,31 @@ const PRICE_PER_CHARACTER = 0.000365;
 // Quota gratuit (caractères gratuits)
 const FREE_CHARACTER_QUOTA = 10000;
 
-// Seuils de qualité basés sur le nombre de caractères
-const QUALITY_THRESHOLDS = {
-  poor: 2000,
-  basic: 10000,
-  good: 50000,
-  excellent: 200000,
-  outstanding: 1000000
+// Intervalles de référence par type d'usage (min, optimal, max)
+const USAGE_THRESHOLDS = {
+  legal: { min: 5000, optimal: 30000, max: 100000 },
+  customer_service: { min: 5000, optimal: 50000, max: 200000 },
+  knowledge_base: { min: 10000, optimal: 100000, max: 500000 },
+  education: { min: 8000, optimal: 80000, max: 300000 },
+  other: { min: 5000, optimal: 30000, max: 100000 }
 };
 
 // Descriptions des niveaux de qualité
 const QUALITY_DESCRIPTIONS = {
-  poor: "Qualité minimale: Réponses basiques, contexte très limité.",
-  basic: "Qualité basique: Réponses simples avec contexte limité.",
-  good: "Bonne qualité: Réponses précises et contextualisées.",
-  excellent: "Excellente qualité: Réponses détaillées et très personnalisées.",
-  outstanding: "Qualité exceptionnelle: Expertise approfondie, parfaite compréhension du contexte."
+  insufficient: "Données insuffisantes: Le modèle aura du mal à générer des réponses cohérentes.",
+  minimal: "Qualité minimale: Réponses basiques avec contexte limité.",
+  good: "Bonne qualité: Réponses précises et bien contextualisées.",
+  optimal: "Qualité optimale: Réponses détaillées et très personnalisées.",
+  excessive: "Données au-delà de l'optimal: Les bénéfices supplémentaires peuvent diminuer."
 };
 
 // Couleurs pour les niveaux de qualité
 const QUALITY_COLORS = {
-  poor: "#f44336",
-  basic: "#ff9800",
-  good: "#4caf50",
-  excellent: "#2196f3",
-  outstanding: "#9c27b0"
+  insufficient: "#f44336", // Rouge
+  minimal: "#ff9800",      // Orange
+  good: "#4caf50",         // Vert
+  optimal: "#2196f3",      // Bleu
+  excessive: "#9e9e9e"     // Gris
 };
 
 const OnboardingPage = () => {
@@ -150,6 +151,10 @@ const OnboardingPage = () => {
   const [newUrlName, setNewUrlName] = useState('');
   const [uploadError, setUploadError] = useState(null);
   const fileInputRef = React.useRef(null);
+  
+  // Ajout de l'état pour le comptage réel des caractères
+  const [actualCharacterCount, setActualCharacterCount] = useState(0);
+  const [isEstimated, setIsEstimated] = useState(true);
   
   // Données du dataset (créé automatiquement)
   const [datasetName] = useState("Dataset par défaut");
@@ -594,40 +599,98 @@ const OnboardingPage = () => {
     
     // Pour les fichiers
     uploadedFiles.forEach(file => {
-      // Estimation basée sur le type de fichier et sa taille
-      if (file.size) {
-        // En moyenne, 1 byte ≈ 0.5 caractères pour du texte
-        const bytesToCharRatio = 0.5;
-        totalEstimate += file.size * bytesToCharRatio;
+      // Vérifier si le fichier a un comptage réel dans ses métadonnées
+      if (file.metadata && file.metadata.character_count) {
+        totalEstimate += parseInt(file.metadata.character_count);
       } else {
-        // Fallback si la taille n'est pas disponible
-        totalEstimate += 5000; // Estimation par défaut
+        // Estimation basée sur le type de fichier et sa taille
+        if (file.size) {
+          // En moyenne, 1 byte ≈ 0.5 caractères pour du texte
+          const bytesToCharRatio = 0.5;
+          totalEstimate += file.size * bytesToCharRatio;
+        } else {
+          // Fallback si la taille n'est pas disponible
+          totalEstimate += 5000; // Estimation par défaut
+        }
       }
     });
     
     // Pour les URLs (estimation plus conservatrice)
     uploadedUrls.forEach(url => {
-      totalEstimate += 3000; // Estimation moyenne par URL
+      if (url.metadata && url.metadata.character_count) {
+        totalEstimate += parseInt(url.metadata.character_count);
+      } else {
+        totalEstimate += 3000; // Estimation moyenne par URL
+      }
     });
     
     return Math.round(totalEstimate);
   };
   
-  // Calculer le niveau de qualité basé sur le nombre de caractères
-  const getQualityLevel = (characterCount) => {
-    if (characterCount < QUALITY_THRESHOLDS.poor) return 'poor';
-    if (characterCount < QUALITY_THRESHOLDS.basic) return 'basic';
-    if (characterCount < QUALITY_THRESHOLDS.good) return 'good';
-    if (characterCount < QUALITY_THRESHOLDS.excellent) return 'excellent';
-    return 'outstanding';
+  // Fonction pour calculer le nombre réel de caractères basé sur les métadonnées
+  const calculateActualCharacterCount = () => {
+    let actualCount = 0;
+    let hasAllCounts = true;
+    
+    // Compter les caractères des fichiers dont les métadonnées sont disponibles
+    uploadedFiles.forEach(file => {
+      if (file.metadata && file.metadata.character_count) {
+        actualCount += parseInt(file.metadata.character_count);
+      } else if (file.status === 'completed') {
+        // Si le fichier est traité mais n'a pas de métadonnées de comptage
+        hasAllCounts = false;
+      }
+    });
+    
+    // De même pour les URLs
+    uploadedUrls.forEach(url => {
+      if (url.metadata && url.metadata.character_count) {
+        actualCount += parseInt(url.metadata.character_count);
+      } else if (url.status === 'completed') {
+        hasAllCounts = false;
+      }
+    });
+    
+    setActualCharacterCount(actualCount);
+    setIsEstimated(!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0));
+    
+    return actualCount;
+  };
+  
+  // Mettre à jour le comptage réel chaque fois que les fichiers ou URLs changent
+  useEffect(() => {
+    calculateActualCharacterCount();
+  }, [uploadedFiles, uploadedUrls]);
+
+  // Calculer le niveau de qualité basé sur le nombre de caractères et le type d'usage
+  const getQualityLevel = (characterCount, usageType = 'other') => {
+    const thresholds = USAGE_THRESHOLDS[usageType] || USAGE_THRESHOLDS.other;
+    
+    if (characterCount < thresholds.min) return 'insufficient';
+    if (characterCount < thresholds.min * 2) return 'minimal';
+    if (characterCount < thresholds.optimal) return 'good';
+    if (characterCount <= thresholds.max) return 'optimal';
+    return 'excessive';
   };
 
-  // Calculer la progression de qualité (0-100)
-  const getQualityProgress = (characterCount) => {
-    // Échelle logarithmique pour une meilleure visualisation
-    const maxValue = Math.log(QUALITY_THRESHOLDS.outstanding);
-    const value = Math.log(Math.max(characterCount, 1));
-    return (value / maxValue) * 100;
+  // Calculer la progression de qualité (0-100) en fonction du type d'usage
+  const getQualityProgress = (characterCount, usageType = 'other') => {
+    const thresholds = USAGE_THRESHOLDS[usageType] || USAGE_THRESHOLDS.other;
+    
+    if (characterCount <= 0) return 0;
+    if (characterCount >= thresholds.max) return 100;
+    
+    // Progression progressive par segments
+    if (characterCount < thresholds.min) {
+      // Segment 0% - 30%
+      return (characterCount / thresholds.min) * 30;
+    } else if (characterCount < thresholds.optimal) {
+      // Segment 30% - 70%
+      return 30 + ((characterCount - thresholds.min) / (thresholds.optimal - thresholds.min)) * 40;
+    } else {
+      // Segment 70% - 100%
+      return 70 + ((characterCount - thresholds.optimal) / (thresholds.max - thresholds.optimal)) * 30;
+    }
   };
 
   // Calculer le coût estimé
@@ -762,61 +825,114 @@ const OnboardingPage = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    Caractères estimés: <strong>{estimateCharacterCount().toLocaleString()}</strong>
+                    {isEstimated ? (
+                      <>Caractères estimés: <strong>{estimateCharacterCount().toLocaleString()}</strong></>
+                    ) : (
+                      <>Caractères comptés: <strong>{actualCharacterCount.toLocaleString()}</strong></>
+                    )}
                   </Typography>
                   
-                  {/* Jauge de progression améliorée */}
-                  <Box sx={{ position: 'relative', mb: 1 }}>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={getQualityProgress(estimateCharacterCount())} 
-                      sx={{ 
-                        height: 8, 
-                        borderRadius: 4,
-                        backgroundColor: 'grey.300',
-                        '& .MuiLinearProgress-bar': {
-                          backgroundColor: QUALITY_COLORS[getQualityLevel(estimateCharacterCount())]
-                        }
-                      }}
-                    />
-                    
-                    {/* Marqueurs de qualité */}
-                    <Box sx={{ 
-                      position: 'absolute', 
-                      top: '100%', 
-                      left: 0, 
-                      right: 0, 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      mt: 0.5,
-                      px: 0.5,
-                      fontSize: '0.6rem',
-                      color: 'text.secondary'
-                    }}>
-                      <span>5K</span>
-                      <span>20K</span>
-                      <span>50K</span>
-                      <span>100K</span>
-                      <span>500K+</span>
-                    </Box>
+                  {/* Jauge de qualité */}
+                  <Box mt={4} mb={2}>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12}>
+                        <Typography variant="h6" gutterBottom display="flex" alignItems="center">
+                          Qualité estimée <InfoOutlinedIcon fontSize="small" sx={{ ml: 1 }} />
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <LinearProgress 
+                            variant="determinate" 
+                            value={getQualityProgress(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase)} 
+                            sx={{ 
+                              height: 10, 
+                              borderRadius: 5,
+                              backgroundColor: '#e0e0e0',
+                              '& .MuiLinearProgress-bar': {
+                                backgroundColor: QUALITY_COLORS[getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase)]
+                              }
+                            }} 
+                          />
+                          <Box display="flex" justifyContent="space-between">
+                            <Typography variant="body2" color="textSecondary">Insuffisant</Typography>
+                            <Typography variant="body2" color="textSecondary">Optimal</Typography>
+                          </Box>
+                          <Box mt={1}>
+                            <Typography variant="h6" sx={{ 
+                              color: QUALITY_COLORS[getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase)], 
+                              fontWeight: 'bold' 
+                            }}>
+                              {getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase) === 'insufficient' ? 'Données insuffisantes' : 
+                               getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase) === 'minimal' ? 'Qualité minimale' :
+                               getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase) === 'good' ? 'Bonne qualité' :
+                               getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase) === 'optimal' ? 'Qualité optimale' : 
+                               'Données au-delà de l\'optimal'}
+                            </Typography>
+                            <Typography variant="body2">
+                              {QUALITY_DESCRIPTIONS[getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase)]}
+                            </Typography>
+                            
+                            {/* Indicateur d'estimation ou de comptage réel */}
+                            {isEstimated && (
+                              <Box mt={1} display="flex" alignItems="center">
+                                <Chip 
+                                  label="Estimation" 
+                                  size="small" 
+                                  color="warning" 
+                                  sx={{ mr: 1 }} 
+                                />
+                                <Typography variant="caption" color="text.secondary">
+                                  Le nombre de caractères sera précisé après traitement des fichiers
+                                </Typography>
+                              </Box>
+                            )}
+                            
+                            {/* Recommandations spécifiques au cas d'utilisation */}
+                            <Box mt={1} p={1.5} bgcolor="rgba(33, 150, 243, 0.1)" borderRadius={1}>
+                              <Typography variant="body2">
+                                <strong>Recommandation pour {
+                                  useCase === 'legal' ? 'assistant juridique' : 
+                                  useCase === 'customer_service' ? 'service client' :
+                                  useCase === 'knowledge_base' ? 'base de connaissances' :
+                                  useCase === 'education' ? 'éducation et formation' : 'ce cas d\'usage'
+                                }:</strong> Entre {USAGE_THRESHOLDS[useCase || 'other'].min.toLocaleString()} et {USAGE_THRESHOLDS[useCase || 'other'].max.toLocaleString()} caractères.
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Grid>
+                      
+                      {/* Statistiques */}
+                      <Grid item xs={12} mt={2}>
+                        <Card variant="outlined" sx={{ p: 2 }}>
+                          <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                              <Typography variant="subtitle2" color="textSecondary">Caractères {isEstimated ? "estimés" : "comptés"}:</Typography>
+                              <Typography variant="h6">{(isEstimated ? estimateCharacterCount() : actualCharacterCount).toLocaleString()} caractères</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="subtitle2" color="textSecondary">Coût estimé:</Typography>
+                              <Typography variant="h6">
+                                {(isEstimated ? estimateCharacterCount() : actualCharacterCount) <= FREE_CHARACTER_QUOTA ? (
+                                  'Gratuit'
+                                ) : (
+                                  `$${getEstimatedCost(isEstimated ? estimateCharacterCount() : actualCharacterCount).toFixed(2)}`
+                                )}
+                              </Typography>
+                              <Typography variant="caption" color="textSecondary">
+                                10 000 premiers caractères gratuits
+                              </Typography>
+                            </Grid>
+                          </Grid>
+                        </Card>
+                      </Grid>
+                    </Grid>
                   </Box>
-                  
-                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    Qualité: 
-                    <Chip 
-                      label={getQualityLevel(estimateCharacterCount()) === 'outstanding' ? 'Excellent' : getQualityLevel(estimateCharacterCount()) === 'good' ? 'Bon' : getQualityLevel(estimateCharacterCount()) === 'basic' ? 'Basique' : getQualityLevel(estimateCharacterCount()) === 'poor' ? 'Insuffisant' : 'Très bon'} 
-                      size="small" 
-                      sx={{ 
-                        backgroundColor: QUALITY_COLORS[getQualityLevel(estimateCharacterCount())],
-                        color: '#fff',
-                        fontWeight: 'bold'
-                      }} 
-                    />
-                  </Typography>
                 </Box>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    Coût estimé: <strong>{estimateCharacterCount() <= FREE_CHARACTER_QUOTA ? 'Gratuit' : `$${getEstimatedCost(estimateCharacterCount()).toFixed(2)}`}</strong>
+                    Coût estimé: <strong>{(isEstimated ? estimateCharacterCount() : actualCharacterCount) <= FREE_CHARACTER_QUOTA ? 'Gratuit' : `$${getEstimatedCost(isEstimated ? estimateCharacterCount() : actualCharacterCount).toFixed(2)}`}</strong>
                   </Typography>
                 </Box>
               </Box>
@@ -843,6 +959,11 @@ const OnboardingPage = () => {
                         setUploadedUrls(prev => [...prev, uploadedContent]);
                         enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
                       }
+                      
+                      // Recalculer le comptage réel de caractères
+                      setTimeout(() => {
+                        calculateActualCharacterCount();
+                      }, 1000); // Délai court pour permettre la mise à jour des données
                     }
                   }}
                 />
@@ -855,24 +976,23 @@ const OnboardingPage = () => {
                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                   Fichiers importés ({uploadedFiles.length})
                 </Typography>
-                <List dense>
-                  {uploadedFiles.map((file) => (
-                    <ListItem key={file.id}>
-                      <ListItemIcon>
-                        <DescriptionIcon />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={file.name} 
-                        secondary={`Type: ${file.type || 'Inconnu'}`}
-                      />
-                      <ListItemSecondaryAction>
-                        <IconButton edge="end" onClick={() => handleDeleteContent(file, 'file')}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </List>
+                {uploadedFiles.map((file) => (
+                  <UploadStatusCard 
+                    key={file.id}
+                    content={file}
+                    onDelete={() => handleDeleteContent(file, 'file')}
+                    showDetailedStats={true}
+                    usageType={useCase}
+                    onMetadataUpdate={(updatedContent) => {
+                      // Mettre à jour l'élément dans la liste des fichiers
+                      setUploadedFiles(prev => 
+                        prev.map(item => item.id === updatedContent.id ? updatedContent : item)
+                      );
+                      // Recalculer le comptage réel
+                      calculateActualCharacterCount();
+                    }}
+                  />
+                ))}
               </Paper>
             )}
             
@@ -882,24 +1002,23 @@ const OnboardingPage = () => {
                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                   URLs importées ({uploadedUrls.length})
                 </Typography>
-                <List dense>
-                  {uploadedUrls.map((url) => (
-                    <ListItem key={url.id}>
-                      <ListItemIcon>
-                        <InsertLinkIcon />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={url.name} 
-                        secondary={url.url}
-                      />
-                      <ListItemSecondaryAction>
-                        <IconButton edge="end" onClick={() => handleDeleteContent(url, 'url')}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </List>
+                {uploadedUrls.map((url) => (
+                  <UploadStatusCard 
+                    key={url.id}
+                    content={url}
+                    onDelete={() => handleDeleteContent(url, 'url')}
+                    showDetailedStats={true}
+                    usageType={useCase}
+                    onMetadataUpdate={(updatedContent) => {
+                      // Mettre à jour l'élément dans la liste des URLs
+                      setUploadedUrls(prev => 
+                        prev.map(item => item.id === updatedContent.id ? updatedContent : item)
+                      );
+                      // Recalculer le comptage réel
+                      calculateActualCharacterCount();
+                    }}
+                  />
+                ))}
               </Paper>
             )}
             
