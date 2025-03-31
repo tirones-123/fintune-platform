@@ -21,6 +21,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import UpdateIcon from '@mui/icons-material/Update';
+import { contentService } from '../../services/apiService';
 
 // Prix par caractère
 const PRICE_PER_CHARACTER = 0.000365;
@@ -82,9 +83,6 @@ const getQualityProgress = (characterCount, usageType = 'other') => {
     return 70 + ((characterCount - thresholds.optimal) / (thresholds.max - thresholds.optimal)) * 30;
   }
 };
-
-// Import du service pour récupérer les métadonnées mises à jour
-import { contentService } from '../../services/apiService';
 
 const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageType = 'other', onMetadataUpdate }) => {
   // État local pour le contenu et les métadonnées

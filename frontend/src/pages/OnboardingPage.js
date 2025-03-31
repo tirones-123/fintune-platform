@@ -197,6 +197,9 @@ const OnboardingPage = () => {
   const [isCompleting, setIsCompleting] = useState(false);
   const [completionError, setCompletionError] = useState(null);
   const [processingFineTuning, setProcessingFineTuning] = useState(false);
+  
+  // Définition du cas d'utilisation (useCase)
+  const [useCase, setUseCase] = useState('other');
 
   // Créer automatiquement un projet au chargement de la page
   useEffect(() => {
@@ -795,6 +798,25 @@ const OnboardingPage = () => {
             <Typography variant="body1" paragraph>
               Ajoutez vos fichiers et/ou URLs qui serviront de base pour fine-tuner votre modèle.
             </Typography>
+            
+            {/* Sélecteur de cas d'utilisation */}
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>Type d'utilisation</InputLabel>
+              <Select
+                value={useCase}
+                onChange={(e) => setUseCase(e.target.value)}
+                label="Type d'utilisation"
+              >
+                <MenuItem value="customer_service">Service client</MenuItem>
+                <MenuItem value="knowledge_base">Base de connaissances</MenuItem>
+                <MenuItem value="legal">Assistant juridique</MenuItem>
+                <MenuItem value="education">Éducation et formation</MenuItem>
+                <MenuItem value="other">Autre cas d'usage</MenuItem>
+              </Select>
+              <FormHelperText>
+                Ce choix nous permet d'évaluer la qualité et la pertinence de vos données.
+              </FormHelperText>
+            </FormControl>
             
             {/* Information sur les caractères gratuits */}
             <Alert severity="info" sx={{ mb: 3 }}>
