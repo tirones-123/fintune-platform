@@ -391,6 +391,16 @@ export const datasetService = {
     }
   },
 
+  // Mettre à jour spécifiquement le system content d'un dataset
+  updateSystemContent: async (id, systemContent) => {
+    try {
+      const response = await api.put(`/api/datasets/${id}/system-content?system_content=${encodeURIComponent(systemContent)}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la mise à jour du system content');
+    }
+  },
+
   // Supprimer un dataset
   delete: async (id) => {
     try {

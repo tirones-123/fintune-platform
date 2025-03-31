@@ -7,6 +7,7 @@ class DatasetBase(BaseModel):
     name: str
     description: Optional[str] = None
     model: Optional[str] = None  # Model used for dataset generation
+    system_content: Optional[str] = "You are a helpful assistant."  # System prompt pour le fine-tuning
 
 # Model for creating a new Dataset
 class DatasetCreate(DatasetBase):
@@ -18,6 +19,7 @@ class DatasetUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+    system_content: Optional[str] = None  # Permettre la mise à jour du system content
 
 # Model for Dataset Pair
 class DatasetPairBase(BaseModel):

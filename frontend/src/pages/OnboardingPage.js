@@ -76,6 +76,7 @@ const stepVariants = {
 
 // Étapes de l'onboarding
 const steps = [
+  'Définir votre assistant',
   'Importer du contenu',
   'Fine-tuner un modèle',
   'Terminé'
@@ -97,6 +98,12 @@ const OnboardingPage = () => {
   const { user, updateUser } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   const [activeStep, setActiveStep] = useState(0);
+  
+  // État pour le system content
+  const [assistantPurpose, setAssistantPurpose] = useState('');
+  const [systemContent, setSystemContent] = useState('');
+  const [generatingSystemContent, setGeneratingSystemContent] = useState(false);
+  const [systemContentError, setSystemContentError] = useState(null);
   
   // Données du projet (créé automatiquement)
   const [projectName] = useState("Mon premier projet");
@@ -191,6 +198,48 @@ const OnboardingPage = () => {
       return false;
     } finally {
       setCreatingProject(false);
+    }
+  };
+
+  // Fonction pour générer le system content à partir de l'entrée utilisateur
+  const generateSystemContent = async () => {
+    if (!assistantPurpose.trim()) {
+      setSystemContentError("Veuillez décrire le but de votre assistant");
+      return false;
+    }
+    
+    setGeneratingSystemContent(true);
+    setSystemContentError(null);
+    
+    try {
+      // Ici nous allons faire une requête à l'API pour générer le system content
+      // Cette API sera implémentée dans le backend
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/helpers/generate-system-content`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('fintune_accessToken')}`
+        },
+        body: JSON.stringify({ purpose: assistantPurpose })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Erreur lors de la génération du system content");
+      }
+      
+      const data = await response.json();
+      setSystemContent(data.system_content);
+      
+      enqueueSnackbar('System content généré avec succès', { variant: 'success' });
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la génération du system content:', error);
+      setSystemContentError(error.message || "Erreur lors de la génération du system content");
+      enqueueSnackbar(`Erreur: ${error.message || "Échec de la génération du system content"}`, { variant: 'error' });
+      return false;
+    } finally {
+      setGeneratingSystemContent(false);
     }
   };
 
@@ -349,7 +398,8 @@ const OnboardingPage = () => {
         project_id: createdProject.id,
         content_ids: allContents.map(content => content.id),
         model: 'gpt-3.5-turbo',
-        description: `Dataset généré automatiquement pendant l'onboarding`
+        description: `Dataset généré automatiquement pendant l'onboarding`,
+        system_content: systemContent || "You are a helpful assistant."
       };
       
       // Appel API pour créer le dataset
@@ -458,7 +508,15 @@ const OnboardingPage = () => {
   const handleNext = async () => {
     // Vérifier s'il y a des actions à effectuer selon l'étape
     switch (activeStep) {
-      case 0: // Après étape import de contenu
+      case 0: // Après étape définition de l'assistant
+        // Générer le system content si ce n'est pas déjà fait
+        if (!systemContent) {
+          const success = await generateSystemContent();
+          if (!success) return;
+        }
+        break;
+      
+      case 1: // Après étape import de contenu
         // Vérifier s'il y a du contenu
         if (uploadedFiles.length === 0 && uploadedUrls.length === 0) {
           setUploadError("Veuillez ajouter au moins un fichier ou une URL");
@@ -466,7 +524,7 @@ const OnboardingPage = () => {
         }
         break;
       
-      case 1: // Après étape fine-tuning
+      case 2: // Après étape fine-tuning
         // Vérifier d'abord la clé API
         const apiKeySuccess = await saveApiKey();
         if (!apiKeySuccess) return;
@@ -585,7 +643,79 @@ const OnboardingPage = () => {
   // Contenu des étapes
   const getStepContent = (step) => {
     switch (step) {
-      case 0: // Import de contenu
+      case 0: // Définition de l'assistant
+        return (
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+              <Avatar
+                sx={{
+                  backgroundColor: 'success.main',
+                  mr: 2,
+                }}
+              >
+                <PsychologyIcon />
+              </Avatar>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                Définir votre assistant
+              </Typography>
+            </Box>
+            
+            <Typography variant="body1" paragraph>
+              Décrivez l'objectif et le comportement de l'assistant que vous souhaitez fine-tuner.
+            </Typography>
+            
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                Cette description sera utilisée pour générer un "system prompt" optimisé que votre modèle 
+                utilisera comme base de personnalité et de connaissances.
+              </Typography>
+            </Alert>
+            
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <TextField
+                label="Objectif de votre assistant"
+                value={assistantPurpose}
+                onChange={(e) => setAssistantPurpose(e.target.value)}
+                multiline
+                rows={4}
+                placeholder="Exemple : Un assistant spécialisé dans les énergies renouvelables qui peut expliquer les technologies solaires et éoliennes avec des termes simples. Il doit être capable de répondre aux questions sur les coûts, l'installation et la rentabilité."
+                error={!!systemContentError}
+                helperText={systemContentError}
+              />
+              <FormHelperText>
+                Soyez précis sur le domaine d'expertise, le ton à adopter et les capacités souhaitées.
+              </FormHelperText>
+            </FormControl>
+            
+            {systemContent && (
+              <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                  System Prompt généré
+                </Typography>
+                <Typography variant="body2" sx={{ 
+                  p: 2, 
+                  backgroundColor: 'background.paper',
+                  borderRadius: 1,
+                  fontFamily: 'monospace'
+                }}>
+                  {systemContent}
+                </Typography>
+              </Paper>
+            )}
+            
+            <Button
+              variant="contained"
+              onClick={generateSystemContent}
+              disabled={generatingSystemContent || !assistantPurpose.trim()}
+              startIcon={generatingSystemContent ? <CircularProgress size={20} /> : null}
+              sx={{ mt: 2 }}
+            >
+              {generatingSystemContent ? 'Génération en cours...' : systemContent ? 'Regénérer' : 'Générer le system prompt'}
+            </Button>
+          </Box>
+        );
+      
+      case 1: // Import de contenu
         return (
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
@@ -772,7 +902,7 @@ const OnboardingPage = () => {
           </Box>
         );
       
-      case 1: // Fine-tuning
+      case 2: // Fine-tuning
         return (
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
@@ -860,7 +990,7 @@ const OnboardingPage = () => {
           </Box>
         );
       
-      case 2: // Terminé
+      case 3: // Terminé
         return (
           <Box sx={{ textAlign: 'center' }}>
             <motion.div

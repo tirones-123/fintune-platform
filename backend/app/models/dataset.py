@@ -12,6 +12,7 @@ class Dataset(Base):
     description = Column(Text, nullable=True)
     status = Column(String, nullable=False, default="processing")  # processing, ready, error
     model = Column(String, nullable=True)  # Model used for dataset generation
+    system_content = Column(Text, nullable=True, default="You are a helpful assistant.")  # System prompt pour le fine-tuning
     pairs_count = Column(Integer, nullable=True)
     size = Column(BigInteger, nullable=True)
     error_message = Column(Text, nullable=True)

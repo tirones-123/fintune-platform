@@ -75,6 +75,7 @@ def create_dataset(
         name=dataset_in.name,
         description=dataset_in.description,
         model=dataset_in.model,
+        system_content=dataset_in.system_content,
         status="processing",
         project_id=dataset_in.project_id
     )
@@ -372,6 +373,9 @@ def export_dataset(
             detail="Dataset has no pairs"
         )
     
+    # Obtenir le system content (utiliser la valeur par défaut si non défini)
+    system_content = dataset.system_content or "You are a helpful assistant."
+    
     # Format according to provider
     if provider.lower() == "openai":
         from fastapi.responses import StreamingResponse
@@ -385,7 +389,7 @@ def export_dataset(
         for pair in pairs:
             jsonl_obj = {
                 "messages": [
-                    {"role": "system", "content": "Vous êtes un assistant qui génère du contenu dans le style de l'auteur"},
+                    {"role": "system", "content": system_content},
                     {"role": "user", "content": pair.question},
                     {"role": "assistant", "content": pair.answer}
                 ]
@@ -418,6 +422,7 @@ def export_dataset(
         for pair in pairs:
             jsonl_obj = {
                 "messages": [
+                    {"role": "system", "content": system_content},
                     {"role": "user", "content": pair.question},
                     {"role": "assistant", "content": pair.answer}
                 ]
@@ -463,4 +468,32 @@ def get_dataset_fine_tunings(
         )
     
     fine_tunings = db.query(FineTuning).filter(FineTuning.dataset_id == dataset_id).all()
-    return fine_tunings 
+    return fine_tunings
+
+@router.put("/{dataset_id}/system-content", response_model=DatasetResponse)
+def update_dataset_system_content(
+    dataset_id: int,
+    system_content: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update the system content of a dataset.
+    """
+    dataset = db.query(Dataset).join(Project).filter(
+        Dataset.id == dataset_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not dataset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dataset not found"
+        )
+    
+    # Mettre à jour le system content
+    dataset.system_content = system_content
+    db.commit()
+    db.refresh(dataset)
+    
+    return dataset 
