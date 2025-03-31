@@ -602,7 +602,7 @@ export const subscriptionService = {
         throw new Error('L\'URL de paiement n\'a pas été reçue');
       }
       
-      return { url: response.data.checkout_url };
+      return response.data;
     } catch (error) {
       console.error('Erreur lors de la création de la session de paiement:', error);
       

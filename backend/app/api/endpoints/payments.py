@@ -36,13 +36,66 @@ async def create_checkout_session(
                     "quantity": 1,
                 },
             ],
-            mode="subscription",
+            mode="payment",  # Paiement unique au lieu d'abonnement
             success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true",
             cancel_url=f"{settings.FRONTEND_URL}/dashboard?payment_cancel=true",
             client_reference_id=str(current_user.id),
+            metadata={"payment_type": "character_credits", "user_id": str(current_user.id)}
         )
         
-        return {"url": checkout_session.url}
+        return {"checkout_url": checkout_session.url}
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur lors de la création de la session de paiement: {str(e)}"
+        )
+
+@router.post("/create-checkout-session/{plan_id}")
+async def create_plan_checkout_session(
+    plan_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Créer une session de paiement pour un plan d'abonnement spécifique (compatibilité)
+    ou rediriger vers le nouvel achat à l'usage
+    """
+    try:
+        # Mapper l'ancien système d'abonnement au nouveau système à l'usage
+        # Dans la nouvelle version, tous les plans redirigent vers l'achat de caractères
+        
+        # Déterminer le nombre de caractères offerts en fonction du plan
+        character_credit_mapping = {
+            "starter": 100000,  # 100k caractères = 36.5$
+            "pro": 500000,      # 500k caractères = 182.5$
+            "enterprise": 2000000  # 2M caractères = 730$
+        }
+        
+        # Si plan inconnu, utiliser starter par défaut
+        character_count = character_credit_mapping.get(plan_id.lower(), 100000)
+        
+        # Créer une session de paiement pour l'achat de caractères
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price": settings.STRIPE_PRICE_ID,
+                    "quantity": 1,
+                },
+            ],
+            mode="payment",
+            success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true",
+            cancel_url=f"{settings.FRONTEND_URL}/dashboard?payment_cancel=true",
+            client_reference_id=str(current_user.id),
+            metadata={
+                "payment_type": "character_credits", 
+                "user_id": str(current_user.id),
+                "original_plan": plan_id,
+                "character_count": str(character_count)
+            }
+        )
+        
+        return {"checkout_url": checkout_session.url}
     
     except Exception as e:
         raise HTTPException(

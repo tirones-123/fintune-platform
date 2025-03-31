@@ -28,6 +28,7 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemSecondaryAction,
+  LinearProgress,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -516,9 +517,9 @@ const OnboardingPage = () => {
           const session = await subscriptionService.createCheckoutSession('starter');
           console.log("Session de paiement créée avec succès:", session);
           
-          if (session && session.url) {
-            console.log("Redirection vers:", session.url);
-            window.location.href = session.url;
+          if (session && session.checkout_url) {
+            console.log("Redirection vers:", session.checkout_url);
+            window.location.href = session.checkout_url;
           } else {
             console.error("URL de redirection non reçue dans la session:", session);
             setCompletionError("Erreur de redirection: URL de paiement non disponible");
@@ -648,6 +649,55 @@ const OnboardingPage = () => {
             <Typography variant="body1" paragraph>
               Ajoutez vos fichiers et/ou URLs qui serviront de base pour fine-tuner votre modèle.
             </Typography>
+            
+            {/* Information sur les caractères gratuits */}
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>10 000 caractères gratuits</strong> sont inclus avec votre compte.
+                Au-delà, vous serez facturé à hauteur de <strong>0,000365 $ par caractère</strong>.
+              </Typography>
+            </Alert>
+            
+            {/* Estimation des caractères et du coût */}
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 2, 
+                mb: 3, 
+                border: '1px solid', 
+                borderColor: 'divider', 
+                borderRadius: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                Estimation
+              </Typography>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Caractères estimés: <strong>{(uploadedFiles.length * 5000 + uploadedUrls.length * 3000).toLocaleString()}</strong>
+                  </Typography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={Math.min(100, ((uploadedFiles.length * 5000 + uploadedUrls.length * 3000) / 10000) * 100)} 
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Coût estimé: <strong>${Math.max(0, (uploadedFiles.length * 5000 + uploadedUrls.length * 3000 - 10000) * 0.000365).toFixed(2)}</strong>
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Typography variant="caption" color="text.secondary">
+                L'estimation est basée sur une moyenne de 5 000 caractères par fichier et 3 000 par URL. Le coût réel dépendra du contenu.
+              </Typography>
+            </Paper>
             
             {/* Utilisation du composant FileUpload au lieu du code personnalisé */}
             {createdProject && (
