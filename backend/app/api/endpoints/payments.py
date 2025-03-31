@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.subscription import Subscription
 from app.services.stripe_service import stripe_service
+from app.services.character_service import CharacterService
 
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -74,12 +75,47 @@ async def create_plan_checkout_session(
         # Si plan inconnu, utiliser starter par défaut
         character_count = character_credit_mapping.get(plan_id.lower(), 100000)
         
+        # Calculer le montant en cents (arrondi au cent le plus proche)
+        # Prix = (nombre de caractères * 0,000365$) * 100 cents (arrondi)
+        amount_in_cents = max(0, round((character_count * 0.000365) * 100))
+        
+        # Si montant gratuit (0), rediriger directement vers le dashboard
+        if amount_in_cents == 0:
+            # Créer une transaction de caractères sans paiement
+            db = get_db()
+            db_session = next(db)
+            try:
+                # Ajouter directement des caractères au compte
+                character_service = CharacterService()
+                character_service.add_character_credits(
+                    db=db_session,
+                    user_id=current_user.id,
+                    character_count=character_count,
+                    payment_id=None  # Pas de paiement associé
+                )
+                db_session.commit()
+            except Exception as e:
+                db_session.rollback()
+                logger.error(f"Erreur lors de l'ajout de caractères gratuits: {str(e)}")
+            finally:
+                db_session.close()
+                
+            # Retourner l'URL du dashboard directement
+            return {"checkout_url": f"{settings.FRONTEND_URL}/dashboard?payment_success=true"}
+        
         # Créer une session de paiement pour l'achat de caractères
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[
                 {
-                    "price": settings.STRIPE_PRICE_ID,
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": f"Crédits de caractères ({character_count:,} caractères)",
+                            "description": f"Achat de {character_count:,} caractères pour le fine-tuning de modèles IA"
+                        },
+                        "unit_amount": amount_in_cents,  # Montant en cents
+                    },
                     "quantity": 1,
                 },
             ],
@@ -98,6 +134,7 @@ async def create_plan_checkout_session(
         return {"checkout_url": checkout_session.url}
     
     except Exception as e:
+        logger.error(f"Erreur lors de la création de la session de paiement: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur lors de la création de la session de paiement: {str(e)}"

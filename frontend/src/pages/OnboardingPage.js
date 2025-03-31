@@ -29,6 +29,10 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   LinearProgress,
+  Grid,
+  Card,
+  CardContent,
+  Divider,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -54,6 +58,8 @@ import {
 } from '../services/apiService';
 import { useSnackbar } from 'notistack';
 import FileUpload from '../components/common/FileUpload';
+import HelpIcon from '@mui/icons-material/Help';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -84,14 +90,36 @@ const steps = [
   'Terminé'
 ];
 
-// Fonction utilitaire pour détecter le type de fichier
-const detectFileType = (file) => {
-  const extension = file.name.split('.').pop().toLowerCase();
-  
-  if (['pdf'].includes(extension)) return 'pdf';
-  if (['doc', 'docx', 'txt', 'rtf'].includes(extension)) return 'text';
-  
-  return 'text'; // Par défaut
+// Prix par caractère
+const PRICE_PER_CHARACTER = 0.000365;
+// Quota gratuit (caractères gratuits)
+const FREE_CHARACTER_QUOTA = 10000;
+
+// Seuils de qualité basés sur le nombre de caractères
+const QUALITY_THRESHOLDS = {
+  poor: 2000,
+  basic: 10000,
+  good: 50000,
+  excellent: 200000,
+  outstanding: 1000000
+};
+
+// Descriptions des niveaux de qualité
+const QUALITY_DESCRIPTIONS = {
+  poor: "Qualité minimale: Réponses basiques, contexte très limité.",
+  basic: "Qualité basique: Réponses simples avec contexte limité.",
+  good: "Bonne qualité: Réponses précises et contextualisées.",
+  excellent: "Excellente qualité: Réponses détaillées et très personnalisées.",
+  outstanding: "Qualité exceptionnelle: Expertise approfondie, parfaite compréhension du contexte."
+};
+
+// Couleurs pour les niveaux de qualité
+const QUALITY_COLORS = {
+  poor: "#f44336",
+  basic: "#ff9800",
+  good: "#4caf50",
+  excellent: "#2196f3",
+  outstanding: "#9c27b0"
 };
 
 const OnboardingPage = () => {
@@ -554,6 +582,61 @@ const OnboardingPage = () => {
     }
   };
 
+  // Fonction pour estimer le nombre de caractères
+  const estimateCharacterCount = () => {
+    // Si pas de fichiers ni URLs, retourner 0
+    if (uploadedFiles.length === 0 && uploadedUrls.length === 0) {
+      return 0;
+    }
+    
+    // Calcul plus précis basé sur les fichiers réels
+    let totalEstimate = 0;
+    
+    // Pour les fichiers
+    uploadedFiles.forEach(file => {
+      // Estimation basée sur le type de fichier et sa taille
+      if (file.size) {
+        // En moyenne, 1 byte ≈ 0.5 caractères pour du texte
+        const bytesToCharRatio = 0.5;
+        totalEstimate += file.size * bytesToCharRatio;
+      } else {
+        // Fallback si la taille n'est pas disponible
+        totalEstimate += 5000; // Estimation par défaut
+      }
+    });
+    
+    // Pour les URLs (estimation plus conservatrice)
+    uploadedUrls.forEach(url => {
+      totalEstimate += 3000; // Estimation moyenne par URL
+    });
+    
+    return Math.round(totalEstimate);
+  };
+  
+  // Calculer le niveau de qualité basé sur le nombre de caractères
+  const getQualityLevel = (characterCount) => {
+    if (characterCount < QUALITY_THRESHOLDS.poor) return 'poor';
+    if (characterCount < QUALITY_THRESHOLDS.basic) return 'basic';
+    if (characterCount < QUALITY_THRESHOLDS.good) return 'good';
+    if (characterCount < QUALITY_THRESHOLDS.excellent) return 'excellent';
+    return 'outstanding';
+  };
+
+  // Calculer la progression de qualité (0-100)
+  const getQualityProgress = (characterCount) => {
+    // Échelle logarithmique pour une meilleure visualisation
+    const maxValue = Math.log(QUALITY_THRESHOLDS.outstanding);
+    const value = Math.log(Math.max(characterCount, 1));
+    return (value / maxValue) * 100;
+  };
+
+  // Calculer le coût estimé
+  const getEstimatedCost = (characterCount) => {
+    // Soustraire le quota gratuit
+    const billableCharacters = Math.max(0, characterCount - FREE_CHARACTER_QUOTA);
+    return billableCharacters * PRICE_PER_CHARACTER;
+  };
+
   // Contenu des étapes
   const getStepContent = (step) => {
     switch (step) {
@@ -679,17 +762,61 @@ const OnboardingPage = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    Caractères estimés: <strong>{(uploadedFiles.length * 5000 + uploadedUrls.length * 3000).toLocaleString()}</strong>
+                    Caractères estimés: <strong>{estimateCharacterCount().toLocaleString()}</strong>
                   </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={Math.min(100, ((uploadedFiles.length * 5000 + uploadedUrls.length * 3000) / 10000) * 100)} 
-                    sx={{ height: 8, borderRadius: 4 }}
-                  />
+                  
+                  {/* Jauge de progression améliorée */}
+                  <Box sx={{ position: 'relative', mb: 1 }}>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={getQualityProgress(estimateCharacterCount())} 
+                      sx={{ 
+                        height: 8, 
+                        borderRadius: 4,
+                        backgroundColor: 'grey.300',
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: QUALITY_COLORS[getQualityLevel(estimateCharacterCount())]
+                        }
+                      }}
+                    />
+                    
+                    {/* Marqueurs de qualité */}
+                    <Box sx={{ 
+                      position: 'absolute', 
+                      top: '100%', 
+                      left: 0, 
+                      right: 0, 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      mt: 0.5,
+                      px: 0.5,
+                      fontSize: '0.6rem',
+                      color: 'text.secondary'
+                    }}>
+                      <span>5K</span>
+                      <span>20K</span>
+                      <span>50K</span>
+                      <span>100K</span>
+                      <span>500K+</span>
+                    </Box>
+                  </Box>
+                  
+                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Qualité: 
+                    <Chip 
+                      label={getQualityLevel(estimateCharacterCount()) === 'outstanding' ? 'Excellent' : getQualityLevel(estimateCharacterCount()) === 'good' ? 'Bon' : getQualityLevel(estimateCharacterCount()) === 'basic' ? 'Basique' : getQualityLevel(estimateCharacterCount()) === 'poor' ? 'Insuffisant' : 'Très bon'} 
+                      size="small" 
+                      sx={{ 
+                        backgroundColor: QUALITY_COLORS[getQualityLevel(estimateCharacterCount())],
+                        color: '#fff',
+                        fontWeight: 'bold'
+                      }} 
+                    />
+                  </Typography>
                 </Box>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    Coût estimé: <strong>${Math.max(0, (uploadedFiles.length * 5000 + uploadedUrls.length * 3000 - 10000) * 0.000365).toFixed(2)}</strong>
+                    Coût estimé: <strong>{estimateCharacterCount() <= FREE_CHARACTER_QUOTA ? 'Gratuit' : `$${getEstimatedCost(estimateCharacterCount()).toFixed(2)}`}</strong>
                   </Typography>
                 </Box>
               </Box>

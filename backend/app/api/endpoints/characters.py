@@ -87,10 +87,19 @@ async def purchase_character_credits(
     # Calculer le prix
     price = character_service.calculate_price(character_count)
     
+    # Arrondir le prix au cent le plus proche
+    rounded_price = round(price, 2)
+    
+    # Vérifier que le montant est d'au moins 0.50$ (minimum pour Stripe)
+    if rounded_price < 0.50:
+        # Ajuster le prix au minimum requis
+        rounded_price = 0.50
+        logger.info(f"Prix ajusté au minimum requis par Stripe: ${rounded_price} pour {character_count} caractères")
+    
     # Créer un paiement
     payment = Payment(
         user_id=current_user.id,
-        amount=price,
+        amount=rounded_price, # Utiliser le prix arrondi
         status="pending",
         description=f"Achat de {character_count} caractères"
     )
@@ -102,17 +111,16 @@ async def purchase_character_credits(
     try:
         # Créer une session de paiement Stripe
         checkout_session = await stripe_service.create_checkout_session(
-            amount=int(price * 100),  # Conversion en cents pour Stripe
+            amount=int(rounded_price * 100),  # Conversion en cents entiers pour Stripe
             user_id=current_user.id,
-            payment_id=payment.id,
             metadata={
                 "character_count": character_count,
-                "payment_id": payment.id
+                "payment_id": str(payment.id)
             }
         )
         
-        # Mettre à jour le paiement avec l'ID d'intent
-        payment.payment_intent_id = checkout_session.payment_intent
+        # Mettre à jour le paiement avec l'URL de checkout
+        payment.payment_url = checkout_session
         db.commit()
         
         # Créer une transaction provisoire (sera confirmée après paiement)
@@ -122,14 +130,24 @@ async def purchase_character_credits(
             description=f"Achat en attente de {character_count} caractères",
             payment_id=payment.id,
             price_per_character=character_service.PRICE_PER_CHARACTER,
-            total_price=price
+            total_price=rounded_price  # Utiliser le prix arrondi
         )
         
         db.add(transaction)
         db.commit()
         db.refresh(transaction)
         
-        return transaction
+        return {
+            "id": transaction.id,
+            "user_id": transaction.user_id,
+            "amount": transaction.amount,
+            "description": transaction.description,
+            "created_at": transaction.created_at,
+            "payment_id": transaction.payment_id,
+            "price_per_character": transaction.price_per_character,
+            "total_price": transaction.total_price,
+            "checkout_url": checkout_session  # Ajouter l'URL de checkout
+        }
         
     except Exception as e:
         # En cas d'erreur, marquer le paiement comme échoué
