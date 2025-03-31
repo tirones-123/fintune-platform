@@ -638,4 +638,63 @@ export const subscriptionService = {
   },
 };
 
+// Service de gestion des caractères
+export const characterService = {
+  // Récupérer les statistiques d'utilisation
+  getUsageStats: async () => {
+    try {
+      const response = await api.get('/api/characters/usage-stats');
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération des statistiques d\'utilisation');
+    }
+  },
+
+  // Récupérer les informations de tarification
+  getPricingInfo: async () => {
+    try {
+      const response = await api.get('/api/characters/pricing');
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération des informations de tarification');
+    }
+  },
+
+  // Récupérer l'historique des transactions
+  getTransactions: async (limit = 100, offset = 0) => {
+    try {
+      const response = await api.get('/api/characters/transactions', {
+        params: { limit, offset }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération des transactions');
+    }
+  },
+
+  // Acheter des crédits de caractères
+  purchaseCredits: async (characterCount) => {
+    try {
+      const response = await api.post('/api/characters/purchase', {
+        character_count: characterCount
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de l\'achat de crédits');
+    }
+  },
+
+  // Évaluer la qualité des données
+  assessQuality: async (characterCount, usageType) => {
+    try {
+      const response = await api.post('/api/characters/quality-assessment', null, {
+        params: { character_count: characterCount, usage_type: usageType }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de l\'évaluation de la qualité');
+    }
+  },
+};
+
 export default api; 

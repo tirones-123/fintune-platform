@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth, users, projects, contents, datasets, fine_tunings, payments, helpers
+from app.api.endpoints import auth, users, projects, contents, datasets, fine_tunings, payments, helpers, characters
 
 api_router = APIRouter()
 
@@ -12,4 +12,5 @@ api_router.include_router(contents.router, prefix="/contents", tags=["contents"]
 api_router.include_router(datasets.router, prefix="/datasets", tags=["datasets"])
 api_router.include_router(fine_tunings.router, prefix="/fine-tunings", tags=["fine-tunings"])
 api_router.include_router(payments.router, prefix="/checkout", tags=["payments"])
-api_router.include_router(helpers.router, prefix="/helpers", tags=["helpers"]) 
+api_router.include_router(helpers.router, prefix="/helpers", tags=["helpers"])
+api_router.include_router(characters.router, prefix="/characters", tags=["characters"]) 

@@ -14,6 +14,11 @@ import {
   LinearProgress,
   Chip,
   CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Link,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -26,7 +31,9 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import CountUp from 'react-countup';
-import { projectService, contentService, datasetService, fineTuningService } from '../services/apiService';
+import { projectService, contentService, datasetService, fineTuningService, characterService } from '../services/apiService';
+import CharacterCounter from '../components/dashboard/CharacterCounter';
+import QualityAssessment from '../components/dashboard/QualityAssessment';
 
 // Animation variants
 const containerVariants = {
@@ -628,6 +635,15 @@ const DashboardPage = () => {
         {/* Modèles récents */}
         <Grid item xs={12} lg={4}>
           <RecentModels />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mt: 4 }}>
+        <Grid item xs={12} md={6}>
+          <CharacterCounter />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <QualityAssessment />
         </Grid>
       </Grid>
     </Box>

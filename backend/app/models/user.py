@@ -17,7 +17,13 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relations - utiliser des chaînes pour éviter les importations circulaires
+    # Champ pour la facturation à l'usage
+    free_characters_remaining = Column(Integer, default=10000, nullable=False)
+    total_characters_used = Column(Integer, default=0, nullable=False)
+    
+    # Relationships
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
-    subscription = relationship ("Subscription", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    api_keys = relationship ("ApiKey", back_populates="user", cascade="all, delete-orphan")
+    api_keys = relationship("APIKey", back_populates="user", cascade="all, delete-orphan")
+    subscription = relationship("Subscription", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")
+    character_transactions = relationship("CharacterTransaction", back_populates="user", cascade="all, delete-orphan")

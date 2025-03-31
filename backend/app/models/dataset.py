@@ -14,6 +14,7 @@ class Dataset(Base):
     model = Column(String, nullable=True)  # Model used for dataset generation
     system_content = Column(Text, nullable=True, default="You are a helpful assistant.")  # System prompt pour le fine-tuning
     pairs_count = Column(Integer, nullable=True)
+    character_count = Column(Integer, nullable=True)  # Nombre total de caractères dans le dataset
     size = Column(BigInteger, nullable=True)
     error_message = Column(Text, nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
@@ -25,6 +26,7 @@ class Dataset(Base):
     dataset_contents = relationship("DatasetContent", back_populates="dataset", cascade="all, delete-orphan")
     pairs = relationship("DatasetPair", back_populates="dataset", cascade="all, delete-orphan")
     fine_tunings = relationship("FineTuning", back_populates="dataset", cascade="all, delete-orphan")
+    character_transactions = relationship("CharacterTransaction", back_populates="dataset")
 
 class DatasetContent(Base):
     __tablename__ = "dataset_contents"

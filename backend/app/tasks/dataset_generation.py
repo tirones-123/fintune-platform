@@ -12,6 +12,7 @@ from app.models.dataset import Dataset, DatasetPair, DatasetContent
 from app.models.content import Content
 from app.services.ai_providers import get_ai_provider
 from app.services.content_processor import content_processor
+from app.services.character_service import character_service
 from app.core.config import settings
 
 # Taille de chunk fixée à 3000 caractères (non configurable)
@@ -158,9 +159,39 @@ def generate_dataset(dataset_id: int):
             logger.error(f"No pairs generated for dataset {dataset_id}")
             return {"status": "error", "message": "No pairs could be generated"}
         
+        # Calculer le nombre total de caractères dans le dataset
+        total_characters = 0
+        for pair in db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset_id).all():
+            # Compter les caractères dans la question et la réponse
+            total_characters += len(pair.question) + len(pair.answer)
+        
+        # Compter les caractères du system_content, multiplié par le nombre de paires
+        if system_content:
+            total_characters += len(system_content) * len(db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset_id).all())
+        
+        logger.info(f"Dataset {dataset_id} contains {total_characters} characters")
+        
+        # Traiter les caractères avec le CharacterService
+        user_id = project.user_id
+        success, paid_chars, price = character_service.process_dataset_characters(
+            db, user_id, dataset_id, total_characters
+        )
+        
+        if not success:
+            dataset.status = "error"
+            dataset.error_message = "Error processing character usage"
+            db.commit()
+            logger.error(f"Error processing character usage for dataset {dataset_id}")
+            return {"status": "error", "message": "Error processing character usage"}
+        
+        # Si des caractères doivent être payés, indiquer le prix dans les logs
+        if paid_chars > 0:
+            logger.info(f"Dataset {dataset_id} requires payment for {paid_chars} characters, price: ${price:.2f}")
+        
         # Update dataset
         dataset.status = "ready"
         dataset.pairs_count = total_pairs
+        dataset.character_count = total_characters
         dataset.size = total_pairs * 1024  # Approximate size calculation
         dataset.completed_at = datetime.now().isoformat()
         db.commit()

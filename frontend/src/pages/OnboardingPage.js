@@ -858,8 +858,51 @@ const OnboardingPage = () => {
             <Typography variant="body1" paragraph sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}>
               {processingFineTuning 
                 ? "Votre modèle est en cours de fine-tuning. Ce processus peut prendre plusieurs heures. Vous pouvez consulter l'état d'avancement sur votre compte OpenAI."
-                : "Vous avez terminé l'onboarding et votre modèle est maintenant en cours d'entraînement sur les serveurs OpenAI. Vous pouvez accéder au tableau de bord pour suivre son évolution."}
+                : "Vous avez terminé l'onboarding et votre modèle sera prêt après son entraînement. Vous disposez de 10 000 caractères gratuits pour démarrer."}
             </Typography>
+            
+            {/* Ajout d'informations sur le nouveau système de pricing */}
+            <Box sx={{ 
+              textAlign: 'left', 
+              maxWidth: 600, 
+              mx: 'auto', 
+              mb: 4, 
+              p: 3, 
+              bgcolor: 'background.default', 
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'divider'
+            }}>
+              <Typography variant="h6" gutterBottom>
+                Facturation à l'usage
+              </Typography>
+              
+              <Typography variant="body2" paragraph>
+                Notre plateforme utilise désormais un modèle de facturation à l'usage basé sur le nombre de caractères utilisés pour le fine-tuning :
+              </Typography>
+              
+              <Box component="ul" sx={{ pl: 2 }}>
+                <Box component="li" sx={{ mb: 1 }}>
+                  <Typography variant="body2">
+                    <strong>10 000 caractères gratuits</strong> pour tout nouvel utilisateur
+                  </Typography>
+                </Box>
+                <Box component="li" sx={{ mb: 1 }}>
+                  <Typography variant="body2">
+                    <strong>0,000365 $ par caractère</strong> au-delà du forfait gratuit
+                  </Typography>
+                </Box>
+                <Box component="li">
+                  <Typography variant="body2">
+                    Achetez des caractères supplémentaires en fonction de vos besoins
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
+                Note : Les caractères sont comptés dans les questions, réponses et instructions système de votre dataset.
+              </Typography>
+            </Box>
             
             {completionError && (
               <Alert severity="error" sx={{ mb: 3 }}>

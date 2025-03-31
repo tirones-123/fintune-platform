@@ -39,6 +39,7 @@ import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useSnackbar } from 'notistack';
 import { projectService, contentService, datasetService } from '../services/apiService';
+import QualityAssessment from '../components/dashboard/QualityAssessment';
 
 const DatasetDetailPage = () => {
   const { datasetId } = useParams();
@@ -420,6 +421,15 @@ const DatasetDetailPage = () => {
                   </Typography>
                 </CardContent>
               </Card>
+              
+              {/* Afficher l'évaluation de la qualité si le dataset a un nombre de caractères */}
+              {dataset.character_count > 0 && dataset.status === 'ready' && (
+                <Card sx={{ mb: 4 }}>
+                  <CardContent>
+                    <QualityAssessment characterCount={dataset.character_count} />
+                  </CardContent>
+                </Card>
+              )}
               
               <Card>
                 <CardContent>
