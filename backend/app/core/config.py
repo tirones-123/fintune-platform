@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     STRIPE_PRICE_STARTER: str = Field(default="")
     STRIPE_PRICE_PRO: str = Field(default="")
     STRIPE_PRICE_ENTERPRISE: str = Field(default="")
+    STRIPE_PRICE_ID: str = Field(default="")  # Pour les achats de caractères
     
     # File storage configuration
     UPLOAD_DIR: str = Field(default="/tmp/uploads")
