@@ -21,24 +21,7 @@ class Payment(Base):
     # Relationships
     user = relationship("User", back_populates="payments")
 
-class Subscription(Base):
-    __tablename__ = "subscriptions"
-    __table_args__ = {"extend_existing": True}
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
-    stripe_subscription_id = Column(String, nullable=True)
-    stripe_customer_id = Column(String, nullable=True)
-    status = Column(String, nullable=False)  # active, canceled, past_due, etc.
-    plan = Column(String, nullable=False)  # starter, pro, enterprise
-    current_period_start = Column(DateTime(timezone=True), nullable=True)
-    current_period_end = Column(DateTime(timezone=True), nullable=True)
-    cancel_at_period_end = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    # Relationships
-    user = relationship("User", back_populates="subscription")
+# La classe Subscription a été déplacée vers app/models/subscription.py
     
 class CharacterTransaction(Base):
     __tablename__ = "character_transactions"
