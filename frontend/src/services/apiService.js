@@ -697,4 +697,5 @@ export const characterService = {
   },
 };
 
+export { api };
 export default api; 
