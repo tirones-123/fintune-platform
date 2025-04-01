@@ -55,6 +55,7 @@ import {
   datasetService, 
   fineTuningService,
   apiKeyService,
+  api,
 } from '../services/apiService';
 import { useSnackbar } from 'notistack';
 import FileUpload from '../components/common/FileUpload';
