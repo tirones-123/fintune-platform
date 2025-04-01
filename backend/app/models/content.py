@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, BigInteger
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, BigInteger, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -16,6 +16,7 @@ class Content(Base):
     url = Column(String, nullable=True)
     size = Column(BigInteger, nullable=True)
     error_message = Column(Text, nullable=True)
+    metadata = Column(JSON, nullable=True)  # Pour stocker des métadonnées comme le nombre de caractères
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

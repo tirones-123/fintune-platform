@@ -635,24 +635,43 @@ const OnboardingPage = () => {
     let actualCount = 0;
     let hasAllCounts = true;
     
+    console.log("Calcul du nombre réel de caractères...");
+    console.log("Fichiers:", uploadedFiles);
+    console.log("URLs:", uploadedUrls);
+    
     // Compter les caractères des fichiers dont les métadonnées sont disponibles
     uploadedFiles.forEach(file => {
+      console.log(`Fichier ${file.id} (${file.name}):`, file);
       if (file.metadata && file.metadata.character_count) {
-        actualCount += parseInt(file.metadata.character_count);
+        const fileChars = parseInt(file.metadata.character_count);
+        console.log(`  → Caractères: ${fileChars}`);
+        actualCount += fileChars;
       } else if (file.status === 'completed') {
         // Si le fichier est traité mais n'a pas de métadonnées de comptage
+        console.log(`  → Pas de métadonnées de caractères mais statut completed`);
         hasAllCounts = false;
+      } else {
+        console.log(`  → Statut: ${file.status}, pas de comptage disponible`);
       }
     });
     
     // De même pour les URLs
     uploadedUrls.forEach(url => {
+      console.log(`URL ${url.id} (${url.name}):`, url);
       if (url.metadata && url.metadata.character_count) {
-        actualCount += parseInt(url.metadata.character_count);
+        const urlChars = parseInt(url.metadata.character_count);
+        console.log(`  → Caractères: ${urlChars}`);
+        actualCount += urlChars;
       } else if (url.status === 'completed') {
+        console.log(`  → Pas de métadonnées de caractères mais statut completed`);
         hasAllCounts = false;
+      } else {
+        console.log(`  → Statut: ${url.status}, pas de comptage disponible`);
       }
     });
+    
+    console.log(`Total de caractères: ${actualCount}`);
+    console.log(`Est estimé: ${!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0)}`);
     
     setActualCharacterCount(actualCount);
     setIsEstimated(!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0));
@@ -795,38 +814,7 @@ const OnboardingPage = () => {
               </Typography>
             </Box>
             
-            <Typography variant="body1" paragraph>
-              Ajoutez vos fichiers et/ou URLs qui serviront de base pour fine-tuner votre modèle.
-            </Typography>
-            
-            {/* Sélecteur de cas d'utilisation */}
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>Type d'utilisation</InputLabel>
-              <Select
-                value={useCase}
-                onChange={(e) => setUseCase(e.target.value)}
-                label="Type d'utilisation"
-              >
-                <MenuItem value="customer_service">Service client</MenuItem>
-                <MenuItem value="knowledge_base">Base de connaissances</MenuItem>
-                <MenuItem value="legal">Assistant juridique</MenuItem>
-                <MenuItem value="education">Éducation et formation</MenuItem>
-                <MenuItem value="other">Autre cas d'usage</MenuItem>
-              </Select>
-              <FormHelperText>
-                Ce choix nous permet d'évaluer la qualité et la pertinence de vos données.
-              </FormHelperText>
-            </FormControl>
-            
-            {/* Information sur les caractères gratuits */}
-            <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="body2">
-                <strong>10 000 caractères gratuits</strong> sont inclus avec votre compte.
-                Au-delà, vous serez facturé à hauteur de <strong>0,000365 $ par caractère</strong>.
-              </Typography>
-            </Alert>
-            
-            {/* Estimation des caractères et du coût */}
+            {/* Estimation des caractères et du coût - version simplifiée */}
             <Paper 
               elevation={0} 
               sx={{ 
@@ -853,104 +841,6 @@ const OnboardingPage = () => {
                       <>Caractères comptés: <strong>{actualCharacterCount.toLocaleString()}</strong></>
                     )}
                   </Typography>
-                  
-                  {/* Jauge de qualité */}
-                  <Box mt={4} mb={2}>
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12}>
-                        <Typography variant="h6" gutterBottom display="flex" alignItems="center">
-                          Qualité estimée <InfoOutlinedIcon fontSize="small" sx={{ ml: 1 }} />
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={getQualityProgress(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase)} 
-                            sx={{ 
-                              height: 10, 
-                              borderRadius: 5,
-                              backgroundColor: '#e0e0e0',
-                              '& .MuiLinearProgress-bar': {
-                                backgroundColor: QUALITY_COLORS[getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase)]
-                              }
-                            }} 
-                          />
-                          <Box display="flex" justifyContent="space-between">
-                            <Typography variant="body2" color="textSecondary">Insuffisant</Typography>
-                            <Typography variant="body2" color="textSecondary">Optimal</Typography>
-                          </Box>
-                          <Box mt={1}>
-                            <Typography variant="h6" sx={{ 
-                              color: QUALITY_COLORS[getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase)], 
-                              fontWeight: 'bold' 
-                            }}>
-                              {getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase) === 'insufficient' ? 'Données insuffisantes' : 
-                               getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase) === 'minimal' ? 'Qualité minimale' :
-                               getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase) === 'good' ? 'Bonne qualité' :
-                               getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase) === 'optimal' ? 'Qualité optimale' : 
-                               'Données au-delà de l\'optimal'}
-                            </Typography>
-                            <Typography variant="body2">
-                              {QUALITY_DESCRIPTIONS[getQualityLevel(isEstimated ? estimateCharacterCount() : actualCharacterCount, useCase)]}
-                            </Typography>
-                            
-                            {/* Indicateur d'estimation ou de comptage réel */}
-                            {isEstimated && (
-                              <Box mt={1} display="flex" alignItems="center">
-                                <Chip 
-                                  label="Estimation" 
-                                  size="small" 
-                                  color="warning" 
-                                  sx={{ mr: 1 }} 
-                                />
-                                <Typography variant="caption" color="text.secondary">
-                                  Le nombre de caractères sera précisé après traitement des fichiers
-                                </Typography>
-                              </Box>
-                            )}
-                            
-                            {/* Recommandations spécifiques au cas d'utilisation */}
-                            <Box mt={1} p={1.5} bgcolor="rgba(33, 150, 243, 0.1)" borderRadius={1}>
-                              <Typography variant="body2">
-                                <strong>Recommandation pour {
-                                  useCase === 'legal' ? 'assistant juridique' : 
-                                  useCase === 'customer_service' ? 'service client' :
-                                  useCase === 'knowledge_base' ? 'base de connaissances' :
-                                  useCase === 'education' ? 'éducation et formation' : 'ce cas d\'usage'
-                                }:</strong> Entre {USAGE_THRESHOLDS[useCase || 'other'].min.toLocaleString()} et {USAGE_THRESHOLDS[useCase || 'other'].max.toLocaleString()} caractères.
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </Box>
-                      </Grid>
-                      
-                      {/* Statistiques */}
-                      <Grid item xs={12} mt={2}>
-                        <Card variant="outlined" sx={{ p: 2 }}>
-                          <Grid container spacing={2}>
-                            <Grid item xs={6}>
-                              <Typography variant="subtitle2" color="textSecondary">Caractères {isEstimated ? "estimés" : "comptés"}:</Typography>
-                              <Typography variant="h6">{(isEstimated ? estimateCharacterCount() : actualCharacterCount).toLocaleString()} caractères</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <Typography variant="subtitle2" color="textSecondary">Coût estimé:</Typography>
-                              <Typography variant="h6">
-                                {(isEstimated ? estimateCharacterCount() : actualCharacterCount) <= FREE_CHARACTER_QUOTA ? (
-                                  'Gratuit'
-                                ) : (
-                                  `$${getEstimatedCost(isEstimated ? estimateCharacterCount() : actualCharacterCount).toFixed(2)}`
-                                )}
-                              </Typography>
-                              <Typography variant="caption" color="textSecondary">
-                                10 000 premiers caractères gratuits
-                              </Typography>
-                            </Grid>
-                          </Grid>
-                        </Card>
-                      </Grid>
-                    </Grid>
-                  </Box>
                 </Box>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
@@ -958,10 +848,6 @@ const OnboardingPage = () => {
                   </Typography>
                 </Box>
               </Box>
-              
-              <Typography variant="caption" color="text.secondary">
-                L'estimation est basée sur une moyenne de 5 000 caractères par fichier et 3 000 par URL. Le coût réel dépendra du contenu.
-              </Typography>
             </Paper>
             
             {/* Utilisation du composant FileUpload au lieu du code personnalisé */}
@@ -971,21 +857,56 @@ const OnboardingPage = () => {
                   projectId={createdProject.id} 
                   onSuccess={(uploadedContent) => {
                     if (uploadedContent) {
+                      console.log("Nouveau contenu uploadé:", uploadedContent);
+                      
                       // Si c'est un fichier
                       if (uploadedContent.file_path) {
-                        setUploadedFiles(prev => [...prev, uploadedContent]);
+                        setUploadedFiles(prev => {
+                          // Vérifier si le fichier existe déjà (mise à jour)
+                          const exists = prev.find(f => f.id === uploadedContent.id);
+                          if (exists) {
+                            return prev.map(f => f.id === uploadedContent.id ? uploadedContent : f);
+                          }
+                          // Sinon ajouter le nouveau fichier
+                          return [...prev, uploadedContent];
+                        });
                         enqueueSnackbar(`Fichier "${uploadedContent.name}" uploadé avec succès`, { variant: 'success' });
                       } 
                       // Si c'est une URL
                       else if (uploadedContent.url) {
-                        setUploadedUrls(prev => [...prev, uploadedContent]);
+                        setUploadedUrls(prev => {
+                          // Vérifier si l'URL existe déjà (mise à jour)
+                          const exists = prev.find(u => u.id === uploadedContent.id);
+                          if (exists) {
+                            return prev.map(u => u.id === uploadedContent.id ? uploadedContent : u);
+                          }
+                          // Sinon ajouter la nouvelle URL
+                          return [...prev, uploadedContent];
+                        });
                         enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
                       }
                       
-                      // Recalculer le comptage réel de caractères
+                      // Forcer la récupération des métadonnées après un délai pour laisser le temps au traitement
                       setTimeout(() => {
-                        calculateActualCharacterCount();
-                      }, 1000); // Délai court pour permettre la mise à jour des données
+                        contentService.getById(uploadedContent.id)
+                          .then(updatedContent => {
+                            console.log("Contenu mis à jour après délai:", updatedContent);
+                            
+                            if (updatedContent.file_path) {
+                              setUploadedFiles(prev => 
+                                prev.map(f => f.id === updatedContent.id ? updatedContent : f)
+                              );
+                            } else if (updatedContent.url) {
+                              setUploadedUrls(prev => 
+                                prev.map(u => u.id === updatedContent.id ? updatedContent : u)
+                              );
+                            }
+                            
+                            // Recalculer le comptage de caractères
+                            calculateActualCharacterCount();
+                          })
+                          .catch(err => console.error("Erreur lors de la mise à jour du contenu:", err));
+                      }, 5000); // Attendre 5 secondes pour le traitement initial
                     }
                   }}
                 />

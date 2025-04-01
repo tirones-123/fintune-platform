@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Body
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import os
 import shutil
 from pathlib import Path
@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.project import Project
 from app.models.content import Content
 from app.schemas.content import ContentCreate, ContentResponse, ContentUpdate, URLContent
+from app.tasks.content_processing import process_content
 
 router = APIRouter()
 
@@ -127,15 +128,16 @@ async def upload_file(
         file_path=str(file_path),
         status="processing",
         size=file_size,
-        project_id=project_id
+        project_id=project_id,
+        metadata={"original_name": file.filename}  # Initialiser les métadonnées
     )
     
     db.add(db_content)
     db.commit()
     db.refresh(db_content)
     
-    # TODO: Trigger async processing task
-    # celery_app.send_task("app.tasks.content_processing.process_content", args=[db_content.id])
+    # Déclencher la tâche de traitement de contenu
+    process_content.delay(db_content.id)
     
     return db_content
 
@@ -167,15 +169,16 @@ def add_url_content(
         type=content_in.type,
         url=content_in.url,
         status="processing",
-        project_id=content_in.project_id
+        project_id=content_in.project_id,
+        metadata={"original_url": content_in.url}  # Initialiser les métadonnées
     )
     
     db.add(db_content)
     db.commit()
     db.refresh(db_content)
     
-    # TODO: Trigger async processing task
-    # celery_app.send_task("app.tasks.content_processing.process_url_content", args=[db_content.id])
+    # Déclencher la tâche de traitement de contenu
+    process_content.delay(db_content.id)
     
     return db_content
 
@@ -225,6 +228,39 @@ def update_content(
     # Update content fields
     for field, value in content_in.dict(exclude_unset=True).items():
         setattr(content, field, value)
+    
+    db.commit()
+    db.refresh(content)
+    
+    return content
+
+@router.put("/{content_id}/metadata", response_model=ContentResponse)
+def update_content_metadata(
+    content_id: int,
+    metadata: Dict[str, Any] = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update a content's metadata, particularly the character count
+    """
+    content = db.query(Content).join(Project).filter(
+        Content.id == content_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Content not found"
+        )
+    
+    # Si le contenu n'a pas encore de métadonnées, initialiser un dictionnaire vide
+    if not content.metadata:
+        content.metadata = {}
+    
+    # Mettre à jour les métadonnées existantes avec les nouvelles
+    content.metadata.update(metadata)
     
     db.commit()
     db.refresh(content)
