@@ -54,11 +54,11 @@ def process_pdf_content(content_id: int):
         logger.info(f"PDF content {content_id} has {character_count} characters")
         
         # Mettre à jour les métadonnées
-        if not content.metadata:
-            content.metadata = {}
+        if not content.content_metadata:
+            content.content_metadata = {}
         
-        content.metadata["character_count"] = character_count
-        content.metadata["page_count"] = len(pdf_reader.pages)
+        content.content_metadata["character_count"] = character_count
+        content.content_metadata["page_count"] = len(pdf_reader.pages)
         
         # Update content status to processed
         content.status = "completed"
@@ -121,10 +121,10 @@ def process_text_content(content_id: int):
         logger.info(f"Text content {content_id} has {character_count} characters")
         
         # Mettre à jour les métadonnées
-        if not content.metadata:
-            content.metadata = {}
+        if not content.content_metadata:
+            content.content_metadata = {}
         
-        content.metadata["character_count"] = character_count
+        content.content_metadata["character_count"] = character_count
         
         # Update content status to completed
         content.status = "completed"
@@ -187,10 +187,10 @@ def process_youtube_content(content_id: int):
         logger.info(f"YouTube content {content_id} has {character_count} characters")
         
         # Mettre à jour les métadonnées
-        if not content.metadata:
-            content.metadata = {}
+        if not content.content_metadata:
+            content.content_metadata = {}
         
-        content.metadata["character_count"] = character_count
+        content.content_metadata["character_count"] = character_count
         
         # Update content status to completed
         content.status = "completed"

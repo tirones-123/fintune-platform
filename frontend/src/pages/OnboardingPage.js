@@ -610,8 +610,8 @@ const OnboardingPage = () => {
     // Pour les fichiers
     uploadedFiles.forEach(file => {
       // Vérifier si le fichier a un comptage réel dans ses métadonnées
-      if (file.metadata && file.metadata.character_count) {
-        totalEstimate += parseInt(file.metadata.character_count);
+      if (file.content_metadata && file.content_metadata.character_count) {
+        totalEstimate += parseInt(file.content_metadata.character_count);
       } else {
         // Estimation basée sur le type de fichier et sa taille
         if (file.size) {
@@ -627,8 +627,8 @@ const OnboardingPage = () => {
     
     // Pour les URLs (estimation plus conservatrice)
     uploadedUrls.forEach(url => {
-      if (url.metadata && url.metadata.character_count) {
-        totalEstimate += parseInt(url.metadata.character_count);
+      if (url.content_metadata && url.content_metadata.character_count) {
+        totalEstimate += parseInt(url.content_metadata.character_count);
       } else {
         totalEstimate += 3000; // Estimation moyenne par URL
       }
@@ -649,8 +649,8 @@ const OnboardingPage = () => {
     // Compter les caractères des fichiers dont les métadonnées sont disponibles
     uploadedFiles.forEach(file => {
       console.log(`Fichier ${file.id} (${file.name}):`, file);
-      if (file.metadata && file.metadata.character_count) {
-        const fileChars = parseInt(file.metadata.character_count);
+      if (file.content_metadata && file.content_metadata.character_count) {
+        const fileChars = parseInt(file.content_metadata.character_count);
         console.log(`  → Caractères: ${fileChars}`);
         actualCount += fileChars;
       } else if (file.status === 'completed') {
@@ -665,8 +665,8 @@ const OnboardingPage = () => {
     // De même pour les URLs
     uploadedUrls.forEach(url => {
       console.log(`URL ${url.id} (${url.name}):`, url);
-      if (url.metadata && url.metadata.character_count) {
-        const urlChars = parseInt(url.metadata.character_count);
+      if (url.content_metadata && url.content_metadata.character_count) {
+        const urlChars = parseInt(url.content_metadata.character_count);
         console.log(`  → Caractères: ${urlChars}`);
         actualCount += urlChars;
       } else if (url.status === 'completed') {

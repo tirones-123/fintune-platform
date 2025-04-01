@@ -256,11 +256,11 @@ def update_content_metadata(
         )
     
     # Si le contenu n'a pas encore de métadonnées, initialiser un dictionnaire vide
-    if not content.metadata:
-        content.metadata = {}
+    if not content.content_metadata:
+        content.content_metadata = {}
     
     # Mettre à jour les métadonnées existantes avec les nouvelles
-    content.metadata.update(metadata)
+    content.content_metadata.update(metadata)
     
     db.commit()
     db.refresh(content)
