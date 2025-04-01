@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any
 import stripe
 from datetime import datetime
 import logging
+from pydantic import BaseModel
 
 from app.core.security import get_current_user
 from app.core.config import settings
@@ -19,6 +20,97 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
+
+# Modèle pour la requête d'onboarding
+class OnboardingCheckoutRequest(BaseModel):
+    character_count: int
+
+@router.post("/create-onboarding-session")
+async def create_onboarding_session(
+    request: OnboardingCheckoutRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Créer une session de paiement pour la fin de l'onboarding avec un nombre spécifique de caractères.
+    """
+    try:
+        # Récupérer le nombre de caractères à facturer
+        character_count = request.character_count
+        logger.info(f"Demande de session pour l'onboarding avec {character_count} caractères")
+        
+        # Vérifier si on est dans la limite gratuite
+        if character_count <= 10000:  # Les 10 000 premiers caractères sont gratuits
+            logger.info(f"Nombre de caractères ({character_count}) dans la limite gratuite")
+            
+            # Ajouter les caractères gratuitement
+            db_session = next(get_db())
+            try:
+                # Initialiser le service de caractères
+                character_service = CharacterService()
+                
+                # Ajouter les caractères
+                success = character_service.add_character_credits(
+                    db=db_session,
+                    user_id=current_user.id,
+                    character_count=character_count,
+                    payment_id=None  # Pas de paiement associé pour les caractères gratuits
+                )
+                
+                if success:
+                    logger.info(f"Ajout gratuit de {character_count} caractères réussi")
+                    return {"checkout_url": f"{settings.FRONTEND_URL}/dashboard?free_characters=true"}
+                else:
+                    logger.error(f"Échec de l'ajout gratuit de {character_count} caractères")
+            except Exception as e:
+                logger.error(f"Erreur lors de l'ajout gratuit de caractères: {str(e)}")
+                db_session.rollback()
+            finally:
+                db_session.close()
+        
+        # Calcul du montant à facturer (uniquement les caractères au-delà de 10 000)
+        billable_characters = max(0, character_count - 10000)
+        # Prix par caractère: 0.000365$
+        amount_in_cents = max(50, round(billable_characters * 0.000365 * 100))  # Minimum 50 cents (0.50$)
+        
+        logger.info(f"Facturation de {billable_characters} caractères à ${amount_in_cents/100}")
+        
+        # Créer une session de paiement pour les caractères facturables
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": f"Fine-tuning - {character_count} caractères",
+                            "description": f"Onboarding avec {billable_characters} caractères facturables (10 000 caractères gratuits inclus)"
+                        },
+                        "unit_amount": amount_in_cents,  # Montant en cents
+                    },
+                    "quantity": 1,
+                },
+            ],
+            mode="payment",
+            success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true",
+            cancel_url=f"{settings.FRONTEND_URL}/dashboard?payment_cancel=true",
+            client_reference_id=str(current_user.id),
+            metadata={
+                "payment_type": "onboarding_characters", 
+                "user_id": str(current_user.id),
+                "character_count": str(character_count),
+                "free_characters": "10000",
+                "billable_characters": str(billable_characters)
+            }
+        )
+        
+        return {"checkout_url": checkout_session.url}
+    
+    except Exception as e:
+        logger.error(f"Erreur lors de la création de la session d'onboarding: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur lors de la création de la session de paiement pour l'onboarding: {str(e)}"
+        )
 
 @router.post("/create-checkout-session")
 async def create_checkout_session(
@@ -199,13 +291,17 @@ async def stripe_webhook(request: Request):
             # Paiement réussi
             session = event["data"]["object"]
             
-            # Vérifier si c'est un achat de caractères
+            # Vérifier le type de paiement
             metadata = session.get("metadata", {})
-            if metadata.get("payment_type") == "character_credits":
-                # Traiter l'achat de caractères
+            payment_type = metadata.get("payment_type")
+            
+            if payment_type in ["character_credits", "onboarding_characters"]:
+                # Traiter l'achat de caractères ou l'onboarding
+                logger.info(f"Traitement d'un paiement de type {payment_type}")
                 await stripe_service.handle_payment_success(event)
             else:
                 # Traiter l'abonnement (ancien système)
+                logger.info("Traitement d'un paiement d'abonnement")
                 await handle_subscription_payment(session)
         
         # Répondre avec un statut 200 pour indiquer que l'événement a été reçu

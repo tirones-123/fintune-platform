@@ -549,15 +549,22 @@ const OnboardingPage = () => {
       // 3. Redirection vers la page de paiement immédiatement
       if (updatedUser && updatedUser.has_completed_onboarding) {
         try {
-          console.log("Tentative de création d'une session de paiement pour le plan 'starter'");
-          const session = await subscriptionService.createCheckoutSession('starter');
-          console.log("Session de paiement créée avec succès:", session);
+          // Récupérer le nombre de caractères (réel ou estimé)
+          const characterCount = isEstimated ? estimateCharacterCount() : actualCharacterCount;
+          console.log(`Nombre de caractères à facturer: ${characterCount}`);
           
-          if (session && session.checkout_url) {
-            console.log("Redirection vers:", session.checkout_url);
-            window.location.href = session.checkout_url;
+          // Créer un point d'entrée spécifique pour l'onboarding qui prend en compte les caractères déjà utilisés
+          console.log("Tentative de création d'une session de paiement spécifique avec les caractères");
+          const session = await api.post('/api/checkout/create-onboarding-session', {
+            character_count: characterCount
+          });
+          console.log("Session de paiement créée avec succès:", session.data);
+          
+          if (session.data && session.data.checkout_url) {
+            console.log("Redirection vers:", session.data.checkout_url);
+            window.location.href = session.data.checkout_url;
           } else {
-            console.error("URL de redirection non reçue dans la session:", session);
+            console.error("URL de redirection non reçue dans la session:", session.data);
             setCompletionError("Erreur de redirection: URL de paiement non disponible");
             setProcessingFineTuning(false);
           }

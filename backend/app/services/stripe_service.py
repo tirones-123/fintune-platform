@@ -71,8 +71,9 @@ class StripeService:
             metadata = session.get("metadata", {})
             
             # Vérifier si c'est un paiement pour des caractères
-            if metadata.get("payment_type") != "character_credits":
-                logger.warning(f"Type de paiement non pris en charge: {metadata.get('payment_type')}")
+            payment_type = metadata.get("payment_type")
+            if payment_type not in ["character_credits", "onboarding_characters"]:
+                logger.warning(f"Type de paiement non pris en charge: {payment_type}")
                 return
             
             # Extraire les détails du paiement
@@ -85,6 +86,12 @@ class StripeService:
                 # Calculer le nombre de caractères basé sur le montant
                 # Prix par caractère: 0.000365 $ (multiplier par 100 pour les cents)
                 character_count = int(amount / (0.000365 * 100))
+            
+            # Pour les paiements d'onboarding, le caractère_count inclut déjà les caractères gratuits
+            # mais nous avons seulement facturé les caractères payants
+            if payment_type == "onboarding_characters":
+                logger.info(f"Traitement d'un paiement d'onboarding avec {character_count} caractères")
+                # Aucun ajustement nécessaire car le character_count est le total, incluant les caractères gratuits
             
             # Créer un nouvel enregistrement de paiement en utilisant une session manuelle
             db = SessionLocal()
@@ -107,7 +114,7 @@ class StripeService:
                 character_service.add_character_credits(
                     db=db,
                     user_id=user_id,
-                    character_count=character_count,
+                    character_count=int(character_count),
                     payment_id=payment.id
                 )
                 
