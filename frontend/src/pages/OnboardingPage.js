@@ -818,7 +818,7 @@ const OnboardingPage = () => {
                 <CloudUploadIcon />
               </Avatar>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                Importer du contenu
+                Contenu d'entraînement
               </Typography>
             </Box>
             
