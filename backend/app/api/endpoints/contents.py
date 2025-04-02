@@ -129,7 +129,7 @@ async def upload_file(
         status="processing",
         size=file_size,
         project_id=project_id,
-        content_metadata={"original_name": file.filename}  # Initialiser les métadonnées
+        metadata={"original_name": file.filename}  # Initialiser les métadonnées
     )
     
     db.add(db_content)
@@ -170,7 +170,7 @@ def add_url_content(
         url=content_in.url,
         status="processing",
         project_id=content_in.project_id,
-        content_metadata={"original_url": content_in.url}  # Initialiser les métadonnées
+        metadata={"original_url": content_in.url}  # Initialiser les métadonnées
     )
     
     db.add(db_content)

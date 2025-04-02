@@ -16,7 +16,7 @@ class Content(Base):
     url = Column(String, nullable=True)
     size = Column(BigInteger, nullable=True)
     error_message = Column(Text, nullable=True)
-    content_metadata = Column(JSON, nullable=True)  # Pour stocker des métadonnées comme le nombre de caractères
+    metadata = Column(JSON, nullable=True)  # Pour stocker des métadonnées comme le nombre de caractères
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

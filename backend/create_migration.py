@@ -1,26 +1,25 @@
 import os
 import sys
-import subprocess
+import argparse
 
-def create_initial_migration():
+def create_migration(message):
     """
-    Create the initial migration for the database.
+    Create an Alembic migration with the given message.
     """
-    print("Creating initial migration...")
+    # Construct the alembic command
+    alembic_cmd = f"alembic revision --autogenerate -m \"{message}\""
     
-    # Run alembic revision
-    result = subprocess.run(
-        ["alembic", "revision", "--autogenerate", "-m", "Initial migration"],
-        capture_output=True,
-        text=True
-    )
+    # Print the command for visibility
+    print(f"Running: {alembic_cmd}")
     
-    if result.returncode != 0:
-        print(f"Error creating migration: {result.stderr}")
-        sys.exit(1)
+    # Execute the command
+    os.system(alembic_cmd)
     
-    print(result.stdout)
-    print("Initial migration created successfully.")
+    print("Migration created successfully!")
 
 if __name__ == "__main__":
-    create_initial_migration() 
+    parser = argparse.ArgumentParser(description="Create a new database migration")
+    parser.add_argument("message", help="Message for the migration")
+    
+    args = parser.parse_args()
+    create_migration(args.message) 
