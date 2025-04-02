@@ -2,29 +2,19 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for textract and other packages
+# Install system dependencies
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
-    antiword \
-    poppler-utils \
-    unrtf \
-    libxslt1-dev \
-    tesseract-ocr \
-    libtesseract-dev \
-    python3-dev \
-    libssl-dev \
-    libffi-dev \
-    libxml2-dev \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies with meilleure visibilité des erreurs
-RUN pip install --no-cache-dir -r requirements.txt || (echo "Package installation failed" && exit 1)
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
 COPY . .

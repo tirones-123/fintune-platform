@@ -4,9 +4,6 @@ from fastapi import UploadFile
 from loguru import logger
 import uuid
 from typing import Optional
-import textract
-import docx
-import tempfile
 
 from app.core.config import settings
 
@@ -117,41 +114,10 @@ class StorageService:
                 logger.warning(f"File not found: {file_path}")
                 return None
                 
-            # Vérifier l'extension du fichier
-            file_extension = os.path.splitext(file_path)[1].lower()
-            
-            # Cas spécial pour fichiers DOCX (plus rapide avec python-docx)
-            if file_extension == '.docx':
-                try:
-                    doc = docx.Document(file_path)
-                    return '\n'.join([paragraph.text for paragraph in doc.paragraphs])
-                except Exception as e:
-                    logger.error(f"Error reading DOCX file with python-docx: {str(e)}")
-                    # Fallback to textract if python-docx fails
-            
-            # Pour les fichiers DOC, DOCX et PDF, utiliser textract
-            if file_extension in ['.doc', '.docx', '.pdf']:
-                try:
-                    # Extraire le texte avec textract
-                    text = textract.process(file_path).decode('utf-8')
-                    return text
-                except Exception as e:
-                    logger.error(f"Error extracting text with textract from {file_path}: {str(e)}")
-                    return None
-            
             # Pour les fichiers texte, utiliser la méthode standard
             with open(file_path, 'r', encoding='utf-8') as file:
                 return file.read()
                 
-        except UnicodeDecodeError:
-            logger.warning(f"UnicodeDecodeError with {file_path}, trying with textract")
-            try:
-                # Essayer d'extraire le texte avec textract
-                text = textract.process(file_path).decode('utf-8')
-                return text
-            except Exception as e:
-                logger.error(f"Error with textract for {file_path}: {str(e)}")
-                return None
         except Exception as e:
             logger.error(f"Error reading file {file_path}: {str(e)}")
             return None
