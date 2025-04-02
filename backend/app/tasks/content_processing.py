@@ -51,7 +51,7 @@ def process_pdf_content(content_id: int):
             db.commit()
             return {"status": "error", "message": str(extract_error)}
         
-        # Compter les caractères
+        # Compter les caractères - méthode exacte
         character_count = len(extracted_text)
         logger.info(f"PDF content {content_id} has {character_count} characters")
         
@@ -60,13 +60,18 @@ def process_pdf_content(content_id: int):
             content.content_metadata = {}
         
         content.content_metadata["character_count"] = character_count
+        content.content_metadata["is_exact_count"] = True  # Indiquer que ce comptage est exact
         content.content_metadata["page_count"] = len(pdf_reader.pages)
         
         # Update content status to processed
         content.status = "completed"
         db.commit()
+        logger.info(f"PDF content {content_id} status updated to 'completed'")
         
-        logger.info(f"PDF content {content_id} processed successfully")
+        # Vérifier que le statut a bien été mis à jour
+        updated_content = db.query(Content).filter(Content.id == content_id).first()
+        logger.info(f"PDF content {content_id} final status: {updated_content.status}")
+        logger.info(f"PDF content {content_id} processed successfully with {character_count} characters")
         return {"status": "success", "content_id": content_id, "character_count": character_count}
     
     except Exception as e:
@@ -118,7 +123,7 @@ def process_text_content(content_id: int):
             db.commit()
             return {"status": "error", "message": error_msg}
         
-        # Compter les caractères
+        # Compter les caractères - méthode exacte
         character_count = len(extracted_text)
         logger.info(f"Text content {content_id} has {character_count} characters")
         
@@ -127,12 +132,17 @@ def process_text_content(content_id: int):
             content.content_metadata = {}
         
         content.content_metadata["character_count"] = character_count
+        content.content_metadata["is_exact_count"] = True  # Indiquer que ce comptage est exact
         
         # Update content status to completed
         content.status = "completed"
         db.commit()
+        logger.info(f"Text content {content_id} status updated to 'completed'")
         
-        logger.info(f"Text content {content_id} processed successfully")
+        # Vérifier que le statut a bien été mis à jour
+        updated_content = db.query(Content).filter(Content.id == content_id).first()
+        logger.info(f"Text content {content_id} final status: {updated_content.status}")
+        logger.info(f"Text content {content_id} processed successfully with {character_count} characters")
         return {"status": "success", "content_id": content_id, "character_count": character_count}
     
     except Exception as e:
@@ -178,8 +188,15 @@ def process_docx_content(content_id: int):
         if not content.content_metadata:
             content.content_metadata = {}
         content.content_metadata["character_count"] = character_count
+        content.content_metadata["is_exact_count"] = True  # Indiquer que ce comptage est exact
         content.status = "completed"
         db.commit()
+        logger.info(f"DOCX content {content_id} status updated to 'completed'")
+        
+        # Vérifier que le statut a bien été mis à jour
+        updated_content = db.query(Content).filter(Content.id == content_id).first()
+        logger.info(f"DOCX content {content_id} final status: {updated_content.status}")
+        logger.info(f"DOCX content {content_id} processed successfully with {character_count} characters")
         return {"status": "success", "content_id": content_id, "character_count": character_count}
     except Exception as e:
         logger.error(f"Error processing DOCX content {content_id}: {str(e)}")

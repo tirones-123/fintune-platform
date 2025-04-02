@@ -286,8 +286,10 @@ const FileUpload = ({ projectId, onSuccess }) => {
 
   // Fonction pour formater le nombre de caractères
   const formatCharCount = (content) => {
-    if (!content.content_metadata || !content.content_metadata.character_count) {
-      return 'En traitement...';
+    if (content.status === 'error') {
+      return 'Erreur';
+    } else if (!content.content_metadata || !content.content_metadata.character_count) {
+      return 'En cours...';
     }
     const count = parseInt(content.content_metadata.character_count);
     if (count > 1000000) {
@@ -297,6 +299,40 @@ const FileUpload = ({ projectId, onSuccess }) => {
     }
     return `${count} car`;
   };
+
+  // Fonction pour vérifier l'état des contenus et actualiser si nécessaire
+  useEffect(() => {
+    // Vérifier si des contenus sont en traitement et les mettre à jour périodiquement
+    const processingContents = uploadedContents.filter(content => 
+      content.status === 'processing' || (!content.content_metadata?.character_count && content.status !== 'error')
+    );
+    
+    if (processingContents.length > 0) {
+      const intervalId = setInterval(() => {
+        processingContents.forEach(content => {
+          contentService.getById(content.id)
+            .then(updatedContent => {
+              console.log(`Vérification du statut du contenu ${content.id}: ${updatedContent.status}`);
+              
+              // Mettre à jour le contenu dans la liste
+              setUploadedContents(prev => 
+                prev.map(item => item.id === updatedContent.id ? updatedContent : item)
+              );
+              
+              // Notifier l'utilisateur si le contenu est terminé ou en erreur
+              if (updatedContent.status === 'completed' && content.status !== 'completed') {
+                enqueueSnackbar(`"${updatedContent.name}" traité : ${formatCharCount(updatedContent)}`, { variant: 'success' });
+              } else if (updatedContent.status === 'error' && content.status !== 'error') {
+                enqueueSnackbar(`Erreur lors du traitement de "${updatedContent.name}"`, { variant: 'error' });
+              }
+            })
+            .catch(err => console.error(`Erreur lors de la vérification du contenu ${content.id}:`, err));
+        });
+      }, 3000); // Vérifier toutes les 3 secondes
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [uploadedContents]);
 
   // Fonction pour supprimer un contenu
   const handleDeleteContent = async (contentId) => {
