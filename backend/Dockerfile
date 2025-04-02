@@ -13,14 +13,18 @@ RUN apt-get update && \
     libxslt1-dev \
     tesseract-ocr \
     libtesseract-dev \
+    python3-dev \
+    libssl-dev \
+    libffi-dev \
+    libxml2-dev \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with meilleure visibilité des erreurs
+RUN pip install --no-cache-dir -r requirements.txt || (echo "Package installation failed" && exit 1)
 
 # Copy the rest of the application
 COPY . .
