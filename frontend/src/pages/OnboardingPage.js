@@ -1381,8 +1381,6 @@ const OnboardingPage = () => {
                 </Alert>
               )}
             </Paper>
-              )}
-            </motion.div>
           </Box>
         );
         
