@@ -356,58 +356,18 @@ const FileUpload = ({ projectId, onSuccess }) => {
           
           {/* Affichage compact des fichiers uploadés */}
           {uploadedContents.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Fichiers importés ({uploadedContents.length})
-              </Typography>
-              <Stack spacing={1} sx={{ mt: 1 }}>
-                {uploadedContents.map((content) => (
-                  <Paper
-                    key={content.id}
-                    variant="outlined"
-                    sx={{
-                      p: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      borderColor: content.status === 'error' ? 'error.main' : 'divider',
-                      borderRadius: 1,
-                      bgcolor: content.status === 'completed' ? 'success.lighter' : content.status === 'error' ? 'error.lighter' : 'background.default',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-                      <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
-                        {getContentIcon(content)}
-                      </Box>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          maxWidth: '200px',
-                        }}
-                      >
-                        {content.name}
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={formatCharCount(content)}
-                        color={content.status === 'completed' ? 'success' : content.status === 'error' ? 'error' : 'default'}
-                        sx={{ ml: 1 }}
-                      />
-                    </Box>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteContent(content.id)}
-                      sx={{ ml: 1 }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Paper>
-                ))}
-              </Stack>
-            </Box>
+            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
+              {uploadedContents.map((content) => (
+                <Chip
+                  key={content.id}
+                  icon={getContentIcon(content)}
+                  label={`${content.name.length > 20 ? content.name.substring(0, 18) + '...' : content.name} (${formatCharCount(content)})`}
+                  sx={{ mb: 1, maxWidth: '100%' }}
+                  color={content.status === 'completed' ? 'success' : content.status === 'error' ? 'error' : 'default'}
+                  onDelete={() => handleDeleteContent(content.id)}
+                />
+              ))}
+            </Stack>
           )}
           
           <Divider sx={{ my: 3 }} />

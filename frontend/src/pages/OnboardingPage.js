@@ -858,7 +858,7 @@ const OnboardingPage = () => {
               </Box>
             </Paper>
             
-            {/* Utilisation du composant FileUpload au lieu du code personnalisé */}
+            {/* Le composant FileUpload affiche déjà les fichiers sous forme de chips */}
             {createdProject && (
               <Box sx={{ mb: 3 }}>
                 <FileUpload 
@@ -919,58 +919,6 @@ const OnboardingPage = () => {
                   }}
                 />
               </Box>
-            )}
-            
-            {/* Liste des fichiers uploadés */}
-            {uploadedFiles.length > 0 && (
-              <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                  Fichiers importés ({uploadedFiles.length})
-                </Typography>
-                {uploadedFiles.map((file) => (
-                  <UploadStatusCard 
-                    key={file.id}
-                    content={file}
-                    onDelete={() => handleDeleteContent(file, 'file')}
-                    showDetailedStats={true}
-                    usageType={useCase}
-                    onMetadataUpdate={(updatedContent) => {
-                      // Mettre à jour l'élément dans la liste des fichiers
-                      setUploadedFiles(prev => 
-                        prev.map(item => item.id === updatedContent.id ? updatedContent : item)
-                      );
-                      // Recalculer le comptage réel
-                      calculateActualCharacterCount();
-                    }}
-                  />
-                ))}
-              </Paper>
-            )}
-            
-            {/* Liste des URLs ajoutées */}
-            {uploadedUrls.length > 0 && (
-              <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                  URLs importées ({uploadedUrls.length})
-                </Typography>
-                {uploadedUrls.map((url) => (
-                  <UploadStatusCard 
-                    key={url.id}
-                    content={url}
-                    onDelete={() => handleDeleteContent(url, 'url')}
-                    showDetailedStats={true}
-                    usageType={useCase}
-                    onMetadataUpdate={(updatedContent) => {
-                      // Mettre à jour l'élément dans la liste des URLs
-                      setUploadedUrls(prev => 
-                        prev.map(item => item.id === updatedContent.id ? updatedContent : item)
-                      );
-                      // Recalculer le comptage réel
-                      calculateActualCharacterCount();
-                    }}
-                  />
-                ))}
-              </Paper>
             )}
             
             {uploadError && (
