@@ -646,11 +646,28 @@ const OnboardingPage = () => {
       }
     });
     
-    // Pour les URLs (estimation plus conservatrice)
+    // Pour les URLs (estimation plus spécifique)
     uploadedUrls.forEach(url => {
+      // Si nous avons déjà un comptage dans les métadonnées, l'utiliser
       if (url.content_metadata && url.content_metadata.character_count) {
         totalEstimate += parseInt(url.content_metadata.character_count);
+      } 
+      // Traitement spécial pour les vidéos YouTube
+      else if ((url.type === 'youtube' || url.url?.includes('youtube.com') || url.url?.includes('youtu.be'))) {
+        // Si les métadonnées contiennent la durée de la vidéo
+        if (url.content_metadata && url.content_metadata.duration_seconds) {
+          // Estimation de 900 caractères par minute
+          const durationMinutes = parseInt(url.content_metadata.duration_seconds) / 60;
+          const youtubeEstimate = Math.round(durationMinutes * 900);
+          console.log(`Estimation YouTube pour ${url.name}: ${durationMinutes.toFixed(1)} minutes = ${youtubeEstimate} caractères`);
+          totalEstimate += youtubeEstimate;
+        } else {
+          // Si pas de durée disponible, estimation moyenne pour une vidéo YouTube
+          totalEstimate += 10000; // Estimation moyenne pour une vidéo YouTube (≈11 minutes)
+          console.log(`Durée de vidéo YouTube non disponible pour ${url.name}, estimation par défaut: 10000 caractères`);
+        }
       } else {
+        // Pour les autres URLs
         totalEstimate += 3000; // Estimation moyenne par URL
       }
     });
@@ -702,14 +719,29 @@ const OnboardingPage = () => {
     // De même pour les URLs
     uploadedUrls.forEach(url => {
       console.log(`URL ${url.id} (${url.name}) - status: ${url.status}, métadonnées:`, url.content_metadata);
+      
+      // Cas 1: Si les métadonnées contiennent directement le nombre de caractères
       if (url.content_metadata && url.content_metadata.character_count) {
         const urlChars = parseInt(url.content_metadata.character_count);
         console.log(`  → Caractères exacts: ${urlChars}`);
         actualCount += urlChars;
-      } else if (url.status === 'completed') {
+      } 
+      // Cas 2: Pour les vidéos YouTube avec durée connue mais sans comptage direct
+      else if ((url.type === 'youtube' || url.url?.includes('youtube.com') || url.url?.includes('youtu.be')) && 
+               url.content_metadata && url.content_metadata.duration_seconds && url.status === 'completed') {
+        // Calcul basé sur 900 caractères par minute
+        const durationMinutes = parseInt(url.content_metadata.duration_seconds) / 60;
+        const youtubeChars = Math.round(durationMinutes * 900);
+        console.log(`  → YouTube complété: ${durationMinutes.toFixed(1)} minutes = ${youtubeChars} caractères (900 car/min)`);
+        actualCount += youtubeChars;
+      }
+      // Cas 3: Contenu "completed" mais sans métadonnées
+      else if (url.status === 'completed') {
         console.log(`  → ANOMALIE: Statut completed mais pas de métadonnées de caractères`);
         hasAllCounts = false;
-      } else {
+      } 
+      // Cas 4: Contenu en cours de traitement ou en erreur
+      else {
         console.log(`  → Statut: ${url.status}, pas de comptage disponible`);
         // Forcer un rafraîchissement de l'URL pour tenter d'obtenir les données à jour
         if (url.status !== 'error') {
