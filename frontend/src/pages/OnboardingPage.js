@@ -1055,44 +1055,44 @@ const OnboardingPage = () => {
                       );
                     })}
                   </Box>
-                )}
                 
-                {/* Messages d'état */}
-                {(isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended && (
-                  <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.5 }}>
-                    <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                    Il vous manque <strong>{(minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString()}</strong> caractères pour atteindre le minimum recommandé pour cette catégorie.
-                  </Typography>
-                )}
-                {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && 
-                  (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended * 4 && (
-                    <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
-                      <CheckCircleIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                      Vous avez atteint le minimum recommandé pour cette catégorie d'assistant.
+                  {/* Messages d'état */}
+                  {(isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended && (
+                    <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.5 }}>
+                      <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                      Il vous manque <strong>{(minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString()}</strong> caractères pour atteindre le minimum recommandé pour cette catégorie.
                     </Typography>
                   )}
-                {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && (
-                  <Typography variant="caption" color={(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? 'primary.main' : 'text.secondary'} sx={{ display: 'block', mt: 0.5 }}>
-                    {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? (
-                      <>
-                        <StarsIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                        Excellent! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.
-                      </>
-                    ) : (
-                      <>Plus vous ajoutez de contenu (jusqu'à {(minCharactersRecommended * 4).toLocaleString()} caractères), meilleure sera la qualité du fine-tuning.</>
+                  {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && 
+                    (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended * 4 && (
+                      <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
+                        <CheckCircleIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                        Vous avez atteint le minimum recommandé pour cette catégorie d'assistant.
+                      </Typography>
                     )}
-                  </Typography>
-                )}
-                
-                {isEstimated && [...uploadedFiles, ...uploadedUrls].some(c => c.status !== 'completed' && c.status !== 'error') && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    <Typography variant="caption" color="text.secondary">
-                      Traitement des fichiers en cours, le comptage sera mis à jour automatiquement
+                  {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && (
+                    <Typography variant="caption" color={(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? 'primary.main' : 'text.secondary'} sx={{ display: 'block', mt: 0.5 }}>
+                      {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? (
+                        <>
+                          <StarsIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                          Excellent! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.
+                        </>
+                      ) : (
+                        <>Plus vous ajoutez de contenu (jusqu'à {(minCharactersRecommended * 4).toLocaleString()} caractères), meilleure sera la qualité du fine-tuning.</>
+                      )}
                     </Typography>
-                  </Box>
-                )}
-              </Paper>
+                  )}
+                  
+                  {isEstimated && [...uploadedFiles, ...uploadedUrls].some(c => c.status !== 'completed' && c.status !== 'error') && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                      <CircularProgress size={16} sx={{ mr: 1 }} />
+                      <Typography variant="caption" color="text.secondary">
+                        Traitement des fichiers en cours, le comptage sera mis à jour automatiquement
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              )}
               
               {/* Le composant FileUpload affiche déjà les fichiers sous forme de chips */}
               {createdProject && (
