@@ -8,7 +8,7 @@ import PyPDF2
 from app.db.session import SessionLocal
 from app.models.content import Content
 from app.services.content_processor import content_processor
-from app.services.storage_service import storage_service
+from app.services.storage import storage_service
 
 @shared_task(name="process_pdf_content")
 def process_pdf_content(content_id: int):
