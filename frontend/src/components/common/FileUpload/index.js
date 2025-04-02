@@ -286,25 +286,29 @@ const FileUpload = ({ projectId, onSuccess }) => {
 
   // Fonction pour formater le nombre de caractères
   const formatCharCount = (content) => {
-    if (content.status === 'error') {
+    // Vérifier explicitement le status et le comptage
+    if (content.status === 'completed' && content.content_metadata && content.content_metadata.character_count) {
+      // Si le contenu est traité et que le comptage existe, afficher le nombre exact
+      const count = parseInt(content.content_metadata.character_count);
+      if (count > 1000000) {
+        return `${(count / 1000000).toFixed(2)} M car`;
+      } else if (count > 1000) {
+        return `${(count / 1000).toFixed(1)} K car`;
+      }
+      return `${count} car`;
+    } else if (content.status === 'error') {
       return 'Erreur';
-    } else if (!content.content_metadata || !content.content_metadata.character_count) {
+    } else {
       return 'En cours...';
     }
-    const count = parseInt(content.content_metadata.character_count);
-    if (count > 1000000) {
-      return `${(count / 1000000).toFixed(2)} M car`;
-    } else if (count > 1000) {
-      return `${(count / 1000).toFixed(1)} K car`;
-    }
-    return `${count} car`;
   };
 
   // Fonction pour vérifier l'état des contenus et actualiser si nécessaire
   useEffect(() => {
     // Vérifier si des contenus sont en traitement et les mettre à jour périodiquement
     const processingContents = uploadedContents.filter(content => 
-      content.status === 'processing' || (!content.content_metadata?.character_count && content.status !== 'error')
+      // Tout contenu qui n'est pas explicitement completed ou error doit être vérifié
+      content.status !== 'completed' && content.status !== 'error'
     );
     
     if (processingContents.length > 0) {
@@ -313,6 +317,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
           contentService.getById(content.id)
             .then(updatedContent => {
               console.log(`Vérification du statut du contenu ${content.id}: ${updatedContent.status}`);
+              console.log(`Métadonnées du contenu: `, updatedContent.content_metadata);
               
               // Mettre à jour le contenu dans la liste
               setUploadedContents(prev => 
@@ -321,18 +326,26 @@ const FileUpload = ({ projectId, onSuccess }) => {
               
               // Notifier l'utilisateur si le contenu est terminé ou en erreur
               if (updatedContent.status === 'completed' && content.status !== 'completed') {
-                enqueueSnackbar(`"${updatedContent.name}" traité : ${formatCharCount(updatedContent)}`, { variant: 'success' });
+                const charCount = updatedContent.content_metadata?.character_count 
+                  ? parseInt(updatedContent.content_metadata.character_count).toLocaleString() 
+                  : "inconnu";
+                enqueueSnackbar(`"${updatedContent.name}" traité : ${charCount} caractères`, { variant: 'success' });
+                
+                // Informer le parent (si onSuccess est fourni) de la mise à jour
+                if (onSuccess) {
+                  onSuccess(updatedContent);
+                }
               } else if (updatedContent.status === 'error' && content.status !== 'error') {
                 enqueueSnackbar(`Erreur lors du traitement de "${updatedContent.name}"`, { variant: 'error' });
               }
             })
             .catch(err => console.error(`Erreur lors de la vérification du contenu ${content.id}:`, err));
         });
-      }, 3000); // Vérifier toutes les 3 secondes
+      }, 2000); // Vérifier toutes les 2 secondes pour une expérience plus réactive
       
       return () => clearInterval(intervalId);
     }
-  }, [uploadedContents]);
+  }, [uploadedContents, enqueueSnackbar, onSuccess]);
 
   // Fonction pour supprimer un contenu
   const handleDeleteContent = async (contentId) => {

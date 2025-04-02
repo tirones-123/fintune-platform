@@ -46,6 +46,8 @@ import InsertLinkIcon from '@mui/icons-material/InsertLink';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DescriptionIcon from '@mui/icons-material/Description';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import StarsIcon from '@mui/icons-material/Stars';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
 import { 
@@ -60,7 +62,6 @@ import {
 import { useSnackbar } from 'notistack';
 import FileUpload from '../components/common/FileUpload';
 import HelpIcon from '@mui/icons-material/Help';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import UploadStatusCard from '../components/content/UploadStatusCard';
 
 // Variantes d'animation pour les étapes
@@ -136,6 +137,8 @@ const OnboardingPage = () => {
   const [systemContent, setSystemContent] = useState('');
   const [generatingSystemContent, setGeneratingSystemContent] = useState(false);
   const [systemContentError, setSystemContentError] = useState(null);
+  const [fineTuningCategory, setFineTuningCategory] = useState('');
+  const [minCharactersRecommended, setMinCharactersRecommended] = useState(0);
   
   // Données du projet (créé automatiquement)
   const [projectName] = useState("Mon premier projet");
@@ -269,6 +272,23 @@ const OnboardingPage = () => {
       
       const data = await response.json();
       setSystemContent(data.system_content);
+      setFineTuningCategory(data.fine_tuning_category);
+      setMinCharactersRecommended(data.min_characters_recommended);
+      
+      // Mettre à jour le useCase en fonction de la catégorie (pour les seuils d'évaluation)
+      let mappedUseCase = 'other';
+      if (data.fine_tuning_category === 'Conversational Style (Character)') {
+        mappedUseCase = 'customer_service';
+      } else if (data.fine_tuning_category === 'Task-specific Assistant') {
+        mappedUseCase = 'customer_service';
+      } else if (data.fine_tuning_category === 'Professional Expertise (lawyer, doctor, etc.)') {
+        mappedUseCase = 'legal';
+      } else if (data.fine_tuning_category === 'Translation / Specialized Rewriting') {
+        mappedUseCase = 'knowledge_base';
+      } else if (data.fine_tuning_category === 'Enterprise Chatbot (Internal Knowledge)') {
+        mappedUseCase = 'knowledge_base';
+      }
+      setUseCase(mappedUseCase);
       
       enqueueSnackbar('System content généré avec succès', { variant: 'success' });
       return true;
@@ -649,32 +669,64 @@ const OnboardingPage = () => {
     
     // Compter les caractères des fichiers dont les métadonnées sont disponibles
     uploadedFiles.forEach(file => {
-      console.log(`Fichier ${file.id} (${file.name}):`, file);
+      console.log(`Fichier ${file.id} (${file.name}) - status: ${file.status}, métadonnées:`, file.content_metadata);
       if (file.content_metadata && file.content_metadata.character_count) {
         const fileChars = parseInt(file.content_metadata.character_count);
-        console.log(`  → Caractères: ${fileChars}`);
+        console.log(`  → Caractères exacts: ${fileChars}`);
         actualCount += fileChars;
       } else if (file.status === 'completed') {
-        // Si le fichier est traité mais n'a pas de métadonnées de comptage
-        console.log(`  → Pas de métadonnées de caractères mais statut completed`);
+        // Si le fichier est marqué comme traité mais n'a pas de métadonnées de comptage, c'est anormal
+        console.log(`  → ANOMALIE: Statut completed mais pas de métadonnées de caractères`);
         hasAllCounts = false;
       } else {
         console.log(`  → Statut: ${file.status}, pas de comptage disponible`);
+        // Forcer un rafraîchissement du fichier pour tenter d'obtenir les données à jour
+        if (file.status !== 'error') {
+          setTimeout(() => {
+            contentService.getById(file.id)
+              .then(updatedFile => {
+                console.log(`Rafraîchissement des données pour ${file.id}:`, updatedFile);
+                setUploadedFiles(prev => 
+                  prev.map(f => f.id === updatedFile.id ? updatedFile : f)
+                );
+                // Recalculer après mise à jour
+                setTimeout(() => calculateActualCharacterCount(), 500);
+              })
+              .catch(err => console.error(`Erreur lors du rafraîchissement du fichier ${file.id}:`, err));
+          }, 1000);
+        }
+        hasAllCounts = false;
       }
     });
     
     // De même pour les URLs
     uploadedUrls.forEach(url => {
-      console.log(`URL ${url.id} (${url.name}):`, url);
+      console.log(`URL ${url.id} (${url.name}) - status: ${url.status}, métadonnées:`, url.content_metadata);
       if (url.content_metadata && url.content_metadata.character_count) {
         const urlChars = parseInt(url.content_metadata.character_count);
-        console.log(`  → Caractères: ${urlChars}`);
+        console.log(`  → Caractères exacts: ${urlChars}`);
         actualCount += urlChars;
       } else if (url.status === 'completed') {
-        console.log(`  → Pas de métadonnées de caractères mais statut completed`);
+        console.log(`  → ANOMALIE: Statut completed mais pas de métadonnées de caractères`);
         hasAllCounts = false;
       } else {
         console.log(`  → Statut: ${url.status}, pas de comptage disponible`);
+        // Forcer un rafraîchissement de l'URL pour tenter d'obtenir les données à jour
+        if (url.status !== 'error') {
+          setTimeout(() => {
+            contentService.getById(url.id)
+              .then(updatedUrl => {
+                console.log(`Rafraîchissement des données pour ${url.id}:`, updatedUrl);
+                setUploadedUrls(prev => 
+                  prev.map(u => u.id === updatedUrl.id ? updatedUrl : u)
+                );
+                // Recalculer après mise à jour
+                setTimeout(() => calculateActualCharacterCount(), 500);
+              })
+              .catch(err => console.error(`Erreur lors du rafraîchissement de l'URL ${url.id}:`, err));
+          }, 1000);
+        }
+        hasAllCounts = false;
       }
     });
     
@@ -690,6 +742,22 @@ const OnboardingPage = () => {
   // Mettre à jour le comptage réel chaque fois que les fichiers ou URLs changent
   useEffect(() => {
     calculateActualCharacterCount();
+  }, []);  // On le fait seulement au chargement initial, puis les rafraîchissements sont gérés dans la fonction
+
+  // Rafraîchir régulièrement le comptage des caractères
+  useEffect(() => {
+    // Vérifier s'il y a des fichiers ou URLs en cours de traitement
+    const hasProcessingContent = [...uploadedFiles, ...uploadedUrls].some(
+      content => content.status !== 'completed' && content.status !== 'error'
+    );
+    
+    if (hasProcessingContent) {
+      const intervalId = setInterval(() => {
+        calculateActualCharacterCount();
+      }, 5000);  // Rafraîchir toutes les 5 secondes
+      
+      return () => clearInterval(intervalId);
+    }
   }, [uploadedFiles, uploadedUrls]);
 
   // Calculer le niveau de qualité basé sur le nombre de caractères et le type d'usage
@@ -728,6 +796,35 @@ const OnboardingPage = () => {
     // Soustraire le quota gratuit
     const billableCharacters = Math.max(0, characterCount - FREE_CHARACTER_QUOTA);
     return billableCharacters * PRICE_PER_CHARACTER;
+  };
+
+  // Fonction pour calculer la progression sur la barre multi-paliers
+  const calculateProgressValue = (currentCount, minRecommended) => {
+    // Si aucune recommandation, retourner 0
+    if (!minRecommended) return 0;
+    
+    // Définir les paliers
+    const freeCredits = 10000;
+    const maxRecommended = minRecommended * 4;
+    
+    // Calculer les pourcentages pour chaque segment de la barre
+    // Segment 1: 0 à 10k (25% de la barre)
+    // Segment 2: 10k au minimum recommandé (25% de la barre)
+    // Segment 3: minimum recommandé à 4x le minimum (50% de la barre)
+    
+    if (currentCount <= freeCredits) {
+      // Premier segment (0-10k)
+      return (currentCount / freeCredits) * 25;
+    } else if (currentCount <= minRecommended) {
+      // Deuxième segment (10k-min recommandé)
+      return 25 + ((currentCount - freeCredits) / (minRecommended - freeCredits)) * 25;
+    } else if (currentCount <= maxRecommended) {
+      // Troisième segment (min recommandé-4x min recommandé)
+      return 50 + ((currentCount - minRecommended) / (maxRecommended - minRecommended)) * 50;
+    } else {
+      // Au-delà de 4x le minimum recommandé
+      return 100;
+    }
   };
 
   // Contenu des étapes
@@ -790,6 +887,33 @@ const OnboardingPage = () => {
                 }}>
                   {systemContent}
                 </Typography>
+                
+                {fineTuningCategory && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                      Catégorie de fine-tuning détectée
+                    </Typography>
+                    <Chip 
+                      label={fineTuningCategory} 
+                      color="primary" 
+                      variant="outlined" 
+                      sx={{ mr: 1 }}
+                    />
+                  </Box>
+                )}
+                
+                {minCharactersRecommended > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                      Recommandation
+                    </Typography>
+                    <Alert severity="info" sx={{ mb: 1 }}>
+                      <Typography variant="body2">
+                        Pour ce type d'assistant, nous recommandons un minimum de <strong>{minCharactersRecommended.toLocaleString()}</strong> caractères dans votre dataset d'entraînement.
+                      </Typography>
+                    </Alert>
+                  </Box>
+                )}
               </Paper>
             )}
             
@@ -837,14 +961,19 @@ const OnboardingPage = () => {
               }}
             >
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Estimation
+                {isEstimated ? "Estimation des caractères" : "Comptage exact des caractères"}
+                {uploadedFiles.length > 0 || uploadedUrls.length > 0 ? 
+                  ` (${[...uploadedFiles, ...uploadedUrls].filter(c => c.status === 'completed').length}/${uploadedFiles.length + uploadedUrls.length} fichiers traités)` 
+                  : ""}
               </Typography>
               
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     {isEstimated ? (
-                      <>Caractères estimés: <strong>{estimateCharacterCount().toLocaleString()}</strong></>
+                      <>Caractères estimés: <strong>{estimateCharacterCount().toLocaleString()}</strong> 
+                        {actualCharacterCount > 0 && <>(dont {actualCharacterCount.toLocaleString()} comptés)</>}
+                      </>
                     ) : (
                       <>Caractères comptés: <strong>{actualCharacterCount.toLocaleString()}</strong></>
                     )}
@@ -856,6 +985,129 @@ const OnboardingPage = () => {
                   </Typography>
                 </Box>
               </Box>
+              
+              {/* Comparaison avec le minimum recommandé */}
+              {minCharactersRecommended > 0 && (
+                <Box sx={{ mt: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body2" fontWeight="medium">
+                      Progression de votre dataset
+                    </Typography>
+                    <Typography variant="body2">
+                      {(isEstimated ? estimateCharacterCount() : actualCharacterCount).toLocaleString()} caractères
+                    </Typography>
+                  </Box>
+                  
+                  {/* Barre de progression avec paliers */}
+                  <Box sx={{ position: 'relative', mb: 2, mt: 3, height: 20 }}>
+                    {/* Barre de progression principale */}
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={calculateProgressValue(isEstimated ? estimateCharacterCount() : actualCharacterCount, minCharactersRecommended)}
+                      sx={{ 
+                        position: 'absolute',
+                        width: '100%',
+                        height: 10, 
+                        borderRadius: 5,
+                        '& .MuiLinearProgress-bar': {
+                          transition: 'transform 0.8s ease-in-out',
+                        }
+                      }}
+                    />
+                    
+                    {/* Paliers visuels */}
+                    <Box sx={{ position: 'absolute', width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end' }}>
+                      {/* Palier 10k (crédits gratuits) */}
+                      <Box sx={{ 
+                        position: 'absolute', 
+                        left: '25%', 
+                        height: 16, 
+                        width: 2, 
+                        bgcolor: 'divider',
+                        bottom: -3
+                      }}>
+                        <Tooltip title="10 000 caractères (crédits gratuits)" arrow placement="top">
+                          <Typography variant="caption" sx={{ position: 'absolute', top: -20, left: -25, width: 50, textAlign: 'center' }}>
+                            10k
+                          </Typography>
+                        </Tooltip>
+                      </Box>
+                      
+                      {/* Palier minimum recommandé */}
+                      <Box sx={{ 
+                        position: 'absolute', 
+                        left: '50%', 
+                        height: 16, 
+                        width: 2, 
+                        bgcolor: 'warning.main',
+                        bottom: -3
+                      }}>
+                        <Tooltip title={`${minCharactersRecommended.toLocaleString()} caractères (minimum recommandé)`} arrow placement="top">
+                          <Typography variant="caption" sx={{ position: 'absolute', top: -20, left: -30, width: 60, textAlign: 'center', fontWeight: 'bold' }}>
+                            Min
+                          </Typography>
+                        </Tooltip>
+                      </Box>
+                      
+                      {/* Paliers multiples */}
+                      {[1.5, 2, 3, 4].map((multiplier, index) => (
+                        <Box key={index} sx={{ 
+                          position: 'absolute', 
+                          left: `${50 + (multiplier - 1) * (50 / 3)}%`, 
+                          height: index % 2 === 0 ? 14 : 10, 
+                          width: 1, 
+                          bgcolor: 'divider',
+                          bottom: -3
+                        }}>
+                          {index === 3 && (
+                            <Tooltip title={`${(minCharactersRecommended * multiplier).toLocaleString()} caractères (optimal)`} arrow placement="top">
+                              <Typography variant="caption" sx={{ position: 'absolute', top: -20, left: -30, width: 60, textAlign: 'center' }}>
+                                Optimal
+                              </Typography>
+                            </Tooltip>
+                          )}
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+              
+              {/* Messages d'état */}
+              {(isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended && (
+                <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.5 }}>
+                  <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                  Il vous manque <strong>{(minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString()}</strong> caractères pour atteindre le minimum recommandé pour cette catégorie.
+                </Typography>
+              )}
+              {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && 
+                (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended * 4 && (
+                  <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
+                    <CheckCircleIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                    Vous avez atteint le minimum recommandé pour cette catégorie d'assistant.
+                  </Typography>
+                )}
+              {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && (
+                <Typography variant="caption" color={(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? 'primary.main' : 'text.secondary'} sx={{ display: 'block', mt: 0.5 }}>
+                  {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? (
+                    <>
+                      <StarsIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                      Excellent! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.
+                    </>
+                  ) : (
+                    <>Plus vous ajoutez de contenu (jusqu'à {(minCharactersRecommended * 4).toLocaleString()} caractères), meilleure sera la qualité du fine-tuning.</>
+                  )}
+                </Typography>
+              )}
+              
+              {isEstimated && [...uploadedFiles, ...uploadedUrls].some(c => c.status !== 'completed' && c.status !== 'error') && (
+                <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                  <CircularProgress size={16} sx={{ mr: 1 }} />
+                  <Typography variant="caption" color="text.secondary">
+                    Traitement des fichiers en cours, le comptage sera mis à jour automatiquement
+                  </Typography>
+                </Box>
+              )}
             </Paper>
             
             {/* Le composant FileUpload affiche déjà les fichiers sous forme de chips */}
