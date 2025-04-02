@@ -7,7 +7,6 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
-    # Required for textract document processing
     antiword \
     poppler-utils \
     unrtf \
