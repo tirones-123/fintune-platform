@@ -285,7 +285,10 @@ def process_content(content_id: int):
         elif content_type in ['doc', 'docx']:
             return process_docx_content(content_id)
         elif content_type in ['text', 'txt', 'md', 'markdown']:
-            return process_text_content(content_id)
+            if content.file_path and content.file_path.lower().endswith('.docx'):
+                return process_docx_content(content_id)
+            else:
+                return process_text_content(content_id)
         elif content_type == 'youtube':
             return process_youtube_content(content_id)
         else:
