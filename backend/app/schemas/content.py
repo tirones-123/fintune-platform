@@ -18,7 +18,7 @@ class ContentUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    content_metadata: Optional[Dict[str, Any]] = None
 
 # Model for Content response
 class ContentResponse(ContentBase):
@@ -27,7 +27,7 @@ class ContentResponse(ContentBase):
     file_path: Optional[str] = None
     size: Optional[int] = None
     error_message: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    content_metadata: Optional[Dict[str, Any]] = None
     project_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
