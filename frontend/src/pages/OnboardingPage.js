@@ -48,6 +48,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import DescriptionIcon from '@mui/icons-material/Description';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import StarsIcon from '@mui/icons-material/Stars';
+import YouTubeIcon from '@mui/icons-material/YouTube';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
 import { 
@@ -57,7 +58,9 @@ import {
   datasetService, 
   fineTuningService,
   apiKeyService,
+  videoService,
   api,
+  scrapingService
 } from '../services/apiService';
 import { useSnackbar } from 'notistack';
 import FileUpload from '../components/common/FileUpload';
@@ -204,6 +207,18 @@ const OnboardingPage = () => {
   
   // Définition du cas d'utilisation (useCase)
   const [useCase, setUseCase] = useState('other');
+
+  // Nouveaux états pour les vidéos YouTube
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [uploadedYouTube, setUploadedYouTube] = useState([]);
+  const [youtubeUploadError, setYoutubeUploadError] = useState(null);
+  const [youtubeUploading, setYoutubeUploading] = useState(false);
+
+  // Nouveaux états pour les sites web
+  const [scrapeUrl, setScrapeUrl] = useState('');
+  const [uploadedWeb, setUploadedWeb] = useState([]);
+  const [scrapeError, setScrapeError] = useState(null);
+  const [scrapeLoading, setScrapeLoading] = useState(false);
 
   // Créer automatiquement un projet au chargement de la page
   useEffect(() => {
@@ -864,6 +879,52 @@ const OnboardingPage = () => {
     return Math.max(0, Math.min(100, progressValue));
   };
 
+  // Nouvelle fonction pour ajouter une vidéo YouTube
+  const handleAddYouTubeUrl = async () => {
+    if (!youtubeUrl.trim()) return;
+    setYoutubeUploadError(null);
+    setYoutubeUploading(true);
+    try {
+      const data = await videoService.getTranscript(youtubeUrl);
+      const newYouTube = {
+        id: Date.now(), // identifiant temporaire
+        url: youtubeUrl,
+        transcript: data.transcript,
+        source: data.source,
+      };
+      setUploadedYouTube(prev => [...prev, newYouTube]);
+      setYoutubeUrl('');
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de la vidéo YouTube:', error);
+      setYoutubeUploadError(error.message || "Erreur durant la transcription.");
+    } finally {
+      setYoutubeUploading(false);
+    }
+  };
+
+  // Nouvelle fonction pour ajouter une URL web
+  const handleScrapeUrl = async () => {
+    if (!scrapeUrl.trim()) return;
+    setScrapeError(null);
+    setScrapeLoading(true);
+    try {
+      const data = await scrapingService.scrapeWeb(scrapeUrl);
+      const newWeb = {
+        id: Date.now(), // identifiant temporaire
+        url: scrapeUrl,
+        scraped: data,
+        type: 'web'
+      };
+      setUploadedWeb(prev => [...prev, newWeb]);
+      setScrapeUrl('');
+    } catch (error) {
+      console.error("Erreur lors du scrapping :", error);
+      setScrapeError(error.message || "Erreur lors du scrapping.");
+    } finally {
+      setScrapeLoading(false);
+    }
+  };
+
   // Contenu des étapes
   const getStepContent = (step) => {
     switch (step) {
@@ -1219,217 +1280,107 @@ const OnboardingPage = () => {
                 </Box>
               )}
               
+              {/* Ajout du module pour les vidéos YouTube */}
+              <Box sx={{ mb: 3, p: 2, border: '1px dashed', borderColor: 'grey.300', borderRadius: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Ajouter une vidéo YouTube
+                </Typography>
+                <TextField
+                  label="URL de la vidéo YouTube"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  fullWidth
+                  placeholder="Entrez l'URL"
+                  InputProps={{ startAdornment: <YouTubeIcon color="error" sx={{ mr: 1 }} /> }}
+                  error={!!youtubeUploadError}
+                  helperText={youtubeUploadError}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleAddYouTubeUrl}
+                  disabled={youtubeUploading || !youtubeUrl.trim()}
+                  sx={{ mt: 2 }}
+                >
+                  {youtubeUploading ? <CircularProgress size={20} /> : "Ajouter la vidéo"}
+                </Button>
+              </Box>
+
+              {uploadedYouTube.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Vidéos YouTube ajoutées :</Typography>
+                  {uploadedYouTube.map(video => (
+                    <Box key={video.id} sx={{ display: 'flex', alignItems: 'center', p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
+                      <YouTubeIcon color="error" sx={{ mr: 2 }} />
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="body1">{video.url}</Typography>
+                        <Typography variant="caption" color="text.secondary">Transcription ({video.source})</Typography>
+                      </Box>
+                      <IconButton onClick={() => setUploadedYouTube(prev => prev.filter(v => v.id !== video.id))}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+              
+              {/* Module pour scraping d'URL Web */}
+              <Box sx={{ mb: 3, p: 2, border: '1px dashed', borderColor: 'grey.300', borderRadius: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Ajouter une URL Web
+                </Typography>
+                <TextField
+                  label="URL du site"
+                  value={scrapeUrl}
+                  onChange={(e) => setScrapeUrl(e.target.value)}
+                  fullWidth
+                  placeholder="Entrez l'URL du site"
+                  InputProps={{ startAdornment: <InsertLinkIcon sx={{ mr: 1 }} /> }}
+                  error={!!scrapeError}
+                  helperText={scrapeError}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleScrapeUrl}
+                  disabled={scrapeLoading || !scrapeUrl.trim()}
+                  sx={{ mt: 2 }}
+                >
+                  {scrapeLoading ? <CircularProgress size={20} /> : "Ajouter le site"}
+                </Button>
+              </Box>
+
+              {uploadedWeb.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Sites Web ajoutés :</Typography>
+                  {uploadedWeb.map(item => (
+                    <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
+                      <InsertLinkIcon sx={{ mr: 2 }} />
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="body1">{item.url}</Typography>
+                        {item.scraped && item.scraped.title && (
+                          <Typography variant="caption" color="text.secondary">
+                            Titre : {item.scraped.title}
+                          </Typography>
+                        )}
+                        {item.scraped && item.scraped.paragraphs && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {item.scraped.paragraphs.slice(0,2).join(" ")}
+                          </Typography>
+                        )}
+                      </Box>
+                      <IconButton onClick={() => setUploadedWeb(prev => prev.filter(v => v.id !== item.id))}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+              
               {uploadError && (
                 <Alert severity="error" sx={{ mt: 2 }}>
                   {uploadError}
                 </Alert>
               )}
             </Paper>
-          </Box>
-        );
-      
-      case 2: // Fine-tuning
-        return (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-              <Avatar
-                sx={{
-                  backgroundColor: 'warning.main',
-                  mr: 2,
-                }}
-              >
-                <PsychologyIcon />
-              </Avatar>
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                Fine-tuner un modèle
-              </Typography>
-            </Box>
-            
-            <Typography variant="body1" paragraph>
-              Choisissez le fournisseur et le modèle que vous souhaitez fine-tuner.
-            </Typography>
-            
-            <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="body2">
-                Vous devez disposer de crédits auprès du service d'IA choisi pour lancer le fine-tuning.
-                Vérifiez votre compte {provider} avant de continuer.
-              </Typography>
-            </Alert>
-            
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>Fournisseur</InputLabel>
-              <Select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value)}
-                label="Fournisseur"
-              >
-                <MenuItem value="openai">OpenAI</MenuItem>
-                <MenuItem value="anthropic">Anthropic</MenuItem>
-                <MenuItem value="mistral">Mistral AI</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>Modèle</InputLabel>
-              <Select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                label="Modèle"
-              >
-                {providerModels[provider].map((model) => (
-                  <MenuItem key={model.id} value={model.id}>
-                    {model.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            
-            <Typography variant="body1" paragraph>
-              Entrez votre clé API {provider} pour permettre le fine-tuning de votre modèle.
-            </Typography>
-            
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <TextField
-                label={`Clé API ${provider}`}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                required
-                type="password"
-                placeholder={provider === 'openai' ? "sk-..." : provider === 'anthropic' ? "sk-ant-..." : "Votre clé API"}
-                sx={{ mb: 2 }}
-                error={!!apiKeyError}
-              />
-              <FormHelperText>
-                {apiKeyError ? (
-                  <Typography color="error">{apiKeyError}</Typography>
-                ) : (
-                  `Cette clé est nécessaire pour lancer le fine-tuning de votre modèle ${provider}. Elle sera stockée de manière sécurisée.`
-                )}
-              </FormHelperText>
-            </FormControl>
-            
-            {fineTuningError && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {fineTuningError}
-              </Alert>
-            )}
-          </Box>
-        );
-      
-      case 3: // Terminé
-        return (
-          <Box sx={{ textAlign: 'center' }}>
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Avatar
-                sx={{
-                  width: 120,
-                  height: 120,
-                  backgroundColor: processingFineTuning ? 'primary.main' : 'success.main',
-                  margin: '0 auto 24px',
-                  boxShadow: processingFineTuning 
-                    ? '0 8px 24px rgba(59, 130, 246, 0.3)'
-                    : '0 8px 24px rgba(16, 185, 129, 0.3)',
-                }}
-              >
-                {processingFineTuning ? (
-                  <CircularProgress color="inherit" thickness={5} />
-                ) : (
-                  <CheckCircleIcon sx={{ fontSize: 60 }} />
-                )}
-              </Avatar>
-            </motion.div>
-            
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-              {processingFineTuning 
-                ? "Fine-tuning en cours..." 
-                : "Félicitations !"}
-            </Typography>
-            
-            <Typography variant="body1" paragraph sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}>
-              {processingFineTuning 
-                ? "Votre modèle est en cours de fine-tuning. Ce processus peut prendre plusieurs heures. Vous pouvez consulter l'état d'avancement sur votre compte OpenAI."
-                : "Vous avez terminé l'onboarding et votre modèle sera prêt après son entraînement. Vous disposez de 10 000 caractères gratuits pour démarrer."}
-            </Typography>
-            
-            {/* Ajout d'informations sur le nouveau système de pricing */}
-            <Box sx={{ 
-              textAlign: 'left', 
-              maxWidth: 600, 
-              mx: 'auto', 
-              mb: 4, 
-              p: 3, 
-              bgcolor: 'background.default', 
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'divider'
-            }}>
-              <Typography variant="h6" gutterBottom>
-                Facturation à l'usage
-              </Typography>
-              
-              <Typography variant="body2" paragraph>
-                Notre plateforme utilise désormais un modèle de facturation à l'usage basé sur le nombre de caractères utilisés pour le fine-tuning :
-              </Typography>
-              
-              <Box component="ul" sx={{ pl: 2 }}>
-                <Box component="li" sx={{ mb: 1 }}>
-                  <Typography variant="body2">
-                    <strong>10 000 caractères gratuits</strong> pour tout nouvel utilisateur
-                  </Typography>
-                </Box>
-                <Box component="li" sx={{ mb: 1 }}>
-                  <Typography variant="body2">
-                    <strong>0,000365 $ par caractère</strong> au-delà du forfait gratuit
-                  </Typography>
-                </Box>
-                <Box component="li">
-                  <Typography variant="body2">
-                    Achetez des caractères supplémentaires en fonction de vos besoins
-                  </Typography>
-                </Box>
-              </Box>
-              
-              <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
-                Note : Les caractères sont comptés dans les questions, réponses et instructions système de votre dataset.
-              </Typography>
-            </Box>
-            
-            {completionError && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {completionError}
-              </Alert>
-            )}
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-            >
-              {processingFineTuning ? (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                  Nous préparons votre accès à la plateforme...
-                </Typography>
-              ) : (
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={completeOnboarding}
-                  disabled={isCompleting}
-                  sx={{ px: 4, py: 1.5, borderRadius: 3 }}
-                >
-                  {isCompleting ? (
-                    <>
-                      <CircularProgress size={24} sx={{ mr: 1 }} color="inherit" />
-                      Traitement en cours...
-                    </>
-                  ) : (
-                    'Accéder au dashboard'
-                  )}
-                </Button>
               )}
             </motion.div>
           </Box>
