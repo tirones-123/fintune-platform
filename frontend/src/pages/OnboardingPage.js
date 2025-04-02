@@ -812,19 +812,24 @@ const OnboardingPage = () => {
     // Segment 2: 10k au minimum recommandé (25% de la barre)
     // Segment 3: minimum recommandé à 4x le minimum (50% de la barre)
     
+    let progressValue = 0;
+    
     if (currentCount <= freeCredits) {
       // Premier segment (0-10k)
-      return (currentCount / freeCredits) * 25;
+      progressValue = (currentCount / freeCredits) * 25;
     } else if (currentCount <= minRecommended) {
       // Deuxième segment (10k-min recommandé)
-      return 25 + ((currentCount - freeCredits) / (minRecommended - freeCredits)) * 25;
+      progressValue = 25 + ((currentCount - freeCredits) / (minRecommended - freeCredits)) * 25;
     } else if (currentCount <= maxRecommended) {
       // Troisième segment (min recommandé-4x min recommandé)
-      return 50 + ((currentCount - minRecommended) / (maxRecommended - minRecommended)) * 50;
+      progressValue = 50 + ((currentCount - minRecommended) / (maxRecommended - minRecommended)) * 50;
     } else {
       // Au-delà de 4x le minimum recommandé
-      return 100;
+      progressValue = 100;
     }
+    
+    // Garantir que la valeur est entre 0 et 100
+    return Math.max(0, Math.min(100, progressValue));
   };
 
   // Contenu des étapes
@@ -988,7 +993,7 @@ const OnboardingPage = () => {
               
               {/* Comparaison avec le minimum recommandé */}
               {minCharactersRecommended > 0 && (
-                <Box sx={{ mt: 1 }}>
+                <Box sx={{ mt: 1, width: '100%', maxWidth: '100%' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="body2" fontWeight="medium">
                       Progression de votre dataset
@@ -999,7 +1004,7 @@ const OnboardingPage = () => {
                   </Box>
                   
                   {/* Barre de progression avec paliers */}
-                  <Box sx={{ position: 'relative', mb: 2, mt: 3, height: 20 }}>
+                  <Box sx={{ position: 'relative', mb: 2, mt: 3, height: 20, overflow: 'hidden', maxWidth: '100%' }}>
                     {/* Barre de progression principale */}
                     <LinearProgress 
                       variant="determinate" 
@@ -1011,6 +1016,7 @@ const OnboardingPage = () => {
                         borderRadius: 5,
                         '& .MuiLinearProgress-bar': {
                           transition: 'transform 0.8s ease-in-out',
+                          maxWidth: '100%' // Empêcher la barre de dépasser son conteneur
                         }
                       }}
                     />
@@ -1050,24 +1056,30 @@ const OnboardingPage = () => {
                       </Box>
                       
                       {/* Paliers multiples */}
-                      {[1.5, 2, 3, 4].map((multiplier, index) => (
-                        <Box key={index} sx={{ 
-                          position: 'absolute', 
-                          left: `${50 + (multiplier - 1) * (50 / 3)}%`, 
-                          height: index % 2 === 0 ? 14 : 10, 
-                          width: 1, 
-                          bgcolor: 'divider',
-                          bottom: -3
-                        }}>
-                          {index === 3 && (
-                            <Tooltip title={`${(minCharactersRecommended * multiplier).toLocaleString()} caractères (optimal)`} arrow placement="top">
-                              <Typography variant="caption" sx={{ position: 'absolute', top: -20, left: -30, width: 60, textAlign: 'center' }}>
-                                Optimal
-                              </Typography>
-                            </Tooltip>
-                          )}
-                        </Box>
-                      ))}
+                      {[1.5, 2, 3, 4].map((multiplier, index) => {
+                        // Calculer la position en pourcentage, mais plafonner à 100%
+                        const leftPosition = Math.min(100, 50 + (multiplier - 1) * (50 / 3));
+                        return (
+                          <Box key={index} sx={{ 
+                            position: 'absolute', 
+                            left: `${leftPosition}%`, 
+                            height: index % 2 === 0 ? 14 : 10, 
+                            width: 1, 
+                            bgcolor: 'divider',
+                            bottom: -3,
+                            maxWidth: '100%',
+                            overflow: 'hidden'
+                          }}>
+                            {index === 3 && (
+                              <Tooltip title={`${(minCharactersRecommended * multiplier).toLocaleString()} caractères (optimal)`} arrow placement="top">
+                                <Typography variant="caption" sx={{ position: 'absolute', top: -20, left: -30, width: 60, textAlign: 'center' }}>
+                                  Optimal
+                                </Typography>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        );
+                      })}
                     </Box>
                   </Box>
                 </Box>
