@@ -214,6 +214,82 @@ def process_youtube_content(content_id: int):
     finally:
         db.close()
 
+@shared_task(name="process_doc_content")
+def process_doc_content(content_id: int):
+    """
+    Process a DOC or DOCX content file.
+    """
+    logger.info(f"Processing DOC/DOCX content {content_id}")
+    
+    # Create a new database session
+    db = SessionLocal()
+    
+    try:
+        # Get the content from the database
+        content = db.query(Content).filter(Content.id == content_id).first()
+        
+        if not content:
+            logger.error(f"Content {content_id} not found")
+            return {"status": "error", "message": "Content not found"}
+        
+        # Update content status to processing
+        content.status = "processing"
+        db.commit()
+        
+        # Extraire le texte du document
+        file_path = content.file_path
+        extracted_text = None
+        
+        try:
+            # Utiliser le service de stockage qui utilise textract et docx
+            extracted_text = storage_service.get_file_content(file_path)
+            
+            if not extracted_text:
+                raise Exception("Failed to extract text from document")
+                
+        except Exception as extract_error:
+            logger.error(f"Error extracting text from document {file_path}: {str(extract_error)}")
+            content.status = "error"
+            content.error_message = f"Error extracting text: {str(extract_error)}"
+            db.commit()
+            return {"status": "error", "message": str(extract_error)}
+        
+        # Compter les caractères
+        character_count = len(extracted_text)
+        logger.info(f"DOC/DOCX content {content_id} has {character_count} characters")
+        
+        # Mettre à jour les métadonnées
+        if not content.content_metadata:
+            content.content_metadata = {}
+        
+        content.content_metadata["character_count"] = character_count
+        
+        # Déterminer le type de document (DOC ou DOCX)
+        file_extension = os.path.splitext(file_path)[1].lower()
+        content.content_metadata["document_type"] = "docx" if file_extension == ".docx" else "doc"
+        
+        # Update content status to completed
+        content.status = "completed"
+        db.commit()
+        
+        logger.info(f"DOC/DOCX content {content_id} processed successfully")
+        return {"status": "success", "content_id": content_id, "character_count": character_count}
+    
+    except Exception as e:
+        logger.error(f"Error processing DOC/DOCX content {content_id}: {str(e)}")
+        
+        # Update content status to error
+        content = db.query(Content).filter(Content.id == content_id).first()
+        if content:
+            content.status = "error"
+            content.error_message = str(e)
+            db.commit()
+        
+        return {"status": "error", "message": str(e)}
+    
+    finally:
+        db.close()
+
 @shared_task(name="process_content")
 def process_content(content_id: int):
     """
@@ -235,10 +311,22 @@ def process_content(content_id: int):
         # Route to the appropriate processing function based on content type
         content_type = content.type.lower()
         
+        # Si le type est basé sur l'extension de fichier, extraire l'extension
+        if content.file_path:
+            file_extension = os.path.splitext(content.file_path)[1].lower()
+            if file_extension in ['.doc', '.docx']:
+                # Pour les fichiers DOC et DOCX, utiliser le traitement de texte
+                return process_doc_content(content_id)
+        
+        # Traitement standard basé sur le type de contenu
         if content_type == 'pdf':
             return process_pdf_content(content_id)
-        elif content_type in ['text', 'txt', 'md', 'markdown']:
-            return process_text_content(content_id)
+        elif content_type in ['text', 'txt', 'md', 'markdown', 'doc', 'docx']:
+            # Le type peut être 'doc' ou 'docx' si explicitement spécifié
+            if content_type in ['doc', 'docx']:
+                return process_doc_content(content_id)
+            else:
+                return process_text_content(content_id)
         elif content_type == 'youtube':
             return process_youtube_content(content_id)
         else:

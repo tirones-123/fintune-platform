@@ -2,12 +2,19 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies for textract and other packages
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential \
-    libpq-dev && \
-    apt-get clean && \
+    libpq-dev \
+    # Required for textract document processing
+    antiword \
+    poppler-utils \
+    unrtf \
+    libxslt1-dev \
+    tesseract-ocr \
+    libtesseract-dev \
+    && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file

@@ -120,6 +120,30 @@ async def upload_file(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
+    # Vérifier le type de fichier (simple check d'extension pour le moment)
+    filename = file.filename.lower()
+    
+    if file_type == "pdf" and not filename.endswith(".pdf"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Expected PDF file."
+        )
+    elif file_type == "text" and not any(filename.endswith(ext) for ext in [".txt", ".md"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Expected text file (.txt, .md)."
+        )
+    elif file_type == "doc" and not filename.endswith(".doc"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Expected DOC file."
+        )
+    elif file_type == "docx" and not filename.endswith(".docx"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Expected DOCX file."
+        )
+    
     # Create content
     db_content = Content(
         name=name,
