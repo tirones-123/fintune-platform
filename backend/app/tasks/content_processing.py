@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 import os
 import time
 import PyPDF2
+import docx
+import sys
 
 from app.db.session import SessionLocal
 from app.models.content import Content
@@ -148,6 +150,48 @@ def process_text_content(content_id: int):
     finally:
         db.close()
 
+@shared_task(name="process_docx_content")
+def process_docx_content(content_id: int):
+    logger.info(f"Processing DOCX content {content_id}")
+    db = SessionLocal()
+    try:
+        content = db.query(Content).filter(Content.id == content_id).first()
+        if not content:
+            logger.error(f"Content {content_id} not found")
+            return {"status": "error", "message": "Content not found"}
+        content.status = "processing"
+        db.commit()
+        file_path = content.file_path
+        extracted_text = ""
+        try:
+            document = docx.Document(file_path)
+            for para in document.paragraphs:
+                extracted_text += para.text + "\n"
+        except Exception as file_error:
+            logger.error(f"Error processing DOCX file {file_path}: {file_error}")
+            content.status = "error"
+            content.error_message = str(file_error)
+            db.commit()
+            return {"status": "error", "message": str(file_error)}
+        character_count = len(extracted_text)
+        logger.info(f"DOCX content {content_id} has {character_count} characters")
+        if not content.content_metadata:
+            content.content_metadata = {}
+        content.content_metadata["character_count"] = character_count
+        content.status = "completed"
+        db.commit()
+        return {"status": "success", "content_id": content_id, "character_count": character_count}
+    except Exception as e:
+        logger.error(f"Error processing DOCX content {content_id}: {str(e)}")
+        content = db.query(Content).filter(Content.id == content_id).first()
+        if content:
+            content.status = "error"
+            content.error_message = str(e)
+            db.commit()
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
+
 @shared_task(name="process_youtube_content")
 def process_youtube_content(content_id: int):
     """
@@ -238,12 +282,10 @@ def process_content(content_id: int):
         # Traitement standard basé sur le type de contenu
         if content_type == 'pdf':
             return process_pdf_content(content_id)
-        elif content_type in ['text', 'txt', 'md', 'markdown', 'doc', 'docx']:
-            # Le type peut être 'doc' ou 'docx' si explicitement spécifié
-            if content_type in ['doc', 'docx']:
-                return process_text_content(content_id)
-            else:
-                return process_text_content(content_id)
+        elif content_type in ['doc', 'docx']:
+            return process_docx_content(content_id)
+        elif content_type in ['text', 'txt', 'md', 'markdown']:
+            return process_text_content(content_id)
         elif content_type == 'youtube':
             return process_youtube_content(content_id)
         else:
