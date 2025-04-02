@@ -48,7 +48,7 @@ def generate_system_content(
         Generate a short, concise "system prompt" that I could use as an instruction for this assistant. 
         The format should be simple, direct, and optimized for fine-tuning. 
         The prompt must start with "You are" and clearly describe the assistant's role.
-        The prompt must be in the language of the description.
+        The prompt must be in the language of the description even the "you are" should be in the same language.
         
         Exemple de format:
         "You are a helpful energy assistant that provides accurate information about renewable energy technologies."

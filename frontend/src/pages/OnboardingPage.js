@@ -995,201 +995,174 @@ const OnboardingPage = () => {
               {minCharactersRecommended > 0 && (
                 <Box sx={{ mt: 1, width: '100%', maxWidth: '100%' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="body2" fontWeight="medium">
+                    <Typography variant="body2" fontWeight="medium" color="text.primary">
                       Progression de votre dataset
                     </Typography>
-                    <Typography variant="body2">
+                    <Typography variant="body2" color="primary.main" fontWeight="medium">
                       {(isEstimated ? estimateCharacterCount() : actualCharacterCount).toLocaleString()} caractères
                     </Typography>
                   </Box>
                   
-                  {/* Barre de progression avec paliers */}
-                  <Box sx={{ position: 'relative', mb: 2, mt: 3, height: 20, overflow: 'hidden', maxWidth: '100%' }}>
-                    {/* Barre de progression principale */}
+                  {/* Barre de progression simple et sans erreur */}
+                  <Box sx={{ mt: 3, mb: 3, position: 'relative', height: 40 }}>
+                    {/* Barre principale */}
                     <LinearProgress 
                       variant="determinate" 
                       value={calculateProgressValue(isEstimated ? estimateCharacterCount() : actualCharacterCount, minCharactersRecommended)}
                       sx={{ 
-                        position: 'absolute',
-                        width: '100%',
                         height: 10, 
                         borderRadius: 5,
+                        backgroundColor: 'rgba(0, 0, 0, 0.09)',
                         '& .MuiLinearProgress-bar': {
-                          transition: 'transform 0.8s ease-in-out',
-                          maxWidth: '100%' // Empêcher la barre de dépasser son conteneur
+                          backgroundColor: 'primary.main',
+                          boxShadow: '0 0 8px rgba(25, 118, 210, 0.5)',
+                          transition: 'transform 0.8s ease-in-out'
                         }
                       }}
                     />
                     
-                    {/* Paliers visuels */}
-                    <Box sx={{ position: 'absolute', width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end' }}>
-                      {/* Palier 10k (crédits gratuits) */}
-                      <Box sx={{ 
-                        position: 'absolute', 
-                        left: '25%', 
-                        height: 16, 
-                        width: 2, 
-                        bgcolor: 'divider',
-                        bottom: -3
-                      }}>
-                        <Tooltip title="10 000 caractères (crédits gratuits)" arrow placement="top">
-                          <Typography variant="caption" sx={{ position: 'absolute', top: -20, left: -25, width: 50, textAlign: 'center' }}>
-                            10k
-                          </Typography>
-                        </Tooltip>
-                      </Box>
-                      
-                      {/* Palier minimum recommandé */}
-                      <Box sx={{ 
-                        position: 'absolute', 
-                        left: '50%', 
-                        height: 16, 
-                        width: 2, 
-                        bgcolor: 'warning.main',
-                        bottom: -3
-                      }}>
-                        <Tooltip title={`${minCharactersRecommended.toLocaleString()} caractères (minimum recommandé)`} arrow placement="top">
-                          <Typography variant="caption" sx={{ position: 'absolute', top: -20, left: -30, width: 60, textAlign: 'center', fontWeight: 'bold' }}>
-                            Min
-                          </Typography>
-                        </Tooltip>
-                      </Box>
-                      
-                      {/* Paliers multiples */}
-                      {[1.5, 2, 3, 4].map((multiplier, index) => {
-                        // Calculer la position en pourcentage, mais plafonner à 100%
-                        const leftPosition = Math.min(100, 50 + (multiplier - 1) * (50 / 3));
-                        return (
-                          <Box key={index} sx={{ 
-                            position: 'absolute', 
-                            left: `${leftPosition}%`, 
-                            height: index % 2 === 0 ? 14 : 10, 
-                            width: 1, 
-                            bgcolor: 'divider',
-                            bottom: -3,
-                            maxWidth: '100%',
-                            overflow: 'hidden'
-                          }}>
-                            {index === 3 && (
-                              <Tooltip title={`${(minCharactersRecommended * multiplier).toLocaleString()} caractères (optimal)`} arrow placement="top">
-                                <Typography variant="caption" sx={{ position: 'absolute', top: -20, left: -30, width: 60, textAlign: 'center' }}>
-                                  Optimal
-                                </Typography>
-                              </Tooltip>
-                            )}
-                          </Box>
-                        );
-                      })}
+                    {/* 10K */}
+                    <Box sx={{ position: 'absolute', left: '25%', top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Box sx={{ width: 2, height: 12, bgcolor: 'grey.400' }} />
+                      <Typography variant="caption" sx={{ mt: 0.5, color: 'text.secondary' }}>
+                        10k
+                      </Typography>
                     </Box>
+                    
+                    {/* Min */}
+                    <Box sx={{ position: 'absolute', left: '50%', top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Box sx={{ width: 2, height: 12, bgcolor: 'warning.main' }} />
+                      <Typography variant="caption" sx={{ mt: 0.5, color: 'warning.main', fontWeight: 'bold' }}>
+                        Min
+                      </Typography>
+                    </Box>
+                    
+                    {/* Optimal */}
+                    <Box sx={{ position: 'absolute', left: `${Math.min(95, 50 + (4 - 1) * (50 / 3))}%`, top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Box sx={{ width: 2, height: 12, bgcolor: 'primary.main' }} />
+                      <Typography variant="caption" sx={{ mt: 0.5, color: 'primary.main', fontWeight: 'medium' }}>
+                        Optimal
+                      </Typography>
+                    </Box>
+                    
+                    {/* Marqueurs intermédiaires */}
+                    {[1.5, 2, 3].map((multiplier, index) => {
+                      const leftPosition = Math.min(95, 50 + (multiplier - 1) * (50 / 3));
+                      return (
+                        <Box key={index} sx={{ position: 'absolute', left: `${leftPosition}%`, top: 14 }}>
+                          <Box sx={{ width: 1, height: 8, bgcolor: 'grey.300' }} />
+                        </Box>
+                      );
+                    })}
                   </Box>
-                </Box>
-              )}
-              
-              {/* Messages d'état */}
-              {(isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended && (
-                <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.5 }}>
-                  <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                  Il vous manque <strong>{(minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString()}</strong> caractères pour atteindre le minimum recommandé pour cette catégorie.
-                </Typography>
-              )}
-              {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && 
-                (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended * 4 && (
-                  <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
-                    <CheckCircleIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                    Vous avez atteint le minimum recommandé pour cette catégorie d'assistant.
+                )}
+                
+                {/* Messages d'état */}
+                {(isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended && (
+                  <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.5 }}>
+                    <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                    Il vous manque <strong>{(minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString()}</strong> caractères pour atteindre le minimum recommandé pour cette catégorie.
                   </Typography>
                 )}
-              {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && (
-                <Typography variant="caption" color={(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? 'primary.main' : 'text.secondary'} sx={{ display: 'block', mt: 0.5 }}>
-                  {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? (
-                    <>
-                      <StarsIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                      Excellent! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.
-                    </>
-                  ) : (
-                    <>Plus vous ajoutez de contenu (jusqu'à {(minCharactersRecommended * 4).toLocaleString()} caractères), meilleure sera la qualité du fine-tuning.</>
+                {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && 
+                  (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended * 4 && (
+                    <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
+                      <CheckCircleIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                      Vous avez atteint le minimum recommandé pour cette catégorie d'assistant.
+                    </Typography>
                   )}
-                </Typography>
-              )}
-              
-              {isEstimated && [...uploadedFiles, ...uploadedUrls].some(c => c.status !== 'completed' && c.status !== 'error') && (
-                <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                  <CircularProgress size={16} sx={{ mr: 1 }} />
-                  <Typography variant="caption" color="text.secondary">
-                    Traitement des fichiers en cours, le comptage sera mis à jour automatiquement
+                {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && (
+                  <Typography variant="caption" color={(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? 'primary.main' : 'text.secondary'} sx={{ display: 'block', mt: 0.5 }}>
+                    {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? (
+                      <>
+                        <StarsIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                        Excellent! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.
+                      </>
+                    ) : (
+                      <>Plus vous ajoutez de contenu (jusqu'à {(minCharactersRecommended * 4).toLocaleString()} caractères), meilleure sera la qualité du fine-tuning.</>
+                    )}
                   </Typography>
+                )}
+                
+                {isEstimated && [...uploadedFiles, ...uploadedUrls].some(c => c.status !== 'completed' && c.status !== 'error') && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                    <CircularProgress size={16} sx={{ mr: 1 }} />
+                    <Typography variant="caption" color="text.secondary">
+                      Traitement des fichiers en cours, le comptage sera mis à jour automatiquement
+                    </Typography>
+                  </Box>
+                )}
+              </Paper>
+              
+              {/* Le composant FileUpload affiche déjà les fichiers sous forme de chips */}
+              {createdProject && (
+                <Box sx={{ mb: 3 }}>
+                  <FileUpload 
+                    projectId={createdProject.id} 
+                    onSuccess={(uploadedContent) => {
+                      if (uploadedContent) {
+                        console.log("Nouveau contenu uploadé:", uploadedContent);
+                        
+                        // Si c'est un fichier
+                        if (uploadedContent.file_path) {
+                          setUploadedFiles(prev => {
+                            // Vérifier si le fichier existe déjà (mise à jour)
+                            const exists = prev.find(f => f.id === uploadedContent.id);
+                            if (exists) {
+                              return prev.map(f => f.id === uploadedContent.id ? uploadedContent : f);
+                            }
+                            // Sinon ajouter le nouveau fichier
+                            return [...prev, uploadedContent];
+                          });
+                          enqueueSnackbar(`Fichier "${uploadedContent.name}" uploadé avec succès`, { variant: 'success' });
+                        } 
+                        // Si c'est une URL
+                        else if (uploadedContent.url) {
+                          setUploadedUrls(prev => {
+                            // Vérifier si l'URL existe déjà (mise à jour)
+                            const exists = prev.find(u => u.id === uploadedContent.id);
+                            if (exists) {
+                              return prev.map(u => u.id === uploadedContent.id ? uploadedContent : u);
+                            }
+                            // Sinon ajouter la nouvelle URL
+                            return [...prev, uploadedContent];
+                          });
+                          enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
+                        }
+                        
+                        // Forcer la récupération des métadonnées après un délai pour laisser le temps au traitement
+                        setTimeout(() => {
+                          contentService.getById(uploadedContent.id)
+                            .then(updatedContent => {
+                              console.log("Contenu mis à jour après délai:", updatedContent);
+                              
+                              if (updatedContent.file_path) {
+                                setUploadedFiles(prev => 
+                                  prev.map(f => f.id === updatedContent.id ? updatedContent : f)
+                                );
+                              } else if (updatedContent.url) {
+                                setUploadedUrls(prev => 
+                                  prev.map(u => u.id === updatedContent.id ? updatedContent : u)
+                                );
+                              }
+                              
+                              // Recalculer le comptage de caractères
+                              calculateActualCharacterCount();
+                            })
+                            .catch(err => console.error("Erreur lors de la mise à jour du contenu:", err));
+                        }, 5000); // Attendre 5 secondes pour le traitement initial
+                      }
+                    }}
+                  />
                 </Box>
               )}
+              
+              {uploadError && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {uploadError}
+                </Alert>
+              )}
             </Paper>
-            
-            {/* Le composant FileUpload affiche déjà les fichiers sous forme de chips */}
-            {createdProject && (
-              <Box sx={{ mb: 3 }}>
-                <FileUpload 
-                  projectId={createdProject.id} 
-                  onSuccess={(uploadedContent) => {
-                    if (uploadedContent) {
-                      console.log("Nouveau contenu uploadé:", uploadedContent);
-                      
-                      // Si c'est un fichier
-                      if (uploadedContent.file_path) {
-                        setUploadedFiles(prev => {
-                          // Vérifier si le fichier existe déjà (mise à jour)
-                          const exists = prev.find(f => f.id === uploadedContent.id);
-                          if (exists) {
-                            return prev.map(f => f.id === uploadedContent.id ? uploadedContent : f);
-                          }
-                          // Sinon ajouter le nouveau fichier
-                          return [...prev, uploadedContent];
-                        });
-                        enqueueSnackbar(`Fichier "${uploadedContent.name}" uploadé avec succès`, { variant: 'success' });
-                      } 
-                      // Si c'est une URL
-                      else if (uploadedContent.url) {
-                        setUploadedUrls(prev => {
-                          // Vérifier si l'URL existe déjà (mise à jour)
-                          const exists = prev.find(u => u.id === uploadedContent.id);
-                          if (exists) {
-                            return prev.map(u => u.id === uploadedContent.id ? uploadedContent : u);
-                          }
-                          // Sinon ajouter la nouvelle URL
-                          return [...prev, uploadedContent];
-                        });
-                        enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
-                      }
-                      
-                      // Forcer la récupération des métadonnées après un délai pour laisser le temps au traitement
-                      setTimeout(() => {
-                        contentService.getById(uploadedContent.id)
-                          .then(updatedContent => {
-                            console.log("Contenu mis à jour après délai:", updatedContent);
-                            
-                            if (updatedContent.file_path) {
-                              setUploadedFiles(prev => 
-                                prev.map(f => f.id === updatedContent.id ? updatedContent : f)
-                              );
-                            } else if (updatedContent.url) {
-                              setUploadedUrls(prev => 
-                                prev.map(u => u.id === updatedContent.id ? updatedContent : u)
-                              );
-                            }
-                            
-                            // Recalculer le comptage de caractères
-                            calculateActualCharacterCount();
-                          })
-                          .catch(err => console.error("Erreur lors de la mise à jour du contenu:", err));
-                      }, 5000); // Attendre 5 secondes pour le traitement initial
-                    }
-                  }}
-                />
-              </Box>
-            )}
-            
-            {uploadError && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {uploadError}
-              </Alert>
-            )}
           </Box>
         );
       
