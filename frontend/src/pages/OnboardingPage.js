@@ -966,7 +966,7 @@ const OnboardingPage = () => {
               }}
             >
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                {isEstimated ? "Estimation des caractères" : "Comptage exact des caractères"}
+                {isEstimated ? "Estimation du nombre de caractères dans vos contenus" : "Comptage exact des caractères"}
                 {uploadedFiles.length > 0 || uploadedUrls.length > 0 ? 
                   ` (${[...uploadedFiles, ...uploadedUrls].filter(c => c.status === 'completed').length}/${uploadedFiles.length + uploadedUrls.length} fichiers traités)` 
                   : ""}
@@ -1004,7 +1004,7 @@ const OnboardingPage = () => {
                   </Box>
                   
                   {/* Barre de progression simple et sans erreur */}
-                  <Box sx={{ mt: 3, mb: 3, position: 'relative', height: 40 }}>
+                  <Box sx={{ mt: 3, mb: 3, position: 'relative', height: 48 }}>
                     {/* Barre principale */}
                     <LinearProgress 
                       variant="determinate" 
@@ -1022,35 +1022,65 @@ const OnboardingPage = () => {
                     />
                     
                     {/* 10K */}
-                    <Box sx={{ position: 'absolute', left: '25%', top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Box sx={{ position: 'absolute', left: '25%', top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translateX(-50%)' }}>
                       <Box sx={{ width: 2, height: 12, bgcolor: 'grey.400' }} />
-                      <Typography variant="caption" sx={{ mt: 0.5, color: 'text.secondary' }}>
-                        10k
-                      </Typography>
+                      <Tooltip title="Crédits gratuits inclus" arrow placement="top">
+                        <Box>
+                          <Typography variant="caption" sx={{ mt: 0.5, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                            10 000 car.
+                          </Typography>
+                        </Box>
+                      </Tooltip>
                     </Box>
                     
                     {/* Min */}
-                    <Box sx={{ position: 'absolute', left: '50%', top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Box sx={{ position: 'absolute', left: '50%', top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translateX(-50%)' }}>
                       <Box sx={{ width: 2, height: 12, bgcolor: 'warning.main' }} />
-                      <Typography variant="caption" sx={{ mt: 0.5, color: 'warning.main', fontWeight: 'bold' }}>
-                        Min
-                      </Typography>
+                      <Tooltip title="Minimum recommandé pour votre objectif d'entraînement" arrow placement="top">
+                        <Box>
+                          <Typography variant="caption" sx={{ mt: 0.5, color: 'warning.main', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                            Min: {minCharactersRecommended.toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </Tooltip>
                     </Box>
                     
                     {/* Optimal */}
-                    <Box sx={{ position: 'absolute', left: `${Math.min(95, 50 + (4 - 1) * (50 / 3))}%`, top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Box sx={{ position: 'absolute', left: `${Math.min(95, 50 + (4 - 1) * (50 / 3))}%`, top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translateX(-50%)' }}>
                       <Box sx={{ width: 2, height: 12, bgcolor: 'primary.main' }} />
-                      <Typography variant="caption" sx={{ mt: 0.5, color: 'primary.main', fontWeight: 'medium' }}>
-                        Optimal
-                      </Typography>
+                      <Tooltip title="Niveau optimal pour des résultats de qualité supérieure" arrow placement="top">
+                        <Box>
+                          <Typography variant="caption" sx={{ mt: 0.5, color: 'primary.main', fontWeight: 'medium', whiteSpace: 'nowrap' }}>
+                            Optimal: {(minCharactersRecommended * 4).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </Tooltip>
                     </Box>
                     
                     {/* Marqueurs intermédiaires */}
                     {[1.5, 2, 3].map((multiplier, index) => {
                       const leftPosition = Math.min(95, 50 + (multiplier - 1) * (50 / 3));
+                      const charCount = Math.round(minCharactersRecommended * multiplier);
+                      
                       return (
-                        <Box key={index} sx={{ position: 'absolute', left: `${leftPosition}%`, top: 14 }}>
+                        <Box key={index} sx={{ position: 'absolute', left: `${leftPosition}%`, top: 14, transform: 'translateX(-50%)' }}>
                           <Box sx={{ width: 1, height: 8, bgcolor: 'grey.300' }} />
+                          {index === 1 && ( // Afficher uniquement pour 2x
+                            <Tooltip title={`Niveau intermédiaire`} arrow placement="top">
+                              <Typography variant="caption" sx={{ 
+                                position: 'absolute',
+                                mt: 1,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                color: 'text.secondary',
+                                whiteSpace: 'nowrap',
+                                fontSize: '0.7rem',
+                                opacity: 0.8
+                              }}>
+                                {charCount.toLocaleString()}
+                              </Typography>
+                            </Tooltip>
+                          )}
                         </Box>
                       );
                     })}
@@ -1060,7 +1090,7 @@ const OnboardingPage = () => {
                   {(isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended && (
                     <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.5 }}>
                       <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                      Il vous manque <strong>{(minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString()}</strong> caractères pour atteindre le minimum recommandé pour cette catégorie.
+                      Il vous manque <strong>{(minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString()}</strong> caractères pour atteindre le minimum recommandé pour votre objectif d'entraînement.
                     </Typography>
                   )}
                   {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && 
