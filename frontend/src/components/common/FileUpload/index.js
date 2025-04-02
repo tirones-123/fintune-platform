@@ -22,6 +22,8 @@ import {
   ListItemText,
   ListItemIcon,
   InputAdornment,
+  Chip,
+  Stack,
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -46,6 +48,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
   const [success, setSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const [uploadedContents, setUploadedContents] = useState([]);
 
   // Configuration des types de fichiers acceptés
   const acceptedFileTypes = {
@@ -72,6 +75,9 @@ const FileUpload = ({ projectId, onSuccess }) => {
             name: file.name, // Utiliser le nom du fichier comme nom du contenu
             file_type: file.type.includes('pdf') ? 'pdf' : 'text',
           });
+
+          // Ajouter le fichier uploadé à la liste des contenus
+          setUploadedContents(prev => [response, ...prev]);
 
           // Appeler le callback onSuccess si fourni
           if (onSuccess) {
@@ -196,6 +202,9 @@ const FileUpload = ({ projectId, onSuccess }) => {
         type: isYouTube ? 'youtube' : 'website'
       });
       
+      // Ajouter l'URL à la liste des contenus
+      setUploadedContents(prev => [response, ...prev]);
+      
       // Appeler le callback onSuccess si fourni
       if (onSuccess) {
         onSuccess(response);
@@ -258,22 +267,41 @@ const FileUpload = ({ projectId, onSuccess }) => {
     }
   };
 
+  // Fonction pour obtenir l'icône en fonction du type de contenu
+  const getContentIcon = (content) => {
+    if (content.type === 'pdf') {
+      return <PictureAsPdfIcon fontSize="small" />;
+    } else if (content.type === 'text' || content.type === 'txt' || content.type === 'md') {
+      return <TextSnippetIcon fontSize="small" />;
+    } else if (content.type === 'doc' || content.type === 'docx') {
+      return <InsertDriveFileIcon fontSize="small" />;
+    } else if (content.type === 'youtube' || content.url?.includes('youtube')) {
+      return <YouTubeIcon fontSize="small" />;
+    } else if (content.url) {
+      return <LinkIcon fontSize="small" />;
+    } else {
+      return <InsertDriveFileIcon fontSize="small" />;
+    }
+  };
+
+  // Fonction pour formater le nombre de caractères
+  const formatCharCount = (content) => {
+    if (!content.content_metadata || !content.content_metadata.character_count) {
+      return 'En traitement...';
+    }
+    const count = parseInt(content.content_metadata.character_count);
+    if (count > 1000000) {
+      return `${(count / 1000000).toFixed(2)} M car`;
+    } else if (count > 1000) {
+      return `${(count / 1000).toFixed(1)} K car`;
+    }
+    return `${count} car`;
+  };
+
   return (
     <Card>
       <CardContent>
         <Box component="form" onSubmit={handleSubmit}>
-          <Typography variant="h5" gutterBottom>
-            Ajouter du contenu
-          </Typography>
-          
-          <Typography variant="body2" color="text.secondary" paragraph>
-            Importez des fichiers ou ajoutez des liens pour créer votre dataset de fine-tuning.
-          </Typography>
-          
-          <Typography variant="h6" gutterBottom>
-            Importer des fichiers
-          </Typography>
-          
           <Paper
             {...getRootProps()}
             sx={{
@@ -304,42 +332,23 @@ const FileUpload = ({ projectId, onSuccess }) => {
               Formats acceptés: TXT, PDF, DOC, DOCX, MD (max 10MB)
             </Typography>
           </Paper>
-
-          {files.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Fichiers sélectionnés:
-              </Typography>
-              <List sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
-                {files.map((file, index) => (
-                  <ListItem
-                    key={index}
-                    secondaryAction={
-                      <IconButton edge="end" onClick={() => {
-                        const newFiles = [...files];
-                        newFiles.splice(index, 1);
-                        setFiles(newFiles);
-                      }}>
-                        <DeleteIcon />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemIcon>{getFileIcon(file)}</ListItemIcon>
-                    <ListItemText
-                      primary={file.name}
-                      secondary={`${(file.size / 1024).toFixed(2)} KB`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
+          
+          {/* Affichage compact des fichiers uploadés */}
+          {uploadedContents.length > 0 && (
+            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
+              {uploadedContents.map((content) => (
+                <Chip
+                  key={content.id}
+                  icon={getContentIcon(content)}
+                  label={`${content.name.length > 20 ? content.name.substring(0, 18) + '...' : content.name} (${formatCharCount(content)})`}
+                  sx={{ mb: 1, maxWidth: '100%' }}
+                  color={content.status === 'completed' ? 'success' : content.status === 'error' ? 'error' : 'default'}
+                />
+              ))}
+            </Stack>
           )}
           
           <Divider sx={{ my: 3 }} />
-          
-          <Typography variant="h6" gutterBottom>
-            Ajouter des liens
-          </Typography>
           
           {urls.map((url, index) => (
             <Box key={index} sx={{ display: 'flex', mb: 2 }}>
@@ -384,17 +393,6 @@ const FileUpload = ({ projectId, onSuccess }) => {
               {error}
             </Alert>
           )}
-          
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-            <Button
-              variant="contained"
-              type="submit"
-              disabled={uploading || (files.length === 0 && urls.every(url => url.trim() === ''))}
-              startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : null}
-            >
-              {uploading ? 'Envoi en cours...' : 'Ajouter le contenu'}
-            </Button>
-          </Box>
         </Box>
       </CardContent>
     </Card>
