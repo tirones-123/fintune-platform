@@ -212,7 +212,7 @@ def process_docx_content(content_id: int):
 @shared_task(name="process_youtube_content")
 def process_youtube_content(content_id: int):
     """
-    Process a YouTube content.
+    Process YouTube content by extracting transcript and metadata.
     """
     logger.info(f"Processing YouTube content {content_id}")
     
@@ -231,11 +231,11 @@ def process_youtube_content(content_id: int):
         content.status = "processing"
         db.commit()
         
-        # Extraire la transcription YouTube
+        # Extraire la transcription et les métadonnées YouTube
         youtube_url = content.url
-        extracted_text = content_processor.extract_text_from_youtube(youtube_url)
+        transcript, metadata = content_processor.process_youtube_content(youtube_url)
         
-        if extracted_text is None:
+        if transcript is None:
             error_msg = f"Could not extract transcript from YouTube video {youtube_url}"
             logger.error(error_msg)
             content.status = "error"
@@ -244,14 +244,27 @@ def process_youtube_content(content_id: int):
             return {"status": "error", "message": error_msg}
         
         # Compter les caractères
-        character_count = len(extracted_text)
+        character_count = len(transcript)
         logger.info(f"YouTube content {content_id} has {character_count} characters")
         
         # Mettre à jour les métadonnées
         if not content.content_metadata:
             content.content_metadata = {}
         
+        # Ajouter le comptage de caractères aux métadonnées
         content.content_metadata["character_count"] = character_count
+        
+        # Ajouter les métadonnées de la vidéo
+        if metadata:
+            # Fusionner les métadonnées avec les métadonnées existantes
+            for key, value in metadata.items():
+                content.content_metadata[key] = value
+                
+            # Log des informations de durée
+            if "duration_seconds" in metadata:
+                duration_min = metadata["duration_seconds"] / 60
+                estimated_chars = round(duration_min * 900)
+                logger.info(f"YouTube video duration: {duration_min:.1f} min, estimated chars at 900/min: {estimated_chars} vs actual: {character_count}")
         
         # Update content status to completed
         content.status = "completed"
