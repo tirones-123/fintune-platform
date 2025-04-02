@@ -697,18 +697,6 @@ export const characterService = {
   },
 };
 
-// Ajout du service pour la transcription vidéo
-export const videoService = {
-  getTranscript: async (videoUrl) => {
-    try {
-      const response = await api.post('/api/helpers/video-transcript', { video_url: videoUrl });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
-};
-
 // Service de scrapping pour les URL Web
 export const scrapingService = {
   scrapeWeb: async (url) => {
@@ -721,6 +709,6 @@ export const scrapingService = {
   }
 };
 
-// Exportation des services (ajouter scrapingService parmi ceux existants)
+// Exportation des services (ajouter videoService parmi ceux existants)
 export { api, videoService, scrapingService };
 export default api; 
