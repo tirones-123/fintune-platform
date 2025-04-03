@@ -29,6 +29,12 @@ try:
 except ImportError:
     raise ImportError("whisper n'est pas installé. Veuillez l'installer.")
 
+# Importer pytube pour une alternative de téléchargement
+try:
+    from pytube import YouTube
+except ImportError:
+    raise ImportError("pytube n'est pas installé. Veuillez l'installer.")
+
 router = APIRouter()
 
 class VideoTranscriptRequest(BaseModel):
@@ -137,48 +143,37 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         error_msg = str(e)
         download_error = error_msg
         logger.error(f"Erreur lors du téléchargement de l'audio: {error_msg}")
-        # Vérifier si l'erreur concerne une vérification anti-bot
+        # Si l'erreur indique un blocage anti-bot, tenter une alternative via pytube
         if "Sign in to confirm you're not a bot" in error_msg or "Precondition check failed" in error_msg:
-            # Message d'erreur détaillé avec instructions pour l'utilisateur
-            detailed_error = {
-                "error": "YouTube bloque le téléchargement automatisé de cette vidéo",
-                "details": "YouTube a renforcé ses mesures anti-bot et détecte actuellement nos tentatives d'extraction comme une activité automatisée.",
-                "solutions": [
-                    "Utilisez une autre source de contenu comme un site web d'article ou une documentation",
-                    "Essayez de copier-coller manuellement la transcription depuis YouTube (si disponible)",
-                    "Utilisez une vidéo hébergée sur une autre plateforme comme Vimeo ou un serveur de fichiers",
-                    "Hébergez votre vidéo sur un service de stockage de fichiers et fournissez un lien direct"
-                ],
-                "transcript_error": transcript_error,
-                "cookie_error": cookie_error,
-                "download_error": download_error
-            }
-            raise HTTPException(status_code=403, detail=detailed_error)
-        # Vérifier si l'erreur concerne des sous-titres désactivés
-        elif transcript_error and "Subtitles are disabled for this video" in transcript_error:
-            detailed_error = {
-                "error": "Impossible d'extraire le contenu de cette vidéo YouTube",
-                "details": "Les sous-titres sont désactivés pour cette vidéo et YouTube bloque actuellement nos tentatives de téléchargement audio.",
-                "solutions": [
-                    "Sélectionnez une autre vidéo YouTube qui possède des sous-titres activés",
-                    "Essayez une vidéo qui n'a pas de restrictions particulières",
-                    "Utilisez plutôt un article web ou un document texte comme source de contenu"
-                ],
-                "transcript_error": transcript_error,
-                "cookie_error": cookie_error,
-                "download_error": download_error
-            }
-            raise HTTPException(status_code=400, detail=detailed_error)
+            try:
+                logger.info("Tentative de téléchargement de l'audio via pytube")
+                yt_obj = YouTube(video_url)
+                audio_stream = yt_obj.streams.filter(only_audio=True).first()
+                if not audio_stream:
+                    raise Exception("Aucun flux audio trouvé avec pytube")
+                file_path = audio_stream.download(output_path=temp_dir, filename=f"{yt_obj.video_id}.mp4")
+                logger.info(f"Fichier audio téléchargé via pytube: {file_path}")
+            except Exception as pe:
+                pytube_error = str(pe)
+                logger.error(f"Erreur lors du téléchargement de l'audio via pytube: {pytube_error}")
+                detailed_error = {
+                    "error": "YouTube bloque le téléchargement automatisé de cette vidéo",
+                    "details": "Tentative échouée via yt_dlp et pytube.",
+                    "solutions": [
+                        "Utilisez une autre source de contenu comme un site web d'article ou une documentation",
+                        "Essayez de copier-coller manuellement la transcription depuis YouTube (si disponible)",
+                        "Utilisez une vidéo hébergée sur une autre plateforme comme Vimeo ou un serveur de fichiers",
+                        "Hébergez votre vidéo sur un service de stockage et fournissez un lien direct"
+                    ],
+                    "transcript_error": transcript_error,
+                    "cookie_error": cookie_error,
+                    "download_error": download_error + " | pytube: " + pytube_error
+                }
+                raise HTTPException(status_code=403, detail=detailed_error)
         else:
-            # Pour les autres types d'erreur
             detailed_error = {
-                "error": f"Erreur lors du traitement de la vidéo YouTube",
+                "error": "Erreur lors du téléchargement de l'audio",
                 "details": error_msg,
-                "solutions": [
-                    "Vérifiez que l'URL de la vidéo est correcte et accessible",
-                    "Essayez avec une autre vidéo YouTube",
-                    "Utilisez un autre type de contenu comme un site web ou un document"
-                ],
                 "transcript_error": transcript_error,
                 "cookie_error": cookie_error,
                 "download_error": download_error
