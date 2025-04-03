@@ -141,23 +141,44 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         if "Sign in to confirm you're not a bot" in error_msg or "Precondition check failed" in error_msg:
             # Message d'erreur détaillé avec instructions pour l'utilisateur
             detailed_error = {
-                "error": "YouTube requiert une authentification pour accéder à cette vidéo.",
-                "details": "YouTube a détecté une activité automatisée et bloque l'accès pour vérifier que vous n'êtes pas un robot.",
+                "error": "YouTube bloque le téléchargement automatisé de cette vidéo",
+                "details": "YouTube a renforcé ses mesures anti-bot et détecte actuellement nos tentatives d'extraction comme une activité automatisée.",
                 "solutions": [
-                    "Essayez une autre vidéo YouTube qui n'a pas de restrictions",
-                    "Essayez un lien direct vers un fichier audio ou vidéo",
-                    "Utilisez un fichier de cookies authentifié (nécessite une intervention manuelle)"
+                    "Utilisez une autre source de contenu comme un site web d'article ou une documentation",
+                    "Essayez de copier-coller manuellement la transcription depuis YouTube (si disponible)",
+                    "Utilisez une vidéo hébergée sur une autre plateforme comme Vimeo ou un serveur de fichiers",
+                    "Hébergez votre vidéo sur un service de stockage de fichiers et fournissez un lien direct"
                 ],
                 "transcript_error": transcript_error,
                 "cookie_error": cookie_error,
                 "download_error": download_error
             }
             raise HTTPException(status_code=403, detail=detailed_error)
+        # Vérifier si l'erreur concerne des sous-titres désactivés
+        elif transcript_error and "Subtitles are disabled for this video" in transcript_error:
+            detailed_error = {
+                "error": "Impossible d'extraire le contenu de cette vidéo YouTube",
+                "details": "Les sous-titres sont désactivés pour cette vidéo et YouTube bloque actuellement nos tentatives de téléchargement audio.",
+                "solutions": [
+                    "Sélectionnez une autre vidéo YouTube qui possède des sous-titres activés",
+                    "Essayez une vidéo qui n'a pas de restrictions particulières",
+                    "Utilisez plutôt un article web ou un document texte comme source de contenu"
+                ],
+                "transcript_error": transcript_error,
+                "cookie_error": cookie_error,
+                "download_error": download_error
+            }
+            raise HTTPException(status_code=400, detail=detailed_error)
         else:
             # Pour les autres types d'erreur
             detailed_error = {
-                "error": f"Erreur lors du téléchargement de l'audio",
+                "error": f"Erreur lors du traitement de la vidéo YouTube",
                 "details": error_msg,
+                "solutions": [
+                    "Vérifiez que l'URL de la vidéo est correcte et accessible",
+                    "Essayez avec une autre vidéo YouTube",
+                    "Utilisez un autre type de contenu comme un site web ou un document"
+                ],
                 "transcript_error": transcript_error,
                 "cookie_error": cookie_error,
                 "download_error": download_error
