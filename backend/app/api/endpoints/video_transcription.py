@@ -95,9 +95,21 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
     
     # Chemin pour le fichier de cookies (vous devrez créer et remplir ce fichier)
     cookies_file = os.path.join(os.path.dirname(__file__), 'youtube_cookies.txt')
-    if os.path.exists(cookies_file):
-        logger.info(f"Utilisation du fichier de cookies: {cookies_file}")
-        ydl_opts['cookiefile'] = cookies_file
+    # Vérifier si le fichier de cookies existe et a une taille non nulle
+    if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
+        try:
+            # On essaie de vérifier si le fichier est bien formaté
+            with open(cookies_file, 'r') as f:
+                content = f.read().strip()
+                if content and (content.startswith("# Netscape HTTP Cookie File") or content.startswith("# HTTP Cookie File")):
+                    logger.info(f"Utilisation du fichier de cookies: {cookies_file}")
+                    ydl_opts['cookiefile'] = cookies_file
+                else:
+                    logger.warning(f"Le fichier {cookies_file} ne semble pas être un fichier de cookies valide au format Netscape")
+        except Exception as e:
+            logger.warning(f"Erreur lors de la lecture du fichier de cookies: {str(e)}")
+    else:
+        logger.warning(f"Fichier de cookies inexistant ou vide: {cookies_file}")
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
