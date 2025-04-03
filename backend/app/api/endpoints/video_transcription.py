@@ -78,27 +78,50 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         error_msg = str(e)
         transcript_error = error_msg
         logger.warning(f"Extraction des sous-titres échouée: {error_msg}")
+        
+        # Cas particulier: si les sous-titres sont désactivés, on le note pour ne pas afficher cette erreur
+        # si nous réussissons à télécharger l'audio plus tard
+        subtitles_disabled = "Subtitles are disabled for this video" in error_msg
 
     # Fallback : télécharger l'audio et transcrire avec Whisper
     logger.info(f"Tentative de téléchargement et transcription avec Whisper")
     temp_dir = tempfile.gettempdir()
     
-    # Configurez les options de yt-dlp avec des en-têtes de navigateur et autres options
+    # Configuration améliorée pour yt-dlp avec plus d'options pour contourner les protections
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': os.path.join(temp_dir, '%(id)s.%(ext)s'),
-        'quiet': False,  # Afficher les logs pour le débogage
+        'quiet': False,
         'no_warnings': False,
         'ignoreerrors': True,
         'noplaylist': True,
         'extract_flat': False,
         'nocheckcertificate': True,
+        'geo_bypass': True,
+        'geo_bypass_country': 'US',
+        'socket_timeout': 30,
+        'source_address': '0.0.0.0',
+        'sleep_interval': 2,  # Attendre entre les requêtes pour éviter la détection de bot
+        'max_sleep_interval': 5,
+        'sleep_interval_requests': 1,
+        'extractor_retries': 5,
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
             'Origin': 'https://www.youtube.com',
-            'Referer': 'https://www.youtube.com/'
+            'Referer': 'https://www.youtube.com/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'sec-ch-ua': '"Chromium";v="118", "Google Chrome";v="118"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive'
         }
     }
     
@@ -147,29 +170,113 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         if "Sign in to confirm you're not a bot" in error_msg or "Precondition check failed" in error_msg:
             try:
                 logger.info("Tentative de téléchargement de l'audio via pytube")
-                yt_obj = YouTube(video_url)
+                
+                # Configuration des headers pour pytube (contournement anti-bot)
+                from pytube.innertube import InnerTube
+                from pytube import YouTube
+                
+                # Modification des en-têtes par défaut d'InnerTube
+                custom_headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+                    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Origin': 'https://www.youtube.com',
+                    'Referer': 'https://www.youtube.com/',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'same-origin'
+                }
+                
+                # Remplacer les en-têtes par défaut
+                InnerTube._default_clients['WEB']['headers'] = custom_headers
+                InnerTube._default_clients['ANDROID']['headers'] = custom_headers
+                InnerTube._default_clients['ANDROID_MUSIC']['headers'] = custom_headers
+                InnerTube._default_clients['ANDROID_CREATOR']['headers'] = custom_headers
+                
+                # Utiliser une approche progressive avec des tentatives multiples
+                import time
+                
+                # Première tentative: mode normal
+                try:
+                    yt_obj = YouTube(video_url)
+                    logger.info(f"Informations vidéo récupérées: {yt_obj.title}")
+                except Exception as e1:
+                    logger.info(f"Première tentative pytube échouée: {str(e1)}")
+                    # Deuxième tentative: Attendre et réessayer avec d'autres paramètres
+                    time.sleep(2)
+                    try:
+                        yt_obj = YouTube(
+                            url=video_url,
+                            use_oauth=False,
+                            allow_oauth_cache=True
+                        )
+                        logger.info(f"Informations vidéo récupérées (2ème tentative): {yt_obj.title}")
+                    except Exception as e2:
+                        # En cas d'échec, lever l'exception
+                        logger.error(f"Toutes les tentatives pytube ont échoué: {str(e1)} | {str(e2)}")
+                        raise Exception(f"Tentatives pytube échouées: {str(e1)} | {str(e2)}")
+                
+                # Récupérer le flux audio
                 audio_stream = yt_obj.streams.filter(only_audio=True).first()
                 if not audio_stream:
                     raise Exception("Aucun flux audio trouvé avec pytube")
+                
                 file_path = audio_stream.download(output_path=temp_dir, filename=f"{yt_obj.video_id}.mp4")
                 logger.info(f"Fichier audio téléchargé via pytube: {file_path}")
             except Exception as pe:
                 pytube_error = str(pe)
                 logger.error(f"Erreur lors du téléchargement de l'audio via pytube: {pytube_error}")
-                detailed_error = {
-                    "error": "YouTube bloque le téléchargement automatisé de cette vidéo",
-                    "details": "Tentative échouée via yt_dlp et pytube.",
-                    "solutions": [
-                        "Utilisez une autre source de contenu comme un site web d'article ou une documentation",
-                        "Essayez de copier-coller manuellement la transcription depuis YouTube (si disponible)",
-                        "Utilisez une vidéo hébergée sur une autre plateforme comme Vimeo ou un serveur de fichiers",
-                        "Hébergez votre vidéo sur un service de stockage et fournissez un lien direct"
-                    ],
-                    "transcript_error": transcript_error,
-                    "cookie_error": cookie_error,
-                    "download_error": download_error + " | pytube: " + pytube_error
-                }
-                raise HTTPException(status_code=403, detail=detailed_error)
+                
+                # Essayer une troisième méthode avec requests directement
+                try:
+                    logger.info("Tentative de détection du format audio direct")
+                    import requests
+                    from bs4 import BeautifulSoup
+                    
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                    }
+                    
+                    # Obtenir la page YouTube
+                    video_id = extract_youtube_id(video_url)
+                    response = requests.get(f"https://www.youtube.com/watch?v={video_id}", headers=headers)
+                    
+                    if response.status_code == 200:
+                        html_content = response.text
+                        soup = BeautifulSoup(html_content, 'html.parser')
+                        
+                        # Récupérer le titre pour le logging
+                        title = soup.find('title').text if soup.find('title') else "Titre inconnu"
+                        logger.info(f"Page YouTube récupérée: {title}")
+                        
+                        # Vérifier si nous sommes face à une page de vérification anti-bot
+                        if "confirm you're not a bot" in html_content or "robot check" in html_content.lower():
+                            raise Exception("Page de vérification anti-bot détectée")
+                            
+                        # Si nous arrivons ici, c'est que nous avons échoué avec toutes les méthodes
+                        raise Exception("Impossible d'extraire le lien audio/vidéo direct")
+                    else:
+                        raise Exception(f"Impossible d'accéder à la page YouTube: HTTP {response.status_code}")
+                        
+                except Exception as req_error:
+                    logger.error(f"Erreur avec la méthode requests directe: {str(req_error)}")
+                    
+                    # Message d'erreur détaillé final avec toutes les tentatives
+                    detailed_error = {
+                        "error": "YouTube bloque le téléchargement automatisé de cette vidéo",
+                        "details": "Toutes les méthodes de contournement ont échoué (yt-dlp, pytube, requests).",
+                        "solutions": [
+                            "Utilisez une autre source de contenu comme un site web d'article ou une documentation",
+                            "Essayez de copier-coller manuellement la transcription depuis YouTube (si disponible)",
+                            "Utilisez une vidéo hébergée sur une autre plateforme comme Vimeo ou un serveur de fichiers",
+                            "Hébergez votre vidéo sur un service de stockage et fournissez un lien direct"
+                        ],
+                        "transcript_error": transcript_error,
+                        "cookie_error": cookie_error,
+                        "download_error": download_error + " | pytube: " + pytube_error + " | requests: " + str(req_error)
+                    }
+                    raise HTTPException(status_code=403, detail=detailed_error)
         else:
             detailed_error = {
                 "error": "Erreur lors du téléchargement de l'audio",
