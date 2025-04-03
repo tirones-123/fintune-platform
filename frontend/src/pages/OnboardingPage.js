@@ -907,7 +907,10 @@ const OnboardingPage = () => {
         
         // Ajouter un message explicite sur les restrictions YouTube
         if (error.message.includes("YouTube bloque") || (error.details && error.details.includes("YouTube"))) {
-          errorMessage += "\n\nNote: YouTube a récemment renforcé ses mesures anti-bot, rendant l'extraction automatique difficile. Nous vous recommandons d'utiliser plutôt des articles web.";
+          errorMessage += "\n\nImportant: YouTube a récemment renforcé ses mesures anti-bot, rendant l'extraction automatique difficile voire impossible pour de nombreuses vidéos. Nous vous recommandons vivement de:\n";
+          errorMessage += "• Utiliser des articles web, des blogs ou des documents PDF\n";
+          errorMessage += "• Copier-coller manuellement le contenu pertinent de la vidéo\n";
+          errorMessage += "• Télécharger l'audio manuellement et le transcrire ailleurs\n";
         }
         
         setYoutubeUploadError(errorMessage);

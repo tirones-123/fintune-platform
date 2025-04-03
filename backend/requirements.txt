@@ -31,7 +31,8 @@ pytube==15.0.0
 jsonschema==4.20.0
 python-dateutil==2.8.2
 python-docx==0.8.11
-yt-dlp==2023.3.4
+yt-dlp==2023.11.16
+youtube-dl==2021.12.17
 whisper==1.1.10
 pydub==0.25.1
 beautifulsoup4==4.12.2
