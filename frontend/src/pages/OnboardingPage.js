@@ -1122,7 +1122,7 @@ const OnboardingPage = () => {
                 <Box sx={{ mt: 1, width: '100%', maxWidth: '100%' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="body2" fontWeight="medium" color="text.primary">
-                      Progression de votre dataset
+                      Progression de votre dataset LA
                     </Typography>
                     <Typography variant="body2" color="primary.main" fontWeight="medium">
                       {(isEstimated ? estimateCharacterCount() : actualCharacterCount).toLocaleString()} caractères
