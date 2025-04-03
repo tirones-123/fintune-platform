@@ -18,6 +18,34 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Playwright browsers
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    wget \
+    gnupg \
+    ca-certificates \
+    fontconfig \
+    libfreetype6 \
+    libharfbuzz0b \
+    libx11-6 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    xvfb \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Playwright browsers
+RUN python -m playwright install --with-deps chromium
+
 # Copy the rest of the application
 COPY . .
 

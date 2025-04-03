@@ -1210,6 +1210,73 @@ L'endpoint `/checkout/webhook` gère les événements Stripe suivants:
 
 Pour chaque événement, le système vérifie l'authenticité à l'aide de la signature Stripe et met à jour la base de données en conséquence.
 
+## Fonctionnalités auxiliaires (Helpers)
+
+### Transcription de vidéos
+
+```
+POST /helpers/video-transcript
+```
+
+Extrait et transcrit le contenu audio d'une vidéo YouTube ou d'autres sources vidéo.
+
+**Corps de la requête**
+```json
+{
+  "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+}
+```
+
+**Réponse**
+```json
+{
+  "status": "success",
+  "transcript": "Texte complet de la transcription de la vidéo...",
+  "source": "youtube_transcript_api" // ou "whisper" si la transcription a été générée par Whisper
+}
+```
+
+**Codes d'erreur possibles**
+- `400 Bad Request`: URL invalide ou non supportée
+- `404 Not Found`: Vidéo non trouvée
+- `422 Unprocessable Entity`: Impossible d'extraire les sous-titres ou l'audio
+- `500 Internal Server Error`: Erreur lors du traitement de la demande
+
+### Scraping Web
+
+```
+POST /helpers/scrape-web
+```
+
+Extrait le contenu textuel principal (titre et paragraphes) d'une page web.
+
+**Corps de la requête**
+```json
+{
+  "url": "https://example.com/article"
+}
+```
+
+**Réponse**
+```json
+{
+  "status": "success",
+  "title": "Titre de la page",
+  "content": "Contenu textuel extrait de la page web...",
+  "paragraphs": [
+    "Premier paragraphe...",
+    "Deuxième paragraphe...",
+    "..."
+  ]
+}
+```
+
+**Codes d'erreur possibles**
+- `400 Bad Request`: URL invalide
+- `404 Not Found`: Page web non trouvée
+- `422 Unprocessable Entity`: Impossible d'extraire le contenu
+- `500 Internal Server Error`: Erreur lors du traitement de la demande
+
 ## Formats de données
 
 ### Format JSONL pour OpenAI
