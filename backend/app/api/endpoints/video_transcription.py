@@ -100,7 +100,7 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
     
     try:
         import yt_dlp
-        logger.info(f"Module yt-dlp importé avec succès (version: {yt_dlp.version.__version__})")
+        logger.info(f"Module yt-dlp importé avec succès (version: {getattr(yt_dlp.version, '__version__', 'inconnu')})")
     except (ImportError, AttributeError) as e:
         logger.error(f"Erreur lors de l'import de yt-dlp: {str(e)}")
         available_modules["yt_dlp"] = False
@@ -114,25 +114,85 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
     
     try:
         import youtube_dl
-        logger.info(f"Module youtube-dl importé avec succès (version: {youtube_dl.version.__version__})")
+        logger.info(f"Module youtube-dl importé avec succès (version: {getattr(youtube_dl.version, '__version__', 'inconnu')})")
     except (ImportError, AttributeError) as e:
         logger.error(f"Erreur lors de l'import de youtube-dl: {str(e)}")
         available_modules["youtube_dl"] = False
     
     try:
         import requests
-        logger.info(f"Module requests importé avec succès (version: {requests.__version__})")
+        logger.info(f"Module requests importé avec succès (version: {getattr(requests, '__version__', 'inconnu')})")
     except (ImportError, AttributeError) as e:
         logger.error(f"Erreur lors de l'import de requests: {str(e)}")
         available_modules["requests"] = False
     
     try:
         import bs4
-        logger.info(f"Module BeautifulSoup importé avec succès (version: {bs4.__version__})")
+        logger.info(f"Module BeautifulSoup importé avec succès (version: {getattr(bs4, '__version__', 'inconnu')})")
     except (ImportError, AttributeError) as e:
         logger.error(f"Erreur lors de l'import de BeautifulSoup: {str(e)}")
         available_modules["bs4"] = False
     
+    # Configuration améliorée pour yt-dlp avec plus d'options pour contourner les protections
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': os.path.join(temp_dir, '%(id)s.%(ext)s'),
+        'quiet': False,
+        'no_warnings': False,
+        'ignoreerrors': True,
+        'noplaylist': True,
+        'extract_flat': False,
+        'nocheckcertificate': True,
+        'geo_bypass': True,
+        'geo_bypass_country': 'US',
+        'socket_timeout': 30,
+        'source_address': '0.0.0.0',
+        'sleep_interval': 2,  # Attendre entre les requêtes pour éviter la détection de bot
+        'max_sleep_interval': 5,
+        'sleep_interval_requests': 1,
+        'extractor_retries': 5,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Origin': 'https://www.youtube.com',
+            'Referer': 'https://www.youtube.com/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'sec-ch-ua': '"Chromium";v="118", "Google Chrome";v="118"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive'
+        }
+    }
+    
+    # Chemin pour le fichier de cookies (vous devrez créer et remplir ce fichier)
+    cookies_file = os.path.join(os.path.dirname(__file__), 'youtube_cookies.txt')
+    cookie_error = None
+    # Vérifier si le fichier de cookies existe et a une taille non nulle
+    if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
+        try:
+            # On essaie de vérifier si le fichier est bien formaté
+            with open(cookies_file, 'r') as f:
+                content = f.read().strip()
+                if content and (content.startswith("# Netscape HTTP Cookie File") or content.startswith("# HTTP Cookie File")):
+                    logger.info(f"Utilisation du fichier de cookies: {cookies_file}")
+                    ydl_opts['cookiefile'] = cookies_file
+                else:
+                    cookie_error = f"Le fichier {cookies_file} ne semble pas être un fichier de cookies valide au format Netscape"
+                    logger.warning(cookie_error)
+        except Exception as e:
+            cookie_error = f"Erreur lors de la lecture du fichier de cookies: {str(e)}"
+            logger.warning(cookie_error)
+    else:
+        cookie_error = f"Fichier de cookies inexistant ou vide: {cookies_file}"
+        logger.warning(cookie_error)
+
     download_error = None
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
