@@ -58,6 +58,7 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         # Option à ajouter pour d'autres plateformes dans le futur
         raise HTTPException(status_code=400, detail="Seules les URL YouTube sont prises en charge pour le moment")
 
+    transcript_error = None
     # Première tentative : extraire les sous-titres existants
     try:
         video_id = extract_youtube_id(video_url)
@@ -68,7 +69,9 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         return {"transcript": transcript, "source": "youtube_transcript_api"}
     except Exception as e:
         # Journaliser l'erreur et passer à la méthode de fallback
-        logger.warning(f"Extraction des sous-titres échouée: {str(e)}")
+        error_msg = str(e)
+        transcript_error = error_msg
+        logger.warning(f"Extraction des sous-titres échouée: {error_msg}")
 
     # Fallback : télécharger l'audio et transcrire avec Whisper
     logger.info(f"Tentative de téléchargement et transcription avec Whisper")
@@ -95,6 +98,7 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
     
     # Chemin pour le fichier de cookies (vous devrez créer et remplir ce fichier)
     cookies_file = os.path.join(os.path.dirname(__file__), 'youtube_cookies.txt')
+    cookie_error = None
     # Vérifier si le fichier de cookies existe et a une taille non nulle
     if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
         try:
@@ -105,31 +109,60 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
                     logger.info(f"Utilisation du fichier de cookies: {cookies_file}")
                     ydl_opts['cookiefile'] = cookies_file
                 else:
-                    logger.warning(f"Le fichier {cookies_file} ne semble pas être un fichier de cookies valide au format Netscape")
+                    cookie_error = f"Le fichier {cookies_file} ne semble pas être un fichier de cookies valide au format Netscape"
+                    logger.warning(cookie_error)
         except Exception as e:
-            logger.warning(f"Erreur lors de la lecture du fichier de cookies: {str(e)}")
+            cookie_error = f"Erreur lors de la lecture du fichier de cookies: {str(e)}"
+            logger.warning(cookie_error)
     else:
-        logger.warning(f"Fichier de cookies inexistant ou vide: {cookies_file}")
+        cookie_error = f"Fichier de cookies inexistant ou vide: {cookies_file}"
+        logger.warning(cookie_error)
     
+    download_error = None
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             logger.info("Début de l'extraction des informations vidéo")
             info = ydl.extract_info(video_url, download=True)
             if not info:
-                raise HTTPException(status_code=400, detail="Impossible d'extraire les informations de la vidéo")
+                download_error = "Impossible d'extraire les informations de la vidéo"
+                raise HTTPException(status_code=400, detail=download_error)
             
             file_path = os.path.join(temp_dir, f"{info['id']}.{info['ext']}")
             logger.info(f"Fichier audio téléchargé: {file_path}")
             
             if not os.path.exists(file_path):
-                raise HTTPException(status_code=404, detail="Le fichier audio n'a pas été téléchargé correctement")
+                download_error = "Le fichier audio n'a pas été téléchargé correctement"
+                raise HTTPException(status_code=404, detail=download_error)
     except Exception as e:
-        logger.error(f"Erreur lors du téléchargement de l'audio: {str(e)}")
+        error_msg = str(e)
+        download_error = error_msg
+        logger.error(f"Erreur lors du téléchargement de l'audio: {error_msg}")
         # Vérifier si l'erreur concerne une vérification anti-bot
-        if "Sign in to confirm you're not a bot" in str(e):
-            raise HTTPException(status_code=403, detail="YouTube requiert une authentification pour accéder à cette vidéo. Veuillez utiliser une autre vidéo ou configurer un fichier de cookies.")
+        if "Sign in to confirm you're not a bot" in error_msg or "Precondition check failed" in error_msg:
+            # Message d'erreur détaillé avec instructions pour l'utilisateur
+            detailed_error = {
+                "error": "YouTube requiert une authentification pour accéder à cette vidéo.",
+                "details": "YouTube a détecté une activité automatisée et bloque l'accès pour vérifier que vous n'êtes pas un robot.",
+                "solutions": [
+                    "Essayez une autre vidéo YouTube qui n'a pas de restrictions",
+                    "Essayez un lien direct vers un fichier audio ou vidéo",
+                    "Utilisez un fichier de cookies authentifié (nécessite une intervention manuelle)"
+                ],
+                "transcript_error": transcript_error,
+                "cookie_error": cookie_error,
+                "download_error": download_error
+            }
+            raise HTTPException(status_code=403, detail=detailed_error)
         else:
-            raise HTTPException(status_code=400, detail=f"Erreur lors du téléchargement de l'audio: {str(e)}")
+            # Pour les autres types d'erreur
+            detailed_error = {
+                "error": f"Erreur lors du téléchargement de l'audio",
+                "details": error_msg,
+                "transcript_error": transcript_error,
+                "cookie_error": cookie_error,
+                "download_error": download_error
+            }
+            raise HTTPException(status_code=400, detail=detailed_error)
 
     try:
         max_size_bytes = 25 * 1024 * 1024  # 25MB en octets

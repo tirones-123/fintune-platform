@@ -896,7 +896,18 @@ const OnboardingPage = () => {
       setYoutubeUrl('');
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la vidéo YouTube:', error);
-      setYoutubeUploadError(error.message || "Erreur durant la transcription.");
+      
+      // Gestion améliorée des erreurs détaillées
+      if (error.solutions) {
+        let errorMessage = `${error.message} ${error.details}`;
+        errorMessage += "\n\nSolutions recommandées:\n";
+        error.solutions.forEach((solution, index) => {
+          errorMessage += `${index + 1}. ${solution}\n`;
+        });
+        setYoutubeUploadError(errorMessage);
+      } else {
+        setYoutubeUploadError(error.message || "Erreur durant la transcription.");
+      }
     } finally {
       setYoutubeUploading(false);
     }
@@ -919,7 +930,20 @@ const OnboardingPage = () => {
       setScrapeUrl('');
     } catch (error) {
       console.error("Erreur lors du scrapping :", error);
-      setScrapeError(error.message || "Erreur lors du scrapping.");
+      
+      // Gestion améliorée des erreurs détaillées
+      if (error.solutions) {
+        let errorMessage = `${error.message} ${error.details}`;
+        errorMessage += "\n\nSolutions recommandées:\n";
+        error.solutions.forEach((solution, index) => {
+          errorMessage += `${index + 1}. ${solution}\n`;
+        });
+        setScrapeError(errorMessage);
+      } else if (error.details) {
+        setScrapeError(`${error.message}: ${error.details}`);
+      } else {
+        setScrapeError(error.message || "Erreur lors du scrapping.");
+      }
     } finally {
       setScrapeLoading(false);
     }
