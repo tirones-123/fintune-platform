@@ -351,58 +351,69 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
                     # Message d'erreur détaillé final avec toutes les tentatives
                     logger.error("============== ÉCHEC DE TOUTES LES MÉTHODES ==============")
                     
-                    # Essayons une dernière tentative avec youtube-dl
-                    logger.info("============== TENTATIVE AVEC YOUTUBE-DL ==============")
+                    # Essayons avec RapidAPI YouTube MP3
+                    logger.info("============== TENTATIVE AVEC RAPIDAPI YOUTUBE MP3 ==============")
                     try:
-                        import youtube_dl
-                        logger.info("Module youtube_dl importé avec succès")
+                        import requests
+                        import time
                         
-                        # Configuration différente de yt-dlp
-                        ytdl_opts = {
-                            'format': 'bestaudio/best',
-                            'outtmpl': os.path.join(temp_dir, '%(id)s.%(ext)s'),
-                            'quiet': False,
-                            'no_warnings': False,
-                            'nocheckcertificate': True,
-                            'ignoreerrors': True,
-                            'postprocessors': [{
-                                'key': 'FFmpegExtractAudio',
-                                'preferredcodec': 'mp3',
-                                'preferredquality': '192',
-                            }],
-                            'prefer_insecure': True,
-                            'cachedir': False,
-                            'prefer_ffmpeg': True
+                        video_id = extract_youtube_id(video_url)
+                        logger.info(f"Extraction du MP3 via RapidAPI pour ID: {video_id}")
+                        
+                        rapidapi_url = f"https://youtube-mp36.p.rapidapi.com/dl?id={video_id}"
+                        rapidapi_headers = {
+                            "X-RapidAPI-Host": "youtube-mp36.p.rapidapi.com",
+                            "X-RapidAPI-Key": "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8"
                         }
                         
-                        logger.info(f"Téléchargement avec youtube-dl pour {video_url}")
-                        with youtube_dl.YoutubeDL(ytdl_opts) as ydl:
-                            info = ydl.extract_info(video_url, download=True)
-                            if not info:
-                                raise Exception("Impossible d'extraire les informations de la vidéo")
-                                
-                            # Déterminer le chemin du fichier téléchargé
-                            if 'id' in info and 'ext' in info:
-                                file_path = os.path.join(temp_dir, f"{info['id']}.mp3")
-                            else:
-                                # Fallback si l'ID ou l'extension n'est pas disponible
-                                file_path = os.path.join(temp_dir, f"audio_{int(time.time())}.mp3")
-                                
-                            logger.info(f"Fichier audio téléchargé via youtube-dl: {file_path}")
-                            
-                            if not os.path.exists(file_path):
-                                raise Exception("Le fichier n'a pas été téléchargé correctement")
-                                
-                            # Continuer le processus avec le fichier téléchargé
-                            logger.info("Téléchargement youtube-dl réussi, poursuite du traitement")
-                            
-                    except Exception as ydl_error:
-                        ydl_error_msg = str(ydl_error)
-                        logger.error(f"Échec de téléchargement avec youtube-dl: {ydl_error_msg}")
+                        # Faire la requête à RapidAPI
+                        logger.info(f"Envoi de la requête à {rapidapi_url}")
+                        response = requests.get(rapidapi_url, headers=rapidapi_headers)
                         
+                        if response.status_code == 200:
+                            response_data = response.json()
+                            logger.info(f"Réponse reçue: {response_data}")
+                            
+                            if response_data.get("status") == "ok" and "link" in response_data:
+                                mp3_url = response_data["link"]
+                                logger.info(f"Lien MP3 obtenu: {mp3_url}")
+                                
+                                # Télécharger le fichier MP3
+                                file_path = os.path.join(temp_dir, f"{video_id}.mp3")
+                                logger.info(f"Téléchargement de l'audio vers {file_path}")
+                                mp3_response = requests.get(mp3_url, stream=True)
+                                
+                                if mp3_response.status_code == 200:
+                                    with open(file_path, 'wb') as f:
+                                        for chunk in mp3_response.iter_content(chunk_size=8192):
+                                            f.write(chunk)
+                                    
+                                    logger.info(f"Fichier MP3 téléchargé avec succès: {file_path}")
+                                    
+                                    # Vérifier si le fichier existe
+                                    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                                        logger.info(f"Téléchargement RapidAPI réussi, poursuite du traitement")
+                                    else:
+                                        logger.error("Le fichier MP3 téléchargé est vide ou n'existe pas")
+                                        raise Exception("Échec du téléchargement du fichier MP3")
+                                else:
+                                    logger.error(f"Échec du téléchargement du MP3: HTTP {mp3_response.status_code}")
+                                    raise Exception(f"Échec du téléchargement MP3: HTTP {mp3_response.status_code}")
+                            else:
+                                logger.error(f"Échec de la récupération du lien MP3: {response_data.get('msg', 'Erreur inconnue')}")
+                                raise Exception(f"Échec RapidAPI: {response_data.get('msg', 'Erreur inconnue')}")
+                        else:
+                            logger.error(f"Échec de la requête RapidAPI: HTTP {response.status_code}")
+                            raise Exception(f"Échec de la requête RapidAPI: HTTP {response.status_code}")
+                    
+                    except Exception as rapidapi_error:
+                        rapidapi_error_msg = str(rapidapi_error)
+                        logger.error(f"Échec avec RapidAPI: {rapidapi_error_msg}")
+                        
+                        # Toutes les méthodes ont échoué
                         detailed_error = {
                             "error": "YouTube bloque le téléchargement automatisé de cette vidéo",
-                            "details": "Toutes les méthodes de contournement ont échoué (yt-dlp, pytube, requests, youtube-dl).",
+                            "details": "Toutes les méthodes de contournement ont échoué (yt-dlp, pytube, requests, youtube-dl, RapidAPI).",
                             "solutions": [
                                 "Utilisez une autre source de contenu comme un site web d'article ou une documentation",
                                 "Essayez de copier-coller manuellement la transcription depuis YouTube (si disponible)",
@@ -411,7 +422,7 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
                             ],
                             "transcript_error": transcript_error,
                             "cookie_error": cookie_error,
-                            "download_error": download_error + " | pytube: " + pytube_error + " | requests: " + str(req_error) + " | youtube-dl: " + ydl_error_msg
+                            "download_error": download_error + " | pytube: " + pytube_error + " | requests: " + str(req_error) + " | youtube-dl: " + ydl_error_msg + " | RapidAPI: " + rapidapi_error_msg
                         }
                         raise HTTPException(status_code=403, detail=detailed_error)
         else:
