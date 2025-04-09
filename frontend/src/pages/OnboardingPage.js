@@ -879,24 +879,44 @@ const OnboardingPage = () => {
     return Math.max(0, Math.min(100, progressValue));
   };
 
-  // Nouvelle fonction pour ajouter une vidéo YouTube
+  // Fonction pour traiter les URL YouTube
   const handleAddYouTubeUrl = async () => {
     if (!youtubeUrl.trim()) return;
     setYoutubeUploadError(null);
     setYoutubeUploading(true);
     try {
       const data = await videoService.getTranscript(youtubeUrl);
-      const newYouTube = {
+      const newVideo = {
         id: Date.now(), // identifiant temporaire
         url: youtubeUrl,
         transcript: data.transcript,
-        source: data.source,
+        type: 'youtube'
       };
-      setUploadedYouTube(prev => [...prev, newYouTube]);
+      setUploadedYouTube(prev => [...prev, newVideo]);
       setYoutubeUrl('');
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la vidéo YouTube:', error);
-      setYoutubeUploadError(error.message || "Erreur durant la transcription.");
+      
+      // Gestion améliorée des erreurs détaillées
+      if (error.solutions) {
+        let errorMessage = `${error.message}\n\n${error.details}`;
+        errorMessage += "\n\nSolutions recommandées:\n";
+        error.solutions.forEach((solution, index) => {
+          errorMessage += `${index + 1}. ${solution}\n`;
+        });
+        
+        // Ajouter un message explicite sur les restrictions YouTube
+        if (error.message.includes("YouTube bloque") || (error.details && error.details.includes("YouTube"))) {
+          errorMessage += "\n\nImportant: YouTube a récemment renforcé ses mesures anti-bot, rendant l'extraction automatique difficile voire impossible pour de nombreuses vidéos. Nous vous recommandons vivement de:\n";
+          errorMessage += "• Utiliser des articles web, des blogs ou des documents PDF\n";
+          errorMessage += "• Copier-coller manuellement le contenu pertinent de la vidéo\n";
+          errorMessage += "• Télécharger l'audio manuellement et le transcrire ailleurs\n";
+        }
+        
+        setYoutubeUploadError(errorMessage);
+      } else {
+        setYoutubeUploadError(error.message || "Erreur durant la transcription.");
+      }
     } finally {
       setYoutubeUploading(false);
     }
@@ -919,7 +939,20 @@ const OnboardingPage = () => {
       setScrapeUrl('');
     } catch (error) {
       console.error("Erreur lors du scrapping :", error);
-      setScrapeError(error.message || "Erreur lors du scrapping.");
+      
+      // Gestion améliorée des erreurs détaillées
+      if (error.solutions) {
+        let errorMessage = `${error.message} ${error.details}`;
+        errorMessage += "\n\nSolutions recommandées:\n";
+        error.solutions.forEach((solution, index) => {
+          errorMessage += `${index + 1}. ${solution}\n`;
+        });
+        setScrapeError(errorMessage);
+      } else if (error.details) {
+        setScrapeError(`${error.message}: ${error.details}`);
+      } else {
+        setScrapeError(error.message || "Erreur lors du scrapping.");
+      }
     } finally {
       setScrapeLoading(false);
     }

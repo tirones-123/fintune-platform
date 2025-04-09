@@ -704,7 +704,35 @@ export const scrapingService = {
       const response = await api.post('/api/helpers/scrape-web', { url });
       return response.data;
     } catch (error) {
-      throw error;
+      console.error("Erreur de scraping:", error.response?.data);
+      
+      // Vérifier si l'erreur est détaillée avec les solutions
+      if (error.response?.data?.detail?.solutions) {
+        const detailObj = error.response.data.detail;
+        throw {
+          message: detailObj.error || "Erreur lors du scraping",
+          details: detailObj.details || "",
+          solutions: detailObj.solutions,
+          url: detailObj.url,
+          status_code: detailObj.status_code
+        };
+      } else if (error.response?.data?.detail?.error) {
+        // Pour les erreurs avec un format détaillé mais sans solutions
+        const detailObj = error.response.data.detail;
+        throw {
+          message: detailObj.error,
+          details: detailObj.details || "",
+          url: detailObj.url || url
+        };
+      } else if (typeof error.response?.data?.detail === 'string') {
+        // Pour les erreurs simples avec juste un message
+        throw {
+          message: "Erreur lors du scraping",
+          details: error.response?.data?.detail
+        };
+      }
+      // Fallback pour les autres types d'erreurs
+      throw new Error(error.response?.data?.detail || error.message || 'Erreur lors du scraping du site web');
     }
   }
 };
@@ -716,7 +744,37 @@ export const videoService = {
       const response = await api.post('/api/helpers/video-transcript', { video_url: videoUrl });
       return response.data;
     } catch (error) {
-      throw error;
+      console.error("Erreur de transcription vidéo:", error.response?.data);
+      
+      // Vérifier si l'erreur est détaillée avec les solutions
+      if (error.response?.data?.detail?.solutions) {
+        const detailObj = error.response.data.detail;
+        throw {
+          message: detailObj.error || "Erreur lors de la transcription",
+          details: detailObj.details || "",
+          solutions: detailObj.solutions,
+          transcript_error: detailObj.transcript_error,
+          cookie_error: detailObj.cookie_error,
+          download_error: detailObj.download_error,
+          status_code: error.response.status
+        };
+      } else if (error.response?.data?.detail?.error) {
+        // Pour les erreurs avec un format détaillé mais sans solutions
+        const detailObj = error.response.data.detail;
+        throw {
+          message: detailObj.error,
+          details: detailObj.details || "",
+          url: videoUrl
+        };
+      } else if (typeof error.response?.data?.detail === 'string') {
+        // Pour les erreurs simples avec juste un message
+        throw {
+          message: "Erreur lors de la transcription vidéo",
+          details: error.response?.data?.detail
+        };
+      }
+      // Fallback pour les autres types d'erreurs
+      throw new Error(error.response?.data?.detail || error.message || 'Erreur lors de la transcription vidéo');
     }
   }
 };
