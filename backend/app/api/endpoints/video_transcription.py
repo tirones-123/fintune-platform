@@ -75,7 +75,7 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
     
     try:
         # Première tentative avec youtube-mp36
-        rapidapi_key = "9144ffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8"
+        rapidapi_key = "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8"
         rapidapi_host = "youtube-mp36.p.rapidapi.com"
         rapidapi_url = f"https://{rapidapi_host}/dl"
         
