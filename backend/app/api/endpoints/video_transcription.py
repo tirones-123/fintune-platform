@@ -159,24 +159,86 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         file_path = os.path.join(temp_dir, f"{video_id}.mp3")
         
         logger.info(f"Téléchargement du MP3 depuis: {mp3_url}")
-        mp3_response = requests.get(mp3_url, stream=True)
         
-        if mp3_response.status_code != 200:
-            error_msg = f"Erreur lors du téléchargement du MP3: HTTP {mp3_response.status_code}"
+        # Ajouter des en-têtes spécifiques pour le téléchargement
+        download_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Referer": "https://youtube-mp36.p.rapidapi.com/"
+        }
+        
+        # Essayer de télécharger le fichier avec plusieurs tentatives
+        download_success = False
+        max_download_retries = 3
+        
+        for download_attempt in range(max_download_retries):
+            try:
+                logger.info(f"Tentative de téléchargement {download_attempt+1}/{max_download_retries}")
+                
+                # Si ce n'est pas la première tentative et que nous avons des erreurs, 
+                # refaire l'appel API pour obtenir un nouveau lien
+                if download_attempt > 0:
+                    logger.info("Obtention d'un nouveau lien de téléchargement...")
+                    try:
+                        new_link_response = requests.get(rapidapi_url, headers=headers, params=params, timeout=10)
+                        if new_link_response.status_code == 200:
+                            new_link_data = new_link_response.json()
+                            if new_link_data.get("status") == "ok" and new_link_data.get("link"):
+                                mp3_url = new_link_data["link"]
+                                logger.info(f"Nouveau lien obtenu: {mp3_url}")
+                            else:
+                                logger.warning(f"Impossible d'obtenir un nouveau lien valide: {new_link_data}")
+                        else:
+                            logger.warning(f"Erreur lors de l'obtention d'un nouveau lien: HTTP {new_link_response.status_code}")
+                    except Exception as e:
+                        logger.warning(f"Erreur lors de la tentative d'obtention d'un nouveau lien: {str(e)}")
+                
+                # Faire une requête HEAD d'abord pour vérifier si l'URL est accessible
+                logger.info("Vérification de l'accessibilité du lien...")
+                head_response = requests.head(mp3_url, headers=download_headers, timeout=5)
+                
+                if head_response.status_code != 200:
+                    logger.warning(f"Le lien n'est pas accessible: HTTP {head_response.status_code}")
+                    continue
+                
+                # Si la vérification HEAD est bonne, télécharger le fichier
+                mp3_response = requests.get(mp3_url, headers=download_headers, stream=True, timeout=30)
+                
+                if mp3_response.status_code == 200:
+                    with open(file_path, 'wb') as f:
+                        for chunk in mp3_response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                    
+                    # Vérifier que le fichier a bien été téléchargé
+                    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                        logger.info(f"Fichier MP3 téléchargé avec succès: {file_path} ({os.path.getsize(file_path)} octets)")
+                        download_success = True
+                        break
+                    else:
+                        logger.warning("Le fichier téléchargé est vide ou n'existe pas")
+                else:
+                    logger.warning(f"Erreur lors du téléchargement: HTTP {mp3_response.status_code}")
+            
+            except Exception as download_error:
+                logger.warning(f"Erreur pendant le téléchargement: {str(download_error)}")
+                # Continuer avec la prochaine tentative
+        
+        # Vérifier si le téléchargement a réussi après toutes les tentatives
+        if not download_success:
+            error_msg = "Impossible de télécharger le fichier MP3 après plusieurs tentatives"
             logger.error(error_msg)
-            raise HTTPException(status_code=mp3_response.status_code, detail=error_msg)
-        
-        # Écrire le fichier MP3
-        with open(file_path, 'wb') as f:
-            for chunk in mp3_response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        
-        logger.info(f"Fichier MP3 téléchargé: {file_path}")
-        
-        if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-            error_msg = "Le fichier MP3 n'a pas été téléchargé correctement ou est vide"
-            logger.error(error_msg)
-            raise HTTPException(status_code=400, detail=error_msg)
+            raise HTTPException(status_code=400, detail={
+                "error": error_msg,
+                "details": "Le lien généré par RapidAPI n'est pas accessible ou a expiré",
+                "solutions": [
+                    "Réessayer ultérieurement",
+                    "Vérifier que votre abonnement RapidAPI est actif",
+                    "Essayer avec une autre URL YouTube"
+                ]
+            })
         
     except Exception as e:
         error_msg = str(e)
