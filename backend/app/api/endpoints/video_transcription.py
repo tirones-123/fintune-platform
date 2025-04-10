@@ -74,7 +74,7 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
     temp_dir = tempfile.gettempdir()
     
     try:
-        # Paramètres RapidAPI
+        # Première tentative avec youtube-mp36
         rapidapi_key = "9144ffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8"
         rapidapi_host = "youtube-mp36.p.rapidapi.com"
         rapidapi_url = f"https://{rapidapi_host}/dl"
@@ -84,29 +84,94 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
             "X-RapidAPI-Key": rapidapi_key,
             "X-RapidAPI-Host": rapidapi_host
         }
+        
+        # Utilise les noms de paramètres corrects conformément à la documentation de l'API
         params = {
             "id": video_id
         }
         
-        logger.info(f"Envoi de la requête à RapidAPI pour l'ID vidéo: {video_id}")
-        response = requests.get(rapidapi_url, headers=headers, params=params)
+        logger.info(f"Tentative 1: Envoi de la requête à {rapidapi_host} pour l'ID vidéo: {video_id}")
+        logger.info(f"URL de l'API: {rapidapi_url}")
+        logger.info(f"Headers: {headers}")
+        logger.info(f"Paramètres: {params}")
         
-        if response.status_code != 200:
-            logger.error(f"Erreur RapidAPI: HTTP {response.status_code}")
-            raise HTTPException(status_code=response.status_code, 
-                                detail=f"Erreur lors de l'appel à l'API RapidAPI: {response.text}")
-        
-        response_data = response.json()
-        logger.info(f"Réponse RapidAPI reçue: {response_data}")
-        
-        # Vérifier que la réponse contient un lien de téléchargement
-        if "link" not in response_data or response_data.get("status") != "ok":
-            error_msg = f"RapidAPI n'a pas fourni de lien de téléchargement: {response_data}"
-            logger.error(error_msg)
-            raise HTTPException(status_code=400, detail=error_msg)
+        # Première tentative avec youtube-mp36
+        response = None
+        try:
+            response = requests.get(rapidapi_url, headers=headers, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                logger.info(f"Réponse RapidAPI reçue: {response_data}")
+                
+                # Vérifier que la réponse contient un lien de téléchargement
+                if "link" in response_data and response_data.get("status") == "ok":
+                    mp3_url = response_data["link"]
+                    logger.info(f"Lien de téléchargement trouvé: {mp3_url}")
+                else:
+                    logger.error(f"Format de réponse incorrect: {response_data}")
+                    raise Exception("Format de réponse incorrect")
+            else:
+                logger.error(f"Erreur API 1: HTTP {response.status_code}")
+                logger.error(f"Détails: {response.text}")
+                raise Exception(f"Erreur HTTP: {response.status_code}")
+                
+        except Exception as e1:
+            logger.error(f"Échec de la première API: {str(e1)}")
+            
+            # Deuxième tentative avec une autre API
+            logger.info("Tentative avec une autre API RapidAPI...")
+            rapidapi_host2 = "youtube-mp3-downloader-highest-quality.p.rapidapi.com"
+            rapidapi_url2 = f"https://{rapidapi_host2}/mp3"
+            headers2 = {
+                "X-RapidAPI-Key": rapidapi_key,
+                "X-RapidAPI-Host": rapidapi_host2
+            }
+            params2 = {
+                "url": f"https://www.youtube.com/watch?v={video_id}"
+            }
+            
+            logger.info(f"Tentative 2: Envoi de la requête à {rapidapi_host2}")
+            logger.info(f"URL: {rapidapi_url2}")
+            logger.info(f"Paramètres: {params2}")
+            
+            try:
+                response = requests.get(rapidapi_url2, headers=headers2, params=params2, timeout=10)
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    logger.info(f"Réponse de la deuxième API reçue: {response_data}")
+                    
+                    # Adapter la structure de la réponse du second service
+                    if "link" in response_data:
+                        mp3_url = response_data["link"]
+                        logger.info(f"Lien de téléchargement trouvé (API 2): {mp3_url}")
+                    else:
+                        logger.error(f"Format de réponse incorrect (API 2): {response_data}")
+                        raise Exception("Format de réponse incorrect (API 2)")
+                else:
+                    logger.error(f"Erreur API 2: HTTP {response.status_code}")
+                    logger.error(f"Détails (API 2): {response.text}")
+                    raise Exception(f"Erreur HTTP (API 2): {response.status_code}")
+                    
+            except Exception as e2:
+                logger.error(f"Échec de la deuxième API: {str(e2)}")
+                
+                # Toutes les tentatives ont échoué, renvoyer une erreur
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "error": "Échec de toutes les tentatives d'API RapidAPI",
+                        "details": f"API 1: {str(e1)}, API 2: {str(e2)}",
+                        "solutions": [
+                            "Vérifier l'abonnement et les quotas des services RapidAPI",
+                            "Essayer ultérieurement",
+                            "Configurer d'autres API alternatives"
+                        ]
+                    }
+                )
         
         # Télécharger le fichier MP3
-        mp3_url = response_data["link"]
         file_path = os.path.join(temp_dir, f"{video_id}.mp3")
         
         logger.info(f"Téléchargement du MP3 depuis: {mp3_url}")
