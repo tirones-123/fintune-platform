@@ -10,6 +10,7 @@ import logging
 import time
 import importlib
 import sys
+import traceback
 
 # Configurer le logging
 logging.basicConfig(level=logging.INFO)
@@ -120,6 +121,8 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         raise HTTPException(status_code=400, detail="Seules les URL YouTube sont prises en charge pour le moment")
 
     transcript_error = None
+    file_path = None
+    
     # Première tentative : extraire les sous-titres existants
     try:
         video_id = extract_youtube_id(video_url)
@@ -305,6 +308,7 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
                 ]
             })
         
+        # Transcription avec Whisper
         try:
             file_size = os.path.getsize(file_path)
             logger.info(f"Taille du fichier audio: {file_size} octets")
@@ -318,10 +322,11 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
                 
             logger.info("Transcription audio terminée avec succès")
             
+            return {"transcript": transcript, "source": "whisper"}
+            
         except Exception as e:
             logger.error(f"Erreur lors de la transcription audio: {str(e)}")
             # Afficher plus de détails sur l'erreur pour le débogage
-            import traceback
             logger.error(f"Détails de l'erreur: {traceback.format_exc()}")
             
             raise HTTPException(status_code=500, detail={
@@ -333,13 +338,7 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
                     "Vérifier que les dépendances de Whisper sont installées (PyTorch, FFmpeg)"
                 ]
             })
-        finally:
-            if os.path.exists(file_path):
-                logger.info(f"Suppression du fichier audio temporaire: {file_path}")
-                os.remove(file_path)
-
-        return {"transcript": transcript, "source": "whisper"}
-        
+            
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Erreur lors du téléchargement via RapidAPI: {error_msg}")
@@ -348,4 +347,9 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
             "details": error_msg,
             "transcript_error": transcript_error
         }
-        raise HTTPException(status_code=400, detail=detailed_error) 
+        raise HTTPException(status_code=400, detail=detailed_error)
+    finally:
+        # Nettoyer le fichier temporaire si existant
+        if file_path and os.path.exists(file_path):
+            logger.info(f"Suppression du fichier audio temporaire: {file_path}")
+            os.remove(file_path) 

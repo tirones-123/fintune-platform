@@ -9,6 +9,7 @@ RUN apt-get update && \
     libpq-dev \
     libxml2-dev \
     libxslt1-dev \
+    ffmpeg \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
