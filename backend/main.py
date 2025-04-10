@@ -26,8 +26,8 @@ upload_dir.mkdir(parents=True, exist_ok=True)
 
 # Create FastAPI app
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    description="API for the FinTune Platform - A platform for fine-tuning language models",
+    title="FinTune Platform API",
+    description="API pour la plateforme FinTune de fine-tuning de modèles",
     version="1.0.0",
     openapi_url="/api/openapi.json",
     docs_url="/api/docs",
@@ -48,6 +48,16 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Mount static files for uploads
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+
+# Ajouter un middleware pour configurer les timeouts plus longs
+@app.middleware("http")
+async def add_timeout_header(request, call_next):
+    # Pour les requêtes de transcription vidéo, autoriser un temps de traitement plus long
+    if request.url.path == "/api/helpers/video-transcript":
+        # Cette configuration n'affecte pas directement Uvicorn mais peut être utilisée dans certains contextes
+        request.state.timeout = 600  # 10 minutes
+
+    return await call_next(request)
 
 # Root endpoint
 @app.get("/")

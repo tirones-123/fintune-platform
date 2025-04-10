@@ -66,6 +66,7 @@ import { useSnackbar } from 'notistack';
 import FileUpload from '../components/common/FileUpload';
 import HelpIcon from '@mui/icons-material/Help';
 import UploadStatusCard from '../components/content/UploadStatusCard';
+import { toast } from 'react-hot-toast';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -219,6 +220,10 @@ const OnboardingPage = () => {
   const [uploadedWeb, setUploadedWeb] = useState([]);
   const [scrapeError, setScrapeError] = useState(null);
   const [scrapeLoading, setScrapeLoading] = useState(false);
+
+  // Ajout de nouveaux états pour la transcription asynchrone
+  const [pendingTranscriptions, setPendingTranscriptions] = useState([]);
+  const [transcriptionTaskPolling, setTranscriptionTaskPolling] = useState(false);
 
   // Créer automatiquement un projet au chargement de la page
   useEffect(() => {
@@ -879,21 +884,62 @@ const OnboardingPage = () => {
     return Math.max(0, Math.min(100, progressValue));
   };
 
-  // Fonction pour traiter les URL YouTube
+  // Fonction modifiée pour traiter les URL YouTube
   const handleAddYouTubeUrl = async () => {
     if (!youtubeUrl.trim()) return;
     setYoutubeUploadError(null);
     setYoutubeUploading(true);
+    
+    // On essaie d'extraire l'ID YouTube pour vérifier s'il s'agit d'une URL valide
+    let videoId = null;
     try {
-      const data = await videoService.getTranscript(youtubeUrl);
-      const newVideo = {
-        id: Date.now(), // identifiant temporaire
+      const youtubeLinkRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+      const match = youtubeUrl.match(youtubeLinkRegex);
+      videoId = match && match[1];
+      
+      if (!videoId) {
+        setYoutubeUploadError("URL YouTube invalide. Veuillez fournir une URL valide.");
+        setYoutubeUploading(false);
+        return;
+      }
+    } catch (error) {
+      setYoutubeUploadError("URL YouTube invalide. Veuillez fournir une URL valide.");
+      setYoutubeUploading(false);
+      return;
+    }
+    
+    // Toujours utiliser le traitement asynchrone pour supporter les vidéos longues (jusqu'à 5h)
+    const useAsyncProcessing = true;
+    
+    try {
+      // Utilisation du mode asynchrone
+      const taskResponse = await videoService.getTranscriptAsync(youtubeUrl);
+      const taskId = taskResponse.task_id;
+      
+      // Créer un objet de transcription en attente
+      const pendingTranscription = {
+        id: Date.now(),
+        taskId: taskId,
         url: youtubeUrl,
-        transcript: data.transcript,
-        type: 'youtube'
+        videoId: videoId,
+        status: 'processing',
+        createdAt: new Date(),
+        lastChecked: new Date()
       };
-      setUploadedYouTube(prev => [...prev, newVideo]);
+      
+      // Ajouter à la liste des transcriptions en attente
+      setPendingTranscriptions(prev => [...prev, pendingTranscription]);
+      
+      // Démarrer le polling si ce n'est pas déjà en cours
+      if (!transcriptionTaskPolling) {
+        startTranscriptionPolling();
+      }
+      
+      // Réinitialiser le champ URL
       setYoutubeUrl('');
+      
+      // Afficher un message de succès
+      toast.success("Transcription lancée en arrière-plan. Pour les vidéos longues (jusqu'à 5h), le traitement peut prendre un certain temps.");
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la vidéo YouTube:', error);
       
@@ -920,6 +966,100 @@ const OnboardingPage = () => {
     } finally {
       setYoutubeUploading(false);
     }
+  };
+
+  // Fonction pour démarrer le polling des tâches de transcription
+  const startTranscriptionPolling = () => {
+    setTranscriptionTaskPolling(true);
+    
+    // Définir un intervalle pour vérifier les tâches en attente
+    const pollingInterval = setInterval(async () => {
+      // Vérifier s'il y a des tâches en attente
+      if (pendingTranscriptions.length === 0) {
+        clearInterval(pollingInterval);
+        setTranscriptionTaskPolling(false);
+        return;
+      }
+      
+      // Parcourir toutes les tâches en attente
+      const updatedPendingTranscriptions = [...pendingTranscriptions];
+      let hasUpdates = false;
+      
+      for (let i = 0; i < updatedPendingTranscriptions.length; i++) {
+        const transcription = updatedPendingTranscriptions[i];
+        
+        // Ne vérifier que les tâches qui sont en cours de traitement
+        if (transcription.status === 'processing') {
+          try {
+            // Mettre à jour l'horodatage de dernière vérification
+            transcription.lastChecked = new Date();
+            
+            // Vérifier l'état de la tâche
+            const statusResponse = await videoService.checkTranscriptStatus(transcription.taskId);
+            
+            if (statusResponse.status === 'completed') {
+              // La transcription est terminée
+              const newVideo = {
+                id: transcription.id,
+                url: transcription.url,
+                transcript: statusResponse.transcript,
+                source: statusResponse.source,
+                type: 'youtube'
+              };
+              
+              // Ajouter à la liste des vidéos téléchargées
+              setUploadedYouTube(prev => [...prev, newVideo]);
+              
+              // Supprimer de la liste des tâches en attente
+              updatedPendingTranscriptions.splice(i, 1);
+              i--; // Ajuster l'index car nous avons supprimé un élément
+              
+              // Afficher une notification de succès
+              toast.success(`Transcription terminée: ${transcription.url}`);
+              
+              hasUpdates = true;
+            } else if (statusResponse.status === 'error') {
+              // La tâche a échoué
+              transcription.status = 'error';
+              transcription.error = statusResponse.message || "Erreur lors de la transcription";
+              transcription.errorDetails = statusResponse.details || "";
+              
+              hasUpdates = true;
+              
+              // Afficher une notification d'erreur
+              toast.error(`Échec de la transcription: ${transcription.url}`);
+            } else {
+              // La tâche est toujours en cours
+              // Rien à faire, mais on peut mettre à jour des informations si nécessaire
+            }
+          } catch (error) {
+            console.error(`Erreur lors de la vérification de la tâche ${transcription.taskId}:`, error);
+            
+            // Si l'erreur persiste trop longtemps, on peut marquer la tâche comme échouée
+            const now = new Date();
+            const timeSinceCreation = now - new Date(transcription.createdAt);
+            
+            // Si la tâche est en attente depuis plus de 30 minutes, la marquer comme échouée
+            if (timeSinceCreation > 30 * 60 * 1000) {
+              transcription.status = 'error';
+              transcription.error = "Délai d'attente dépassé";
+              hasUpdates = true;
+              
+              // Afficher une notification d'erreur
+              toast.error(`Délai dépassé pour la transcription: ${transcription.url}`);
+            }
+          }
+        }
+      }
+      
+      // Mettre à jour l'état uniquement si nécessaire
+      if (hasUpdates) {
+        setPendingTranscriptions(updatedPendingTranscriptions);
+      }
+    }, 5000); // Vérifier toutes les 5 secondes
+    
+    // Nettoyer l'intervalle lorsque le composant est démonté
+    return () => clearInterval(pollingInterval);
   };
 
   // Nouvelle fonction pour ajouter une URL web
@@ -1336,8 +1476,62 @@ const OnboardingPage = () => {
                 >
                   {youtubeUploading ? <CircularProgress size={20} /> : "Ajouter la vidéo"}
                 </Button>
+                
+                {/* Information sur le traitement asynchrone */}
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Notre système traite les vidéos en arrière-plan et prend en charge des vidéos allant jusqu'à 5 heures. 
+                    Le temps de traitement dépend de la longueur de la vidéo. Vous pouvez continuer à utiliser l'application pendant ce temps.
+                  </Typography>
+                </Box>
               </Box>
 
+              {/* Affichage des tâches de transcription en cours */}
+              {pendingTranscriptions.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Transcriptions en cours :</Typography>
+                  {pendingTranscriptions.map(task => (
+                    <Box 
+                      key={task.id} 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        p: 1, 
+                        border: '1px solid', 
+                        borderColor: task.status === 'error' ? 'error.main' : 'divider', 
+                        borderRadius: 1, 
+                        mb: 1,
+                        bgcolor: task.status === 'error' ? 'error.lighter' : 'background.paper'
+                      }}
+                    >
+                      <YouTubeIcon color="error" sx={{ mr: 2 }} />
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="body2">{task.url}</Typography>
+                        {task.status === 'processing' ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <CircularProgress size={14} sx={{ mr: 1 }} />
+                            <Typography variant="caption" color="text.secondary">
+                              Transcription en cours...
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="error">
+                            Erreur: {task.error}
+                          </Typography>
+                        )}
+                      </Box>
+                      <IconButton 
+                        onClick={() => setPendingTranscriptions(prev => prev.filter(t => t.id !== task.id))}
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
+              {/* Affichage des vidéos YouTube terminées */}
               {uploadedYouTube.length > 0 && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle1" sx={{ mb: 1 }}>Vidéos YouTube ajoutées :</Typography>
@@ -1346,7 +1540,7 @@ const OnboardingPage = () => {
                       <YouTubeIcon color="error" sx={{ mr: 2 }} />
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="body1">{video.url}</Typography>
-                        <Typography variant="caption" color="text.secondary">Transcription ({video.source})</Typography>
+                        <Typography variant="caption" color="text.secondary">Transcription ({video.source || 'réussie'})</Typography>
                       </Box>
                       <IconButton onClick={() => setUploadedYouTube(prev => prev.filter(v => v.id !== video.id))}>
                         <DeleteIcon />

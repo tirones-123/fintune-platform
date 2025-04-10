@@ -739,6 +739,7 @@ export const scrapingService = {
 
 // Ajout du service pour la transcription vidéo
 export const videoService = {
+  // Méthode synchrone existante
   getTranscript: async (videoUrl) => {
     try {
       const response = await api.post('/api/helpers/video-transcript', { video_url: videoUrl });
@@ -775,6 +776,57 @@ export const videoService = {
       }
       // Fallback pour les autres types d'erreurs
       throw new Error(error.response?.data?.detail || error.message || 'Erreur lors de la transcription vidéo');
+    }
+  },
+  
+  // Nouvelle méthode asynchrone pour les vidéos longues
+  getTranscriptAsync: async (videoUrl) => {
+    try {
+      const response = await api.post('/api/helpers/video-transcript', { 
+        video_url: videoUrl,
+        async_process: true
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Erreur de transcription vidéo (async):", error.response?.data);
+      // Réutilisation de la même logique de gestion d'erreur que la méthode synchrone
+      if (error.response?.data?.detail?.solutions) {
+        const detailObj = error.response.data.detail;
+        throw {
+          message: detailObj.error || "Erreur lors de la transcription",
+          details: detailObj.details || "",
+          solutions: detailObj.solutions,
+          status_code: error.response.status
+        };
+      } else if (error.response?.data?.detail?.error) {
+        const detailObj = error.response.data.detail;
+        throw {
+          message: detailObj.error,
+          details: detailObj.details || "",
+          url: videoUrl
+        };
+      } else if (typeof error.response?.data?.detail === 'string') {
+        throw {
+          message: "Erreur lors de la transcription vidéo",
+          details: error.response?.data?.detail
+        };
+      }
+      throw new Error(error.response?.data?.detail || error.message || 'Erreur lors de la transcription vidéo asynchrone');
+    }
+  },
+  
+  // Méthode pour vérifier l'état d'une tâche de transcription asynchrone
+  checkTranscriptStatus: async (taskId) => {
+    try {
+      const response = await api.get(`/api/helpers/transcript-status/${taskId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Erreur lors de la vérification de l'état de la transcription:", error.response?.data);
+      throw {
+        message: "Impossible de vérifier l'état de la transcription",
+        details: error.response?.data?.detail || error.message,
+        status_code: error.response?.status || 500
+      };
     }
   }
 };

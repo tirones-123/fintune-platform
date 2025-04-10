@@ -59,6 +59,7 @@ router = APIRouter()
 
 class VideoTranscriptRequest(BaseModel):
     video_url: str
+    async_process: bool = False  # Option pour traitement asynchrone
 
 
 def extract_youtube_id(url: str) -> str:
@@ -109,7 +110,9 @@ async def transcribe_with_whisper(file_path: str) -> str:
 @router.post("/video-transcript", tags=["helpers"])
 async def get_video_transcript(payload: VideoTranscriptRequest):
     video_url = payload.video_url
-    logger.info(f"Tentative de transcription pour l'URL: {video_url}")
+    use_async = payload.async_process
+    
+    logger.info(f"Tentative de transcription pour l'URL: {video_url} (mode asynchrone: {use_async})")
 
     # Vérifier si l'URL est valide
     if not video_url or not isinstance(video_url, str):
@@ -120,6 +123,24 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         # Option à ajouter pour d'autres plateformes dans le futur
         raise HTTPException(status_code=400, detail="Seules les URL YouTube sont prises en charge pour le moment")
 
+    # Si le traitement asynchrone est demandé, utiliser Celery
+    if use_async:
+        from celery_app import celery_app
+        from app.tasks.content_processing import transcribe_youtube_video
+        
+        # Lancer la tâche asynchrone
+        logger.info(f"Lancement de la tâche asynchrone pour {video_url}")
+        task = transcribe_youtube_video.delay(video_url)
+        
+        # Retourner l'ID de tâche qui pourra être utilisé pour vérifier l'état
+        return {
+            "task_id": task.id,
+            "status": "processing",
+            "message": "La transcription a été lancée en arrière-plan",
+            "check_endpoint": f"/api/helpers/transcript-status/{task.id}"
+        }
+
+    # Sinon, continuer avec le traitement synchrone
     transcript_error = None
     file_path = None
     
@@ -352,4 +373,76 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         # Nettoyer le fichier temporaire si existant
         if file_path and os.path.exists(file_path):
             logger.info(f"Suppression du fichier audio temporaire: {file_path}")
-            os.remove(file_path) 
+            os.remove(file_path)
+
+@router.get("/transcript-status/{task_id}", tags=["helpers"])
+async def get_transcript_status(task_id: str):
+    """
+    Récupère l'état d'une tâche de transcription asynchrone.
+    
+    Args:
+        task_id: ID de la tâche Celery
+        
+    Returns:
+        Un objet contenant l'état de la tâche et éventuellement le résultat
+    """
+    from celery_app import celery_app
+    from celery.result import AsyncResult
+    
+    logger.info(f"Vérification de l'état de la tâche {task_id}")
+    
+    # Récupérer le résultat de la tâche
+    task_result = AsyncResult(task_id, app=celery_app)
+    
+    # Vérifier l'état
+    if task_result.state == "PENDING":
+        # La tâche est en attente ou n'existe pas
+        response = {
+            "task_id": task_id,
+            "status": "pending",
+            "message": "La tâche est en attente ou n'existe pas"
+        }
+    elif task_result.state == "STARTED" or task_result.state == "PROGRESS":
+        # La tâche est en cours d'exécution
+        response = {
+            "task_id": task_id,
+            "status": "processing",
+            "message": "La transcription est en cours"
+        }
+    elif task_result.state == "SUCCESS":
+        # La tâche est terminée
+        result = task_result.get()
+        
+        # Vérifier si le résultat est un succès ou une erreur
+        if result.get("status") == "success":
+            response = {
+                "task_id": task_id,
+                "status": "completed",
+                "transcript": result.get("transcript", ""),
+                "source": result.get("source", "unknown")
+            }
+        else:
+            response = {
+                "task_id": task_id,
+                "status": "error",
+                "message": result.get("error", "Une erreur inconnue s'est produite"),
+                "details": result.get("details", "")
+            }
+    elif task_result.state == "FAILURE":
+        # La tâche a échoué
+        response = {
+            "task_id": task_id,
+            "status": "error",
+            "message": "La tâche a échoué",
+            "details": str(task_result.result) if task_result.result else "Pas de détails disponibles"
+        }
+    else:
+        # Autres états (REVOKED, RETRY, etc.)
+        response = {
+            "task_id": task_id,
+            "status": task_result.state.lower(),
+            "message": f"La tâche est dans l'état {task_result.state}"
+        }
+    
+    logger.info(f"État de la tâche {task_id}: {response['status']}")
+    return response 

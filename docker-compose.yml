@@ -42,7 +42,8 @@ services:
       - redis
     networks:
       - fintune-network
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8000 --reload --timeout-keep-alive 600
 
   # Frontend
   frontend:
@@ -74,7 +75,7 @@ services:
     volumes:
       - ./backend:/app
       - uploads:/tmp/uploads
-    command: celery -A celery_app worker --loglevel=info
+    command: celery -A celery_app worker --loglevel=info --time-limit=21600 --soft-time-limit=18000 -Ofair
     env_file:
       - .env
     environment:
