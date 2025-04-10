@@ -223,10 +223,6 @@ const OnboardingPage = () => {
   const [scrapeError, setScrapeError] = useState(null);
   const [scrapeLoading, setScrapeLoading] = useState(false);
 
-  // Ajout de nouveaux états pour la transcription asynchrone
-  const [pendingTranscriptions, setPendingTranscriptions] = useState([]);
-  const [transcriptionTaskPolling, setTranscriptionTaskPolling] = useState(false);
-
   // Créer automatiquement un projet au chargement de la page
   useEffect(() => {
     const createDefaultProject = async () => {
@@ -919,23 +915,23 @@ const OnboardingPage = () => {
         return;
       }
 
-      // Appeler l'API pour récupérer uniquement les métadonnées de la vidéo (durée)
-      const videoMetadata = await api.get(`/api/helpers/youtube-metadata?video_id=${videoId}`);
-      const duration = videoMetadata.data.duration_seconds || 0;
+      // Version simplifiée : on estime directement une durée moyenne de 10 minutes
+      // pour chaque vidéo si l'API de métadonnées n'est pas disponible
+      const estimatedDuration = 600; // 10 minutes en secondes
       
       // Estimer le nombre de caractères (environ 150 caractères par minute de vidéo)
-      const estimatedCharacters = Math.round((duration / 60) * 150);
+      const estimatedCharacters = Math.round((estimatedDuration / 60) * 150); // ~1500 caractères pour 10 minutes
       
       // Enregistrer la vidéo avec les métadonnées et le flag "pending_transcription"
       const urlContent = {
         project_id: createdProject.id,
         url: youtubeUrl,
-        name: `Transcription YouTube - ${new Date().toLocaleString()}`,
+        name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
         content_type: 'youtube_transcript',
         pending_transcription: true, // Marquer comme en attente de transcription complète
         metadata: {
           video_id: videoId,
-          duration_seconds: duration,
+          estimated_duration: estimatedDuration,
           estimated_characters: estimatedCharacters
         },
         status: 'awaiting_transcription' // Nouveau statut
@@ -951,10 +947,10 @@ const OnboardingPage = () => {
       setUploadedYouTube(prev => [...prev, {
         ...response,
         url: youtubeUrl,
-        source: 'Estimation basée sur la durée',
-        duration_seconds: duration,
+        source: 'Estimation (10 min)',
         estimated_characters: estimatedCharacters,
-        status: 'awaiting_transcription'
+        status: 'awaiting_transcription',
+        id: response.id || Date.now() // Assurer qu'un ID est toujours présent
       }]);
       
       // Réinitialiser le champ
@@ -1029,98 +1025,11 @@ const OnboardingPage = () => {
     }
   };
 
-  // Fonction pour démarrer le polling des tâches de transcription
+  // Remplace la fonction de polling qui n'est plus nécessaire
   const startTranscriptionPolling = () => {
-    setTranscriptionTaskPolling(true);
-    
-    // Définir un intervalle pour vérifier les tâches en attente
-    const pollingInterval = setInterval(async () => {
-      // Vérifier s'il y a des tâches en attente
-      if (pendingTranscriptions.length === 0) {
-        clearInterval(pollingInterval);
-        setTranscriptionTaskPolling(false);
-        return;
-      }
-      
-      // Parcourir toutes les tâches en attente
-      const updatedPendingTranscriptions = [...pendingTranscriptions];
-      let hasUpdates = false;
-      
-      for (let i = 0; i < updatedPendingTranscriptions.length; i++) {
-        const transcription = updatedPendingTranscriptions[i];
-        
-        // Ne vérifier que les tâches qui sont en cours de traitement
-        if (transcription.status === 'processing') {
-          try {
-            // Mettre à jour l'horodatage de dernière vérification
-            transcription.lastChecked = new Date();
-            
-            // Vérifier l'état de la tâche
-            const statusResponse = await videoService.checkTranscriptStatus(transcription.taskId);
-            
-            if (statusResponse.status === 'completed') {
-              // La transcription est terminée
-              const newVideo = {
-                id: transcription.id,
-                url: transcription.url,
-                transcript: statusResponse.transcript,
-                source: statusResponse.source,
-                type: 'youtube'
-              };
-              
-              // Ajouter à la liste des vidéos téléchargées
-              setUploadedYouTube(prev => [...prev, newVideo]);
-              
-              // Supprimer de la liste des tâches en attente
-              updatedPendingTranscriptions.splice(i, 1);
-              i--; // Ajuster l'index car nous avons supprimé un élément
-              
-              // Afficher une notification de succès
-              toast.success(`Transcription terminée: ${transcription.url}`);
-              
-              hasUpdates = true;
-            } else if (statusResponse.status === 'error') {
-              // La tâche a échoué
-              transcription.status = 'error';
-              transcription.error = statusResponse.message || "Erreur lors de la transcription";
-              transcription.errorDetails = statusResponse.details || "";
-              
-              hasUpdates = true;
-              
-              // Afficher une notification d'erreur
-              toast.error(`Échec de la transcription: ${transcription.url}`);
-            } else {
-              // La tâche est toujours en cours
-              // Rien à faire, mais on peut mettre à jour des informations si nécessaire
-            }
-          } catch (error) {
-            console.error(`Erreur lors de la vérification de la tâche ${transcription.taskId}:`, error);
-            
-            // Si l'erreur persiste trop longtemps, on peut marquer la tâche comme échouée
-            const now = new Date();
-            const timeSinceCreation = now - new Date(transcription.createdAt);
-            
-            // Si la tâche est en attente depuis plus de 30 minutes, la marquer comme échouée
-            if (timeSinceCreation > 30 * 60 * 1000) {
-              transcription.status = 'error';
-              transcription.error = "Délai d'attente dépassé";
-              hasUpdates = true;
-              
-              // Afficher une notification d'erreur
-              toast.error(`Délai dépassé pour la transcription: ${transcription.url}`);
-            }
-          }
-        }
-      }
-      
-      // Mettre à jour l'état uniquement si nécessaire
-      if (hasUpdates) {
-        setPendingTranscriptions(updatedPendingTranscriptions);
-      }
-    }, 5000); // Vérifier toutes les 5 secondes
-    
-    // Nettoyer l'intervalle lorsque le composant est démonté
-    return () => clearInterval(pollingInterval);
+    // Cette fonction n'est plus utilisée car les transcriptions sont lancées après paiement
+    console.log("Le polling des transcriptions n'est plus nécessaire, les transcriptions sont lancées après paiement");
+    return null;
   };
 
   // Contenu des étapes
@@ -1511,52 +1420,7 @@ const OnboardingPage = () => {
                 </Box>
               </Box>
 
-              {/* Affichage des tâches de transcription en cours */}
-              {pendingTranscriptions.length > 0 && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Transcriptions en cours :</Typography>
-                  {pendingTranscriptions.map(task => (
-                    <Box 
-                      key={task.id} 
-                      sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        p: 1, 
-                        border: '1px solid', 
-                        borderColor: task.status === 'error' ? 'error.main' : 'divider', 
-                        borderRadius: 1, 
-                        mb: 1,
-                        bgcolor: task.status === 'error' ? 'error.lighter' : 'background.paper'
-                      }}
-                    >
-                      <YouTubeIcon color="error" sx={{ mr: 2 }} />
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body2">{task.url}</Typography>
-                        {task.status === 'processing' ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <CircularProgress size={14} sx={{ mr: 1 }} />
-                            <Typography variant="caption" color="text.secondary">
-                              Transcription en cours...
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Typography variant="caption" color="error">
-                            Erreur: {task.error}
-                          </Typography>
-                        )}
-                      </Box>
-                      <IconButton 
-                        onClick={() => setPendingTranscriptions(prev => prev.filter(t => t.id !== task.id))}
-                        size="small"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  ))}
-                </Box>
-              )}
-
-              {/* Affichage des vidéos YouTube terminées */}
+              {/* Affichage des vidéos YouTube ajoutées */}
               {uploadedYouTube.length > 0 && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle1" sx={{ mb: 1 }}>Vidéos YouTube ajoutées :</Typography>
@@ -1565,9 +1429,25 @@ const OnboardingPage = () => {
                       <YouTubeIcon color="error" sx={{ mr: 2 }} />
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="body1">{video.url}</Typography>
-                        <Typography variant="caption" color="text.secondary">Transcription ({video.source || 'réussie'})</Typography>
+                        {video.status === 'awaiting_transcription' ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Typography variant="caption" color="text.secondary">
+                              ~{video.estimated_characters?.toLocaleString() || '1500'} caractères estimés (transcription après paiement)
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            Transcription: {video.source || 'terminée'}
+                          </Typography>
+                        )}
                       </Box>
-                      <IconButton onClick={() => setUploadedYouTube(prev => prev.filter(v => v.id !== video.id))}>
+                      <IconButton onClick={() => {
+                        setUploadedYouTube(prev => prev.filter(v => v.id !== video.id));
+                        // Si la vidéo a des caractères estimés, les soustraire du total
+                        if (video.estimated_characters) {
+                          setActualCharacterCount(prev => Math.max(0, prev - video.estimated_characters));
+                        }
+                      }}>
                         <DeleteIcon />
                       </IconButton>
                     </Box>
