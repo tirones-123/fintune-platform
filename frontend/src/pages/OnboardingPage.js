@@ -921,22 +921,16 @@ const OnboardingPage = () => {
       // Estimer le nombre de caractères (environ 150 caractères par minute de vidéo)
       const estimatedCharacters = Math.round((estimatedDuration / 60) * 150); // ~1500 caractères pour 10 minutes
       
-      // Enregistrer la vidéo avec le flag "pending_transcription"
+      // Créer l'objet au format attendu par le backend
       const urlContent = {
         project_id: createdProject.id,
         url: youtubeUrl,
         name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
-        content_type: 'youtube_transcript',
-        pending_transcription: true,
-        metadata: {
-          video_id: videoId,
-          estimated_duration: estimatedDuration,
-          estimated_characters: estimatedCharacters
-        },
-        status: 'awaiting_transcription'
+        type: 'youtube', // Utiliser 'type' au lieu de 'content_type'
+        description: `Vidéo YouTube en attente de transcription. Durée estimée: 10 minutes.`
       };
       
-      // Ajouter l'URL avec les métadonnées estimées
+      // Ajouter l'URL avec le format attendu par le backend
       const response = await contentService.addUrl(urlContent);
       
       // Mettre à jour le comptage total des caractères avec l'estimation
