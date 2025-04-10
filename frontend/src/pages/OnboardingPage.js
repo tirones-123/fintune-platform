@@ -33,6 +33,7 @@ import {
   Card,
   CardContent,
   Divider,
+  AlertTitle,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -49,6 +50,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import StarsIcon from '@mui/icons-material/Stars';
 import YouTubeIcon from '@mui/icons-material/YouTube';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
 import { 
@@ -594,10 +596,21 @@ const OnboardingPage = () => {
           const characterCount = isEstimated ? estimateCharacterCount() : actualCharacterCount;
           console.log(`Nombre de caractères à facturer: ${characterCount}`);
           
+          // Sauvegarder la liste des vidéos YouTube en attente de transcription complète
+          const pendingTranscriptions = uploadedYouTube
+            .filter(c => c.status === 'awaiting_transcription')
+            .map(c => ({
+              id: c.id, 
+              url: c.url,
+              video_id: c.metadata?.video_id || c.video_id,
+              estimated_characters: c.estimated_characters
+            }));
+          
           // Créer un point d'entrée spécifique pour l'onboarding qui prend en compte les caractères déjà utilisés
           console.log("Tentative de création d'une session de paiement spécifique avec les caractères");
           const session = await api.post('/api/checkout/create-onboarding-session', {
-            character_count: characterCount
+            character_count: characterCount,
+            pending_transcriptions: pendingTranscriptions // Ajouter les vidéos en attente de transcription
           });
           console.log("Session de paiement créée avec succès:", session.data);
           
@@ -886,85 +899,133 @@ const OnboardingPage = () => {
 
   // Fonction modifiée pour traiter les URL YouTube
   const handleAddYouTubeUrl = async () => {
-    if (!youtubeUrl.trim()) return;
-    setYoutubeUploadError(null);
-    setYoutubeUploading(true);
-    
-    // On essaie d'extraire l'ID YouTube pour vérifier s'il s'agit d'une URL valide
-    let videoId = null;
-    try {
-      const youtubeLinkRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
-      const match = youtubeUrl.match(youtubeLinkRegex);
-      videoId = match && match[1];
-      
-      if (!videoId) {
-        setYoutubeUploadError("URL YouTube invalide. Veuillez fournir une URL valide.");
-        setYoutubeUploading(false);
-        return;
-      }
-    } catch (error) {
-      setYoutubeUploadError("URL YouTube invalide. Veuillez fournir une URL valide.");
-      setYoutubeUploading(false);
+    if (!youtubeUrl.trim() || youtubeUploading) return;
+    if (!createdProject) {
+      setYoutubeUploadError("Veuillez d'abord créer un projet");
       return;
     }
     
-    // Toujours utiliser le traitement asynchrone pour supporter les vidéos longues (jusqu'à 5h)
-    const useAsyncProcessing = true;
+    setYoutubeUploading(true);
+    setYoutubeUploadError(null);
     
     try {
-      // Utilisation du mode asynchrone
-      const taskResponse = await videoService.getTranscriptAsync(youtubeUrl);
-      const taskId = taskResponse.task_id;
+      // Extraire l'ID de la vidéo YouTube
+      const youtubeLinkRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+      const match = youtubeUrl.match(youtubeLinkRegex);
+      const videoId = match && match[1];
       
-      // Créer un objet de transcription en attente
-      const pendingTranscription = {
-        id: Date.now(),
-        taskId: taskId,
+      if (!videoId) {
+        setYoutubeUploadError("URL YouTube invalide. Veuillez fournir une URL valide.");
+        return;
+      }
+
+      // Appeler l'API pour récupérer uniquement les métadonnées de la vidéo (durée)
+      const videoMetadata = await api.get(`/api/helpers/youtube-metadata?video_id=${videoId}`);
+      const duration = videoMetadata.data.duration_seconds || 0;
+      
+      // Estimer le nombre de caractères (environ 150 caractères par minute de vidéo)
+      const estimatedCharacters = Math.round((duration / 60) * 150);
+      
+      // Enregistrer la vidéo avec les métadonnées et le flag "pending_transcription"
+      const urlContent = {
+        project_id: createdProject.id,
         url: youtubeUrl,
-        videoId: videoId,
-        status: 'processing',
-        createdAt: new Date(),
-        lastChecked: new Date()
+        name: `Transcription YouTube - ${new Date().toLocaleString()}`,
+        content_type: 'youtube_transcript',
+        pending_transcription: true, // Marquer comme en attente de transcription complète
+        metadata: {
+          video_id: videoId,
+          duration_seconds: duration,
+          estimated_characters: estimatedCharacters
+        },
+        status: 'awaiting_transcription' // Nouveau statut
       };
       
-      // Ajouter à la liste des transcriptions en attente
-      setPendingTranscriptions(prev => [...prev, pendingTranscription]);
+      // Ajouter l'URL avec les métadonnées
+      const response = await contentService.addUrl(urlContent);
       
-      // Démarrer le polling si ce n'est pas déjà en cours
-      if (!transcriptionTaskPolling) {
-        startTranscriptionPolling();
-      }
+      // Mettre à jour le comptage total des caractères avec l'estimation
+      setActualCharacterCount(prev => prev + estimatedCharacters);
       
-      // Réinitialiser le champ URL
+      // Ajouter à la liste des fichiers uploadés
+      setUploadedYouTube(prev => [...prev, {
+        ...response,
+        url: youtubeUrl,
+        source: 'Estimation basée sur la durée',
+        duration_seconds: duration,
+        estimated_characters: estimatedCharacters,
+        status: 'awaiting_transcription'
+      }]);
+      
+      // Réinitialiser le champ
       setYoutubeUrl('');
+      enqueueSnackbar(`URL YouTube ajoutée (~${estimatedCharacters} caractères estimés), la transcription complète sera lancée après le paiement`, { variant: 'success' });
       
-      // Afficher un message de succès
-      toast.success("Transcription lancée en arrière-plan. Pour les vidéos longues (jusqu'à 5h), le traitement peut prendre un certain temps.");
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de la vidéo YouTube:', error);
-      
-      // Gestion améliorée des erreurs détaillées
-      if (error.solutions) {
-        let errorMessage = `${error.message}\n\n${error.details}`;
-        errorMessage += "\n\nSolutions recommandées:\n";
-        error.solutions.forEach((solution, index) => {
-          errorMessage += `${index + 1}. ${solution}\n`;
-        });
-        
-        // Ajouter un message explicite sur les restrictions YouTube
-        if (error.message.includes("YouTube bloque") || (error.details && error.details.includes("YouTube"))) {
-          errorMessage += "\n\nImportant: YouTube a récemment renforcé ses mesures anti-bot, rendant l'extraction automatique difficile voire impossible pour de nombreuses vidéos. Nous vous recommandons vivement de:\n";
-          errorMessage += "• Utiliser des articles web, des blogs ou des documents PDF\n";
-          errorMessage += "• Copier-coller manuellement le contenu pertinent de la vidéo\n";
-          errorMessage += "• Télécharger l'audio manuellement et le transcrire ailleurs\n";
-        }
-        
-        setYoutubeUploadError(errorMessage);
-      } else {
-        setYoutubeUploadError(error.message || "Erreur durant la transcription.");
-      }
+      console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
+      setYoutubeUploadError(error.message || 'Erreur lors de l\'ajout de l\'URL YouTube');
     } finally {
       setYoutubeUploading(false);
+    }
+  };
+
+  // Fonction pour scraper une URL Web - effectuée immédiatement
+  const handleScrapeUrl = async () => {
+    if (!scrapeUrl.trim() || scrapeLoading) return;
+    if (!createdProject) {
+      setScrapeError("Veuillez d'abord créer un projet");
+      return;
+    }
+    
+    setScrapeLoading(true);
+    setScrapeError(null);
+    
+    try {
+      // Effectuer le scraping immédiatement
+      const scrapedData = await scrapingService.scrapeWeb(scrapeUrl);
+      
+      // Calculer le nombre de caractères du contenu scrapé
+      const scrapedText = scrapedData.paragraphs ? scrapedData.paragraphs.join(" ") : "";
+      const characterCount = scrapedText.length;
+      
+      // Créer le contenu avec le texte scrapé
+      const urlContent = {
+        project_id: createdProject.id,
+        url: scrapeUrl,
+        name: scrapedData.title || `Contenu web - ${new Date().toLocaleString()}`,
+        content_type: 'web_content',
+        scraped_content: scrapedText,
+        content_metadata: {
+          character_count: characterCount,
+          url: scrapeUrl,
+          title: scrapedData.title || "Sans titre"
+        }
+      };
+      
+      // Ajouter l'URL avec le contenu scrapé
+      const response = await contentService.addUrl(urlContent);
+      
+      // Mettre à jour le comptage total des caractères
+      setActualCharacterCount(prev => prev + characterCount);
+      
+      // Ajouter à la liste des URLs web
+      setUploadedWeb(prev => [...prev, {
+        ...response,
+        url: scrapeUrl,
+        scraped: scrapedData,
+        character_count: characterCount,
+        status: 'completed'
+      }]);
+      
+      // Réinitialiser le champ
+      setScrapeUrl('');
+      enqueueSnackbar(`URL Web ajoutée (${characterCount} caractères)`, { variant: 'success' });
+      
+    } catch (error) {
+      console.error('Erreur lors du scraping de l\'URL Web:', error);
+      setScrapeError(error.message || 'Erreur lors du scraping de l\'URL Web');
+    } finally {
+      setScrapeLoading(false);
     }
   };
 
@@ -1060,42 +1121,6 @@ const OnboardingPage = () => {
     
     // Nettoyer l'intervalle lorsque le composant est démonté
     return () => clearInterval(pollingInterval);
-  };
-
-  // Nouvelle fonction pour ajouter une URL web
-  const handleScrapeUrl = async () => {
-    if (!scrapeUrl.trim()) return;
-    setScrapeError(null);
-    setScrapeLoading(true);
-    try {
-      const data = await scrapingService.scrapeWeb(scrapeUrl);
-      const newWeb = {
-        id: Date.now(), // identifiant temporaire
-        url: scrapeUrl,
-        scraped: data,
-        type: 'web'
-      };
-      setUploadedWeb(prev => [...prev, newWeb]);
-      setScrapeUrl('');
-    } catch (error) {
-      console.error("Erreur lors du scrapping :", error);
-      
-      // Gestion améliorée des erreurs détaillées
-      if (error.solutions) {
-        let errorMessage = `${error.message} ${error.details}`;
-        errorMessage += "\n\nSolutions recommandées:\n";
-        error.solutions.forEach((solution, index) => {
-          errorMessage += `${index + 1}. ${solution}\n`;
-        });
-        setScrapeError(errorMessage);
-      } else if (error.details) {
-        setScrapeError(`${error.message}: ${error.details}`);
-      } else {
-        setScrapeError(error.message || "Erreur lors du scrapping.");
-      }
-    } finally {
-      setScrapeLoading(false);
-    }
   };
 
   // Contenu des étapes
@@ -1611,6 +1636,178 @@ const OnboardingPage = () => {
           </Box>
         );
         
+      case 2: // Fine-tuning du modèle
+        return (
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+              <Avatar
+                sx={{
+                  backgroundColor: 'secondary.main',
+                  mr: 2,
+                }}
+              >
+                <SettingsSuggestIcon />
+              </Avatar>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                Fine-tuning de votre modèle
+              </Typography>
+            </Box>
+            
+            <Typography variant="body1" paragraph>
+              Configurez votre modèle pour le fine-tuning.
+            </Typography>
+            
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                label="Nom du dataset"
+                value={datasetName}
+                onChange={(e) => setDatasetName(e.target.value)}
+                fullWidth
+                margin="normal"
+                placeholder="Mon dataset de fine-tuning"
+                disabled={createdDataset !== null}
+              />
+              
+              <FormControl fullWidth margin="normal">
+                <InputLabel id="provider-select-label">Fournisseur</InputLabel>
+                <Select
+                  labelId="provider-select-label"
+                  value={provider}
+                  onChange={(e) => setProvider(e.target.value)}
+                  label="Fournisseur"
+                  disabled={createdDataset !== null}
+                >
+                  <MenuItem value="openai">OpenAI</MenuItem>
+                  <MenuItem value="anthropic">Anthropic</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <FormControl fullWidth margin="normal">
+                <InputLabel id="model-select-label">Modèle</InputLabel>
+                <Select
+                  labelId="model-select-label"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  label="Modèle"
+                  disabled={createdDataset !== null}
+                >
+                  {provider === 'openai' && (
+                    <>
+                      <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
+                      <MenuItem value="gpt-4">GPT-4</MenuItem>
+                    </>
+                  )}
+                  {provider === 'anthropic' && (
+                    <>
+                      <MenuItem value="claude-3-haiku-20240307">Claude 3 Haiku</MenuItem>
+                      <MenuItem value="claude-3-sonnet-20240229">Claude 3 Sonnet</MenuItem>
+                    </>
+                  )}
+                </Select>
+              </FormControl>
+              
+              <Box sx={{ mt: 3 }}>
+                <TextField
+                  label={`Clé API ${provider === 'openai' ? 'OpenAI' : 'Anthropic'}`}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  fullWidth
+                  type="password"
+                  margin="normal"
+                  placeholder={`Entrez votre clé API ${provider === 'openai' ? 'OpenAI' : 'Anthropic'}`}
+                  error={!!apiKeyError}
+                  helperText={apiKeyError}
+                  disabled={apiKeySaved}
+                />
+              </Box>
+              
+              {!apiKeySaved && (
+                <Button
+                  variant="outlined"
+                  onClick={saveApiKey}
+                  disabled={!apiKey || savingApiKey}
+                  sx={{ mt: 2 }}
+                >
+                  {savingApiKey ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
+                  Valider la clé API
+                </Button>
+              )}
+            </Box>
+            
+            {apiKeySaved && (
+              <Alert severity="success" sx={{ mt: 2, mb: 3 }}>
+                <AlertTitle>Clé API validée</AlertTitle>
+                Votre clé API a été validée avec succès.
+              </Alert>
+            )}
+            
+            {apiKeySaved && !createdDataset && (
+              <Button
+                variant="contained"
+                onClick={createDataset}
+                disabled={creatingDataset || !datasetName}
+                sx={{ mt: 2 }}
+              >
+                {creatingDataset ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
+                Créer le dataset et lancer le fine-tuning
+              </Button>
+            )}
+            
+            {createdDataset && (
+              <Box sx={{ mt: 3 }}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <AlertTitle>Dataset créé avec succès</AlertTitle>
+                  <Typography variant="body2">
+                    <strong>Nom:</strong> {createdDataset.name}<br />
+                    <strong>ID:</strong> {createdDataset.id}<br />
+                    <strong>Status:</strong> {datasetReady ? "Prêt" : "En préparation..."}
+                  </Typography>
+                  {!datasetReady && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                      <CircularProgress size={16} sx={{ mr: 1 }} />
+                      <Typography variant="caption">
+                        Le dataset est en cours de préparation. Cette étape peut prendre quelques minutes...
+                      </Typography>
+                    </Box>
+                  )}
+                </Alert>
+                
+                {datasetReady && !createdFineTuning && (
+                  <Button
+                    variant="contained"
+                    onClick={createFineTuning}
+                    disabled={creatingFineTuning}
+                    sx={{ mt: 2 }}
+                  >
+                    {creatingFineTuning ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
+                    Lancer le fine-tuning
+                  </Button>
+                )}
+                
+                {createdFineTuning && (
+                  <Alert severity="success" sx={{ mt: 3 }}>
+                    <AlertTitle>Fine-tuning lancé avec succès!</AlertTitle>
+                    <Typography variant="body2">
+                      <strong>Nom:</strong> {createdFineTuning.name}<br />
+                      <strong>ID:</strong> {createdFineTuning.id}<br />
+                      <strong>Statut:</strong> {createdFineTuning.status || "En attente"}
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                      Le fine-tuning est en cours de traitement et peut prendre plusieurs heures. Vous pouvez passer à l'étape suivante.
+                    </Typography>
+                  </Alert>
+                )}
+                
+                {fineTuningError && (
+                  <Alert severity="error" sx={{ mt: 2 }}>
+                    {fineTuningError}
+                  </Alert>
+                )}
+              </Box>
+            )}
+          </Box>
+        );
+      
       default:
         return 'Étape inconnue';
     }

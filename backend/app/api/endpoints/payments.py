@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 # Modèle pour la requête d'onboarding
 class OnboardingCheckoutRequest(BaseModel):
     character_count: int
+    pending_transcriptions: list = []  # Liste des vidéos YouTube en attente de transcription
 
 @router.post("/create-onboarding-session")
 async def create_onboarding_session(
@@ -36,7 +37,9 @@ async def create_onboarding_session(
     try:
         # Récupérer le nombre de caractères à facturer
         character_count = request.character_count
-        logger.info(f"Demande de session pour l'onboarding avec {character_count} caractères")
+        pending_transcriptions = request.pending_transcriptions
+        
+        logger.info(f"Demande de session pour l'onboarding avec {character_count} caractères et {len(pending_transcriptions)} transcriptions en attente")
         
         # Vérifier si on est dans la limite gratuite
         if character_count <= 10000:  # Les 10 000 premiers caractères sont gratuits
@@ -58,6 +61,13 @@ async def create_onboarding_session(
                 
                 if success:
                     logger.info(f"Ajout gratuit de {character_count} caractères réussi")
+                    
+                    # Si des transcriptions sont en attente, enregistrer leur liste dans la base de données
+                    # pour un traitement après redirection
+                    if pending_transcriptions:
+                        logger.info(f"Enregistrement de {len(pending_transcriptions)} transcriptions en attente pour traitement ultérieur")
+                        # TODO: Ajouter le code pour enregistrer les transcriptions en attente
+                        
                     return {"checkout_url": f"{settings.FRONTEND_URL}/dashboard?free_characters=true"}
                 else:
                     logger.error(f"Échec de l'ajout gratuit de {character_count} caractères")
@@ -73,6 +83,27 @@ async def create_onboarding_session(
         amount_in_cents = max(50, round(billable_characters * 0.000365 * 100))  # Minimum 50 cents (0.50$)
         
         logger.info(f"Facturation de {billable_characters} caractères à ${amount_in_cents/100}")
+        
+        # Métadonnées pour la session Stripe
+        metadata = {
+            "payment_type": "onboarding_characters", 
+            "user_id": str(current_user.id),
+            "character_count": str(character_count),
+            "free_characters": "10000",
+            "billable_characters": str(billable_characters)
+        }
+        
+        # Ajouter les informations sur les transcriptions en attente s'il y en a
+        if pending_transcriptions:
+            # Limiter la taille des métadonnées Stripe en ne stockant que les IDs des transcriptions
+            transcription_ids = [str(trans["id"]) for trans in pending_transcriptions]
+            metadata["pending_transcription_ids"] = ",".join(transcription_ids)
+            metadata["has_pending_transcriptions"] = "true"
+            
+            # Stocker les détails complets dans une table temporaire ou un cache pour traitement ultérieur
+            # par le webhook
+            logger.info(f"Stockage des détails de {len(pending_transcriptions)} transcriptions pour traitement webhook")
+            # TODO: Implémenter le stockage des détails de transcription
         
         # Créer une session de paiement pour les caractères facturables
         checkout_session = stripe.checkout.Session.create(
@@ -94,13 +125,7 @@ async def create_onboarding_session(
             success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true",
             cancel_url=f"{settings.FRONTEND_URL}/dashboard?payment_cancel=true",
             client_reference_id=str(current_user.id),
-            metadata={
-                "payment_type": "onboarding_characters", 
-                "user_id": str(current_user.id),
-                "character_count": str(character_count),
-                "free_characters": "10000",
-                "billable_characters": str(billable_characters)
-            }
+            metadata=metadata
         )
         
         return {"checkout_url": checkout_session.url}

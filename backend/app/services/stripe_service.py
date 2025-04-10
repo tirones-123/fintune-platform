@@ -8,6 +8,7 @@ from app.db.session import SessionLocal  # Importer SessionLocal au lieu de get_
 from app.models.user import User
 from app.models.payment import Payment, CharacterTransaction
 from app.services.character_service import CharacterService
+from app.models.content import Content  # Ajouter l'import pour le modèle Content
 
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -119,12 +120,84 @@ class StripeService:
                 )
                 
                 logger.info(f"Paiement réussi pour l'utilisateur {user_id}: {character_count} caractères ajoutés")
+                
+                # Vérifier si des transcriptions YouTube sont en attente de traitement
+                has_pending_transcriptions = metadata.get("has_pending_transcriptions") == "true"
+                
+                if has_pending_transcriptions:
+                    # Récupérer les IDs des transcriptions en attente
+                    pending_transcription_ids_str = metadata.get("pending_transcription_ids", "")
+                    if pending_transcription_ids_str:
+                        pending_transcription_ids = [int(id_str) for id_str in pending_transcription_ids_str.split(",") if id_str.strip()]
+                        
+                        if pending_transcription_ids:
+                            logger.info(f"Traitement de {len(pending_transcription_ids)} transcriptions en attente")
+                            
+                            # Traiter chaque transcription en attente
+                            for content_id in pending_transcription_ids:
+                                await self._process_pending_transcription(content_id, db)
             finally:
                 db.close()
         
         except Exception as e:
             logger.error(f"Erreur lors du traitement du paiement: {str(e)}")
             raise e
+    
+    async def _process_pending_transcription(self, content_id: int, db: Session):
+        """
+        Traiter une transcription YouTube en attente.
+        
+        Args:
+            content_id: ID du contenu à transcrire
+            db: Session de base de données
+        """
+        try:
+            # Récupérer le contenu
+            content = db.query(Content).filter(Content.id == content_id).first()
+            
+            if not content:
+                logger.warning(f"Contenu non trouvé pour l'ID {content_id}")
+                return
+            
+            # Vérifier si le contenu est en attente de transcription et contient une URL YouTube
+            if content.content_type != 'youtube_transcript' or not content.url:
+                logger.warning(f"Le contenu {content_id} n'est pas une vidéo YouTube ou ne contient pas d'URL")
+                return
+            
+            logger.info(f"Lancement de la transcription pour le contenu {content_id}: {content.url}")
+            
+            # Mettre à jour le statut du contenu
+            content.status = 'processing'
+            db.commit()
+            
+            # Lancer la tâche de transcription asynchrone
+            # Note: Cela nécessite d'importer correctement les tâches Celery
+            try:
+                from celery_app import celery_app
+                from app.tasks.content_processing import transcribe_youtube_video
+                
+                # Lancer la tâche
+                task = transcribe_youtube_video.delay(content.url)
+                
+                # Mettre à jour le contenu avec l'ID de la tâche
+                content.task_id = task.id
+                db.commit()
+                
+                logger.info(f"Tâche de transcription lancée pour le contenu {content_id}, ID de tâche: {task.id}")
+            except ImportError:
+                logger.error("Impossible d'importer les modules Celery requis")
+                content.status = 'error'
+                content.error_message = "Erreur lors du lancement de la tâche de transcription"
+                db.commit()
+            except Exception as task_error:
+                logger.error(f"Erreur lors du lancement de la tâche de transcription: {str(task_error)}")
+                content.status = 'error'
+                content.error_message = str(task_error)
+                db.commit()
+        
+        except Exception as e:
+            logger.error(f"Erreur lors du traitement de la transcription en attente {content_id}: {str(e)}")
+            # Ne pas propager l'erreur pour ne pas bloquer le traitement des autres transcriptions
 
 # Créer une instance du service pour l'importation
 stripe_service = StripeService() 

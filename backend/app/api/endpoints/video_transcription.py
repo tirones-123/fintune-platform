@@ -55,6 +55,12 @@ if not WHISPER_TYPE or WHISPER_TYPE == "unknown":
     logger.error("Aucune implémentation valide de Whisper n'a été trouvée")
     # Ne pas lever d'exception ici pour permettre au service de démarrer
 
+# Ajouter l'import de pytube pour les métadonnées YouTube
+try:
+    from pytube import YouTube
+except ImportError:
+    logging.warning("pytube n'est pas installé. Certaines fonctionnalités d'extraction de métadonnées YouTube ne seront pas disponibles.")
+
 router = APIRouter()
 
 class VideoTranscriptRequest(BaseModel):
@@ -374,6 +380,75 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
         if file_path and os.path.exists(file_path):
             logger.info(f"Suppression du fichier audio temporaire: {file_path}")
             os.remove(file_path)
+
+@router.get("/youtube-metadata", tags=["helpers"])
+async def get_youtube_metadata(video_id: str = None, video_url: str = None):
+    """
+    Récupère les métadonnées d'une vidéo YouTube, notamment sa durée, sans télécharger ni transcrire la vidéo.
+    La durée est utilisée pour estimer le nombre de caractères d'une transcription.
+    
+    Args:
+        video_id: ID de la vidéo YouTube
+        video_url: URL de la vidéo YouTube (utilisé seulement si video_id n'est pas fourni)
+        
+    Returns:
+        Un objet contenant les métadonnées de la vidéo, notamment sa durée en secondes
+    """
+    logger.info(f"Récupération des métadonnées YouTube pour ID: {video_id} ou URL: {video_url}")
+    
+    # Vérifier qu'au moins un des paramètres est fourni
+    if not video_id and not video_url:
+        raise HTTPException(
+            status_code=400, 
+            detail="L'ID ou l'URL de la vidéo YouTube doit être fourni"
+        )
+    
+    # Si on a fourni une URL, extraire l'ID
+    if not video_id and video_url:
+        try:
+            video_id = extract_youtube_id(video_url)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+            
+    try:
+        # Construire l'URL complète pour pytube
+        full_url = f"https://www.youtube.com/watch?v={video_id}"
+        
+        # Récupérer les métadonnées avec pytube
+        yt = YouTube(full_url)
+        
+        # Extraire les métadonnées importantes
+        metadata = {
+            "video_id": video_id,
+            "title": yt.title,
+            "author": yt.author,
+            "duration_seconds": yt.length,
+            "publish_date": yt.publish_date.isoformat() if yt.publish_date else None,
+            "views": yt.views,
+            "thumbnail_url": yt.thumbnail_url,
+            "description": yt.description
+        }
+        
+        logger.info(f"Métadonnées récupérées avec succès pour {video_id}: durée = {yt.length} secondes")
+        return metadata
+        
+    except Exception as e:
+        error_msg = f"Erreur lors de la récupération des métadonnées YouTube: {str(e)}"
+        logger.error(error_msg)
+        logger.error(traceback.format_exc())
+        
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "Erreur lors de la récupération des métadonnées",
+                "details": str(e),
+                "solutions": [
+                    "Vérifier que l'ID ou l'URL YouTube est valide",
+                    "Vérifier que la vidéo est accessible publiquement",
+                    "Vérifier que pytube est installé (pip install pytube)"
+                ]
+            }
+        )
 
 @router.get("/transcript-status/{task_id}", tags=["helpers"])
 async def get_transcript_status(task_id: str):
