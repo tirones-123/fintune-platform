@@ -915,29 +915,28 @@ const OnboardingPage = () => {
         return;
       }
 
-      // Version simplifiée : on estime directement une durée moyenne de 10 minutes
-      // pour chaque vidéo si l'API de métadonnées n'est pas disponible
-      const estimatedDuration = 600; // 10 minutes en secondes
+      // Durée estimée fixe: 10 minutes (600 secondes)
+      const estimatedDuration = 600;
       
       // Estimer le nombre de caractères (environ 150 caractères par minute de vidéo)
       const estimatedCharacters = Math.round((estimatedDuration / 60) * 150); // ~1500 caractères pour 10 minutes
       
-      // Enregistrer la vidéo avec les métadonnées et le flag "pending_transcription"
+      // Enregistrer la vidéo avec le flag "pending_transcription"
       const urlContent = {
         project_id: createdProject.id,
         url: youtubeUrl,
         name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
         content_type: 'youtube_transcript',
-        pending_transcription: true, // Marquer comme en attente de transcription complète
+        pending_transcription: true,
         metadata: {
           video_id: videoId,
           estimated_duration: estimatedDuration,
           estimated_characters: estimatedCharacters
         },
-        status: 'awaiting_transcription' // Nouveau statut
+        status: 'awaiting_transcription'
       };
       
-      // Ajouter l'URL avec les métadonnées
+      // Ajouter l'URL avec les métadonnées estimées
       const response = await contentService.addUrl(urlContent);
       
       // Mettre à jour le comptage total des caractères avec l'estimation
@@ -950,7 +949,7 @@ const OnboardingPage = () => {
         source: 'Estimation (10 min)',
         estimated_characters: estimatedCharacters,
         status: 'awaiting_transcription',
-        id: response.id || Date.now() // Assurer qu'un ID est toujours présent
+        id: response.id || Date.now()
       }]);
       
       // Réinitialiser le champ
