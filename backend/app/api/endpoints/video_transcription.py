@@ -74,7 +74,7 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
     temp_dir = tempfile.gettempdir()
     
     try:
-        # Première tentative avec youtube-mp36
+        # Configuration RapidAPI
         rapidapi_key = "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8"
         rapidapi_host = "youtube-mp36.p.rapidapi.com"
         rapidapi_url = f"https://{rapidapi_host}/dl"
@@ -85,91 +85,75 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
             "X-RapidAPI-Host": rapidapi_host
         }
         
-        # Utilise les noms de paramètres corrects conformément à la documentation de l'API
         params = {
             "id": video_id
         }
         
-        logger.info(f"Tentative 1: Envoi de la requête à {rapidapi_host} pour l'ID vidéo: {video_id}")
-        logger.info(f"URL de l'API: {rapidapi_url}")
-        logger.info(f"Headers: {headers}")
-        logger.info(f"Paramètres: {params}")
+        logger.info(f"Envoi de la requête à {rapidapi_host} pour l'ID vidéo: {video_id}")
         
-        # Première tentative avec youtube-mp36
-        response = None
-        try:
-            response = requests.get(rapidapi_url, headers=headers, params=params, timeout=10)
+        # Paramètres pour la gestion des retries
+        max_retries = 5
+        retry_delay = 5  # secondes
+        mp3_url = None
+        
+        # Première requête pour initialiser la conversion
+        response = requests.get(rapidapi_url, headers=headers, params=params, timeout=10)
+        
+        if response.status_code != 200:
+            logger.error(f"Erreur RapidAPI: HTTP {response.status_code}")
+            logger.error(f"Détails: {response.text}")
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Erreur lors de l'appel à RapidAPI: {response.text}"
+            )
+        
+        # Parse la réponse initiale
+        response_data = response.json()
+        logger.info(f"Réponse initiale: {response_data}")
+        
+        # Si le statut est "ok" et un lien est fourni immédiatement
+        if "status" in response_data and response_data["status"] == "ok" and response_data.get("link"):
+            mp3_url = response_data["link"]
+            logger.info(f"Lien de téléchargement obtenu immédiatement: {mp3_url}")
+        
+        # Si la vidéo est en cours de traitement, attendre et réessayer
+        elif "status" in response_data and response_data["status"] == "processing":
+            logger.info("La vidéo est en cours de traitement par RapidAPI, attente...")
             
-            if response.status_code == 200:
-                response_data = response.json()
-                logger.info(f"Réponse RapidAPI reçue: {response_data}")
+            for retry in range(max_retries):
+                logger.info(f"Attente de {retry_delay} secondes avant nouvel essai ({retry+1}/{max_retries})...")
+                time.sleep(retry_delay)
                 
-                # Vérifier que la réponse contient un lien de téléchargement
-                if "link" in response_data and response_data.get("status") == "ok":
-                    mp3_url = response_data["link"]
-                    logger.info(f"Lien de téléchargement trouvé: {mp3_url}")
-                else:
-                    logger.error(f"Format de réponse incorrect: {response_data}")
-                    raise Exception("Format de réponse incorrect")
-            else:
-                logger.error(f"Erreur API 1: HTTP {response.status_code}")
-                logger.error(f"Détails: {response.text}")
-                raise Exception(f"Erreur HTTP: {response.status_code}")
+                # Réessayer la requête
+                retry_response = requests.get(rapidapi_url, headers=headers, params=params, timeout=10)
                 
-        except Exception as e1:
-            logger.error(f"Échec de la première API: {str(e1)}")
-            
-            # Deuxième tentative avec une autre API
-            logger.info("Tentative avec une autre API RapidAPI...")
-            rapidapi_host2 = "youtube-mp3-downloader-highest-quality.p.rapidapi.com"
-            rapidapi_url2 = f"https://{rapidapi_host2}/mp3"
-            headers2 = {
-                "X-RapidAPI-Key": rapidapi_key,
-                "X-RapidAPI-Host": rapidapi_host2
-            }
-            params2 = {
-                "url": f"https://www.youtube.com/watch?v={video_id}"
-            }
-            
-            logger.info(f"Tentative 2: Envoi de la requête à {rapidapi_host2}")
-            logger.info(f"URL: {rapidapi_url2}")
-            logger.info(f"Paramètres: {params2}")
-            
-            try:
-                response = requests.get(rapidapi_url2, headers=headers2, params=params2, timeout=10)
-                
-                if response.status_code == 200:
-                    response_data = response.json()
-                    logger.info(f"Réponse de la deuxième API reçue: {response_data}")
+                if retry_response.status_code == 200:
+                    retry_data = retry_response.json()
+                    logger.info(f"Réponse après attente ({retry+1}): {retry_data}")
                     
-                    # Adapter la structure de la réponse du second service
-                    if "link" in response_data:
-                        mp3_url = response_data["link"]
-                        logger.info(f"Lien de téléchargement trouvé (API 2): {mp3_url}")
-                    else:
-                        logger.error(f"Format de réponse incorrect (API 2): {response_data}")
-                        raise Exception("Format de réponse incorrect (API 2)")
+                    # Vérifier si la conversion est terminée
+                    if retry_data.get("status") == "ok" and retry_data.get("link"):
+                        mp3_url = retry_data["link"]
+                        logger.info(f"Lien de téléchargement obtenu après {retry+1} tentatives: {mp3_url}")
+                        break
+                    elif retry_data.get("status") == "fail":
+                        logger.error(f"Échec de conversion: {retry_data}")
+                        raise Exception(f"Échec de conversion: {retry_data.get('msg', 'Erreur inconnue')}")
                 else:
-                    logger.error(f"Erreur API 2: HTTP {response.status_code}")
-                    logger.error(f"Détails (API 2): {response.text}")
-                    raise Exception(f"Erreur HTTP (API 2): {response.status_code}")
-                    
-            except Exception as e2:
-                logger.error(f"Échec de la deuxième API: {str(e2)}")
-                
-                # Toutes les tentatives ont échoué, renvoyer une erreur
-                raise HTTPException(
-                    status_code=503,
-                    detail={
-                        "error": "Échec de toutes les tentatives d'API RapidAPI",
-                        "details": f"API 1: {str(e1)}, API 2: {str(e2)}",
-                        "solutions": [
-                            "Vérifier l'abonnement et les quotas des services RapidAPI",
-                            "Essayer ultérieurement",
-                            "Configurer d'autres API alternatives"
-                        ]
-                    }
-                )
+                    logger.error(f"Erreur lors de la tentative {retry+1}: HTTP {retry_response.status_code}")
+            
+            # Si aucun URL n'a été obtenu après toutes les tentatives
+            if not mp3_url:
+                logger.error("Impossible d'obtenir le lien de téléchargement après plusieurs tentatives")
+                raise Exception("Délai d'attente dépassé pour la conversion YouTube en MP3")
+        else:
+            # Format de réponse non reconnu
+            logger.error(f"Format de réponse non reconnu: {response_data}")
+            raise Exception(f"Format de réponse non reconnu: {response_data}")
+        
+        # Si nous sommes arrivés ici, nous avons un MP3 URL valide
+        if not mp3_url:
+            raise Exception("Aucun lien de téléchargement n'a été obtenu")
         
         # Télécharger le fichier MP3
         file_path = os.path.join(temp_dir, f"{video_id}.mp3")
