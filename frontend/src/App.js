@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { AnimatePresence } from 'framer-motion';
 import LoadingScreen from './components/common/LoadingScreen';
+import { Toaster } from 'react-hot-toast';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -149,6 +150,7 @@ const App = () => {
         >
           <AuthProvider>
             <AppRoutes />
+            <Toaster position="bottom-center" toastOptions={{ duration: 4000 }} />
           </AuthProvider>
         </SnackbarProvider>
       </ThemeProvider>
