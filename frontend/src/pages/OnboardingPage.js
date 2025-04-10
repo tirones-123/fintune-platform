@@ -167,7 +167,7 @@ const OnboardingPage = () => {
   const [isEstimated, setIsEstimated] = useState(true);
   
   // Données du dataset (créé automatiquement)
-  const [datasetName] = useState("Dataset par défaut");
+  const [datasetName, setDatasetName] = useState("Dataset par défaut");
   const [creatingDataset, setCreatingDataset] = useState(false);
   const [createdDataset, setCreatedDataset] = useState(null);
   const [datasetError, setDatasetError] = useState(null);
