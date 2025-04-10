@@ -8,6 +8,8 @@ from pydantic import BaseModel
 import json
 import logging
 import time
+import importlib
+import sys
 
 # Configurer le logging
 logging.basicConfig(level=logging.INFO)
@@ -19,11 +21,38 @@ try:
 except ImportError:
     raise ImportError("youtube_transcript_api n'est pas installé. Veuillez l'installer.")
 
-# Importer Whisper pour la transcription audio
+# Vérifier quelle version de Whisper est disponible
+WHISPER_TYPE = None
+
+# Vérifier si OpenAI Whisper est installé
 try:
     import whisper
+    # Vérifier si c'est OpenAI Whisper ou une autre implémentation
+    if hasattr(whisper, 'load_model'):
+        WHISPER_TYPE = "openai"
+        logger.info("Utilisation d'OpenAI Whisper")
+    elif hasattr(whisper, 'Whisper'):
+        WHISPER_TYPE = "whisper_custom"
+        logger.info("Utilisation d'une implémentation custom de Whisper")
+    else:
+        logger.info("Module whisper trouvé mais sans méthode load_model reconnue")
+        WHISPER_TYPE = "unknown"
 except ImportError:
-    raise ImportError("whisper n'est pas installé. Veuillez l'installer.")
+    logger.warning("OpenAI Whisper n'est pas installé, vérification d'autres implémentations")
+
+# Vérifier si Faster Whisper est installé
+if not WHISPER_TYPE or WHISPER_TYPE == "unknown":
+    try:
+        from faster_whisper import WhisperModel
+        WHISPER_TYPE = "faster"
+        logger.info("Utilisation de Faster Whisper")
+    except ImportError:
+        logger.warning("Faster Whisper n'est pas installé")
+
+# Si aucune implémentation valide n'est trouvée
+if not WHISPER_TYPE or WHISPER_TYPE == "unknown":
+    logger.error("Aucune implémentation valide de Whisper n'a été trouvée")
+    # Ne pas lever d'exception ici pour permettre au service de démarrer
 
 router = APIRouter()
 
@@ -39,6 +68,42 @@ def extract_youtube_id(url: str) -> str:
         return match.group(1)
     else:
         raise ValueError("URL YouTube invalide")
+
+async def transcribe_with_whisper(file_path: str) -> str:
+    """Transcrit un fichier audio avec Whisper selon l'implémentation disponible"""
+    if not WHISPER_TYPE or WHISPER_TYPE == "unknown":
+        raise Exception("Aucune implémentation de Whisper n'est disponible")
+    
+    logger.info(f"Transcription avec {WHISPER_TYPE} Whisper")
+    
+    if WHISPER_TYPE == "openai":
+        # OpenAI Whisper original
+        model = await asyncio.to_thread(whisper.load_model, "base")
+        result = await asyncio.to_thread(model.transcribe, file_path)
+        return result.get("text", "")
+    
+    elif WHISPER_TYPE == "faster":
+        # Faster Whisper (optimisé avec CTranslate2)
+        model = WhisperModel("base", device="cpu", compute_type="int8")
+        segments, info = await asyncio.to_thread(model.transcribe, file_path, beam_size=5)
+        transcript = ""
+        async for segment in segments:
+            transcript += segment.text + " "
+        return transcript
+    
+    elif WHISPER_TYPE == "whisper_custom":
+        # Pour d'autres implémentations avec une interface différente
+        model = whisper.Whisper()
+        result = await asyncio.to_thread(model.transcribe, file_path)
+        if isinstance(result, dict) and "text" in result:
+            return result["text"]
+        elif isinstance(result, str):
+            return result
+        else:
+            return str(result)
+    
+    else:
+        raise Exception(f"Type de Whisper non pris en charge: {WHISPER_TYPE}")
 
 @router.post("/video-transcript", tags=["helpers"])
 async def get_video_transcript(payload: VideoTranscriptRequest):
@@ -240,6 +305,41 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
                 ]
             })
         
+        try:
+            file_size = os.path.getsize(file_path)
+            logger.info(f"Taille du fichier audio: {file_size} octets")
+            
+            # Transcription avec la fonction adaptative
+            logger.info("Début de la transcription...")
+            transcript = await transcribe_with_whisper(file_path)
+            
+            if not transcript:
+                raise Exception("La transcription n'a pas produit de résultat")
+                
+            logger.info("Transcription audio terminée avec succès")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la transcription audio: {str(e)}")
+            # Afficher plus de détails sur l'erreur pour le débogage
+            import traceback
+            logger.error(f"Détails de l'erreur: {traceback.format_exc()}")
+            
+            raise HTTPException(status_code=500, detail={
+                "error": "Erreur lors de la transcription audio",
+                "details": str(e),
+                "trace": traceback.format_exc(),
+                "solutions": [
+                    "Vérifier l'installation de Whisper (pip install openai-whisper ou pip install faster-whisper)",
+                    "Vérifier que les dépendances de Whisper sont installées (PyTorch, FFmpeg)"
+                ]
+            })
+        finally:
+            if os.path.exists(file_path):
+                logger.info(f"Suppression du fichier audio temporaire: {file_path}")
+                os.remove(file_path)
+
+        return {"transcript": transcript, "source": "whisper"}
+        
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Erreur lors du téléchargement via RapidAPI: {error_msg}")
@@ -248,68 +348,4 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
             "details": error_msg,
             "transcript_error": transcript_error
         }
-        raise HTTPException(status_code=400, detail=detailed_error)
-
-    try:
-        max_size_bytes = 25 * 1024 * 1024  # 25MB en octets
-        file_size = os.path.getsize(file_path)
-        logger.info(f"Taille du fichier audio: {file_size} octets")
-        
-        # Charger le modèle Whisper (peut être optimisé en cache si besoin)
-        logger.info("Chargement du modèle Whisper")
-        model = await asyncio.to_thread(whisper.load_model, "base")
-        
-        if file_size <= max_size_bytes:
-            logger.info("Fichier audio sous la limite de taille, transcription directe")
-            transcription_result = await asyncio.to_thread(model.transcribe, file_path)
-            transcript = transcription_result.get("text", "")
-        else:
-            logger.info(f"Fichier audio au-dessus de la limite de taille ({file_size} > {max_size_bytes}), découpage en segments")
-            # Importer pydub pour découper l'audio en morceaux plus petits
-            try:
-                from pydub import AudioSegment
-            except ImportError:
-                raise HTTPException(status_code=500, detail="pydub n'est pas installé. Veuillez l'installer.")
-
-            logger.info("Chargement du fichier audio avec pydub")
-            audio = AudioSegment.from_file(file_path)
-            total_duration = audio.duration_seconds  # en secondes
-            logger.info(f"Durée totale de l'audio: {total_duration} secondes")
-            
-            # Estimer le débit moyen en octets par seconde
-            bps = file_size / total_duration
-            # Déterminer la durée maximale par chunk afin que sa taille soit < 25MB
-            chunk_duration = int(max_size_bytes / bps)
-            if chunk_duration < 1:
-                chunk_duration = 1  # au moins 1 seconde
-            
-            logger.info(f"Durée de chaque segment: {chunk_duration} secondes")
-            
-            transcript_chunks = []
-            for start in range(0, int(total_duration), chunk_duration):
-                end = min(start + chunk_duration, int(total_duration))
-                logger.info(f"Traitement du segment audio: {start} - {end} secondes")
-                
-                chunk_audio = audio[start * 1000: end * 1000]  # conversion en ms
-                chunk_file = os.path.join(tempfile.gettempdir(), f"chunk_{start}_{end}.mp3")
-                chunk_audio.export(chunk_file, format="mp3")
-                
-                logger.info(f"Transcription du segment: {chunk_file}")
-                result = await asyncio.to_thread(model.transcribe, chunk_file)
-                transcript_chunks.append(result.get("text", ""))
-                
-                os.remove(chunk_file)
-                logger.info(f"Segment {start}-{end} traité et fichier temporaire supprimé")
-            
-            transcript = "\n".join(transcript_chunks)
-        
-        logger.info("Transcription audio terminée avec succès")
-    except Exception as e:
-        logger.error(f"Erreur lors de la transcription audio: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la transcription audio: {str(e)}")
-    finally:
-        if os.path.exists(file_path):
-            logger.info(f"Suppression du fichier audio temporaire: {file_path}")
-            os.remove(file_path)
-
-    return {"transcript": transcript, "source": "whisper"} 
+        raise HTTPException(status_code=400, detail=detailed_error) 
