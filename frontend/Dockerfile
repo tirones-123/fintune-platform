@@ -8,7 +8,7 @@ ENV NODE_ENV=production
 
 # Copier et installer les dépendances
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copier le reste de l'application
 COPY . .
