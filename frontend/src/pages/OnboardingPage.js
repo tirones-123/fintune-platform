@@ -916,30 +916,32 @@ const OnboardingPage = () => {
         return;
       }
 
-      let estimatedDuration = 600; // Par défaut 10 minutes en secondes
-      let videoTitle = `Vidéo YouTube - ${new Date().toLocaleString()}`;
+      // Récupérer les informations réelles de la vidéo via RapidAPI
+      console.log("Récupération des détails de la vidéo via RapidAPI pour", videoId);
       
-      // Essayer de récupérer les métadonnées, mais utiliser des valeurs par défaut en cas d'échec
-      try {
-        console.log("Tentative de récupération des métadonnées pour", videoId);
-        const metadataResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/helpers/youtube-metadata?video_id=${videoId}`);
-        
-        if (metadataResponse.data && metadataResponse.data.duration_seconds) {
-          estimatedDuration = metadataResponse.data.duration_seconds;
-          console.log("Durée réelle récupérée:", estimatedDuration, "secondes");
+      const options = {
+        method: 'GET',
+        url: 'https://youtube-media-downloader.p.rapidapi.com/v2/video/details',
+        params: {
+          videoId: videoId
+        },
+        headers: {
+          'X-RapidAPI-Key': '9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8',
+          'X-RapidAPI-Host': 'youtube-media-downloader.p.rapidapi.com'
         }
-        
-        if (metadataResponse.data && metadataResponse.data.title) {
-          videoTitle = metadataResponse.data.title;
-        }
-      } catch (metadataError) {
-        console.warn("Impossible de récupérer les métadonnées YouTube, utilisation d'une durée estimée:", metadataError);
-        // Continuer avec l'estimation par défaut
-      }
+      };
       
-      // Estimer le nombre de caractères (environ 150 caractères par minute de vidéo)
-      const estimatedCharacters = Math.round((estimatedDuration / 60) * 150);
-      const durationMinutes = Math.round(estimatedDuration / 60);
+      const rapidApiResponse = await axios.request(options);
+      console.log("Réponse RapidAPI:", rapidApiResponse.data);
+      
+      // Extraire les informations utiles
+      const videoInfo = rapidApiResponse.data;
+      const videoTitle = videoInfo.title || `Vidéo YouTube - ${new Date().toLocaleString()}`;
+      const durationSeconds = videoInfo.lengthSeconds || 600; // Fallback à 10 minutes si non disponible
+      const durationMinutes = Math.round(durationSeconds / 60);
+      
+      // Calculer le nombre de caractères (150 caractères par minute)
+      const estimatedCharacters = Math.round((durationSeconds / 60) * 150);
       
       // Créer l'objet au format attendu par le backend
       const urlContent = {
@@ -960,18 +962,62 @@ const OnboardingPage = () => {
       setUploadedYouTube(prev => [...prev, {
         ...response,
         url: youtubeUrl,
-        source: `Durée: ${durationMinutes} min`,
+        source: `Durée réelle: ${durationMinutes} min`,
         estimated_characters: estimatedCharacters,
         status: 'awaiting_transcription'
       }]);
       
       // Réinitialiser le champ
       setYoutubeUrl('');
-      enqueueSnackbar(`URL YouTube ajoutée (~${estimatedCharacters} caractères estimés, durée: ${durationMinutes} min)`, { variant: 'success' });
+      enqueueSnackbar(`URL YouTube ajoutée: "${videoTitle}" (~${estimatedCharacters} caractères basés sur ${durationMinutes} min)`, { variant: 'success' });
+      
+      // Forcer le recalcul du total des caractères
+      calculateActualCharacterCount();
       
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
-      setYoutubeUploadError(error.message || 'Erreur lors de l\'ajout de l\'URL YouTube');
+      // Fallback à l'estimation fixe en cas d'erreur avec RapidAPI
+      if (match && match[1]) {
+        try {
+          // Si RapidAPI a échoué, on utilise une estimation fixe comme solution de secours
+          const videoId = match[1];
+          const estimatedDuration = 600; // 10 minutes par défaut
+          const durationMinutes = Math.round(estimatedDuration / 60);
+          const estimatedCharacters = Math.round((estimatedDuration / 60) * 150);
+          
+          console.log("Utilisation d'une estimation fixe car RapidAPI a échoué");
+          
+          const urlContent = {
+            project_id: createdProject.id,
+            url: youtubeUrl,
+            name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
+            type: 'youtube',
+            description: `Vidéo YouTube en attente de transcription. Durée estimée: ${durationMinutes} minutes.`
+          };
+          
+          const response = await contentService.addUrl(urlContent);
+          
+          setActualCharacterCount(prev => prev + estimatedCharacters);
+          
+          setUploadedYouTube(prev => [...prev, {
+            ...response,
+            url: youtubeUrl,
+            source: `Durée estimée: ${durationMinutes} min`,
+            estimated_characters: estimatedCharacters,
+            status: 'awaiting_transcription'
+          }]);
+          
+          setYoutubeUrl('');
+          enqueueSnackbar(`URL YouTube ajoutée avec durée estimée (~${estimatedCharacters} caractères)`, { variant: 'success' });
+          calculateActualCharacterCount();
+          
+        } catch (fallbackError) {
+          console.error('Erreur lors du fallback:', fallbackError);
+          setYoutubeUploadError("Erreur lors de l'ajout de l'URL YouTube, même avec estimation par défaut");
+        }
+      } else {
+        setYoutubeUploadError(error.message || 'Erreur lors de l\'ajout de l\'URL YouTube');
+      }
     } finally {
       setYoutubeUploading(false);
     }
@@ -1023,6 +1069,9 @@ const OnboardingPage = () => {
       // Réinitialiser le champ
       setScrapeUrl('');
       enqueueSnackbar(`URL Web ajoutée (${characterCount} caractères)`, { variant: 'success' });
+      
+      // Forcer le recalcul du total des caractères
+      calculateActualCharacterCount();
       
     } catch (error) {
       console.error('Erreur lors du scraping de l\'URL Web:', error);
