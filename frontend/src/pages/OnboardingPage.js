@@ -916,17 +916,38 @@ const OnboardingPage = () => {
         return;
       }
 
-      // Utiliser une durée estimée fixe (10 minutes) car l'API YouTube a des problèmes
-      const estimatedDuration = 600; // 10 minutes en secondes
-      const estimatedCharacters = Math.round((estimatedDuration / 60) * 150); // ~1500 caractères pour 10 minutes
+      let estimatedDuration = 600; // Par défaut 10 minutes en secondes
+      let videoTitle = `Vidéo YouTube - ${new Date().toLocaleString()}`;
+      
+      // Essayer de récupérer les métadonnées, mais utiliser des valeurs par défaut en cas d'échec
+      try {
+        console.log("Tentative de récupération des métadonnées pour", videoId);
+        const metadataResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/helpers/youtube-metadata?video_id=${videoId}`);
+        
+        if (metadataResponse.data && metadataResponse.data.duration_seconds) {
+          estimatedDuration = metadataResponse.data.duration_seconds;
+          console.log("Durée réelle récupérée:", estimatedDuration, "secondes");
+        }
+        
+        if (metadataResponse.data && metadataResponse.data.title) {
+          videoTitle = metadataResponse.data.title;
+        }
+      } catch (metadataError) {
+        console.warn("Impossible de récupérer les métadonnées YouTube, utilisation d'une durée estimée:", metadataError);
+        // Continuer avec l'estimation par défaut
+      }
+      
+      // Estimer le nombre de caractères (environ 150 caractères par minute de vidéo)
+      const estimatedCharacters = Math.round((estimatedDuration / 60) * 150);
+      const durationMinutes = Math.round(estimatedDuration / 60);
       
       // Créer l'objet au format attendu par le backend
       const urlContent = {
         project_id: createdProject.id,
         url: youtubeUrl,
-        name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
+        name: videoTitle,
         type: 'youtube',
-        description: `Vidéo YouTube en attente de transcription. Durée estimée: 10 minutes.`
+        description: `Vidéo YouTube en attente de transcription. Durée: ${durationMinutes} minutes.`
       };
       
       // Ajouter l'URL avec le format attendu par le backend
@@ -939,15 +960,18 @@ const OnboardingPage = () => {
       setUploadedYouTube(prev => [...prev, {
         ...response,
         url: youtubeUrl,
-        source: 'Estimation (10 min)',
+        source: `Durée: ${durationMinutes} min`,
         estimated_characters: estimatedCharacters,
         status: 'awaiting_transcription'
       }]);
-
+      
+      // Réinitialiser le champ
       setYoutubeUrl('');
+      enqueueSnackbar(`URL YouTube ajoutée (~${estimatedCharacters} caractères estimés, durée: ${durationMinutes} min)`, { variant: 'success' });
+      
     } catch (error) {
-      console.error("Erreur lors de l'ajout de l'URL YouTube:", error);
-      setYoutubeUploadError(`Erreur lors de l'ajout de l'URL YouTube: ${error.message || JSON.stringify(error)}`);
+      console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
+      setYoutubeUploadError(error.message || 'Erreur lors de l\'ajout de l\'URL YouTube');
     } finally {
       setYoutubeUploading(false);
     }
@@ -977,13 +1001,8 @@ const OnboardingPage = () => {
         project_id: createdProject.id,
         url: scrapeUrl,
         name: scrapedData.title || `Contenu web - ${new Date().toLocaleString()}`,
-        content_type: 'web_content',
-        scraped_content: scrapedText,
-        content_metadata: {
-          character_count: characterCount,
-          url: scrapeUrl,
-          title: scrapedData.title || "Sans titre"
-        }
+        type: 'website',
+        description: scrapedText
       };
       
       // Ajouter l'URL avec le contenu scrapé
