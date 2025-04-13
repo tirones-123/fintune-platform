@@ -396,10 +396,17 @@ async def get_youtube_metadata(video_id: str = None, video_url: str = None):
         raise HTTPException(status_code=400, detail="L'ID ou l'URL de la vidéo YouTube doit être fourni")
     
     try:
-        # Utiliser yt-dlp pour extraire les informations de la vidéo
-        ydl_opts = {"quiet": True, "skip_download": True}
+        # Utilisation d'un user-agent classique afin d'éviter les erreurs HTTP 400
+        ydl_opts = {
+            "quiet": True,
+            "skip_download": True,
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+        
+        if not info.get("duration"):
+            raise Exception("La durée de la vidéo n'a pas pu être extraite")
         
         metadata = {
             "video_id": video_id,
@@ -407,10 +414,10 @@ async def get_youtube_metadata(video_id: str = None, video_url: str = None):
             "duration_seconds": info.get("duration"),
             "author": info.get("uploader")
         }
-        logger.info(f"Métadonnées récupérées avec succès pour {video_id}: durée = {metadata['duration_seconds']} secondes")
+        logger.info(f"Métadonnées récupérées pour {video_id}: durée = {metadata['duration_seconds']} secondes")
         return metadata
     except Exception as e:
-        logger.error(f"Erreur lors de la récupération des métadonnées YouTube: {str(e)}")
+        logger.error(f"Erreur lors de la récupération des métadonnées YouTube pour {video_id}: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Erreur lors de la récupération des métadonnées: {str(e)}")
 
 @router.get("/transcript-status/{task_id}", tags=["helpers"])
