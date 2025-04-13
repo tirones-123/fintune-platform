@@ -37,3 +37,4 @@ openai-whisper==20231117
 torch==2.0.1
 pydub==0.25.1
 beautifulsoup4==4.12.2
+readability-lxml==0.8.1
