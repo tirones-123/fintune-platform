@@ -48,14 +48,14 @@ def generate_system_content(
         Generate a short, concise "system prompt" that I could use as an instruction for this assistant. 
         The format should be simple, direct, and optimized for fine-tuning. 
         The prompt must start with "You are" and clearly describe the assistant's role.
-        The prompt must be in the language of the description even the "you are" should be in the same language.
+        The prompt must be in the language of the description even the "you are" need to be in the language of the description.
         
         Exemple de format:
         "You are a helpful energy assistant that provides accurate information about renewable energy technologies."
         "You are a professional HR assistant that answers internal company policy questions clearly and efficiently."
         "You are a friendly cartoon character that guides children through fun and educational activities in a cheerful, playful tone."
         "You are Steve Jobs"
-        "You areOprah Winfrey"
+        "You are Oprah Winfrey"
         "..."
         Return ONLY the system prompt, without quotation marks or any additional explanation.
         """

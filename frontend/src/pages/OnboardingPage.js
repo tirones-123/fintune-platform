@@ -1306,7 +1306,7 @@ const OnboardingPage = () => {
                       <Tooltip title="Minimum recommandé pour votre objectif d'entraînement" arrow placement="top">
                         <Box>
                           <Typography variant="caption" sx={{ mt: 0.5, color: 'warning.main', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                            Min: {minCharactersRecommended.toLocaleString()}
+                            Min: {minCharactersRecommended ? minCharactersRecommended.toLocaleString() : '0'}
                           </Typography>
                         </Box>
                       </Tooltip>
@@ -1318,14 +1318,14 @@ const OnboardingPage = () => {
                       <Tooltip title="Niveau optimal pour des résultats de qualité supérieure" arrow placement="top">
                         <Box>
                           <Typography variant="caption" sx={{ mt: 0.5, color: 'primary.main', fontWeight: 'medium', whiteSpace: 'nowrap' }}>
-                            Optimal: {(minCharactersRecommended * 4).toLocaleString()}
+                            Optimal: {minCharactersRecommended ? (minCharactersRecommended * 4).toLocaleString() : '0'}
                           </Typography>
                         </Box>
                       </Tooltip>
                     </Box>
                     
                     {/* Marqueurs intermédiaires */}
-                    {[1.5, 2, 3].map((multiplier, index) => {
+                    {minCharactersRecommended > 0 && [1.5, 2, 3].map((multiplier, index) => {
                       const leftPosition = Math.min(95, 50 + (multiplier - 1) * (50 / 3));
                       const charCount = Math.round(minCharactersRecommended * multiplier);
                       
@@ -1354,20 +1354,20 @@ const OnboardingPage = () => {
                   </Box>
                 
                   {/* Messages d'état */}
-                  {(isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended && (
+                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended && (
                     <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.5 }}>
                       <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
                       Il vous manque <strong>{(minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString()}</strong> caractères pour atteindre le minimum recommandé pour votre objectif d'entraînement.
                     </Typography>
                   )}
-                  {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && 
+                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && 
                     (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended * 4 && (
                       <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
                         <CheckCircleIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
                         Vous avez atteint le minimum recommandé pour cette catégorie d'assistant.
                       </Typography>
                     )}
-                  {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && (
+                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && (
                     <Typography variant="caption" color={(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? 'primary.main' : 'text.secondary'} sx={{ display: 'block', mt: 0.5 }}>
                       {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? (
                         <>
@@ -1375,7 +1375,7 @@ const OnboardingPage = () => {
                           Excellent! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.
                         </>
                       ) : (
-                        <>Plus vous ajoutez de contenu (jusqu'à {(minCharactersRecommended * 4).toLocaleString()} caractères), meilleure sera la qualité du fine-tuning.</>
+                        <>Plus vous ajoutez de contenu (jusqu'à {minCharactersRecommended ? (minCharactersRecommended * 4).toLocaleString() : '0'} caractères), meilleure sera la qualité du fine-tuning.</>
                       )}
                     </Typography>
                   )}
@@ -1513,6 +1513,57 @@ const OnboardingPage = () => {
                         // Si la vidéo a des caractères estimés, les soustraire du total
                         if (video.estimated_characters) {
                           setActualCharacterCount(prev => Math.max(0, prev - video.estimated_characters));
+                        }
+                      }}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+              
+              {/* Module pour scraping d'URL Web */}
+              <Box sx={{ mb: 3, p: 2, border: '1px dashed', borderColor: 'grey.300', borderRadius: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Ajouter une URL Web
+                </Typography>
+                <TextField
+                  label="URL du site"
+                  value={scrapeUrl}
+                  onChange={(e) => setScrapeUrl(e.target.value)}
+                  fullWidth
+                  placeholder="Entrez l'URL du site"
+                  InputProps={{ startAdornment: <InsertLinkIcon sx={{ mr: 1 }} /> }}
+                  error={!!scrapeError}
+                  helperText={scrapeError}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleScrapeUrl}
+                  disabled={scrapeLoading || !scrapeUrl.trim()}
+                  sx={{ mt: 2 }}
+                >
+                  {scrapeLoading ? <CircularProgress size={20} /> : "Ajouter le site"}
+                </Button>
+              </Box>
+
+              {uploadedWeb.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Sites Web ajoutés :</Typography>
+                  {uploadedWeb.map(item => (
+                    <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
+                      <InsertLinkIcon sx={{ mr: 2 }} />
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="body1">{item.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {item.character_count?.toLocaleString() || '0'} caractères
+                        </Typography>
+                      </Box>
+                      <IconButton onClick={() => {
+                        setUploadedWeb(prev => prev.filter(v => v.id !== item.id));
+                        // Si le site web a des caractères comptés, les soustraire du total
+                        if (item.character_count) {
+                          setActualCharacterCount(prev => Math.max(0, prev - item.character_count));
                         }
                       }}>
                         <DeleteIcon />
