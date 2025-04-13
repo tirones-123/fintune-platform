@@ -459,13 +459,17 @@ def transcribe_youtube_video(self, content_id: int):
                             with open(audio_path, 'wb') as f:
                                 f.write(audio_response.content)
                             
-                            # Au lieu d'utiliser Whisper en local avec FFmpeg, 
-                            # utiliser directement l'API OpenAI qui accepte divers formats d'audio
+                            # AJOUTER CETTE PARTIE - Conversion avec FFmpeg
+                            import subprocess
+                            converted_path = os.path.join(temp_dir, f"{video_id}_converted.mp3")
+                            subprocess.run(['ffmpeg', '-i', audio_path, '-c:a', 'libmp3lame', '-q:a', '2', converted_path], check=True)
+
+                            # Utiliser le fichier CONVERTI (pas le fichier original)
                             from openai import OpenAI
                             client = OpenAI()
                             
                             try:
-                                with open(audio_path, "rb") as audio_file:
+                                with open(converted_path, "rb") as audio_file:
                                     transcript = client.audio.transcriptions.create(
                                         model="whisper-1", 
                                         file=audio_file

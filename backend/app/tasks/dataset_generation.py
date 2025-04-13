@@ -172,7 +172,9 @@ def generate_dataset(dataset_id: int):
         logger.info(f"Dataset {dataset_id} contains {total_characters} characters")
         
         # Traiter les caractères avec le CharacterService
-        user_id = project.user_id
+        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+        if dataset:
+            user_id = dataset.user_id  # ou dataset.project.user_id si relation
         success, paid_chars, price = character_service.process_dataset_characters(
             db, user_id, dataset_id, total_characters
         )

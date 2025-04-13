@@ -84,6 +84,13 @@ async def create_onboarding_session(
         
         logger.info(f"Facturation de {billable_characters} caractères à ${amount_in_cents/100}")
         
+        # Juste après le calcul de amount_in_cents
+        if amount_in_cents < 60:  # Si moins de 60 cents USD
+            logger.info(f"Montant trop faible pour Stripe (${amount_in_cents/100}), traitement gratuit")
+            # Utiliser le même code que pour les caractères gratuits (lignes 41-68)
+            # ...
+            return {"checkout_url": f"{settings.FRONTEND_URL}/dashboard?free_processing=true"}
+        
         # Métadonnées pour la session Stripe
         metadata = {
             "payment_type": "onboarding_characters", 
