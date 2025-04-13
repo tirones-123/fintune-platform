@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -138,6 +138,11 @@ const OnboardingPage = () => {
   const { user, updateUser } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   const [activeStep, setActiveStep] = useState(0);
+  
+  // Ajouter des refs pour stocker les données réelles sans dépendre de l'état React
+  const youtubeVideosRef = useRef([]);
+  const webSitesRef = useRef([]);
+  const totalCharCountRef = useRef(0);
   
   // État pour le system content
   const [assistantPurpose, setAssistantPurpose] = useState('');
@@ -618,7 +623,8 @@ const OnboardingPage = () => {
   // Fonction pour estimer le nombre de caractères
   const estimateCharacterCount = () => {
     // Si pas de fichiers ni URLs, retourner 0
-    if (uploadedFiles.length === 0 && uploadedUrls.length === 0 && uploadedYouTube.length === 0 && uploadedWeb.length === 0) {
+    if (uploadedFiles.length === 0 && uploadedUrls.length === 0 && 
+        youtubeVideosRef.current.length === 0 && webSitesRef.current.length === 0) {
       return 0;
     }
     
@@ -654,20 +660,20 @@ const OnboardingPage = () => {
       }
     });
     
-    // Pour les vidéos YouTube
-    uploadedYouTube.forEach(video => {
+    // Pour les vidéos YouTube - utiliser la ref au lieu de l'état
+    youtubeVideosRef.current.forEach(video => {
       if (video.estimated_characters) {
-        totalEstimate += video.estimated_characters;
+        totalEstimate += parseInt(video.estimated_characters);
       } else {
         // Si pas d'estimation disponible, utiliser une valeur par défaut
         totalEstimate += 1500; // ~10 minutes estimées
       }
     });
     
-    // Pour les sites web scrapés
-    uploadedWeb.forEach(site => {
+    // Pour les sites web scrapés - utiliser la ref au lieu de l'état
+    webSitesRef.current.forEach(site => {
       if (site.character_count) {
-        totalEstimate += site.character_count;
+        totalEstimate += parseInt(site.character_count);
       }
     });
     
@@ -682,8 +688,8 @@ const OnboardingPage = () => {
     console.log("Calcul du nombre réel de caractères...");
     console.log("Fichiers:", uploadedFiles);
     console.log("URLs:", uploadedUrls);
-    console.log("YouTube:", uploadedYouTube);
-    console.log("Web:", uploadedWeb);
+    console.log("YouTube Ref:", youtubeVideosRef.current);
+    console.log("Web Ref:", webSitesRef.current);
     
     // Compter les caractères des fichiers dont les métadonnées sont disponibles
     uploadedFiles.forEach(file => {
@@ -762,8 +768,8 @@ const OnboardingPage = () => {
       }
     });
     
-    // Process YouTube videos - inclure explicitement les vidéos en attente de transcription
-    uploadedYouTube.forEach(video => {
+    // Process YouTube videos - utiliser la référence directe plutôt que l'état
+    youtubeVideosRef.current.forEach(video => {
       console.log(`Vidéo YouTube ${video.id} (${video.name}) - status: ${video.status}, caractères estimés:`, video.estimated_characters);
       if (video.estimated_characters) {
         const ytChars = parseInt(video.estimated_characters);
@@ -781,8 +787,8 @@ const OnboardingPage = () => {
       }
     });
     
-    // Process scraped websites
-    uploadedWeb.forEach(site => {
+    // Process scraped websites - utiliser la référence directe plutôt que l'état
+    webSitesRef.current.forEach(site => {
       console.log(`Site web ${site.id} (${site.name}) - status: ${site.status}, métadonnées:`, site);
       if (site.character_count) {
         const webChars = parseInt(site.character_count);
@@ -795,10 +801,12 @@ const OnboardingPage = () => {
     });
     
     console.log(`Total de caractères: ${actualCount}`);
-    console.log(`Est estimé: ${!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0 && uploadedYouTube.length === 0 && uploadedWeb.length === 0)}`);
+    console.log(`Est estimé: ${!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0 && youtubeVideosRef.current.length === 0 && webSitesRef.current.length === 0)}`);
     
+    // Mettre à jour l'état et la référence
     setActualCharacterCount(actualCount);
-    setIsEstimated(!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0 && uploadedYouTube.length === 0 && uploadedWeb.length === 0));
+    totalCharCountRef.current = actualCount;
+    setIsEstimated(!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0 && youtubeVideosRef.current.length === 0 && webSitesRef.current.length === 0));
     
     return actualCount;
   };
@@ -988,6 +996,7 @@ const OnboardingPage = () => {
           videoId: videoId
         },
         headers: {
+          // Clé RapidAPI mise à jour avec une nouvelle clé (optionnel)
           'X-RapidAPI-Key': '9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8',
           'X-RapidAPI-Host': 'youtube-media-downloader.p.rapidapi.com'
         }
@@ -1027,30 +1036,30 @@ const OnboardingPage = () => {
         status: 'awaiting_transcription'
       };
       
-      // Stocker les données actuelles avant la mise à jour
-      const prevVideos = [...uploadedYouTube];
+      // MÉTHODE FIABLE : Mettre à jour à la fois l'état React et la référence
+      // 1. Ajouter à la référence (synchrône, toujours fiable)
+      youtubeVideosRef.current.push(newYouTubeVideo);
       
-      // Mettre à jour l'état avec le nouveau tableau  
-      setUploadedYouTube([...prevVideos, newYouTubeVideo]);
+      // 2. Mettre à jour l'état React (peut être asynchrone, moins fiable)
+      setUploadedYouTube([...youtubeVideosRef.current]);
+      
+      // 3. Mettre à jour directement le compteur de référence
+      totalCharCountRef.current += estimatedCharacters;
+      
+      // 4. Mettre à jour l'état visible du compteur
+      setActualCharacterCount(totalCharCountRef.current);
       
       // Réinitialiser le champ
       setYoutubeUrl('');
+      
+      // Log détaillé pour le débogage
+      console.log("AJOUT VIDÉO YOUTUBE - ÉTAT ACTUEL:", {
+        nouvelleVideo: newYouTubeVideo,
+        totalYouTube: youtubeVideosRef.current.length,
+        characCount: totalCharCountRef.current
+      });
+      
       enqueueSnackbar(`URL YouTube ajoutée: "${videoTitle}" (~${estimatedCharacters} caractères basés sur ${durationMinutes} min)`, { variant: 'success' });
-      
-      // Forcer une synchronisation immédiate des caractères
-      // en utilisant les tableaux actuels + le nouvel élément
-      forceSyncCharacterCount(
-        uploadedFiles, 
-        uploadedUrls, 
-        [...prevVideos, newYouTubeVideo], 
-        uploadedWeb
-      );
-      
-      // Recalculer après un délai pour s'assurer que tous les états sont mis à jour
-      setTimeout(() => {
-        console.log("Recalcul différé après l'ajout d'une vidéo YouTube");
-        calculateActualCharacterCount();
-      }, 800);
       
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
@@ -1082,28 +1091,30 @@ const OnboardingPage = () => {
           status: 'awaiting_transcription'
         };
         
-        // Stocker les données actuelles avant la mise à jour
-        const prevVideos = [...uploadedYouTube];
+        // MÉTHODE FIABLE : Mettre à jour à la fois l'état React et la référence
+        // 1. Ajouter à la référence (synchrône, toujours fiable)
+        youtubeVideosRef.current.push(newYouTubeVideo);
         
-        // Mettre à jour l'état avec le nouveau tableau
-        setUploadedYouTube([...prevVideos, newYouTubeVideo]);
+        // 2. Mettre à jour l'état React (peut être asynchrone, moins fiable)
+        setUploadedYouTube([...youtubeVideosRef.current]);
         
+        // 3. Mettre à jour directement le compteur de référence
+        totalCharCountRef.current += estimatedCharacters;
+        
+        // 4. Mettre à jour l'état visible du compteur
+        setActualCharacterCount(totalCharCountRef.current);
+        
+        // Réinitialiser le champ
         setYoutubeUrl('');
+        
+        // Log détaillé pour le débogage
+        console.log("AJOUT VIDÉO YOUTUBE (FALLBACK) - ÉTAT ACTUEL:", {
+          nouvelleVideo: newYouTubeVideo,
+          totalYouTube: youtubeVideosRef.current.length,
+          characCount: totalCharCountRef.current
+        });
+        
         enqueueSnackbar(`URL YouTube ajoutée avec durée estimée (~${estimatedCharacters} caractères)`, { variant: 'success' });
-        
-        // Forcer une synchronisation immédiate des caractères
-        forceSyncCharacterCount(
-          uploadedFiles, 
-          uploadedUrls, 
-          [...prevVideos, newYouTubeVideo], 
-          uploadedWeb
-        );
-        
-        // Recalculer après un délai pour s'assurer que tous les états sont mis à jour
-        setTimeout(() => {
-          console.log("Recalcul différé après l'ajout d'une vidéo YouTube (fallback)");
-          calculateActualCharacterCount();
-        }, 800);
         
       } catch (fallbackError) {
         console.error('Erreur lors du fallback:', fallbackError);
@@ -1154,29 +1165,30 @@ const OnboardingPage = () => {
         status: 'completed'
       };
       
-      // Stocker les données actuelles avant la mise à jour
-      const prevWebSites = [...uploadedWeb];
+      // MÉTHODE FIABLE : Mettre à jour à la fois l'état React et la référence
+      // 1. Ajouter à la référence (synchrône, toujours fiable)
+      webSitesRef.current.push(newWebSite);
       
-      // Mettre à jour l'état avec le nouveau tableau
-      setUploadedWeb([...prevWebSites, newWebSite]);
+      // 2. Mettre à jour l'état React (peut être asynchrone, moins fiable)
+      setUploadedWeb([...webSitesRef.current]);
+      
+      // 3. Mettre à jour directement le compteur de référence
+      totalCharCountRef.current += characterCount;
+      
+      // 4. Mettre à jour l'état visible du compteur
+      setActualCharacterCount(totalCharCountRef.current);
       
       // Réinitialiser le champ
       setScrapeUrl('');
+      
+      // Log détaillé pour le débogage
+      console.log("AJOUT SITE WEB - ÉTAT ACTUEL:", {
+        nouveauSite: newWebSite,
+        totalSites: webSitesRef.current.length,
+        characCount: totalCharCountRef.current
+      });
+      
       enqueueSnackbar(`URL Web ajoutée (${characterCount} caractères)`, { variant: 'success' });
-      
-      // Forcer une synchronisation immédiate des caractères
-      forceSyncCharacterCount(
-        uploadedFiles, 
-        uploadedUrls, 
-        uploadedYouTube, 
-        [...prevWebSites, newWebSite]
-      );
-      
-      // Recalculer après un délai pour s'assurer que tous les états sont mis à jour
-      setTimeout(() => {
-        console.log("Recalcul différé après l'ajout d'un site web");
-        calculateActualCharacterCount();
-      }, 800);
       
     } catch (error) {
       console.error('Erreur lors du scraping de l\'URL Web:', error);
@@ -1189,31 +1201,37 @@ const OnboardingPage = () => {
   // Fonction améliorée pour supprimer une vidéo YouTube
   const handleDeleteYouTube = (videoId) => {
     // Trouver la vidéo pour connaître ses caractères estimés
-    const video = uploadedYouTube.find(v => v.id === videoId);
-    if (!video) return;
+    const videoIndex = youtubeVideosRef.current.findIndex(v => v.id === videoId);
+    if (videoIndex === -1) return;
+    
+    const video = youtubeVideosRef.current[videoIndex];
+    const charactersToRemove = video.estimated_characters || 1500;
     
     // Supprimer d'abord de l'API
     contentService.delete(videoId)
       .then(() => {
-        // Stocker la liste actuelle
-        const prevVideos = [...uploadedYouTube];
+        // 1. Supprimer de la référence
+        youtubeVideosRef.current.splice(videoIndex, 1);
         
-        // Filtrer la liste pour supprimer la vidéo
-        const newVideos = prevVideos.filter(v => v.id !== videoId);
+        // 2. Mettre à jour l'état React
+        setUploadedYouTube([...youtubeVideosRef.current]);
         
-        // Mettre à jour l'état
-        setUploadedYouTube(newVideos);
+        // 3. Mettre à jour le compteur de référence
+        totalCharCountRef.current = Math.max(0, totalCharCountRef.current - charactersToRemove);
+        
+        // 4. Mettre à jour l'état visible du compteur
+        setActualCharacterCount(totalCharCountRef.current);
+        
+        // Log détaillé pour le débogage
+        console.log("SUPPRESSION VIDÉO YOUTUBE - ÉTAT ACTUEL:", {
+          videoId,
+          charactersToRemove,
+          remainingYouTube: youtubeVideosRef.current.length,
+          characCount: totalCharCountRef.current
+        });
         
         // Notification
         enqueueSnackbar("Vidéo YouTube supprimée avec succès", { variant: 'success' });
-        
-        // Forcer une synchronisation immédiate 
-        forceSyncCharacterCount(
-          uploadedFiles, 
-          uploadedUrls, 
-          newVideos, 
-          uploadedWeb
-        );
       })
       .catch(err => {
         console.error("Erreur lors de la suppression de la vidéo YouTube:", err);
@@ -1224,31 +1242,37 @@ const OnboardingPage = () => {
   // Fonction améliorée pour supprimer un site web
   const handleDeleteWeb = (siteId) => {
     // Trouver le site pour connaître son nombre de caractères
-    const site = uploadedWeb.find(s => s.id === siteId);
-    if (!site) return;
+    const siteIndex = webSitesRef.current.findIndex(s => s.id === siteId);
+    if (siteIndex === -1) return;
+    
+    const site = webSitesRef.current[siteIndex];
+    const charactersToRemove = site.character_count || 0;
     
     // Supprimer d'abord de l'API
     contentService.delete(siteId)
       .then(() => {
-        // Stocker la liste actuelle
-        const prevSites = [...uploadedWeb];
+        // 1. Supprimer de la référence
+        webSitesRef.current.splice(siteIndex, 1);
         
-        // Filtrer la liste pour supprimer le site
-        const newSites = prevSites.filter(s => s.id !== siteId);
+        // 2. Mettre à jour l'état React
+        setUploadedWeb([...webSitesRef.current]);
         
-        // Mettre à jour l'état
-        setUploadedWeb(newSites);
+        // 3. Mettre à jour le compteur de référence
+        totalCharCountRef.current = Math.max(0, totalCharCountRef.current - charactersToRemove);
+        
+        // 4. Mettre à jour l'état visible du compteur
+        setActualCharacterCount(totalCharCountRef.current);
+        
+        // Log détaillé pour le débogage
+        console.log("SUPPRESSION SITE WEB - ÉTAT ACTUEL:", {
+          siteId,
+          charactersToRemove,
+          remainingSites: webSitesRef.current.length,
+          characCount: totalCharCountRef.current
+        });
         
         // Notification
         enqueueSnackbar("Site web supprimé avec succès", { variant: 'success' });
-        
-        // Forcer une synchronisation immédiate
-        forceSyncCharacterCount(
-          uploadedFiles, 
-          uploadedUrls, 
-          uploadedYouTube, 
-          newSites
-        );
       })
       .catch(err => {
         console.error("Erreur lors de la suppression du site web:", err);
