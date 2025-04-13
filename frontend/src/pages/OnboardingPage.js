@@ -543,6 +543,10 @@ const OnboardingPage = () => {
     setCompletionError(null);
     setProcessingFineTuning(true);
     
+    // Déclaration des variables en dehors des blocs pour qu'elles soient accessibles partout
+    let characterCount = 0;
+    let pendingTranscriptions = [];
+    
     try {
       // 1. Mettre à jour le profil utilisateur immédiatement
       const payload = {
@@ -556,15 +560,15 @@ const OnboardingPage = () => {
       const updatedUser = await updateUser(payload);
       console.log("Résultat de la mise à jour:", updatedUser);
       
-      // 2. Redirection vers la page de paiement immédiatement ou traitement gratuit
+      // 2. Redirection vers la page de paiement ou traitement gratuit
       if (updatedUser && updatedUser.has_completed_onboarding) {
         try {
           // Récupérer le nombre de caractères (réel ou estimé)
-          const characterCount = isEstimated ? estimateCharacterCount() : actualCharacterCount;
+          characterCount = isEstimated ? estimateCharacterCount() : actualCharacterCount;
           console.log(`Nombre de caractères à facturer: ${characterCount}`);
           
           // Sauvegarder la liste des vidéos YouTube en attente de transcription complète
-          const pendingTranscriptions = uploadedYouTube
+          pendingTranscriptions = uploadedYouTube
             .filter(c => c.status === 'awaiting_transcription')
             .map(c => ({
               id: c.id, 
@@ -573,73 +577,56 @@ const OnboardingPage = () => {
               estimated_characters: c.estimated_characters
             }));
           
-          // Calculer le prix en USD
+          // Calculer le prix en USD pour afficher des informations à l'utilisateur
           const billableCharacters = Math.max(0, characterCount - FREE_CHARACTER_QUOTA);
           const priceUSD = billableCharacters * PRICE_PER_CHARACTER;
           const estimatedPriceEUR = priceUSD * 0.93; // Conversion approximative USD -> EUR
           
           console.log(`Prix estimé: $${priceUSD.toFixed(2)} (~ €${estimatedPriceEUR.toFixed(2)})`);
           
-          // Si le montant est trop faible pour Stripe (< 0,50€), le traiter gratuitement
+          // Informer l'utilisateur si le traitement sera gratuit
           if (billableCharacters === 0 || estimatedPriceEUR < MIN_STRIPE_AMOUNT_EUR) {
-            console.log(`Montant trop faible pour Stripe (${estimatedPriceEUR.toFixed(2)}€ < ${MIN_STRIPE_AMOUNT_EUR}€), traitement gratuit`);
+            console.log(`Montant trop faible (${estimatedPriceEUR.toFixed(2)}€ < ${MIN_STRIPE_AMOUNT_EUR}€), sera traité gratuitement`);
             
-            try {
-              // Créer dataset et lancer fine-tuning directement, sans paiement
-              // Si les vidéos YouTube sont en attente, les traiter aussi
-              const freeProcessingResult = await api.post('/api/checkout/free-onboarding-process', {
-                character_count: characterCount,
-                pending_transcriptions: pendingTranscriptions,
-                dataset_name: datasetName,
-                provider: provider,
-                model: model,
-                system_content: systemContent
-              });
-              
-              console.log("Traitement gratuit lancé avec succès:", freeProcessingResult.data);
-              
-              // Rediriger vers le dashboard avec un message de succès
-              enqueueSnackbar("Votre assistant est en cours de création! Vous serez redirigé vers le tableau de bord.", 
-                { variant: 'success', autoHideDuration: 5000 });
-              
-              // Attendre 2 secondes pour que l'utilisateur puisse lire le message
-              setTimeout(() => {
-                navigate('/dashboard');
-              }, 2000);
-              
-              return;
-            } catch (freeProcessError) {
-              console.error("Erreur lors du traitement gratuit:", freeProcessError);
-              setCompletionError(`Erreur lors du traitement: ${freeProcessError.message}`);
-              setProcessingFineTuning(false);
-              setIsCompleting(false);
-              return;
-            }
+            // On peut faire un toast de notification mais on continue le processus standard
+            // car le backend gère déjà automatiquement les cas gratuits
+            enqueueSnackbar("Votre contenu est en-dessous du seuil de facturation et sera traité gratuitement!", 
+              { variant: 'success', autoHideDuration: 3000 });
           }
           
-          // Si montant suffisant, créer une session de paiement Stripe
-          console.log("Montant suffisant pour Stripe, création d'une session de paiement");
+          // Appeler l'endpoint standard - le backend gèrera automatiquement
+          // si c'est gratuit (< 10,000 caractères) ou si le montant est trop petit pour Stripe
+          console.log("Création de la session d'onboarding");
           const session = await api.post('/api/checkout/create-onboarding-session', {
             character_count: characterCount,
-            pending_transcriptions: pendingTranscriptions, // Ajouter les vidéos en attente de transcription
-            dataset_name: datasetName, // Ajouter le nom du dataset
-            provider: provider, // Ajouter le fournisseur
-            model: model, // Ajouter le modèle
-            system_content: systemContent // Ajouter le system content
+            pending_transcriptions: pendingTranscriptions,
+            dataset_name: datasetName,
+            provider: provider,
+            model: model,
+            system_content: systemContent
           });
-          console.log("Session de paiement créée avec succès:", session.data);
+          console.log("Session créée avec succès:", session.data);
           
-          if (session.data && session.data.checkout_url) {
-            console.log("Redirection vers:", session.data.checkout_url);
+          // Si l'URL contient "dashboard", c'est que le backend a décidé que c'était gratuit
+          // et nous a directement redirigé vers le tableau de bord
+          if (session.data && session.data.checkout_url && session.data.checkout_url.includes('/dashboard')) {
+            console.log("Traitement gratuit détecté, redirection vers le dashboard");
+            enqueueSnackbar("Votre assistant est en cours de création!", { variant: 'success' });
             window.location.href = session.data.checkout_url;
-          } else {
+          } 
+          // Sinon c'est une redirection vers la page de paiement Stripe
+          else if (session.data && session.data.checkout_url) {
+            console.log("Redirection vers la page de paiement Stripe:", session.data.checkout_url);
+            window.location.href = session.data.checkout_url;
+          } 
+          else {
             console.error("URL de redirection non reçue dans la session:", session.data);
-            setCompletionError("Erreur de redirection: URL de paiement non disponible");
+            setCompletionError("Erreur de redirection: URL non disponible");
             setProcessingFineTuning(false);
             setIsCompleting(false);
           }
         } catch (checkoutError) {
-          console.error('Erreur lors de la création de la session de paiement:', checkoutError);
+          console.error('Erreur lors de la création de la session:', checkoutError);
           if (checkoutError.response) {
             console.error('Détails de la réponse d\'erreur:', {
               status: checkoutError.response.status,
@@ -647,45 +634,17 @@ const OnboardingPage = () => {
               headers: checkoutError.response.headers
             });
             
-            // Si l'erreur est "amount_too_small", proposer le traitement gratuit
+            // Si l'erreur est "amount_too_small", informer l'utilisateur
             if (checkoutError.response.data && 
                 checkoutError.response.data.detail && 
                 checkoutError.response.data.detail.includes("amount_too_small")) {
               
-              try {
-                console.log("Erreur de montant trop faible détectée, passage en traitement gratuit");
-                
-                // Créer dataset et lancer fine-tuning directement, sans paiement
-                const freeProcessingResult = await api.post('/api/checkout/free-onboarding-process', {
-                  character_count: characterCount,
-                  pending_transcriptions: pendingTranscriptions,
-                  dataset_name: datasetName,
-                  provider: provider,
-                  model: model,
-                  system_content: systemContent
-                });
-                
-                console.log("Traitement gratuit lancé avec succès après erreur Stripe:", freeProcessingResult.data);
-                
-                // Rediriger vers le dashboard avec un message de succès
-                enqueueSnackbar("Votre assistant est en cours de création! Vous serez redirigé vers le tableau de bord.", 
-                  { variant: 'success', autoHideDuration: 5000 });
-                
-                // Attendre 2 secondes pour que l'utilisateur puisse lire le message
-                setTimeout(() => {
-                  navigate('/dashboard');
-                }, 2000);
-                
-                return;
-              } catch (freeProcessError) {
-                console.error("Erreur lors du traitement gratuit après erreur Stripe:", freeProcessError);
-                setCompletionError(`Erreur lors du traitement: ${freeProcessError.message}`);
-              }
+              setCompletionError("Le montant est trop faible pour être traité par Stripe. Veuillez ajouter plus de contenu ou contacter le support.");
             } else {
-              setCompletionError(`Erreur lors de la création de la session de paiement: ${checkoutError.message}`);
+              setCompletionError(`Erreur lors de la création de la session: ${checkoutError.message}`);
             }
           } else {
-            setCompletionError(`Erreur lors de la redirection vers la page de paiement: ${checkoutError.message}`);
+            setCompletionError(`Erreur de connexion: ${checkoutError.message}`);
           }
           setProcessingFineTuning(false);
           setIsCompleting(false);
