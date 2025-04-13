@@ -25,9 +25,6 @@ import {
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import YouTubeIcon from '@mui/icons-material/YouTube';
-import LinkIcon from '@mui/icons-material/Link';
-import AddIcon from '@mui/icons-material/Add';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
@@ -39,7 +36,6 @@ import { contentService, projectService } from '../../services/apiService';
 const FileUpload = ({ projectId, onSuccess }) => {
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
-  const [urls, setUrls] = useState(['']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -84,7 +80,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
   // Fonction pour télécharger les fichiers
   const handleUploadFiles = async () => {
     if (files.length === 0) {
-      setError('Veuillez sélectionner au moins un fichier ou ajouter une URL');
+      setError('Veuillez sélectionner au moins un fichier');
       return;
     }
 
@@ -120,73 +116,6 @@ const FileUpload = ({ projectId, onSuccess }) => {
     }
   };
 
-  // Fonction pour ajouter des URLs
-  const handleAddUrls = async () => {
-    // Filtrer les URLs vides
-    const validUrls = urls.filter(url => url.trim() !== '');
-    
-    if (validUrls.length === 0) {
-      setError('Veuillez entrer au moins une URL valide');
-      return;
-    }
-
-    setUploading(true);
-    setError(null);
-    
-    try {
-      // Ajouter chaque URL via l'API
-      for (const url of validUrls) {
-        const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-        
-        const response = await contentService.addUrl({
-          project_id: projectId,
-          name: `Contenu depuis ${isYouTube ? 'YouTube' : 'URL'}`,
-          url: url,
-          type: isYouTube ? 'youtube' : 'website'
-        });
-
-        // Appeler le callback onSuccess si fourni
-        if (onSuccess) {
-          onSuccess(response);
-        }
-      }
-      
-      enqueueSnackbar('URLs ajoutées avec succès', { variant: 'success' });
-      setUrls(['']);
-      
-      // Rediriger vers la page du projet seulement si onSuccess n'est pas fourni
-      if (!onSuccess) {
-        navigate(`/dashboard/projects/${projectId}`);
-      }
-    } catch (err) {
-      console.error('Error adding URLs:', err);
-      setError(err.message || 'Erreur lors de l\'ajout des URLs');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Fonction pour gérer le changement d'URL
-  const handleUrlChange = (index, value) => {
-    const newUrls = [...urls];
-    newUrls[index] = value;
-    setUrls(newUrls);
-  };
-
-  // Fonction pour ajouter un nouveau champ d'URL
-  const handleAddUrlField = () => {
-    setUrls([...urls, '']);
-  };
-
-  // Fonction pour supprimer un champ d'URL
-  const handleRemoveUrlField = (index) => {
-    if (urls.length > 1) {
-      const newUrls = [...urls];
-      newUrls.splice(index, 1);
-      setUrls(newUrls);
-    }
-  };
-
   // Fonction pour gérer l'envoi du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -194,17 +123,8 @@ const FileUpload = ({ projectId, onSuccess }) => {
     // Si des fichiers sont sélectionnés, les télécharger
     if (files.length > 0) {
       await handleUploadFiles();
-    }
-    
-    // Si des URLs sont entrées, les ajouter
-    const validUrls = urls.filter(url => url.trim() !== '');
-    if (validUrls.length > 0) {
-      await handleAddUrls();
-    }
-    
-    // Si aucun fichier ni URL n'est fourni, afficher une erreur
-    if (files.length === 0 && urls.every(url => url.trim() === '')) {
-      setError('Veuillez sélectionner au moins un fichier ou ajouter une URL');
+    } else {
+      setError('Veuillez sélectionner au moins un fichier');
     }
   };
 
@@ -217,7 +137,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
           </Typography>
           
           <Typography variant="body2" color="text.secondary" paragraph>
-            Importez des fichiers ou ajoutez des liens pour créer votre dataset de fine-tuning.
+            Importez des fichiers pour créer votre dataset de fine-tuning.
           </Typography>
           
           <Typography variant="h6" gutterBottom>
@@ -285,43 +205,6 @@ const FileUpload = ({ projectId, onSuccess }) => {
             </Box>
           )}
           
-          <Divider sx={{ my: 3 }} />
-          
-          <Typography variant="h6" gutterBottom>
-            Ajouter des liens
-          </Typography>
-          
-          {urls.map((url, index) => (
-            <Box key={index} sx={{ display: 'flex', mb: 2 }}>
-              <TextField
-                fullWidth
-                value={url}
-                onChange={(e) => handleUrlChange(index, e.target.value)}
-                placeholder="https://..."
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LinkIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              {index === urls.length - 1 ? (
-                <IconButton onClick={handleAddUrlField} color="primary">
-                  <AddIcon />
-                </IconButton>
-              ) : (
-                <IconButton onClick={() => handleRemoveUrlField(index)} color="error">
-                  <DeleteIcon />
-                </IconButton>
-              )}
-            </Box>
-          ))}
-          
-          <FormHelperText>
-            Ajoutez des liens vers des sites web ou des vidéos YouTube. Les transcriptions seront automatiquement extraites.
-          </FormHelperText>
-          
           {error && (
             <Alert severity="error" sx={{ mt: 3 }}>
               {error}
@@ -332,7 +215,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
             <Button
               variant="contained"
               type="submit"
-              disabled={uploading || (files.length === 0 && urls.every(url => url.trim() === ''))}
+              disabled={uploading || files.length === 0}
               startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : null}
             >
               {uploading ? 'Envoi en cours...' : 'Ajouter le contenu'}
