@@ -373,7 +373,7 @@ const OnboardingPage = () => {
       return false;
     }
     
-    const allContents = [...uploadedFiles, ...uploadedUrls];
+    const allContents = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb];
     if (allContents.length === 0) {
       setDatasetError("Veuillez d'abord ajouter du contenu");
       return false;
@@ -508,8 +508,8 @@ const OnboardingPage = () => {
       
       case 1: // Après étape import de contenu
         // Vérifier s'il y a du contenu
-        if (uploadedFiles.length === 0 && uploadedUrls.length === 0) {
-          setUploadError("Veuillez ajouter au moins un fichier ou une URL");
+        if (uploadedFiles.length === 0 && uploadedUrls.length === 0 && uploadedYouTube.length === 0 && uploadedWeb.length === 0) {
+          setUploadError("Veuillez ajouter au moins un fichier, une vidéo YouTube ou une URL web");
           return;
         }
         break;
@@ -651,7 +651,7 @@ const OnboardingPage = () => {
   // Fonction pour estimer le nombre de caractères
   const estimateCharacterCount = () => {
     // Si pas de fichiers ni URLs, retourner 0
-    if (uploadedFiles.length === 0 && uploadedUrls.length === 0) {
+    if (uploadedFiles.length === 0 && uploadedUrls.length === 0 && uploadedYouTube.length === 0 && uploadedWeb.length === 0) {
       return 0;
     }
     
@@ -676,29 +676,31 @@ const OnboardingPage = () => {
       }
     });
     
-    // Pour les URLs (estimation plus spécifique)
+    // Pour les URLs
     uploadedUrls.forEach(url => {
       // Si nous avons déjà un comptage dans les métadonnées, l'utiliser
       if (url.content_metadata && url.content_metadata.character_count) {
         totalEstimate += parseInt(url.content_metadata.character_count);
-      } 
-      // Traitement spécial pour les vidéos YouTube
-      else if ((url.type === 'youtube' || url.url?.includes('youtube.com') || url.url?.includes('youtu.be'))) {
-        // Si les métadonnées contiennent la durée de la vidéo
-        if (url.content_metadata && url.content_metadata.duration_seconds) {
-          // Estimation de 900 caractères par minute
-          const durationMinutes = parseInt(url.content_metadata.duration_seconds) / 60;
-          const youtubeEstimate = Math.round(durationMinutes * 900);
-          console.log(`Estimation YouTube pour ${url.name}: ${durationMinutes.toFixed(1)} minutes = ${youtubeEstimate} caractères`);
-          totalEstimate += youtubeEstimate;
-        } else {
-          // Si pas de durée disponible, estimation moyenne pour une vidéo YouTube
-          totalEstimate += 10000; // Estimation moyenne pour une vidéo YouTube (≈11 minutes)
-          console.log(`Durée de vidéo YouTube non disponible pour ${url.name}, estimation par défaut: 10000 caractères`);
-        }
       } else {
         // Pour les autres URLs
         totalEstimate += 3000; // Estimation moyenne par URL
+      }
+    });
+    
+    // Pour les vidéos YouTube
+    uploadedYouTube.forEach(video => {
+      if (video.estimated_characters) {
+        totalEstimate += video.estimated_characters;
+      } else {
+        // Si pas d'estimation disponible, utiliser une valeur par défaut
+        totalEstimate += 1500; // ~10 minutes estimées
+      }
+    });
+    
+    // Pour les sites web scrapés
+    uploadedWeb.forEach(site => {
+      if (site.character_count) {
+        totalEstimate += site.character_count;
       }
     });
     
@@ -757,8 +759,7 @@ const OnboardingPage = () => {
         actualCount += urlChars;
       } 
       // Cas 2: Pour les vidéos YouTube avec durée connue mais sans comptage direct
-      else if ((url.type === 'youtube' || url.url?.includes('youtube.com') || url.url?.includes('youtu.be')) && 
-               url.content_metadata && url.content_metadata.duration_seconds && url.status === 'completed') {
+      else if ((url.type === 'youtube' || url.url?.includes('youtube.com') || url.url?.includes('youtu.be'))) {
         // Calcul basé sur 900 caractères par minute
         const durationMinutes = parseInt(url.content_metadata.duration_seconds) / 60;
         const youtubeChars = Math.round(durationMinutes * 900);
@@ -792,11 +793,24 @@ const OnboardingPage = () => {
       }
     });
     
+    // Process scraped websites from uploadedWeb
+    uploadedWeb.forEach(site => {
+      console.log(`Site web ${site.id} (${site.name}) - status: ${site.status}, métadonnées:`, site);
+      if (site.character_count) {
+        const webChars = parseInt(site.character_count);
+        console.log(`  → Caractères exacts: ${webChars}`);
+        actualCount += webChars;
+      } else {
+        console.log(`  → Statut: ${site.status}, pas de comptage disponible`);
+        hasAllCounts = false;
+      }
+    });
+    
     console.log(`Total de caractères: ${actualCount}`);
-    console.log(`Est estimé: ${!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0)}`);
+    console.log(`Est estimé: ${!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0 && uploadedYouTube.length === 0 && uploadedWeb.length === 0)}`);
     
     setActualCharacterCount(actualCount);
-    setIsEstimated(!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0));
+    setIsEstimated(!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0 && uploadedYouTube.length === 0 && uploadedWeb.length === 0));
     
     return actualCount;
   };
@@ -809,8 +823,8 @@ const OnboardingPage = () => {
   // Rafraîchir régulièrement le comptage des caractères
   useEffect(() => {
     // Vérifier s'il y a des fichiers ou URLs en cours de traitement
-    const hasProcessingContent = [...uploadedFiles, ...uploadedUrls].some(
-      content => content.status !== 'completed' && content.status !== 'error'
+    const hasProcessingContent = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(
+      content => content.status !== 'completed' && content.status !== 'error' && content.status !== 'awaiting_transcription'
     );
     
     if (hasProcessingContent) {
@@ -820,7 +834,7 @@ const OnboardingPage = () => {
       
       return () => clearInterval(intervalId);
     }
-  }, [uploadedFiles, uploadedUrls]);
+  }, [uploadedFiles, uploadedUrls, uploadedYouTube, uploadedWeb]);
 
   // Calculer le niveau de qualité basé sur le nombre de caractères et le type d'usage
   const getQualityLevel = (characterCount, usageType = 'other') => {
@@ -905,17 +919,18 @@ const OnboardingPage = () => {
     setYoutubeUploading(true);
     setYoutubeUploadError(null);
     
+    // Extraire l'ID de la vidéo YouTube (déplacé en dehors du try/catch)
+    const youtubeLinkRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = youtubeUrl.match(youtubeLinkRegex);
+    const videoId = match && match[1];
+    
+    if (!videoId) {
+      setYoutubeUploadError("URL YouTube invalide. Veuillez fournir une URL valide.");
+      setYoutubeUploading(false);
+      return;
+    }
+    
     try {
-      // Extraire l'ID de la vidéo YouTube
-      const youtubeLinkRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
-      const match = youtubeUrl.match(youtubeLinkRegex);
-      const videoId = match && match[1];
-      
-      if (!videoId) {
-        setYoutubeUploadError("URL YouTube invalide. Veuillez fournir une URL valide.");
-        return;
-      }
-
       // Récupérer les informations réelles de la vidéo via RapidAPI
       console.log("Récupération des détails de la vidéo via RapidAPI pour", videoId);
       
@@ -937,11 +952,12 @@ const OnboardingPage = () => {
       // Extraire les informations utiles
       const videoInfo = rapidApiResponse.data;
       const videoTitle = videoInfo.title || `Vidéo YouTube - ${new Date().toLocaleString()}`;
-      const durationSeconds = videoInfo.lengthSeconds || 600; // Fallback à 10 minutes si non disponible
+      const durationSeconds = parseInt(videoInfo.lengthSeconds) || parseInt(videoInfo.length_seconds) || 600; // Fallback à 10 minutes si non disponible
       const durationMinutes = Math.round(durationSeconds / 60);
       
       // Calculer le nombre de caractères (150 caractères par minute)
       const estimatedCharacters = Math.round((durationSeconds / 60) * 150);
+      console.log('Calculated duration:', durationSeconds, 'seconds; Estimated characters:', estimatedCharacters);
       
       // Créer l'objet au format attendu par le backend
       const urlContent = {
@@ -977,46 +993,41 @@ const OnboardingPage = () => {
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
       // Fallback à l'estimation fixe en cas d'erreur avec RapidAPI
-      if (match && match[1]) {
-        try {
-          // Si RapidAPI a échoué, on utilise une estimation fixe comme solution de secours
-          const videoId = match[1];
-          const estimatedDuration = 600; // 10 minutes par défaut
-          const durationMinutes = Math.round(estimatedDuration / 60);
-          const estimatedCharacters = Math.round((estimatedDuration / 60) * 150);
-          
-          console.log("Utilisation d'une estimation fixe car RapidAPI a échoué");
-          
-          const urlContent = {
-            project_id: createdProject.id,
-            url: youtubeUrl,
-            name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
-            type: 'youtube',
-            description: `Vidéo YouTube en attente de transcription. Durée estimée: ${durationMinutes} minutes.`
-          };
-          
-          const response = await contentService.addUrl(urlContent);
-          
-          setActualCharacterCount(prev => prev + estimatedCharacters);
-          
-          setUploadedYouTube(prev => [...prev, {
-            ...response,
-            url: youtubeUrl,
-            source: `Durée estimée: ${durationMinutes} min`,
-            estimated_characters: estimatedCharacters,
-            status: 'awaiting_transcription'
-          }]);
-          
-          setYoutubeUrl('');
-          enqueueSnackbar(`URL YouTube ajoutée avec durée estimée (~${estimatedCharacters} caractères)`, { variant: 'success' });
-          calculateActualCharacterCount();
-          
-        } catch (fallbackError) {
-          console.error('Erreur lors du fallback:', fallbackError);
-          setYoutubeUploadError("Erreur lors de l'ajout de l'URL YouTube, même avec estimation par défaut");
-        }
-      } else {
-        setYoutubeUploadError(error.message || 'Erreur lors de l\'ajout de l\'URL YouTube');
+      try {
+        // Si RapidAPI a échoué, on utilise une estimation fixe comme solution de secours
+        const estimatedDuration = 600; // 10 minutes par défaut
+        const durationMinutes = Math.round(estimatedDuration / 60);
+        const estimatedCharacters = Math.round((estimatedDuration / 60) * 150);
+        
+        console.log("Utilisation d'une estimation fixe car RapidAPI a échoué");
+        
+        const urlContent = {
+          project_id: createdProject.id,
+          url: youtubeUrl,
+          name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
+          type: 'youtube',
+          description: `Vidéo YouTube en attente de transcription. Durée estimée: ${durationMinutes} minutes.`
+        };
+        
+        const response = await contentService.addUrl(urlContent);
+        
+        setActualCharacterCount(prev => prev + estimatedCharacters);
+        
+        setUploadedYouTube(prev => [...prev, {
+          ...response,
+          url: youtubeUrl,
+          source: `Durée estimée: ${durationMinutes} min`,
+          estimated_characters: estimatedCharacters,
+          status: 'awaiting_transcription'
+        }]);
+        
+        setYoutubeUrl('');
+        enqueueSnackbar(`URL YouTube ajoutée avec durée estimée (~${estimatedCharacters} caractères)`, { variant: 'success' });
+        calculateActualCharacterCount();
+        
+      } catch (fallbackError) {
+        console.error('Erreur lors du fallback:', fallbackError);
+        setYoutubeUploadError("Erreur lors de l'ajout de l'URL YouTube, même avec estimation par défaut");
       }
     } finally {
       setYoutubeUploading(false);
@@ -1223,8 +1234,8 @@ const OnboardingPage = () => {
             >
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 {isEstimated ? "Estimation du nombre de caractères dans vos contenus" : "Comptage exact des caractères"}
-                {uploadedFiles.length > 0 || uploadedUrls.length > 0 ? 
-                  ` (${[...uploadedFiles, ...uploadedUrls].filter(c => c.status === 'completed').length}/${uploadedFiles.length + uploadedUrls.length} fichiers traités)` 
+                {(uploadedFiles.length > 0 || uploadedUrls.length > 0 || uploadedYouTube.length > 0 || uploadedWeb.length > 0) ? 
+                  ` (${[...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].filter(c => c.status === 'completed' || c.status === 'awaiting_transcription').length}/${uploadedFiles.length + uploadedUrls.length + uploadedYouTube.length + uploadedWeb.length} fichiers traités)` 
                   : ""}
               </Typography>
               
@@ -1369,7 +1380,7 @@ const OnboardingPage = () => {
                     </Typography>
                   )}
                   
-                  {isEstimated && [...uploadedFiles, ...uploadedUrls].some(c => c.status !== 'completed' && c.status !== 'error') && (
+                  {isEstimated && [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => c.status !== 'completed' && c.status !== 'error' && c.status !== 'awaiting_transcription') && (
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                       <CircularProgress size={16} sx={{ mr: 1 }} />
                       <Typography variant="caption" color="text.secondary">
@@ -1484,7 +1495,7 @@ const OnboardingPage = () => {
                     <Box key={video.id} sx={{ display: 'flex', alignItems: 'center', p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
                       <YouTubeIcon color="error" sx={{ mr: 2 }} />
                       <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body1">{video.url}</Typography>
+                        <Typography variant="body1">{video.name}</Typography>
                         {video.status === 'awaiting_transcription' ? (
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="caption" color="text.secondary">
@@ -1543,19 +1554,18 @@ const OnboardingPage = () => {
                     <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
                       <InsertLinkIcon sx={{ mr: 2 }} />
                       <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body1">{item.url}</Typography>
-                        {item.scraped && item.scraped.title && (
-                          <Typography variant="caption" color="text.secondary">
-                            Titre : {item.scraped.title}
-                          </Typography>
-                        )}
-                        {item.scraped && item.scraped.paragraphs && (
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            {item.scraped.paragraphs.slice(0,2).join(" ")}
-                          </Typography>
-                        )}
+                        <Typography variant="body1">{item.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {item.character_count?.toLocaleString() || '0'} caractères
+                        </Typography>
                       </Box>
-                      <IconButton onClick={() => setUploadedWeb(prev => prev.filter(v => v.id !== item.id))}>
+                      <IconButton onClick={() => {
+                        setUploadedWeb(prev => prev.filter(v => v.id !== item.id));
+                        // Si le site web a des caractères comptés, les soustraire du total
+                        if (item.character_count) {
+                          setActualCharacterCount(prev => Math.max(0, prev - item.character_count));
+                        }
+                      }}>
                         <DeleteIcon />
                       </IconButton>
                     </Box>
@@ -1571,7 +1581,7 @@ const OnboardingPage = () => {
             </Paper>
           </Box>
         );
-        
+      
       case 2: // Fine-tuning du modèle
         return (
           <Box>
