@@ -428,35 +428,49 @@ def transcribe_youtube_video(self, content_id: int):
             logger.info(f"Pas de sous-titres disponibles via l'API YouTube: {str(e)}. Fallback vers Whisper.")
             # Fallback vers Whisper
             try:
-                # Télécharger l'audio de la vidéo avec yt-dlp
-                logger.info(f"Téléchargement de l'audio pour la vidéo {video_id}")
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    audio_path = os.path.join(temp_dir, f"{video_id}.mp3")
+                # Télécharger l'audio avec RapidAPI au lieu de yt-dlp
+                logger.info(f"Téléchargement de l'audio via RapidAPI pour la vidéo {video_id}")
+                
+                rapidapi_key = "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8"
+                rapidapi_host = "youtube-mp36.p.rapidapi.com"
+                
+                headers = {
+                    "X-RapidAPI-Key": rapidapi_key,
+                    "X-RapidAPI-Host": rapidapi_host
+                }
+                
+                params = {
+                    "id": video_id
+                }
+                
+                # Faire la requête à RapidAPI
+                response = requests.get(f"https://{rapidapi_host}/dl", headers=headers, params=params)
+                
+                if response.status_code == 200:
+                    result = response.json()
                     
-                    ydl_opts = {
-                        'format': 'bestaudio/best',
-                        'outtmpl': audio_path,
-                        'postprocessors': [{
-                            'key': 'FFmpegExtractAudio',
-                            'preferredcodec': 'mp3',
-                            'preferredquality': '192',
-                        }],
-                        'quiet': True
-                    }
-                    
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
-                    
-                    logger.info(f"Audio téléchargé, transcription avec Whisper...")
-                    
-                    # Charger le modèle Whisper (utiliser 'base' pour un bon équilibre entre précision et vitesse)
-                    model = whisper.load_model("base")
-                    
-                    # Transcription avec Whisper
-                    result = model.transcribe(audio_path)
-                    transcript_text = result["text"]
-                    
-                    logger.info(f"Transcription Whisper terminée ({len(transcript_text)} caractères)")
+                    if result.get("status") == "ok" and result.get("link"):
+                        # Télécharger le MP3 depuis le lien fourni
+                        mp3_url = result["link"]
+                        
+                        with tempfile.TemporaryDirectory() as temp_dir:
+                            audio_path = os.path.join(temp_dir, f"{video_id}.mp3")
+                            
+                            # Télécharger le fichier MP3
+                            audio_response = requests.get(mp3_url)
+                            with open(audio_path, 'wb') as f:
+                                f.write(audio_response.content)
+                            
+                            # Transcription avec Whisper
+                            model = whisper.load_model("base")
+                            result = model.transcribe(audio_path)
+                            transcript_text = result["text"]
+                            
+                            logger.info(f"Transcription Whisper terminée ({len(transcript_text)} caractères)")
+                    else:
+                        raise Exception(f"Échec de l'API RapidAPI: {result.get('msg', 'Erreur inconnue')}")
+                else:
+                    raise Exception(f"Erreur HTTP {response.status_code} lors de l'appel à RapidAPI")
             
             except Exception as whisper_error:
                 logger.error(f"Erreur lors de la transcription avec Whisper: {str(whisper_error)}")

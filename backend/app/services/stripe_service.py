@@ -268,7 +268,7 @@ class StripeService:
                 return
             
             # Vérifier si le contenu est en attente de transcription et contient une URL YouTube
-            if content.content_type != 'youtube_transcript' or not content.url:
+            if content.type != 'youtube' or not content.url:
                 logger.warning(f"Le contenu {content_id} n'est pas une vidéo YouTube ou ne contient pas d'URL")
                 return
             
