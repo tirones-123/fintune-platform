@@ -39,7 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { contentService } from '../../../services/apiService';
 
-const FileUpload = ({ projectId, onSuccess }) => {
+const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
   const [urls, setUrls] = useState(['']);
@@ -257,7 +257,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
     
     // Si des URLs sont entrées, les ajouter
     const validUrls = urls.filter(url => url.trim() !== '');
-    if (validUrls.length > 0) {
+    if (validUrls.length > 0 && !hideUrlInput) {
       await handleAddUrls();
     }
     
@@ -419,45 +419,50 @@ const FileUpload = ({ projectId, onSuccess }) => {
             </Stack>
           )}
           
-          <Divider sx={{ my: 3 }} />
-          
-          {urls.map((url, index) => (
-            <Box key={index} sx={{ display: 'flex', mb: 2 }}>
-              <TextField
-                fullWidth
-                value={url}
-                onChange={(e) => handleUrlChange(index, e.target.value)}
-                onKeyDown={(e) => handleUrlKeyDown(index, e)}
-                placeholder="https://..."
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => handleRemoveUrlField(index)}
-                        edge="end"
-                        size="small"
-                      >
-                        <CloseIcon />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => handleUrlSubmit(index)}
-                        edge="end"
-                        size="small"
-                        disabled={!url.trim()}
-                        color="primary"
-                      >
-                        <AddIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-          ))}
-          
-          <FormHelperText>
-            Ajoutez des liens vers des sites web ou des vidéos YouTube. Les transcriptions seront automatiquement extraites.
-          </FormHelperText>
+          {/* Affichage des champs d'URL uniquement si hideUrlInput est false */}
+          {!hideUrlInput && (
+            <>
+              <Divider sx={{ my: 3 }} />
+              
+              {urls.map((url, index) => (
+                <Box key={index} sx={{ display: 'flex', mb: 2 }}>
+                  <TextField
+                    fullWidth
+                    value={url}
+                    onChange={(e) => handleUrlChange(index, e.target.value)}
+                    onKeyDown={(e) => handleUrlKeyDown(index, e)}
+                    placeholder="https://..."
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => handleRemoveUrlField(index)}
+                            edge="end"
+                            size="small"
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => handleUrlSubmit(index)}
+                            edge="end"
+                            size="small"
+                            disabled={!url.trim()}
+                            color="primary"
+                          >
+                            <AddIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+              ))}
+              
+              <FormHelperText>
+                Ajoutez des liens vers des sites web ou des vidéos YouTube. Les transcriptions seront automatiquement extraites.
+              </FormHelperText>
+            </>
+          )}
           
           {error && (
             <Alert severity="error" sx={{ mt: 3 }}>

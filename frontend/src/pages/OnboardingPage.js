@@ -177,7 +177,7 @@ const OnboardingPage = () => {
   
   // Données du fine-tuning
   const [provider, setProvider] = useState('openai');
-  const [model, setModel] = useState('gpt-3.5-turbo');
+  const [model, setModel] = useState('gpt-4');
   const [creatingFineTuning, setCreatingFineTuning] = useState(false);
   const [createdFineTuning, setCreatedFineTuning] = useState(null);
   const [fineTuningError, setFineTuningError] = useState(null);
@@ -185,16 +185,12 @@ const OnboardingPage = () => {
   // Modèles disponibles par fournisseur
   const providerModels = {
     openai: [
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
       { id: 'gpt-4', name: 'GPT-4' },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
     ],
     anthropic: [
-      { id: 'claude-2', name: 'Claude 2' },
-      { id: 'claude-instant', name: 'Claude Instant' },
-    ],
-    mistral: [
-      { id: 'mistral-7b', name: 'Mistral 7B' },
-      { id: 'mistral-8x7b', name: 'Mistral 8x7B' },
+      { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet' },
+      { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
     ],
   };
 
@@ -987,7 +983,7 @@ const OnboardingPage = () => {
       setYoutubeUrl('');
       enqueueSnackbar(`URL YouTube ajoutée: "${videoTitle}" (~${estimatedCharacters} caractères basés sur ${durationMinutes} min)`, { variant: 'success' });
       
-      // Forcer le recalcul du total des caractères
+      // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
       calculateActualCharacterCount();
       
     } catch (error) {
@@ -1023,6 +1019,8 @@ const OnboardingPage = () => {
         
         setYoutubeUrl('');
         enqueueSnackbar(`URL YouTube ajoutée avec durée estimée (~${estimatedCharacters} caractères)`, { variant: 'success' });
+        
+        // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
         calculateActualCharacterCount();
         
       } catch (fallbackError) {
@@ -1081,7 +1079,7 @@ const OnboardingPage = () => {
       setScrapeUrl('');
       enqueueSnackbar(`URL Web ajoutée (${characterCount} caractères)`, { variant: 'success' });
       
-      // Forcer le recalcul du total des caractères
+      // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
       calculateActualCharacterCount();
       
     } catch (error) {
@@ -1396,6 +1394,7 @@ const OnboardingPage = () => {
                 <Box sx={{ mb: 3 }}>
                   <FileUpload 
                     projectId={createdProject.id} 
+                    hideUrlInput={true} 
                     onSuccess={(uploadedContent) => {
                       if (uploadedContent) {
                         console.log("Nouveau contenu uploadé:", uploadedContent);
@@ -1604,22 +1603,19 @@ const OnboardingPage = () => {
             </Typography>
             
             <Box sx={{ mb: 3 }}>
-              <TextField
-                label="Nom du dataset"
-                value={datasetName}
-                onChange={(e) => setDatasetName(e.target.value)}
-                fullWidth
-                margin="normal"
-                placeholder="Mon dataset de fine-tuning"
-                disabled={createdDataset !== null}
-              />
-              
               <FormControl fullWidth margin="normal">
                 <InputLabel id="provider-select-label">Fournisseur</InputLabel>
                 <Select
                   labelId="provider-select-label"
                   value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
+                  onChange={(e) => {
+                    const newProvider = e.target.value;
+                    setProvider(newProvider);
+                    // Sélectionner automatiquement le premier modèle du nouveau fournisseur
+                    if (providerModels[newProvider] && providerModels[newProvider].length > 0) {
+                      setModel(providerModels[newProvider][0].id);
+                    }
+                  }}
                   label="Fournisseur"
                   disabled={createdDataset !== null}
                 >
@@ -1637,18 +1633,11 @@ const OnboardingPage = () => {
                   label="Modèle"
                   disabled={createdDataset !== null}
                 >
-                  {provider === 'openai' && (
-                    <>
-                      <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
-                      <MenuItem value="gpt-4">GPT-4</MenuItem>
-                    </>
-                  )}
-                  {provider === 'anthropic' && (
-                    <>
-                      <MenuItem value="claude-3-haiku-20240307">Claude 3 Haiku</MenuItem>
-                      <MenuItem value="claude-3-sonnet-20240229">Claude 3 Sonnet</MenuItem>
-                    </>
-                  )}
+                  {provider && providerModels[provider] && providerModels[provider].map((modelOption) => (
+                    <MenuItem key={modelOption.id} value={modelOption.id}>
+                      {modelOption.name}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
               
@@ -1691,7 +1680,7 @@ const OnboardingPage = () => {
               <Button
                 variant="contained"
                 onClick={createDataset}
-                disabled={creatingDataset || !datasetName}
+                disabled={creatingDataset}
                 sx={{ mt: 2 }}
               >
                 {creatingDataset ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
