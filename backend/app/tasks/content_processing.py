@@ -428,24 +428,22 @@ def transcribe_youtube_video(self, content_id: int):
             logger.info(f"Pas de sous-titres disponibles via l'API YouTube: {str(e)}. Fallback vers Whisper.")
             # Fallback vers Whisper
             try:
-                # Télécharger l'audio avec RapidAPI au lieu de yt-dlp
-                logger.info(f"Téléchargement de l'audio via RapidAPI pour la vidéo {video_id}")
-                
+                # Garder la partie RapidAPI existante pour le téléchargement
                 rapidapi_key = "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8"
                 rapidapi_host = "youtube-mp36.p.rapidapi.com"
-                
+
                 headers = {
                     "X-RapidAPI-Key": rapidapi_key,
                     "X-RapidAPI-Host": rapidapi_host
                 }
-                
+
                 params = {
                     "id": video_id
                 }
-                
+
                 # Faire la requête à RapidAPI
                 response = requests.get(f"https://{rapidapi_host}/dl", headers=headers, params=params)
-                
+
                 if response.status_code == 200:
                     result = response.json()
                     
@@ -461,12 +459,24 @@ def transcribe_youtube_video(self, content_id: int):
                             with open(audio_path, 'wb') as f:
                                 f.write(audio_response.content)
                             
-                            # Transcription avec Whisper
-                            model = whisper.load_model("base")
-                            result = model.transcribe(audio_path)
-                            transcript_text = result["text"]
+                            # Au lieu d'utiliser Whisper en local avec FFmpeg, 
+                            # utiliser directement l'API OpenAI qui accepte divers formats d'audio
+                            from openai import OpenAI
+                            client = OpenAI()
                             
-                            logger.info(f"Transcription Whisper terminée ({len(transcript_text)} caractères)")
+                            try:
+                                with open(audio_path, "rb") as audio_file:
+                                    transcript = client.audio.transcriptions.create(
+                                        model="whisper-1", 
+                                        file=audio_file
+                                    )
+                                transcript_text = transcript.text
+                                logger.info(f"Transcription via OpenAI API réussie ({len(transcript_text)} caractères)")
+                                
+                                # Le reste du code est identique pour enregistrer la transcription
+                            except Exception as openai_error:
+                                logger.error(f"Erreur lors de la transcription avec l'API OpenAI: {str(openai_error)}")
+                                raise Exception(f"OpenAI API transcription failed: {str(openai_error)}")
                     else:
                         raise Exception(f"Échec de l'API RapidAPI: {result.get('msg', 'Erreur inconnue')}")
                 else:

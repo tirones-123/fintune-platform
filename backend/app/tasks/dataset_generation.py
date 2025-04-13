@@ -166,8 +166,8 @@ def generate_dataset(dataset_id: int):
             total_characters += len(pair.question) + len(pair.answer)
         
         # Compter les caractères du system_content, multiplié par le nombre de paires
-        if system_content:
-            total_characters += len(system_content) * len(db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset_id).all())
+        system_content = dataset.system_content if hasattr(dataset, 'system_content') else ""
+        total_characters += len(system_content) * len(db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset_id).all())
         
         logger.info(f"Dataset {dataset_id} contains {total_characters} characters")
         
