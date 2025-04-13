@@ -514,7 +514,11 @@ const OnboardingPage = () => {
         // Vérifier d'abord la clé API
         const apiKeySuccess = await saveApiKey();
         if (!apiKeySuccess) return;
-        break;
+        
+        // Lancer completeOnboarding pour rediriger vers Stripe
+        await completeOnboarding();
+        // Ne pas continuer après completeOnboarding car l'utilisateur est redirigé vers Stripe
+        return;
     }
     
     // Si tout s'est bien passé, avancer à l'étape suivante
@@ -533,44 +537,7 @@ const OnboardingPage = () => {
     setProcessingFineTuning(true);
     
     try {
-      // 1. Commencer la création du dataset en arrière-plan si nécessaire
-      let datasetCreationStarted = false;
-      
-      if (!createdDataset) {
-        console.log("Aucun dataset existant, démarrage de la création en arrière-plan...");
-        // Lancer la création du dataset sans attendre
-        createDataset().then(success => {
-          if (success && createdDataset) {
-            console.log(`Dataset créé avec succès en arrière-plan, ID: ${createdDataset.id}`);
-            // Le timer dans createDataset s'occupera de vérifier quand il est prêt
-            // et lancera le fine-tuning automatiquement lorsqu'il sera prêt
-          } else {
-            console.error("Échec de la création du dataset en arrière-plan");
-          }
-        }).catch(error => {
-          console.error("Erreur lors de la création du dataset en arrière-plan:", error);
-        });
-        
-        datasetCreationStarted = true;
-      } else {
-        console.log(`Dataset déjà existant, ID: ${createdDataset.id}, prêt: ${datasetReady}`);
-        
-        // Si le dataset existe mais n'est pas prêt, on continue de vérifier en arrière-plan
-        if (!datasetReady && createdDataset.id) {
-          console.log("Dataset existant mais pas encore prêt, vérification en arrière-plan...");
-          checkDatasetStatus(createdDataset.id);
-        }
-        
-        // Si le dataset est prêt mais qu'aucun fine-tuning n'a été lancé, on le lance en arrière-plan
-        if (datasetReady && !createdFineTuning) {
-          console.log("Dataset prêt, lancement du fine-tuning en arrière-plan...");
-          createFineTuning().catch(error => {
-            console.error("Erreur lors du lancement du fine-tuning en arrière-plan:", error);
-          });
-        }
-      }
-      
-      // 2. Mettre à jour le profil utilisateur immédiatement
+      // 1. Mettre à jour le profil utilisateur immédiatement
       const payload = {
         email: user.email,
         name: user.name,
@@ -582,7 +549,7 @@ const OnboardingPage = () => {
       const updatedUser = await updateUser(payload);
       console.log("Résultat de la mise à jour:", updatedUser);
       
-      // 3. Redirection vers la page de paiement immédiatement
+      // 2. Redirection vers la page de paiement immédiatement
       if (updatedUser && updatedUser.has_completed_onboarding) {
         try {
           // Récupérer le nombre de caractères (réel ou estimé)
@@ -603,7 +570,11 @@ const OnboardingPage = () => {
           console.log("Tentative de création d'une session de paiement spécifique avec les caractères");
           const session = await api.post('/api/checkout/create-onboarding-session', {
             character_count: characterCount,
-            pending_transcriptions: pendingTranscriptions // Ajouter les vidéos en attente de transcription
+            pending_transcriptions: pendingTranscriptions, // Ajouter les vidéos en attente de transcription
+            dataset_name: datasetName, // Ajouter le nom du dataset
+            provider: provider, // Ajouter le fournisseur
+            model: model, // Ajouter le modèle
+            system_content: systemContent // Ajouter le system content
           });
           console.log("Session de paiement créée avec succès:", session.data);
           
@@ -711,6 +682,8 @@ const OnboardingPage = () => {
     console.log("Calcul du nombre réel de caractères...");
     console.log("Fichiers:", uploadedFiles);
     console.log("URLs:", uploadedUrls);
+    console.log("YouTube:", uploadedYouTube);
+    console.log("Web:", uploadedWeb);
     
     // Compter les caractères des fichiers dont les métadonnées sont disponibles
     uploadedFiles.forEach(file => {
@@ -757,7 +730,7 @@ const OnboardingPage = () => {
       // Cas 2: Pour les vidéos YouTube avec durée connue mais sans comptage direct
       else if ((url.type === 'youtube' || url.url?.includes('youtube.com') || url.url?.includes('youtu.be'))) {
         // Calcul basé sur 900 caractères par minute
-        const durationMinutes = parseInt(url.content_metadata.duration_seconds) / 60;
+        const durationMinutes = parseInt(url.content_metadata?.duration_seconds || 0) / 60;
         const youtubeChars = Math.round(durationMinutes * 900);
         console.log(`  → YouTube complété: ${durationMinutes.toFixed(1)} minutes = ${youtubeChars} caractères (900 car/min)`);
         actualCount += youtubeChars;
@@ -789,12 +762,31 @@ const OnboardingPage = () => {
       }
     });
     
-    // Process scraped websites from uploadedWeb
+    // Process YouTube videos - inclure explicitement les vidéos en attente de transcription
+    uploadedYouTube.forEach(video => {
+      console.log(`Vidéo YouTube ${video.id} (${video.name}) - status: ${video.status}, caractères estimés:`, video.estimated_characters);
+      if (video.estimated_characters) {
+        const ytChars = parseInt(video.estimated_characters);
+        console.log(`  → Caractères estimés YouTube: ${ytChars}`);
+        actualCount += ytChars;
+      } else if (video.status === 'awaiting_transcription') {
+        // Estimation par défaut pour les vidéos en attente sans estimation
+        const defaultEstimate = 1500; // ~10 minutes par défaut
+        console.log(`  → Pas d'estimation, utilisation de la valeur par défaut: ${defaultEstimate}`);
+        actualCount += defaultEstimate;
+        hasAllCounts = false;
+      } else {
+        console.log(`  → Statut: ${video.status}, pas de comptage disponible`);
+        hasAllCounts = false;
+      }
+    });
+    
+    // Process scraped websites
     uploadedWeb.forEach(site => {
       console.log(`Site web ${site.id} (${site.name}) - status: ${site.status}, métadonnées:`, site);
       if (site.character_count) {
         const webChars = parseInt(site.character_count);
-        console.log(`  → Caractères exacts: ${webChars}`);
+        console.log(`  → Caractères exacts site web: ${webChars}`);
         actualCount += webChars;
       } else {
         console.log(`  → Statut: ${site.status}, pas de comptage disponible`);
@@ -967,24 +959,27 @@ const OnboardingPage = () => {
       // Ajouter l'URL avec le format attendu par le backend
       const response = await contentService.addUrl(urlContent);
       
-      // Mettre à jour le comptage total des caractères avec l'estimation
-      setActualCharacterCount(prev => prev + estimatedCharacters);
-      
-      // Ajouter à la liste des fichiers uploadés
-      setUploadedYouTube(prev => [...prev, {
+      // Créer le nouvel objet de vidéo YouTube avant de mettre à jour l'état
+      const newYouTubeVideo = {
         ...response,
         url: youtubeUrl,
         source: `Durée réelle: ${durationMinutes} min`,
         estimated_characters: estimatedCharacters,
         status: 'awaiting_transcription'
-      }]);
+      };
+      
+      // Ajouter à la liste des vidéos YouTube
+      setUploadedYouTube(prev => [...prev, newYouTubeVideo]);
       
       // Réinitialiser le champ
       setYoutubeUrl('');
       enqueueSnackbar(`URL YouTube ajoutée: "${videoTitle}" (~${estimatedCharacters} caractères basés sur ${durationMinutes} min)`, { variant: 'success' });
       
-      // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
-      calculateActualCharacterCount();
+      // Attendre que l'état soit mis à jour avant de recalculer
+      setTimeout(() => {
+        // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
+        calculateActualCharacterCount();
+      }, 300);
       
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
@@ -1007,21 +1002,26 @@ const OnboardingPage = () => {
         
         const response = await contentService.addUrl(urlContent);
         
-        setActualCharacterCount(prev => prev + estimatedCharacters);
-        
-        setUploadedYouTube(prev => [...prev, {
+        // Créer le nouvel objet de vidéo YouTube avant de mettre à jour l'état
+        const newYouTubeVideo = {
           ...response,
           url: youtubeUrl,
           source: `Durée estimée: ${durationMinutes} min`,
           estimated_characters: estimatedCharacters,
           status: 'awaiting_transcription'
-        }]);
+        };
+        
+        // Ajouter à la liste des vidéos YouTube
+        setUploadedYouTube(prev => [...prev, newYouTubeVideo]);
         
         setYoutubeUrl('');
         enqueueSnackbar(`URL YouTube ajoutée avec durée estimée (~${estimatedCharacters} caractères)`, { variant: 'success' });
         
-        // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
-        calculateActualCharacterCount();
+        // Attendre que l'état soit mis à jour avant de recalculer
+        setTimeout(() => {
+          // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
+          calculateActualCharacterCount();
+        }, 300);
         
       } catch (fallbackError) {
         console.error('Erreur lors du fallback:', fallbackError);
@@ -1063,24 +1063,27 @@ const OnboardingPage = () => {
       // Ajouter l'URL avec le contenu scrapé
       const response = await contentService.addUrl(urlContent);
       
-      // Mettre à jour le comptage total des caractères
-      setActualCharacterCount(prev => prev + characterCount);
-      
-      // Ajouter à la liste des URLs web
-      setUploadedWeb(prev => [...prev, {
+      // Créer l'objet du site web avant de mettre à jour l'état
+      const newWebSite = {
         ...response,
         url: scrapeUrl,
         scraped: scrapedData,
         character_count: characterCount,
         status: 'completed'
-      }]);
+      };
+      
+      // Ajouter à la liste des URLs web
+      setUploadedWeb(prev => [...prev, newWebSite]);
       
       // Réinitialiser le champ
       setScrapeUrl('');
       enqueueSnackbar(`URL Web ajoutée (${characterCount} caractères)`, { variant: 'success' });
       
-      // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
-      calculateActualCharacterCount();
+      // Attendre que l'état soit mis à jour avant de recalculer
+      setTimeout(() => {
+        // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
+        calculateActualCharacterCount();
+      }, 300);
       
     } catch (error) {
       console.error('Erreur lors du scraping de l\'URL Web:', error);
@@ -1672,20 +1675,10 @@ const OnboardingPage = () => {
             {apiKeySaved && (
               <Alert severity="success" sx={{ mt: 2, mb: 3 }}>
                 <AlertTitle>Clé API validée</AlertTitle>
-                Votre clé API a été validée avec succès.
+                <Typography variant="body2">
+                  Votre clé API a été validée avec succès. Cliquez sur "Suivant" pour continuer.
+                </Typography>
               </Alert>
-            )}
-            
-            {apiKeySaved && !createdDataset && (
-              <Button
-                variant="contained"
-                onClick={createDataset}
-                disabled={creatingDataset}
-                sx={{ mt: 2 }}
-              >
-                {creatingDataset ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
-                Créer le dataset et lancer le fine-tuning
-              </Button>
             )}
             
             {createdDataset && (
@@ -1808,18 +1801,20 @@ const OnboardingPage = () => {
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
                   sx={{ borderRadius: 3 }}
-                  disabled={activeStep === 0 || uploading || creatingProject}
+                  disabled={activeStep === 0 || uploading || creatingProject || savingApiKey || isCompleting}
                 >
                   Retour
                 </Button>
                 <Button
                   variant="contained"
                   onClick={handleNext}
-                  endIcon={<ArrowForwardIcon />}
+                  endIcon={activeStep === steps.length - 2 ? null : <ArrowForwardIcon />}
+                  startIcon={activeStep === steps.length - 2 && isCompleting ? <CircularProgress size={20} color="inherit" /> : null}
                   sx={{ borderRadius: 3 }}
-                  disabled={uploading || creatingProject}
+                  disabled={uploading || creatingProject || savingApiKey || isCompleting || 
+                    (activeStep === 2 && !apiKeySaved)} // Désactiver si l'API key n'est pas validée
                 >
-                  {activeStep === steps.length - 2 ? 'Terminer' : 'Suivant'}
+                  {activeStep === steps.length - 2 ? (isCompleting ? 'Traitement en cours...' : 'Terminer') : 'Suivant'}
                 </Button>
               </Box>
             )}
