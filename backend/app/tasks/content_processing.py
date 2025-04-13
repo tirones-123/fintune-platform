@@ -421,7 +421,7 @@ def transcribe_youtube_video(self, content_id: int):
                 transcript_data = transcript.fetch()
                 transcript_text = " ".join([item['text'] for item in transcript_data])
                 logger.info(f"Transcription YouTube obtenue avec succès ({len(transcript_text)} caractères)")
-                            else:
+            else:
                 raise NoTranscriptFound(video_id)
                 
         except (TranscriptsDisabled, NoTranscriptFound) as e:
