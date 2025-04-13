@@ -426,66 +426,48 @@ def transcribe_youtube_video(self, content_id: int):
                 
         except (TranscriptsDisabled, NoTranscriptFound) as e:
             logger.info(f"Pas de sous-titres disponibles via l'API YouTube: {str(e)}. Fallback vers Whisper.")
-            # Fallback vers Whisper
             try:
-                # Garder la partie RapidAPI existante pour le téléchargement
-                rapidapi_key = "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8"
-                rapidapi_host = "youtube-mp36.p.rapidapi.com"
-
-                headers = {
-                    "X-RapidAPI-Key": rapidapi_key,
-                    "X-RapidAPI-Host": rapidapi_host
-                }
-
-                params = {
-                    "id": video_id
-                }
-
-                # Faire la requête à RapidAPI
-                response = requests.get(f"https://{rapidapi_host}/dl", headers=headers, params=params)
-
-                if response.status_code == 200:
-                    result = response.json()
+                logger.info(f"Téléchargement de la vidéo YouTube {video_id} avec yt-dlp via subprocess")
+                
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Chemin du fichier à créer
+                    audio_path = os.path.join(temp_dir, f"{video_id}.mp3")
                     
-                    if result.get("status") == "ok" and result.get("link"):
-                        # Télécharger le MP3 depuis le lien fourni
-                        mp3_url = result["link"]
-                        
-                        with tempfile.TemporaryDirectory() as temp_dir:
-                            audio_path = os.path.join(temp_dir, f"{video_id}.mp3")
-                            
-                            # Télécharger le fichier MP3
-                            audio_response = requests.get(mp3_url)
-                            with open(audio_path, 'wb') as f:
-                                f.write(audio_response.content)
-                            
-                            # AJOUTER CETTE PARTIE - Conversion avec FFmpeg
-                            import subprocess
-                            converted_path = os.path.join(temp_dir, f"{video_id}_converted.mp3")
-                            subprocess.run(['ffmpeg', '-i', audio_path, '-c:a', 'libmp3lame', '-q:a', '2', converted_path], check=True)
-
-                            # Utiliser le fichier CONVERTI (pas le fichier original)
-                            from openai import OpenAI
-                            client = OpenAI()
-                            
-                            try:
-                                with open(converted_path, "rb") as audio_file:
-                                    transcript = client.audio.transcriptions.create(
-                                        model="whisper-1", 
-                                        file=audio_file
-                                    )
-                                transcript_text = transcript.text
-                                logger.info(f"Transcription via OpenAI API réussie ({len(transcript_text)} caractères)")
-                                
-                                # Le reste du code est identique pour enregistrer la transcription
-                            except Exception as openai_error:
-                                logger.error(f"Erreur lors de la transcription avec l'API OpenAI: {str(openai_error)}")
-                                raise Exception(f"OpenAI API transcription failed: {str(openai_error)}")
-                    else:
-                        raise Exception(f"Échec de l'API RapidAPI: {result.get('msg', 'Erreur inconnue')}")
-                else:
-                    raise Exception(f"Erreur HTTP {response.status_code} lors de l'appel à RapidAPI")
-            
+                    # Commande yt-dlp exécutée directement
+                    import subprocess
+                    
+                    # Construire la commande avec tous les paramètres nécessaires
+                    cmd = [
+                        'yt-dlp',
+                        f'https://www.youtube.com/watch?v={video_id}',
+                        '--extract-audio',
+                        '--audio-format', 'mp3',
+                        '--audio-quality', '0',  # Meilleure qualité
+                        '-o', audio_path,
+                        '--quiet'  # Mode silencieux
+                    ]
+                    
+                    # Exécuter la commande
+                    process = subprocess.run(cmd, check=True, capture_output=True)
+                    
+                    logger.info(f"Téléchargement réussi, fichier: {audio_path}")
+                    
+                    # Vérifier que le fichier existe et a une taille correcte
+                    if not os.path.exists(audio_path) or os.path.getsize(audio_path) < 10000:
+                        raise Exception(f"Le fichier téléchargé est invalide ou trop petit: {audio_path}")
+                    
+                    # Utiliser l'API OpenAI pour transcrire
+                    from openai import OpenAI
+                    client = OpenAI()
+                    
+                    with open(audio_path, "rb") as audio_file:
+                        transcript = client.audio.transcriptions.create(
+                            model="whisper-1", 
+                            file=audio_file
+                        )
+                    
+                    transcript_text = transcript.text
+                    logger.info(f"Transcription réussie ({len(transcript_text)} caractères)")
             except Exception as whisper_error:
                 logger.error(f"Erreur lors de la transcription avec Whisper: {str(whisper_error)}")
                 content.status = "error"
