@@ -23,7 +23,7 @@ from typing import Optional, List, Dict, Any, Union
 from app.db.session import SessionLocal
 from app.models.content import Content
 from app.models.dataset import Dataset
-from app.models.finetune import FineTune
+from app.models.fine_tuning import FineTuning
 from app.services.content_processor import content_processor
 from app.services.storage import storage_service
 
@@ -421,7 +421,7 @@ def transcribe_youtube_video(self, content_id: int):
                 transcript_data = transcript.fetch()
                 transcript_text = " ".join([item['text'] for item in transcript_data])
                 logger.info(f"Transcription YouTube obtenue avec succès ({len(transcript_text)} caractères)")
-            else:
+                            else:
                 raise NoTranscriptFound(video_id)
                 
         except (TranscriptsDisabled, NoTranscriptFound) as e:
@@ -503,7 +503,7 @@ def transcribe_youtube_video(self, content_id: int):
             db.commit()
             logger.error(f"Transcription vide pour le contenu {content_id}")
             return {"status": "error", "message": "Empty transcription"}
-    
+            
     except Exception as e:
         logger.error(f"Erreur inattendue lors de la transcription YouTube: {str(e)}")
         try:
