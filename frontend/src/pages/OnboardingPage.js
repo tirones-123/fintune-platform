@@ -104,6 +104,8 @@ const steps = [
 const PRICE_PER_CHARACTER = 0.000365;
 // Quota gratuit (caractères gratuits)
 const FREE_CHARACTER_QUOTA = 10000;
+// Montant minimum pour Stripe en EUR (équivalent à environ 0,50€)
+const MIN_STRIPE_AMOUNT_EUR = 0.50;
 
 // Intervalles de référence par type d'usage (min, optimal, max)
 const USAGE_THRESHOLDS = {
@@ -554,7 +556,7 @@ const OnboardingPage = () => {
       const updatedUser = await updateUser(payload);
       console.log("Résultat de la mise à jour:", updatedUser);
       
-      // 2. Redirection vers la page de paiement immédiatement
+      // 2. Redirection vers la page de paiement immédiatement ou traitement gratuit
       if (updatedUser && updatedUser.has_completed_onboarding) {
         try {
           // Récupérer le nombre de caractères (réel ou estimé)
@@ -571,8 +573,52 @@ const OnboardingPage = () => {
               estimated_characters: c.estimated_characters
             }));
           
-          // Créer un point d'entrée spécifique pour l'onboarding qui prend en compte les caractères déjà utilisés
-          console.log("Tentative de création d'une session de paiement spécifique avec les caractères");
+          // Calculer le prix en USD
+          const billableCharacters = Math.max(0, characterCount - FREE_CHARACTER_QUOTA);
+          const priceUSD = billableCharacters * PRICE_PER_CHARACTER;
+          const estimatedPriceEUR = priceUSD * 0.93; // Conversion approximative USD -> EUR
+          
+          console.log(`Prix estimé: $${priceUSD.toFixed(2)} (~ €${estimatedPriceEUR.toFixed(2)})`);
+          
+          // Si le montant est trop faible pour Stripe (< 0,50€), le traiter gratuitement
+          if (billableCharacters === 0 || estimatedPriceEUR < MIN_STRIPE_AMOUNT_EUR) {
+            console.log(`Montant trop faible pour Stripe (${estimatedPriceEUR.toFixed(2)}€ < ${MIN_STRIPE_AMOUNT_EUR}€), traitement gratuit`);
+            
+            try {
+              // Créer dataset et lancer fine-tuning directement, sans paiement
+              // Si les vidéos YouTube sont en attente, les traiter aussi
+              const freeProcessingResult = await api.post('/api/checkout/free-onboarding-process', {
+                character_count: characterCount,
+                pending_transcriptions: pendingTranscriptions,
+                dataset_name: datasetName,
+                provider: provider,
+                model: model,
+                system_content: systemContent
+              });
+              
+              console.log("Traitement gratuit lancé avec succès:", freeProcessingResult.data);
+              
+              // Rediriger vers le dashboard avec un message de succès
+              enqueueSnackbar("Votre assistant est en cours de création! Vous serez redirigé vers le tableau de bord.", 
+                { variant: 'success', autoHideDuration: 5000 });
+              
+              // Attendre 2 secondes pour que l'utilisateur puisse lire le message
+              setTimeout(() => {
+                navigate('/dashboard');
+              }, 2000);
+              
+              return;
+            } catch (freeProcessError) {
+              console.error("Erreur lors du traitement gratuit:", freeProcessError);
+              setCompletionError(`Erreur lors du traitement: ${freeProcessError.message}`);
+              setProcessingFineTuning(false);
+              setIsCompleting(false);
+              return;
+            }
+          }
+          
+          // Si montant suffisant, créer une session de paiement Stripe
+          console.log("Montant suffisant pour Stripe, création d'une session de paiement");
           const session = await api.post('/api/checkout/create-onboarding-session', {
             character_count: characterCount,
             pending_transcriptions: pendingTranscriptions, // Ajouter les vidéos en attente de transcription
@@ -590,6 +636,7 @@ const OnboardingPage = () => {
             console.error("URL de redirection non reçue dans la session:", session.data);
             setCompletionError("Erreur de redirection: URL de paiement non disponible");
             setProcessingFineTuning(false);
+            setIsCompleting(false);
           }
         } catch (checkoutError) {
           console.error('Erreur lors de la création de la session de paiement:', checkoutError);
@@ -599,24 +646,64 @@ const OnboardingPage = () => {
               data: checkoutError.response.data,
               headers: checkoutError.response.headers
             });
+            
+            // Si l'erreur est "amount_too_small", proposer le traitement gratuit
+            if (checkoutError.response.data && 
+                checkoutError.response.data.detail && 
+                checkoutError.response.data.detail.includes("amount_too_small")) {
+              
+              try {
+                console.log("Erreur de montant trop faible détectée, passage en traitement gratuit");
+                
+                // Créer dataset et lancer fine-tuning directement, sans paiement
+                const freeProcessingResult = await api.post('/api/checkout/free-onboarding-process', {
+                  character_count: characterCount,
+                  pending_transcriptions: pendingTranscriptions,
+                  dataset_name: datasetName,
+                  provider: provider,
+                  model: model,
+                  system_content: systemContent
+                });
+                
+                console.log("Traitement gratuit lancé avec succès après erreur Stripe:", freeProcessingResult.data);
+                
+                // Rediriger vers le dashboard avec un message de succès
+                enqueueSnackbar("Votre assistant est en cours de création! Vous serez redirigé vers le tableau de bord.", 
+                  { variant: 'success', autoHideDuration: 5000 });
+                
+                // Attendre 2 secondes pour que l'utilisateur puisse lire le message
+                setTimeout(() => {
+                  navigate('/dashboard');
+                }, 2000);
+                
+                return;
+              } catch (freeProcessError) {
+                console.error("Erreur lors du traitement gratuit après erreur Stripe:", freeProcessError);
+                setCompletionError(`Erreur lors du traitement: ${freeProcessError.message}`);
+              }
+            } else {
+              setCompletionError(`Erreur lors de la création de la session de paiement: ${checkoutError.message}`);
+            }
+          } else {
+            setCompletionError(`Erreur lors de la redirection vers la page de paiement: ${checkoutError.message}`);
           }
-          setCompletionError(`Erreur lors de la redirection vers la page de paiement: ${checkoutError.message}`);
           setProcessingFineTuning(false);
+          setIsCompleting(false);
         }
       } else {
         console.error("La mise à jour de l'état d'onboarding a échoué. Données reçues:", JSON.stringify(updatedUser, null, 2));
         setCompletionError("L'état d'onboarding n'a pas pu être mis à jour correctement");
         setProcessingFineTuning(false);
+        setIsCompleting(false);
       }
     } catch (error) {
       console.error('Erreur lors de la finalisation:', error);
       setCompletionError(error.message || "Erreur lors de la finalisation");
       setProcessingFineTuning(false);
+      setIsCompleting(false);
       if (error.message === 'Not authenticated') {
         navigate('/login');
       }
-    } finally {
-      // Ne pas désactiver isCompleting car nous allons être redirigés
     }
   };
 
@@ -1973,17 +2060,24 @@ const OnboardingPage = () => {
                 >
                   Retour
                 </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  endIcon={activeStep === steps.length - 2 ? null : <ArrowForwardIcon />}
-                  startIcon={activeStep === steps.length - 2 && isCompleting ? <CircularProgress size={20} color="inherit" /> : null}
-                  sx={{ borderRadius: 3 }}
-                  disabled={uploading || creatingProject || savingApiKey || isCompleting || 
-                    (activeStep === 2 && !apiKeySaved)} // Désactiver si l'API key n'est pas validée
-                >
-                  {activeStep === steps.length - 2 ? (isCompleting ? 'Traitement en cours...' : 'Terminer') : 'Suivant'}
-                </Button>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  {completionError && activeStep === 2 && (
+                    <Typography variant="caption" color="error" sx={{ mb: 1 }}>
+                      {completionError}
+                    </Typography>
+                  )}
+                  <Button
+                    variant="contained"
+                    onClick={handleNext}
+                    endIcon={activeStep === steps.length - 2 ? null : <ArrowForwardIcon />}
+                    startIcon={activeStep === steps.length - 2 && isCompleting ? <CircularProgress size={20} color="inherit" /> : null}
+                    sx={{ borderRadius: 3 }}
+                    disabled={uploading || creatingProject || savingApiKey || isCompleting || 
+                      (activeStep === 2 && !apiKeySaved)} // Désactiver si l'API key n'est pas validée
+                  >
+                    {activeStep === steps.length - 2 ? (isCompleting ? 'Traitement en cours...' : 'Terminer') : 'Suivant'}
+                  </Button>
+                </Box>
               </Box>
             )}
           </Paper>
