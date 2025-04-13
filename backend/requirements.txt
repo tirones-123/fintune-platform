@@ -38,5 +38,5 @@ torch==2.0.1
 pydub==0.25.1
 beautifulsoup4==4.12.2
 lxml==4.9.3
-lxml_html_clean==1.0.0
+lxml_html_clean==0.4.2
 readability-lxml==0.8.1
