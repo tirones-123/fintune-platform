@@ -12,6 +12,7 @@ import importlib
 import sys
 import traceback
 from yt_dlp import YoutubeDL
+from typing import Optional
 
 # Configurer le logging
 logging.basicConfig(level=logging.INFO)
@@ -67,6 +68,7 @@ router = APIRouter()
 class VideoTranscriptRequest(BaseModel):
     video_url: str
     async_process: bool = False  # Option pour traitement asynchrone
+    content_id: Optional[int] = None  # ID du contenu dans la base de données (requis pour le mode asynchrone)
 
 
 def extract_youtube_id(url: str) -> str:
@@ -118,6 +120,7 @@ async def transcribe_with_whisper(file_path: str) -> str:
 async def get_video_transcript(payload: VideoTranscriptRequest):
     video_url = payload.video_url
     use_async = payload.async_process
+    content_id = payload.content_id
     
     logger.info(f"Tentative de transcription pour l'URL: {video_url} (mode asynchrone: {use_async})")
 
@@ -132,12 +135,19 @@ async def get_video_transcript(payload: VideoTranscriptRequest):
 
     # Si le traitement asynchrone est demandé, utiliser Celery
     if use_async:
+        # Vérifier que content_id est fourni pour le mode asynchrone
+        if not content_id:
+            raise HTTPException(
+                status_code=400, 
+                detail="L'ID de contenu (content_id) est requis pour le traitement asynchrone"
+            )
+            
         from celery_app import celery_app
         from app.tasks.content_processing import transcribe_youtube_video
         
-        # Lancer la tâche asynchrone
-        logger.info(f"Lancement de la tâche asynchrone pour {video_url}")
-        task = transcribe_youtube_video.delay(video_url)
+        # Lancer la tâche asynchrone avec content_id au lieu de l'URL
+        logger.info(f"Lancement de la tâche asynchrone pour le contenu ID: {content_id}")
+        task = transcribe_youtube_video.delay(content_id)
         
         # Retourner l'ID de tâche qui pourra être utilisé pour vérifier l'état
         return {

@@ -88,7 +88,7 @@ class StripeService:
                 # Prix par caractère: 0.000365 $ (multiplier par 100 pour les cents)
                 character_count = int(amount / (0.000365 * 100))
             
-            # Pour les paiements d'onboarding, le caractère_count inclut déjà les caractères gratuits
+            # Pour les paiements d'onboarding, le character_count inclut déjà les caractères gratuits
             # mais nous avons seulement facturé les caractères payants
             if payment_type == "onboarding_characters":
                 logger.info(f"Traitement d'un paiement d'onboarding avec {character_count} caractères")
@@ -136,6 +136,114 @@ class StripeService:
                             # Traiter chaque transcription en attente
                             for content_id in pending_transcription_ids:
                                 await self._process_pending_transcription(content_id, db)
+                
+                # ===== NOUVELLE FONCTIONNALITÉ: CRÉATION AUTOMATIQUE DU DATASET ET FINE-TUNING =====
+                # Vérifier s'il s'agit d'un paiement d'onboarding pour décider de créer le dataset
+                if payment_type == "onboarding_characters":
+                    # Récupérer les paramètres supplémentaires pour la création du dataset
+                    dataset_name = metadata.get("dataset_name", "Dataset d'onboarding")
+                    provider = metadata.get("provider", "openai")
+                    model = metadata.get("model", "gpt-3.5-turbo")
+                    system_content = metadata.get("system_content", "You are a helpful assistant.")
+                    
+                    # Récupérer l'utilisateur pour obtenir son projet par défaut créé pendant l'onboarding
+                    from app.models.user import User
+                    from app.models.project import Project
+                    from app.models.content import Content
+                    from app.models.dataset import Dataset, DatasetContent
+                    
+                    # Trouver le projet par défaut de l'utilisateur (celui créé pendant l'onboarding)
+                    user = db.query(User).filter(User.id == user_id).first()
+                    project = db.query(Project).filter(Project.user_id == user_id).order_by(Project.created_at.desc()).first()
+                    
+                    if not project:
+                        logger.error(f"Aucun projet trouvé pour l'utilisateur {user_id} lors de l'onboarding")
+                        return
+                    
+                    # Récupérer tous les contenus de l'utilisateur pour ce projet
+                    contents = db.query(Content).filter(
+                        Content.project_id == project.id,
+                        Content.status.in_(["completed", "awaiting_transcription"])  # Inclure les vidéos en attente
+                    ).all()
+                    
+                    if not contents:
+                        logger.warning(f"Aucun contenu trouvé pour le projet {project.id} de l'utilisateur {user_id}")
+                        return
+                    
+                    # Créer un nouveau dataset
+                    new_dataset = Dataset(
+                        name=dataset_name,
+                        project_id=project.id,
+                        description="Dataset généré automatiquement après l'onboarding",
+                        model=model,
+                        status="pending",
+                        system_content=system_content
+                    )
+                    db.add(new_dataset)
+                    db.commit()
+                    db.refresh(new_dataset)
+                    
+                    # Associer les contenus au dataset
+                    for content in contents:
+                        dataset_content = DatasetContent(
+                            dataset_id=new_dataset.id,
+                            content_id=content.id
+                        )
+                        db.add(dataset_content)
+                    
+                    db.commit()
+                    
+                    # Lancer la tâche de génération du dataset de manière asynchrone
+                    try:
+                        from celery_app import celery_app
+                        logger.info(f"Lancement de la tâche de génération pour le dataset {new_dataset.id}")
+                        
+                        # Envoyer la tâche à Celery
+                        celery_app.send_task(
+                            "generate_dataset", 
+                            args=[new_dataset.id], 
+                            queue='dataset_generation'
+                        )
+                        
+                        # Une fois le dataset créé, le worker déclenchera automatiquement 
+                        # le fine-tuning via le callbacks
+                        logger.info(f"Tâche de génération de dataset envoyée pour {new_dataset.id}")
+                        
+                        # Créer une entrée de fine-tuning en attente, qui sera mise à jour 
+                        # une fois le dataset généré
+                        from app.models.fine_tuning import FineTuning
+                        
+                        # Vérifier d'abord si l'utilisateur a une clé API pour le provider
+                        from app.models.api_key import ApiKey
+                        api_key = db.query(ApiKey).filter(
+                            ApiKey.user_id == user_id,
+                            ApiKey.provider == provider
+                        ).first()
+                        
+                        if api_key:
+                            # Créer le fine-tuning en attente
+                            fine_tuning = FineTuning(
+                                dataset_id=new_dataset.id,
+                                name=f"Fine-tuning de {dataset_name}",
+                                description="Fine-tuning généré automatiquement après l'onboarding",
+                                model=model,
+                                provider=provider,
+                                status="pending",  # Sera mis à jour une fois le dataset prêt
+                                hyperparameters={"n_epochs": 3}  # Valeur par défaut
+                            )
+                            db.add(fine_tuning)
+                            db.commit()
+                            
+                            logger.info(f"Fine-tuning {fine_tuning.id} créé en attente pour le dataset {new_dataset.id}")
+                        else:
+                            logger.warning(f"L'utilisateur {user_id} n'a pas de clé API pour le provider {provider}")
+                    
+                    except Exception as task_error:
+                        logger.error(f"Erreur lors du lancement de la tâche de génération: {str(task_error)}")
+                    
+            except Exception as db_error:
+                db.rollback()
+                logger.error(f"Erreur de base de données: {str(db_error)}")
             finally:
                 db.close()
         
@@ -176,8 +284,8 @@ class StripeService:
                 from celery_app import celery_app
                 from app.tasks.content_processing import transcribe_youtube_video
                 
-                # Lancer la tâche
-                task = transcribe_youtube_video.delay(content.url)
+                # Lancer la tâche avec content_id au lieu de l'URL
+                task = transcribe_youtube_video.delay(content_id)
                 
                 # Mettre à jour le contenu avec l'ID de la tâche
                 content.task_id = task.id

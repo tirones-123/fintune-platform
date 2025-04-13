@@ -6,9 +6,24 @@ import time
 import PyPDF2
 import docx
 import sys
+import tempfile
+import yt_dlp
+import whisper
+import re
+from datetime import datetime
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+import json
+import logging
+import requests
+from bs4 import BeautifulSoup
+from readability import Document
+from celery import shared_task, Task
+from typing import Optional, List, Dict, Any, Union
 
 from app.db.session import SessionLocal
 from app.models.content import Content
+from app.models.dataset import Dataset
+from app.models.finetune import FineTune
 from app.services.content_processor import content_processor
 from app.services.storage import storage_service
 
@@ -336,252 +351,192 @@ def process_content(content_id: int):
     finally:
         db.close()
 
-@shared_task(name="transcribe_youtube_video", time_limit=18000, soft_time_limit=16200)
-def transcribe_youtube_video(video_url: str):
+@shared_task(name="transcribe_youtube_video", bind=True, max_retries=3)
+def transcribe_youtube_video(self, content_id: int):
     """
-    Tâche asynchrone pour transcrire une vidéo YouTube.
-    Cette tâche peut être exécutée en dehors du contexte d'une requête HTTP,
-    ce qui permet des délais de traitement plus longs.
+    Transcrit une vidéo YouTube en utilisant d'abord l'API YouTube Transcript,
+    et si cela échoue, utilise Whisper pour transcrire l'audio de la vidéo.
     
     Args:
-        video_url: URL de la vidéo YouTube à transcrire
+        content_id (int): L'ID du contenu dans la base de données
+    """
+    logger.info(f"Début de la transcription de la vidéo YouTube (ID: {content_id})")
+    
+    # Create a new database session
+    db = SessionLocal()
+    
+    try:
+        # Get the content from the database
+        content = db.query(Content).filter(Content.id == content_id).first()
+        
+        if not content:
+            logger.error(f"Contenu {content_id} non trouvé dans la base de données")
+            return {"status": "error", "message": "Content not found"}
+        
+        # Mettre à jour le statut
+        content.status = "processing"
+        db.commit()
+        
+        # Extraire l'ID de la vidéo YouTube
+        youtube_url = content.url
+        video_id = extract_youtube_video_id(youtube_url)
+        if not video_id:
+            logger.error(f"Impossible d'extraire l'ID de la vidéo YouTube à partir de l'URL: {youtube_url}")
+            content.status = "error"
+            content.error_message = "URL YouTube invalide"
+            db.commit()
+            return {"status": "error", "message": "Invalid YouTube URL"}
+        
+        logger.info(f"ID vidéo YouTube extrait: {video_id}")
+        transcript_text = ""
+        
+        # Tentative d'obtention des sous-titres via l'API YouTube
+        try:
+            logger.info(f"Tentative d'obtention des sous-titres via l'API YouTube pour {video_id}")
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            transcript = None
+            
+            # Essayer d'abord de trouver les sous-titres en français
+            try:
+                transcript = transcript_list.find_transcript(['fr']) 
+                logger.info("Sous-titres français trouvés")
+            except:
+                # Si pas de sous-titres en français, essayer l'anglais
+                try:
+                    transcript = transcript_list.find_transcript(['en'])
+                    logger.info("Sous-titres anglais trouvés")
+                except:
+                    # Sinon prendre un transcript généré automatiquement
+                    try:
+                        transcript = transcript_list.find_generated_transcript()
+                        logger.info("Sous-titres générés automatiquement trouvés")
+                    except:
+                        # Utiliser les transcripts disponibles
+                        available_transcripts = list(transcript_list._transcripts.values())
+                        if available_transcripts:
+                            transcript = available_transcripts[0]
+                            logger.info(f"Utilisation des sous-titres disponibles en {transcript.language}")
+            
+            if transcript:
+                transcript_data = transcript.fetch()
+                transcript_text = " ".join([item['text'] for item in transcript_data])
+                logger.info(f"Transcription YouTube obtenue avec succès ({len(transcript_text)} caractères)")
+            else:
+                raise NoTranscriptFound(video_id)
+                
+        except (TranscriptsDisabled, NoTranscriptFound) as e:
+            logger.info(f"Pas de sous-titres disponibles via l'API YouTube: {str(e)}. Fallback vers Whisper.")
+            # Fallback vers Whisper
+            try:
+                # Télécharger l'audio de la vidéo avec yt-dlp
+                logger.info(f"Téléchargement de l'audio pour la vidéo {video_id}")
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    audio_path = os.path.join(temp_dir, f"{video_id}.mp3")
+                    
+                    ydl_opts = {
+                        'format': 'bestaudio/best',
+                        'outtmpl': audio_path,
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }],
+                        'quiet': True
+                    }
+                    
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
+                    
+                    logger.info(f"Audio téléchargé, transcription avec Whisper...")
+                    
+                    # Charger le modèle Whisper (utiliser 'base' pour un bon équilibre entre précision et vitesse)
+                    model = whisper.load_model("base")
+                    
+                    # Transcription avec Whisper
+                    result = model.transcribe(audio_path)
+                    transcript_text = result["text"]
+                    
+                    logger.info(f"Transcription Whisper terminée ({len(transcript_text)} caractères)")
+            
+            except Exception as whisper_error:
+                logger.error(f"Erreur lors de la transcription avec Whisper: {str(whisper_error)}")
+                content.status = "error"
+                content.error_message = f"Échec de transcription: {str(whisper_error)}"
+                db.commit()
+                return {"status": "error", "message": f"Whisper transcription failed: {str(whisper_error)}"}
+        
+        except Exception as e:
+            logger.error(f"Erreur lors de la transcription YouTube: {str(e)}")
+            content.status = "error"
+            content.error_message = f"Erreur de transcription: {str(e)}"
+            db.commit()
+            return {"status": "error", "message": f"Transcription error: {str(e)}"}
+        
+        # Enregistrer la transcription
+        if transcript_text:
+            content.content = transcript_text
+            content.status = "completed"
+            content.processed_at = datetime.utcnow()
+            
+            # Compter les caractères
+            character_count = len(transcript_text)
+            content.character_count = character_count
+            
+            # Mettre à jour les métadonnées
+            if not content.content_metadata:
+                content.content_metadata = {}
+            content.content_metadata["character_count"] = character_count
+            content.content_metadata["is_exact_count"] = True
+            content.content_metadata["transcription_source"] = "youtube_api" if "API YouTube" in logger.records[-10:] else "whisper"
+            
+            db.commit()
+            logger.info(f"Transcription terminée et enregistrée pour le contenu {content_id} ({character_count} caractères)")
+            return {
+                "status": "success", 
+                "content_id": content_id, 
+                "character_count": character_count,
+                "transcript": transcript_text
+            }
+        else:
+            content.status = "error"
+            content.error_message = "Transcription vide"
+            db.commit()
+            logger.error(f"Transcription vide pour le contenu {content_id}")
+            return {"status": "error", "message": "Empty transcription"}
+    
+    except Exception as e:
+        logger.error(f"Erreur inattendue lors de la transcription YouTube: {str(e)}")
+        try:
+            # Get the content from the database if not already retrieved
+            if 'content' not in locals():
+                content = db.query(Content).filter(Content.id == content_id).first()
+            
+            if content:
+                content.status = "error"
+                content.error_message = f"Erreur inattendue: {str(e)}"
+                db.commit()
+        except Exception as db_error:
+            logger.error(f"Impossible de mettre à jour le statut du contenu après erreur: {str(db_error)}")
+        
+        return {"status": "error", "message": f"Unexpected error: {str(e)}"}
+    
+    finally:
+        db.close()
+
+def extract_youtube_video_id(url: str) -> Optional[str]:
+    """
+    Extrait l'ID d'une vidéo YouTube à partir de différents formats d'URL.
+    
+    Args:
+        url (str): L'URL de la vidéo YouTube
         
     Returns:
-        Dict avec la transcription et des détails sur la méthode utilisée
+        Optional[str]: L'ID de la vidéo YouTube ou None si l'extraction échoue
     """
-    from app.api.endpoints.video_transcription import extract_youtube_id, transcribe_with_whisper
-    import asyncio
-    import tempfile
-    import os
-    import requests
-    import time
-    from youtube_transcript_api import YouTubeTranscriptApi
+    # Regex pour extraire l'ID de vidéo YouTube
+    pattern = r'(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})'
+    match = re.search(pattern, url)
     
-    logger.info(f"Démarrage de la transcription asynchrone pour l'URL: {video_url}")
-    
-    transcript_error = None
-    file_path = None
-    
-    # Première tentative : extraire les sous-titres existants
-    try:
-        video_id = extract_youtube_id(video_url)
-        logger.info(f"ID de la vidéo YouTube: {video_id}")
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['fr', 'en'])
-        transcript = "\n".join(item["text"] for item in transcript_list)
-        logger.info(f"Sous-titres extraits avec succès via youtube_transcript_api")
-        return {"transcript": transcript, "source": "youtube_transcript_api", "status": "success"}
-    except Exception as e:
-        # Journaliser l'erreur et passer à la méthode de fallback
-        error_msg = str(e)
-        transcript_error = error_msg
-        logger.warning(f"Extraction des sous-titres échouée: {error_msg}")
-
-    # Fallback : utiliser RapidAPI pour télécharger l'audio et le transcrire avec Whisper
-    logger.info(f"Tentative de téléchargement avec RapidAPI et transcription avec Whisper")
-    temp_dir = tempfile.gettempdir()
-    
-    try:
-        # Configuration RapidAPI
-        rapidapi_key = "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8"
-        rapidapi_host = "youtube-mp36.p.rapidapi.com"
-        rapidapi_url = f"https://{rapidapi_host}/dl"
-        
-        # Configuration de la requête RapidAPI
-        headers = {
-            "X-RapidAPI-Key": rapidapi_key,
-            "X-RapidAPI-Host": rapidapi_host
-        }
-        
-        params = {
-            "id": video_id
-        }
-        
-        logger.info(f"Envoi de la requête à {rapidapi_host} pour l'ID vidéo: {video_id}")
-        
-        # Paramètres pour la gestion des retries
-        max_retries = 5
-        retry_delay = 5  # secondes
-        mp3_url = None
-        
-        # Première requête pour initialiser la conversion
-        response = requests.get(rapidapi_url, headers=headers, params=params, timeout=20)
-        
-        if response.status_code != 200:
-            logger.error(f"Erreur RapidAPI: HTTP {response.status_code}")
-            logger.error(f"Détails: {response.text}")
-            return {"status": "error", "error": f"Erreur lors de l'appel à RapidAPI: {response.text}"}
-        
-        # Parse la réponse initiale
-        response_data = response.json()
-        logger.info(f"Réponse initiale: {response_data}")
-        
-        # Si le statut est "ok" et un lien est fourni immédiatement
-        if "status" in response_data and response_data["status"] == "ok" and response_data.get("link"):
-            mp3_url = response_data["link"]
-            logger.info(f"Lien de téléchargement obtenu immédiatement: {mp3_url}")
-        
-        # Si la vidéo est en cours de traitement, attendre et réessayer
-        elif "status" in response_data and response_data["status"] == "processing":
-            logger.info("La vidéo est en cours de traitement par RapidAPI, attente...")
-            
-            for retry in range(max_retries):
-                logger.info(f"Attente de {retry_delay} secondes avant nouvel essai ({retry+1}/{max_retries})...")
-                time.sleep(retry_delay)
-                
-                # Réessayer la requête
-                retry_response = requests.get(rapidapi_url, headers=headers, params=params, timeout=20)
-                
-                if retry_response.status_code == 200:
-                    retry_data = retry_response.json()
-                    logger.info(f"Réponse après attente ({retry+1}): {retry_data}")
-                    
-                    # Vérifier si la conversion est terminée
-                    if retry_data.get("status") == "ok" and retry_data.get("link"):
-                        mp3_url = retry_data["link"]
-                        logger.info(f"Lien de téléchargement obtenu après {retry+1} tentatives: {mp3_url}")
-                        break
-                    elif retry_data.get("status") == "fail":
-                        logger.error(f"Échec de conversion: {retry_data}")
-                        return {"status": "error", "error": f"Échec de conversion: {retry_data.get('msg', 'Erreur inconnue')}"}
-                else:
-                    logger.error(f"Erreur lors de la tentative {retry+1}: HTTP {retry_response.status_code}")
-            
-            # Si aucun URL n'a été obtenu après toutes les tentatives
-            if not mp3_url:
-                logger.error("Impossible d'obtenir le lien de téléchargement après plusieurs tentatives")
-                return {"status": "error", "error": "Délai d'attente dépassé pour la conversion YouTube en MP3"}
-        else:
-            # Format de réponse non reconnu
-            logger.error(f"Format de réponse non reconnu: {response_data}")
-            return {"status": "error", "error": f"Format de réponse non reconnu: {response_data}"}
-        
-        # Si nous sommes arrivés ici, nous avons un MP3 URL valide
-        if not mp3_url:
-            return {"status": "error", "error": "Aucun lien de téléchargement n'a été obtenu"}
-        
-        # Télécharger le fichier MP3
-        file_path = os.path.join(temp_dir, f"{video_id}.mp3")
-        
-        logger.info(f"Téléchargement du MP3 depuis: {mp3_url}")
-        
-        # Ajouter des en-têtes spécifiques pour le téléchargement
-        download_headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
-            "Referer": "https://youtube-mp36.p.rapidapi.com/"
-        }
-        
-        # Essayer de télécharger le fichier avec plusieurs tentatives
-        download_success = False
-        max_download_retries = 3
-        
-        for download_attempt in range(max_download_retries):
-            try:
-                logger.info(f"Tentative de téléchargement {download_attempt+1}/{max_download_retries}")
-                
-                # Si ce n'est pas la première tentative et que nous avons des erreurs, 
-                # refaire l'appel API pour obtenir un nouveau lien
-                if download_attempt > 0:
-                    logger.info("Obtention d'un nouveau lien de téléchargement...")
-                    try:
-                        new_link_response = requests.get(rapidapi_url, headers=headers, params=params, timeout=20)
-                        if new_link_response.status_code == 200:
-                            new_link_data = new_link_response.json()
-                            if new_link_data.get("status") == "ok" and new_link_data.get("link"):
-                                mp3_url = new_link_data["link"]
-                                logger.info(f"Nouveau lien obtenu: {mp3_url}")
-                            else:
-                                logger.warning(f"Impossible d'obtenir un nouveau lien valide: {new_link_data}")
-                        else:
-                            logger.warning(f"Erreur lors de l'obtention d'un nouveau lien: HTTP {new_link_response.status_code}")
-                    except Exception as e:
-                        logger.warning(f"Erreur lors de la tentative d'obtention d'un nouveau lien: {str(e)}")
-                
-                # Faire une requête HEAD d'abord pour vérifier si l'URL est accessible
-                logger.info("Vérification de l'accessibilité du lien...")
-                head_response = requests.head(mp3_url, headers=download_headers, timeout=10)
-                
-                if head_response.status_code != 200:
-                    logger.warning(f"Le lien n'est pas accessible: HTTP {head_response.status_code}")
-                    continue
-                
-                # Si la vérification HEAD est bonne, télécharger le fichier
-                mp3_response = requests.get(mp3_url, headers=download_headers, stream=True, timeout=60)
-                
-                if mp3_response.status_code == 200:
-                    with open(file_path, 'wb') as f:
-                        for chunk in mp3_response.iter_content(chunk_size=8192):
-                            if chunk:
-                                f.write(chunk)
-                    
-                    # Vérifier que le fichier a bien été téléchargé
-                    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                        logger.info(f"Fichier MP3 téléchargé avec succès: {file_path} ({os.path.getsize(file_path)} octets)")
-                        download_success = True
-                        break
-                    else:
-                        logger.warning("Le fichier téléchargé est vide ou n'existe pas")
-                else:
-                    logger.warning(f"Erreur lors du téléchargement: HTTP {mp3_response.status_code}")
-            
-            except Exception as download_error:
-                logger.warning(f"Erreur pendant le téléchargement: {str(download_error)}")
-                # Continuer avec la prochaine tentative
-        
-        # Vérifier si le téléchargement a réussi après toutes les tentatives
-        if not download_success:
-            error_msg = "Impossible de télécharger le fichier MP3 après plusieurs tentatives"
-            logger.error(error_msg)
-            return {
-                "status": "error", 
-                "error": error_msg,
-                "details": "Le lien généré par RapidAPI n'est pas accessible ou a expiré"
-            }
-        
-        # Transcription avec Whisper
-        try:
-            file_size = os.path.getsize(file_path)
-            logger.info(f"Taille du fichier audio: {file_size} octets")
-            
-            # Transcription avec la fonction adaptative
-            logger.info("Début de la transcription...")
-            # Créer une boucle asyncio pour appeler la fonction async
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            transcript = loop.run_until_complete(transcribe_with_whisper(file_path))
-            loop.close()
-            
-            if not transcript:
-                return {"status": "error", "error": "La transcription n'a pas produit de résultat"}
-                
-            logger.info("Transcription audio terminée avec succès")
-            
-            return {"transcript": transcript, "source": "whisper", "status": "success"}
-            
-        except Exception as e:
-            logger.error(f"Erreur lors de la transcription audio: {str(e)}")
-            import traceback
-            logger.error(f"Détails de l'erreur: {traceback.format_exc()}")
-            
-            return {
-                "status": "error",
-                "error": "Erreur lors de la transcription audio",
-                "details": str(e)
-            }
-            
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f"Erreur lors du téléchargement via RapidAPI: {error_msg}")
-        return {
-            "status": "error",
-            "error": "Erreur lors du téléchargement de l'audio via RapidAPI",
-            "details": error_msg,
-            "transcript_error": transcript_error
-        }
-    finally:
-        # Nettoyer le fichier temporaire si existant
-        if file_path and os.path.exists(file_path):
-            logger.info(f"Suppression du fichier audio temporaire: {file_path}")
-            os.remove(file_path) 
+    if match:
+        return match.group(1)
+    return None 

@@ -27,6 +27,10 @@ const steps = [
   - `uploadedYouTube`, `uploadedWeb`: Sources de contenu supplémentaires (lignes ~132-133)
   - `datasetName`, `createdDataset`: Données du dataset (lignes ~119-123)
   - `provider`, `model`, `apiKey`: Configuration du fine-tuning (lignes ~126-129)
+- **Nouveauté**: Utilisation de refs React pour le suivi fiable des données:
+  - `youtubeVideosRef`: Référence pour les vidéos YouTube (synchronisation immédiate)
+  - `webSitesRef`: Référence pour les sites web scrapés
+  - `totalCharCountRef`: Référence pour le compteur total de caractères
 
 ## Dépendances et services
 
@@ -66,6 +70,10 @@ import PageTransition from '../components/common/PageTransition';
   - `FileUpload`: Upload direct de fichiers (PDF, DOC, TXT, etc.) (lignes ~1400-1430)
   - `handleAddYouTubeUrl()`: Ajout de vidéos YouTube pour transcription (lignes ~850-950)
   - `handleScrapeUrl()`: Extraction de contenu de sites web (lignes ~960-1010)
+- **Amélioration**: Synchronisation robuste du comptage des caractères:
+  - Utilisation de références React pour un suivi fiable des données (`youtubeVideosRef`, `webSitesRef`)
+  - Mises à jour immédiates du compteur total via `totalCharCountRef`
+  - Résolution des problèmes de mise à jour asynchrone des états React
 - Le système estime et/ou compte les caractères avec `estimateCharacterCount()` (lignes ~710-750) et `calculateActualCharacterCount()` (lignes ~760-820)
 - Une barre de progression visuelle indique la qualité du dataset en fonction du cas d'utilisation (lignes ~1300-1370)
 
@@ -78,8 +86,13 @@ import PageTransition from '../components/common/PageTransition';
 
 ### 5. Finalisation
 - Mise à jour du statut utilisateur (`has_completed_onboarding: true`) (lignes ~580-610)
-- Création d'une session de paiement avec les informations du dataset (lignes ~620-650)
-- Redirection vers la page de paiement (lignes ~640-650)
+- **Processus amélioré**: Gestion intelligente du traitement gratuit ou payant:
+  - Si le montant est insuffisant pour Stripe (< 0,50€), traitement gratuit automatique
+  - Le backend détermine si le traitement est gratuit (≤ 10 000 caractères)
+  - Détection intelligente du type de traitement en fonction de l'URL retournée
+  - Notification utilisateur claire sur le traitement gratuit
+- Utilisation unifiée de l'endpoint `/api/checkout/create-onboarding-session` (lignes ~620-650)
+- Redirection vers la page de paiement ou directement vers le dashboard (lignes ~640-650)
 
 ## Calculs et logique métier
 
@@ -110,6 +123,8 @@ const USAGE_THRESHOLDS = {
 const PRICE_PER_CHARACTER = 0.000365;
 // Quota gratuit (caractères gratuits)
 const FREE_CHARACTER_QUOTA = 10000;
+// Montant minimum pour Stripe en EUR (équivalent à environ 0,50€)
+const MIN_STRIPE_AMOUNT_EUR = 0.50;
 
 // Méthode de calcul (ligne ~695-700)
 const getEstimatedCost = (characterCount) => {
@@ -134,17 +149,23 @@ const stepVariants = {
 - Vérifications null/undefined pour `minCharactersRecommended` et autres valeurs (lignes ~1330-1370)
 - Gestion des erreurs API avec feedback via `enqueueSnackbar` (présent tout au long du code)
 - Utilisation de try/catch dans toutes les opérations asynchrones (ex: lignes ~175-213)
+- **Amélioration**: Affichage des erreurs sous le bouton "Terminer" pour une meilleure visibilité
+- **Amélioration**: Messages d'erreur spécifiques pour les problèmes courants (ex: montant Stripe trop faible)
 
 ## Points d'attention pour la maintenance
 1. Les vidéos YouTube nécessitent une transcription post-paiement (lignes ~850-950)
 2. Le processus de création du dataset et fine-tuning peut continuer en arrière-plan (lignes ~590-620)
 3. Plusieurs timers et intervalles sont utilisés pour vérifier les statuts (lignes ~500-530, ~760-820)
 4. Les estimations de caractères varient selon les types de contenu (lignes ~710-750)
+5. **Nouveauté**: L'utilisation de refs React (`youtubeVideosRef`, `webSitesRef`) est essentielle pour
+   maintenir une synchronisation fiable des compteurs de caractères
 
 ## Flux de navigation
 - Progression linéaire à travers les étapes via `handleNext()` (lignes ~650-680) et `handleBack()` (lignes ~690-700)
 - Certaines étapes requièrent des validations (ex: présence de contenu, clé API valide) (lignes ~650-680)
-- Redirection finale vers la page de paiement après mise à jour du profil utilisateur (lignes ~640-650)
+- **Amélioration**: Redirection intelligente en fonction du type de traitement (gratuit ou payant)
+  - Redirection vers Stripe pour les paiements standards
+  - Redirection directe vers le dashboard pour les traitements gratuits
 
 ## Composants connexes
 - `FileUpload`: Gestion de l'upload des fichiers (importé ligne ~58, utilisé lignes ~1400-1430)
@@ -153,7 +174,7 @@ const stepVariants = {
 
 ## API et endpoints utilisés
 - `/api/helpers/generate-system-content`: Génération du system prompt (lignes ~185-190)
-- `/api/checkout/create-onboarding-session`: Création session de paiement (lignes ~620-635)
+- `/api/checkout/create-onboarding-session`: Création session de paiement ou traitement gratuit (lignes ~620-635)
 - Services divers: `projectService`, `contentService`, `datasetService`, etc. (importés lignes ~48-55)
 - API externe: YouTube Media Downloader via RapidAPI (lignes ~860-875)
 
@@ -161,3 +182,5 @@ const stepVariants = {
 - Rafraîchissement conditionnel des données (actuellement des timers fixes) (lignes ~760-820)
 - Gestion plus granulaire des erreurs API
 - Optimisation des estimations de caractères pour plus de précision 
+- Support de fallback amélioré en cas d'échec de l'API RapidAPI
+- Amélioration de l'interface utilisateur pour les caractères en dessous du seuil de facturation 

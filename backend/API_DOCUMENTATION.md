@@ -1380,3 +1380,48 @@ Le processus de fine-tuning suit les étapes suivantes :
    - Utiliser l'endpoint GET `/fine-tunings/{fine_tuning_id}` pour suivre l'avancement
    - Le champ `progress` indique le pourcentage de progression (0-100)
    - Le champ `status` indique l'état actuel du job 
+
+### Transcription de vidéos YouTube
+
+```
+POST /helpers/video-transcript
+```
+
+Extrait la transcription d'une vidéo YouTube en utilisant soit les sous-titres intégrés, soit en transcrivant l'audio avec Whisper.
+
+**Corps de la requête**
+```json
+{
+  "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "async_process": false,
+  "content_id": null
+}
+```
+
+**Paramètres:**
+- `video_url`: URL de la vidéo YouTube (obligatoire)
+- `async_process`: Booléen indiquant si le traitement doit être asynchrone (facultatif, par défaut: false)
+- `content_id`: ID du contenu dans la base de données (obligatoire si async_process=true)
+
+**Réponse (mode synchrone)**
+```json
+{
+  "transcript": "Texte de la transcription...",
+  "source": "youtube_transcript_api"
+}
+```
+
+**Réponse (mode asynchrone)**
+```json
+{
+  "task_id": "a1b2c3d4e5f6",
+  "status": "processing",
+  "message": "La transcription a été lancée en arrière-plan",
+  "check_endpoint": "/api/helpers/transcript-status/a1b2c3d4e5f6"
+}
+```
+
+**Notes:**
+1. En mode synchrone, la réponse est immédiate mais peut être plus lente pour les longues vidéos
+2. En mode asynchrone, la transcription est traitée en arrière-plan, et il faut vérifier l'état avec l'endpoint `/helpers/transcript-status/{task_id}`
+3. Le mode asynchrone nécessite maintenant un `content_id` valide, qui fait référence à un contenu existant dans la base de données 
