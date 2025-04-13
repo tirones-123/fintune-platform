@@ -1522,57 +1522,6 @@ const OnboardingPage = () => {
                 </Box>
               )}
               
-              {/* Module pour scraping d'URL Web */}
-              <Box sx={{ mb: 3, p: 2, border: '1px dashed', borderColor: 'grey.300', borderRadius: 2 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Ajouter une URL Web
-                </Typography>
-                <TextField
-                  label="URL du site"
-                  value={scrapeUrl}
-                  onChange={(e) => setScrapeUrl(e.target.value)}
-                  fullWidth
-                  placeholder="Entrez l'URL du site"
-                  InputProps={{ startAdornment: <InsertLinkIcon sx={{ mr: 1 }} /> }}
-                  error={!!scrapeError}
-                  helperText={scrapeError}
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleScrapeUrl}
-                  disabled={scrapeLoading || !scrapeUrl.trim()}
-                  sx={{ mt: 2 }}
-                >
-                  {scrapeLoading ? <CircularProgress size={20} /> : "Ajouter le site"}
-                </Button>
-              </Box>
-
-              {uploadedWeb.length > 0 && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Sites Web ajoutés :</Typography>
-                  {uploadedWeb.map(item => (
-                    <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
-                      <InsertLinkIcon sx={{ mr: 2 }} />
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body1">{item.name}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {item.character_count?.toLocaleString() || '0'} caractères
-                        </Typography>
-                      </Box>
-                      <IconButton onClick={() => {
-                        setUploadedWeb(prev => prev.filter(v => v.id !== item.id));
-                        // Si le site web a des caractères comptés, les soustraire du total
-                        if (item.character_count) {
-                          setActualCharacterCount(prev => Math.max(0, prev - item.character_count));
-                        }
-                      }}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  ))}
-                </Box>
-              )}
-              
               {uploadError && (
                 <Alert severity="error" sx={{ mt: 2 }}>
                   {uploadError}
