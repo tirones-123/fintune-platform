@@ -808,8 +808,14 @@ const OnboardingPage = () => {
     calculateActualCharacterCount();
   }, []);  // On le fait seulement au chargement initial, puis les rafraîchissements sont gérés dans la fonction
 
-  // Rafraîchir régulièrement le comptage des caractères
+  // Rafraîchir régulièrement le comptage des caractères et ajouter une dépendance explicite
+  // pour les objets uploadedYouTube et uploadedWeb
   useEffect(() => {
+    console.log("Effet déclenché - État des uploads actualisé");
+    
+    // Recalcul forcé à chaque changement des tableaux uploadedYouTube et uploadedWeb
+    calculateActualCharacterCount();
+    
     // Vérifier s'il y a des fichiers ou URLs en cours de traitement
     const hasProcessingContent = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(
       content => content.status !== 'completed' && content.status !== 'error' && content.status !== 'awaiting_transcription'
@@ -822,7 +828,7 @@ const OnboardingPage = () => {
       
       return () => clearInterval(intervalId);
     }
-  }, [uploadedFiles, uploadedUrls, uploadedYouTube, uploadedWeb]);
+  }, [uploadedFiles, uploadedUrls, uploadedYouTube, uploadedWeb]);  // Dépendance explicite sur tous les tableaux
 
   // Calculer le niveau de qualité basé sur le nombre de caractères et le type d'usage
   const getQualityLevel = (characterCount, usageType = 'other') => {
@@ -968,18 +974,27 @@ const OnboardingPage = () => {
         status: 'awaiting_transcription'
       };
       
-      // Ajouter à la liste des vidéos YouTube
-      setUploadedYouTube(prev => [...prev, newYouTubeVideo]);
+      // Mettre à jour directement l'état avec le nouveau tableau complet
+      // au lieu d'utiliser un updater de fonction pour garantir que l'état est immédiatement à jour
+      const updatedYouTubeVideos = [...uploadedYouTube, newYouTubeVideo];
+      setUploadedYouTube(updatedYouTubeVideos);
       
       // Réinitialiser le champ
       setYoutubeUrl('');
       enqueueSnackbar(`URL YouTube ajoutée: "${videoTitle}" (~${estimatedCharacters} caractères basés sur ${durationMinutes} min)`, { variant: 'success' });
       
-      // Attendre que l'état soit mis à jour avant de recalculer
+      // Forcer une mise à jour immédiate du comptage total
+      // et définir un délai plus long pour s'assurer que l'état est bien mis à jour
+      console.log("Vidéos YouTube après ajout:", updatedYouTubeVideos);
+      
+      // Mettre à jour directement actualCharacterCount pour refléter immédiatement le changement dans l'UI
+      setActualCharacterCount(prevCount => prevCount + estimatedCharacters);
+      
+      // Recalculer après un délai plus long pour s'assurer que tout est synchronisé
       setTimeout(() => {
-        // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
+        console.log("Recalcul forcé après l'ajout d'une vidéo YouTube");
         calculateActualCharacterCount();
-      }, 300);
+      }, 500);
       
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
@@ -1011,17 +1026,21 @@ const OnboardingPage = () => {
           status: 'awaiting_transcription'
         };
         
-        // Ajouter à la liste des vidéos YouTube
-        setUploadedYouTube(prev => [...prev, newYouTubeVideo]);
+        // Mettre à jour directement l'état avec le nouveau tableau complet
+        const updatedYouTubeVideos = [...uploadedYouTube, newYouTubeVideo];
+        setUploadedYouTube(updatedYouTubeVideos);
         
         setYoutubeUrl('');
         enqueueSnackbar(`URL YouTube ajoutée avec durée estimée (~${estimatedCharacters} caractères)`, { variant: 'success' });
         
-        // Attendre que l'état soit mis à jour avant de recalculer
+        // Mettre à jour directement actualCharacterCount pour refléter immédiatement le changement dans l'UI
+        setActualCharacterCount(prevCount => prevCount + estimatedCharacters);
+        
+        // Recalculer après un délai plus long
         setTimeout(() => {
-          // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
+          console.log("Recalcul forcé après l'ajout d'une vidéo YouTube (fallback)");
           calculateActualCharacterCount();
-        }, 300);
+        }, 500);
         
       } catch (fallbackError) {
         console.error('Erreur lors du fallback:', fallbackError);
@@ -1032,7 +1051,7 @@ const OnboardingPage = () => {
     }
   };
 
-  // Fonction pour scraper une URL Web - effectuée immédiatement
+  // Fonction pour scraper une URL Web - effectuée immédiatement - mise à jour similaire
   const handleScrapeUrl = async () => {
     if (!scrapeUrl.trim() || scrapeLoading) return;
     if (!createdProject) {
@@ -1072,18 +1091,22 @@ const OnboardingPage = () => {
         status: 'completed'
       };
       
-      // Ajouter à la liste des URLs web
-      setUploadedWeb(prev => [...prev, newWebSite]);
+      // Mettre à jour directement l'état avec le nouveau tableau complet
+      const updatedWebSites = [...uploadedWeb, newWebSite];
+      setUploadedWeb(updatedWebSites);
       
       // Réinitialiser le champ
       setScrapeUrl('');
       enqueueSnackbar(`URL Web ajoutée (${characterCount} caractères)`, { variant: 'success' });
       
-      // Attendre que l'état soit mis à jour avant de recalculer
+      // Mettre à jour directement actualCharacterCount pour refléter immédiatement le changement dans l'UI
+      setActualCharacterCount(prevCount => prevCount + characterCount);
+      
+      // Recalculer après un délai plus long
       setTimeout(() => {
-        // Forcer le recalcul du total des caractères et mettre à jour la barre de progression
+        console.log("Recalcul forcé après l'ajout d'un site web");
         calculateActualCharacterCount();
-      }, 300);
+      }, 500);
       
     } catch (error) {
       console.error('Erreur lors du scraping de l\'URL Web:', error);
