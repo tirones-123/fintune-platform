@@ -69,6 +69,7 @@ import FileUpload from '../components/common/FileUpload';
 import HelpIcon from '@mui/icons-material/Help';
 import UploadStatusCard from '../components/content/UploadStatusCard';
 import { toast } from 'react-hot-toast';
+import axios from 'axios';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -915,19 +916,20 @@ const OnboardingPage = () => {
         return;
       }
 
-      // Durée estimée fixe: 10 minutes (600 secondes)
-      const estimatedDuration = 600;
+      // Récupérer les métadonnées de la vidéo pour obtenir la durée réelle
+      const metadataResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/helpers/youtube-metadata?video_id=${videoId}`);
+      const { duration_seconds, title } = metadataResponse.data;
       
-      // Estimer le nombre de caractères (environ 150 caractères par minute de vidéo)
-      const estimatedCharacters = Math.round((estimatedDuration / 60) * 150); // ~1500 caractères pour 10 minutes
+      // Calculer le nombre de caractères en fonction de la durée réelle (150 caractères par minute)
+      const estimatedCharacters = Math.round((duration_seconds / 60) * 150);
       
       // Créer l'objet au format attendu par le backend
       const urlContent = {
         project_id: createdProject.id,
         url: youtubeUrl,
-        name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
-        type: 'youtube', // Utiliser 'type' au lieu de 'content_type'
-        description: `Vidéo YouTube en attente de transcription. Durée estimée: 10 minutes.`
+        name: title || `Vidéo YouTube - ${new Date().toLocaleString()}`,
+        type: 'youtube',
+        description: `Vidéo YouTube en attente de transcription. Durée: ${Math.round(duration_seconds / 60)} minutes.`
       };
       
       // Ajouter l'URL avec le format attendu par le backend
@@ -940,19 +942,15 @@ const OnboardingPage = () => {
       setUploadedYouTube(prev => [...prev, {
         ...response,
         url: youtubeUrl,
-        source: 'Estimation (10 min)',
+        source: `Durée: ${Math.round(duration_seconds / 60)} min`,
         estimated_characters: estimatedCharacters,
-        status: 'awaiting_transcription',
-        id: response.id || Date.now()
+        status: 'awaiting_transcription'
       }]);
-      
-      // Réinitialiser le champ
+
       setYoutubeUrl('');
-      enqueueSnackbar(`URL YouTube ajoutée (~${estimatedCharacters} caractères estimés), la transcription complète sera lancée après le paiement`, { variant: 'success' });
-      
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
-      setYoutubeUploadError(error.message || 'Erreur lors de l\'ajout de l\'URL YouTube');
+      console.error("Erreur lors de l'ajout de l'URL YouTube:", error);
+      setYoutubeUploadError(`Erreur lors de l'ajout de l'URL YouTube: ${error.message || JSON.stringify(error)}`);
     } finally {
       setYoutubeUploading(false);
     }
