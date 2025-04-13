@@ -149,7 +149,9 @@ Récupère les informations du profil de l'utilisateur courant.
   "name": "John Doe",
   "is_active": true,
   "has_completed_onboarding": true,
-  "created_at": "2023-03-10T12:00:00"
+  "created_at": "2023-03-10T12:00:00",
+  "free_characters_remaining": 5000,
+  "total_characters_used": 5000
 }
 ```
 
@@ -615,6 +617,7 @@ Récupère tous les datasets de l'utilisateur courant.
     "model": "gpt-3.5-turbo",
     "status": "ready",
     "pairs_count": 100,
+    "character_count": 25000,
     "size": 50000,
     "created_at": "2023-03-10T12:00:00",
     "updated_at": "2023-03-10T12:30:00"
@@ -1210,92 +1213,152 @@ L'endpoint `/checkout/webhook` gère les événements Stripe suivants:
 
 Pour chaque événement, le système vérifie l'authenticité à l'aide de la signature Stripe et met à jour la base de données en conséquence.
 
-## Fonctionnalités auxiliaires (Helpers)
+## Gestion des caractères
 
-### Transcription de vidéos
+La plateforme utilise désormais un système de facturation basé sur le nombre de caractères pour les datasets et le fine-tuning. Chaque utilisateur dispose initialement d'un quota gratuit.
+
+### Obtenir les statistiques d'utilisation
 
 ```
-POST /helpers/video-transcript
+GET /characters/usage-stats
 ```
 
-Extrait et transcrit le contenu audio d'une vidéo YouTube ou d'autres sources vidéo.
+Récupère les statistiques d'utilisation des caractères pour l'utilisateur courant.
+
+**Réponse**
+```json
+{
+  "free_characters_remaining": 5000,
+  "total_characters_used": 5000,
+  "total_characters_purchased": 1000
+}
+```
+
+### Obtenir les informations de tarification
+
+```
+GET /characters/pricing
+```
+
+Récupère les informations de tarification des caractères.
+
+**Réponse**
+```json
+{
+  "price_per_character": 0.000365,
+  "free_characters": 10000
+}
+```
+
+### Récupérer l'historique des transactions
+
+```
+GET /characters/transactions
+```
+
+Récupère l'historique des transactions de caractères pour l'utilisateur courant.
+
+**Paramètres de requête**
+- `limit`: Nombre maximum de transactions à retourner (défaut: 100)
+- `offset`: Nombre de transactions à sauter pour la pagination (défaut: 0)
+
+**Réponse**
+```json
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "amount": 1000,
+    "description": "Achat de 1000 caractères",
+    "dataset_id": null,
+    "payment_id": 123,
+    "price_per_character": 0.000365,
+    "total_price": 0.365,
+    "created_at": "2023-03-10T12:00:00"
+  },
+  {
+    "id": 2,
+    "user_id": 1,
+    "amount": -500,
+    "description": "Utilisation de 500 caractères pour le dataset 'Mon dataset'",
+    "dataset_id": 5,
+    "payment_id": null,
+    "price_per_character": 0.000365,
+    "total_price": 0.1825,
+    "created_at": "2023-03-15T14:30:00"
+  }
+]
+```
+
+**Note**: Les montants positifs représentent des achats, les montants négatifs représentent des utilisations.
+
+### Acheter des crédits de caractères
+
+```
+POST /characters/purchase
+```
+
+Permet d'acheter des crédits de caractères supplémentaires.
 
 **Corps de la requête**
 ```json
 {
-  "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  "character_count": 10000
 }
 ```
 
 **Réponse**
 ```json
 {
-  "status": "success",
-  "transcript": "Texte complet de la transcription de la vidéo...",
-  "source": "youtube_transcript_api" // ou "whisper" si la transcription a été générée par Whisper
+  "id": 3,
+  "user_id": 1,
+  "amount": 10000,
+  "description": "Achat en attente de 10000 caractères",
+  "dataset_id": null,
+  "payment_id": 124,
+  "price_per_character": 0.000365,
+  "total_price": 3.65,
+  "checkout_url": "https://checkout.stripe.com/pay/cs_test_..."
 }
 ```
 
-**Codes d'erreur possibles**
-- `400 Bad Request`: URL invalide ou non supportée
-- `404 Not Found`: Vidéo non trouvée
-- `422 Unprocessable Entity`: Impossible d'extraire les sous-titres ou l'audio
-- `500 Internal Server Error`: Erreur lors du traitement de la demande
-
-### Scraping Web
+### Évaluation de la qualité des données
 
 ```
-POST /helpers/scrape-web
+POST /characters/quality-assessment
 ```
 
-Extrait le contenu textuel principal (titre et paragraphes) d'une page web.
+Évalue la qualité des données en fonction du nombre de caractères et du type d'usage.
 
 **Corps de la requête**
 ```json
 {
-  "url": "https://example.com/article"
+  "character_count": 5000,
+  "usage_type": "customer_support"
 }
 ```
 
 **Réponse**
 ```json
 {
-  "status": "success",
-  "title": "Titre de la page",
-  "content": "Contenu textuel extrait de la page web...",
-  "paragraphs": [
-    "Premier paragraphe...",
-    "Deuxième paragraphe...",
-    "..."
+  "character_count": 5000,
+  "usage_type": "customer_support",
+  "score": 0.37,
+  "suggestions": [
+    "Votre jeu de données pourrait être amélioré. Ajoutez plus de contenu pour de meilleurs résultats.",
+    "Incluez des exemples plus variés pour couvrir différents aspects de votre domaine."
   ]
 }
 ```
 
-**Codes d'erreur possibles**
-- `400 Bad Request`: URL invalide
-- `404 Not Found`: Page web non trouvée
-- `422 Unprocessable Entity`: Impossible d'extraire le contenu
-- `500 Internal Server Error`: Erreur lors du traitement de la demande
-
-## Formats de données
-
-### Format JSONL pour OpenAI
-
-```jsonl
-{"messages": [{"role": "system", "content": "Vous êtes un assistant qui génère du contenu dans le style de l'auteur"}, {"role": "user", "content": "Question"}, {"role": "assistant", "content": "Réponse"}]}
-```
-
-### Format JSONL pour Anthropic
-
-```jsonl
-{"messages": [{"role": "user", "content": "Question"}, {"role": "assistant", "content": "Réponse"}]}
-```
-
-### Format JSONL pour Mistral
-
-```jsonl
-{"messages": [{"role": "user", "content": "Question"}, {"role": "assistant", "content": "Réponse"}]} 
-```
+**Types d'usage supportés**
+- `customer_support`: Support client
+- `sales`: Ventes
+- `marketing`: Marketing
+- `technical`: Documentation technique
+- `legal`: Textes juridiques
+- `medical`: Textes médicaux
+- `generic`: Usage général
 
 ## Workflow de Fine-tuning
 

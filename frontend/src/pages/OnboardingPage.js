@@ -916,20 +916,17 @@ const OnboardingPage = () => {
         return;
       }
 
-      // Récupérer les métadonnées de la vidéo pour obtenir la durée réelle
-      const metadataResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/helpers/youtube-metadata?video_id=${videoId}`);
-      const { duration_seconds, title } = metadataResponse.data;
-      
-      // Calculer le nombre de caractères en fonction de la durée réelle (150 caractères par minute)
-      const estimatedCharacters = Math.round((duration_seconds / 60) * 150);
+      // Utiliser une durée estimée fixe (10 minutes) car l'API YouTube a des problèmes
+      const estimatedDuration = 600; // 10 minutes en secondes
+      const estimatedCharacters = Math.round((estimatedDuration / 60) * 150); // ~1500 caractères pour 10 minutes
       
       // Créer l'objet au format attendu par le backend
       const urlContent = {
         project_id: createdProject.id,
         url: youtubeUrl,
-        name: title || `Vidéo YouTube - ${new Date().toLocaleString()}`,
+        name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
         type: 'youtube',
-        description: `Vidéo YouTube en attente de transcription. Durée: ${Math.round(duration_seconds / 60)} minutes.`
+        description: `Vidéo YouTube en attente de transcription. Durée estimée: 10 minutes.`
       };
       
       // Ajouter l'URL avec le format attendu par le backend
@@ -942,7 +939,7 @@ const OnboardingPage = () => {
       setUploadedYouTube(prev => [...prev, {
         ...response,
         url: youtubeUrl,
-        source: `Durée: ${Math.round(duration_seconds / 60)} min`,
+        source: 'Estimation (10 min)',
         estimated_characters: estimatedCharacters,
         status: 'awaiting_transcription'
       }]);
