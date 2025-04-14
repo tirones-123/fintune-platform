@@ -354,16 +354,16 @@ def process_content(content_id: int):
 @shared_task(name="transcribe_youtube_video", bind=True, max_retries=3)
 def transcribe_youtube_video(self, content_id: int):
     """
-    Transcrit une vidéo YouTube en utilisant d'abord l'API YouTube Transcript,
-    et si cela échoue, utilise Whisper pour transcrire l'audio de la vidéo.
+    Transcrit une vidéo YouTube en utilisant UNIQUEMENT le service RapidAPI Speech-to-Text.
     
     Args:
         content_id (int): L'ID du contenu dans la base de données
     """
-    logger.info(f"Début de la transcription de la vidéo YouTube (ID: {content_id})")
+    logger.info(f"Début de la transcription de la vidéo YouTube (ID: {content_id}) via RapidAPI Speech-to-Text")
     
     # Create a new database session
     db = SessionLocal()
+    transcript_text = "" # Initialiser la variable
     
     try:
         # Get the content from the database
@@ -377,112 +377,69 @@ def transcribe_youtube_video(self, content_id: int):
         content.status = "processing"
         db.commit()
         
-        # Extraire l'ID de la vidéo YouTube
+        # Extraire l'URL YouTube
         youtube_url = content.url
-        video_id = extract_youtube_video_id(youtube_url)
-        if not video_id:
-            logger.error(f"Impossible d'extraire l'ID de la vidéo YouTube à partir de l'URL: {youtube_url}")
-            content.status = "error"
-            content.error_message = "URL YouTube invalide"
-            db.commit()
-            return {"status": "error", "message": "Invalid YouTube URL"}
-        
-        logger.info(f"ID vidéo YouTube extrait: {video_id}")
-        transcript_text = ""
-        
-        # Tentative d'obtention des sous-titres via l'API YouTube
+        if not youtube_url:
+             logger.error(f"L'URL YouTube est manquante pour le contenu {content_id}")
+             content.status = "error"
+             content.error_message = "URL YouTube manquante"
+             db.commit()
+             return {"status": "error", "message": "Missing YouTube URL"}
+
+        # --- Utilisation directe de RapidAPI Speech-to-Text ---
         try:
-            logger.info(f"Tentative d'obtention des sous-titres via l'API YouTube pour {video_id}")
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-            transcript = None
+            import requests
             
-            # Essayer d'abord de trouver les sous-titres en français
-            try:
-                transcript = transcript_list.find_transcript(['fr']) 
-                logger.info("Sous-titres français trouvés")
-            except:
-                # Si pas de sous-titres en français, essayer l'anglais
-                try:
-                    transcript = transcript_list.find_transcript(['en'])
-                    logger.info("Sous-titres anglais trouvés")
-                except:
-                    # Sinon prendre un transcript généré automatiquement
-                    try:
-                        transcript = transcript_list.find_generated_transcript()
-                        logger.info("Sous-titres générés automatiquement trouvés")
-                    except:
-                        # Utiliser les transcripts disponibles
-                        available_transcripts = list(transcript_list._transcripts.values())
-                        if available_transcripts:
-                            transcript = available_transcripts[0]
-                            logger.info(f"Utilisation des sous-titres disponibles en {transcript.language}")
+            rapidapi_url = "https://speech-to-text-ai.p.rapidapi.com/transcribe"
+            # Utiliser la langue détectée ou fallback vers 'fr' ou 'en' si nécessaire
+            querystring = {"url": youtube_url, "lang": "fr", "task": "transcribe"} 
+            headers = {
+                "x-rapidapi-key": "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8",
+                "x-rapidapi-host": "speech-to-text-ai.p.rapidapi.com",
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
             
-            if transcript:
-                transcript_data = transcript.fetch()
-                transcript_text = " ".join([item['text'] for item in transcript_data])
-                logger.info(f"Transcription YouTube obtenue avec succès ({len(transcript_text)} caractères)")
+            logger.info(f"Appel à RapidAPI Speech-to-Text pour {youtube_url}")
+            # Augmenter le timeout pour les vidéos longues
+            response = requests.post(rapidapi_url, headers=headers, params=querystring, data={}, timeout=180) 
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "text" in data and data["text"]:
+                    transcript_text = data["text"]
+                    logger.info(f"Transcription réussie via RapidAPI: {len(transcript_text)} caractères")
+                    if not content.content_metadata:
+                        content.content_metadata = {}
+                    content.content_metadata["transcription_source"] = "rapidapi_speech_to_text"
+                    
+                    # Essayer d'extraire la durée des chunks si disponible
+                    if "chunks" in data and data["chunks"]:
+                        total_duration = sum(chunk.get("duration", 0) for chunk in data["chunks"])
+                        if total_duration > 0:
+                             content.content_metadata["duration_seconds"] = total_duration
+                             logger.info(f"Durée extraite des chunks: {total_duration} secondes")
+                else:
+                    logger.warning(f"RapidAPI n'a pas retourné de transcription: {data}")
+                    raise Exception("RapidAPI n'a pas retourné de transcription.")
             else:
-                raise NoTranscriptFound(video_id)
+                logger.error(f"Erreur HTTP lors de l'appel RapidAPI: {response.status_code} - {response.text}")
+                raise Exception(f"Échec de l'appel RapidAPI: {response.status_code}")
                 
-        except (TranscriptsDisabled, NoTranscriptFound) as e:
-            logger.info(f"Pas de sous-titres disponibles via l'API YouTube: {str(e)}. Fallback vers Whisper.")
-            try:
-                logger.info(f"Téléchargement de la vidéo YouTube {video_id} avec yt-dlp via subprocess")
-                
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    # Chemin du fichier à créer
-                    audio_path = os.path.join(temp_dir, f"{video_id}.mp3")
-                    
-                    # Commande yt-dlp exécutée directement
-                    import subprocess
-                    
-                    # Construire la commande avec tous les paramètres nécessaires
-                    cmd = [
-                        'yt-dlp',
-                        f'https://www.youtube.com/watch?v={video_id}',
-                        '--extract-audio',
-                        '--audio-format', 'mp3',
-                        '--audio-quality', '0',  # Meilleure qualité
-                        '-o', audio_path,
-                        '--quiet'  # Mode silencieux
-                    ]
-                    
-                    # Exécuter la commande
-                    process = subprocess.run(cmd, check=True, capture_output=True)
-                    
-                    logger.info(f"Téléchargement réussi, fichier: {audio_path}")
-                    
-                    # Vérifier que le fichier existe et a une taille correcte
-                    if not os.path.exists(audio_path) or os.path.getsize(audio_path) < 10000:
-                        raise Exception(f"Le fichier téléchargé est invalide ou trop petit: {audio_path}")
-                    
-                    # Utiliser l'API OpenAI pour transcrire
-                    from openai import OpenAI
-                    client = OpenAI()
-                    
-                    with open(audio_path, "rb") as audio_file:
-                        transcript = client.audio.transcriptions.create(
-                            model="whisper-1", 
-                            file=audio_file
-                        )
-                    
-                    transcript_text = transcript.text
-                    logger.info(f"Transcription réussie ({len(transcript_text)} caractères)")
-            except Exception as whisper_error:
-                logger.error(f"Erreur lors de la transcription avec Whisper: {str(whisper_error)}")
-                content.status = "error"
-                content.error_message = f"Échec de transcription: {str(whisper_error)}"
-                db.commit()
-                return {"status": "error", "message": f"Whisper transcription failed: {str(whisper_error)}"}
-        
-        except Exception as e:
-            logger.error(f"Erreur lors de la transcription YouTube: {str(e)}")
+        except Exception as rapidapi_error:
+            logger.error(f"Échec de la transcription via RapidAPI: {str(rapidapi_error)}")
             content.status = "error"
-            content.error_message = f"Erreur de transcription: {str(e)}"
+            content.error_message = f"Échec de transcription RapidAPI: {str(rapidapi_error)}"
             db.commit()
-            return {"status": "error", "message": f"Transcription error: {str(e)}"}
-        
-        # Enregistrer la transcription
+            # Essayer de relancer la tâche si possible (jusqu'à max_retries)
+            try:
+                self.retry(exc=rapidapi_error, countdown=60) # Réessayer après 60 secondes
+            except self.MaxRetriesExceededError:
+                 logger.error(f"Nombre maximal de tentatives atteint pour la tâche {self.request.id}")
+                 return {"status": "error", "message": f"Échec final de la transcription RapidAPI après plusieurs tentatives: {str(rapidapi_error)}"}
+
+        # --- Fin Utilisation directe de RapidAPI ---
+
+        # Enregistrer la transcription si obtenue
         if transcript_text:
             content.content = transcript_text
             content.status = "completed"
@@ -492,12 +449,11 @@ def transcribe_youtube_video(self, content_id: int):
             character_count = len(transcript_text)
             content.character_count = character_count
             
-            # Mettre à jour les métadonnées
+            # Mettre à jour les métadonnées (la source est définie dans le bloc try/except)
             if not content.content_metadata:
                 content.content_metadata = {}
             content.content_metadata["character_count"] = character_count
-            content.content_metadata["is_exact_count"] = True
-            content.content_metadata["transcription_source"] = "youtube_api" if "API YouTube" in logger.records[-10:] else "whisper"
+            content.content_metadata["is_exact_count"] = True 
             
             db.commit()
             logger.info(f"Transcription terminée et enregistrée pour le contenu {content_id} ({character_count} caractères)")
@@ -505,23 +461,24 @@ def transcribe_youtube_video(self, content_id: int):
                 "status": "success", 
                 "content_id": content_id, 
                 "character_count": character_count,
-                "transcript": transcript_text
+                "transcript": transcript_text,
+                "source": content.content_metadata.get("transcription_source", "unknown")
             }
         else:
-            content.status = "error"
-            content.error_message = "Transcription vide"
-            db.commit()
-            logger.error(f"Transcription vide pour le contenu {content_id}")
-            return {"status": "error", "message": "Empty transcription"}
+            # Ce bloc est atteint si une erreur non récupérable s'est produite
+            # ou si la tâche a dépassé le nombre max de tentatives
+            if content.status != "error": # Éviter de réécrire si déjà marqué comme erreur
+                content.status = "error"
+                content.error_message = "Transcription vide après tentative RapidAPI"
+                db.commit()
+            logger.error(f"Transcription vide pour le contenu {content_id} après tentative RapidAPI")
+            return {"status": "error", "message": "Empty transcription after RapidAPI attempt"}
             
     except Exception as e:
         logger.error(f"Erreur inattendue lors de la transcription YouTube: {str(e)}")
+        # Assurer la mise à jour du statut en cas d'erreur imprévue
         try:
-            # Get the content from the database if not already retrieved
-            if 'content' not in locals():
-                content = db.query(Content).filter(Content.id == content_id).first()
-            
-            if content:
+            if 'content' in locals() and content: # Vérifier si 'content' est défini
                 content.status = "error"
                 content.error_message = f"Erreur inattendue: {str(e)}"
                 db.commit()
@@ -533,20 +490,6 @@ def transcribe_youtube_video(self, content_id: int):
     finally:
         db.close()
 
-def extract_youtube_video_id(url: str) -> Optional[str]:
-    """
-    Extrait l'ID d'une vidéo YouTube à partir de différents formats d'URL.
-    
-    Args:
-        url (str): L'URL de la vidéo YouTube
-        
-    Returns:
-        Optional[str]: L'ID de la vidéo YouTube ou None si l'extraction échoue
-    """
-    # Regex pour extraire l'ID de vidéo YouTube
-    pattern = r'(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})'
-    match = re.search(pattern, url)
-    
-    if match:
-        return match.group(1)
-    return None 
+# --- NE PAS OUBLIER DE SUPPRIMER LA FONCTION extract_youtube_video_id SI ELLE N'EST PLUS UTILISÉE AILLEURS ---
+# def extract_youtube_video_id(url: str) -> Optional[str]:
+#     ... 
