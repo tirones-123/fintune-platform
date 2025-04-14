@@ -25,6 +25,10 @@ logger = logging.getLogger(__name__)
 class OnboardingCheckoutRequest(BaseModel):
     character_count: int
     pending_transcriptions: list = []  # Liste des vidéos YouTube en attente de transcription
+    dataset_name: str
+    system_content: str
+    provider: str
+    model: str
 
 @router.post("/create-onboarding-session")
 async def create_onboarding_session(
@@ -62,12 +66,124 @@ async def create_onboarding_session(
                 if success:
                     logger.info(f"Ajout gratuit de {character_count} caractères réussi")
                     
-                    # Si des transcriptions sont en attente, enregistrer leur liste dans la base de données
-                    # pour un traitement après redirection
+                    # Si des transcriptions sont en attente, démarrer le traitement
                     if pending_transcriptions:
-                        logger.info(f"Enregistrement de {len(pending_transcriptions)} transcriptions en attente pour traitement ultérieur")
-                        # TODO: Ajouter le code pour enregistrer les transcriptions en attente
+                        logger.info(f"Traitement de {len(pending_transcriptions)} transcriptions en attente")
                         
+                        # Traiter chaque transcription
+                        for trans in pending_transcriptions:
+                            content_id = trans.get("id")
+                            if content_id:
+                                # Récupérer le contenu
+                                from app.models.content import Content
+                                content = db_session.query(Content).filter(Content.id == content_id).first()
+                                
+                                if content and content.type == 'youtube' and content.url:
+                                    # Mettre à jour le statut
+                                    content.status = 'processing'
+                                    db_session.commit()
+                                    
+                                    # Lancer la tâche de transcription
+                                    try:
+                                        from celery_app import celery_app
+                                        from app.tasks.content_processing import transcribe_youtube_video
+                                        
+                                        # Lancer la tâche avec content_id
+                                        task = transcribe_youtube_video.delay(content_id)
+                                        content.task_id = task.id
+                                        db_session.commit()
+                                        
+                                        logger.info(f"Tâche de transcription lancée pour le contenu {content_id}, ID de tâche: {task.id}")
+                                    except Exception as task_error:
+                                        logger.error(f"Erreur lors du lancement de la transcription: {str(task_error)}")
+                    
+                    # Récupérer les paramètres pour le dataset/fine-tuning depuis la requête ou utiliser des valeurs par défaut
+                    from app.schemas.onboarding import OnboardingDatasetInfo
+                    from app.models.project import Project
+                    from app.models.content import Content
+                    from app.models.dataset import Dataset, DatasetContent
+                    from app.models.fine_tuning import FineTuning
+                    from app.models.api_key import ApiKey
+                    
+                    # Extraire les données supplémentaires de l'onboarding si disponibles
+                    dataset_name = request.dataset_name if hasattr(request, 'dataset_name') else "Dataset d'onboarding"
+                    system_content = request.system_content if hasattr(request, 'system_content') else "You are a helpful assistant."
+                    provider = request.provider if hasattr(request, 'provider') else "openai"
+                    model = request.model if hasattr(request, 'model') else "gpt-3.5-turbo"
+                    
+                    # Trouver le projet par défaut de l'utilisateur
+                    project = db_session.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
+                    
+                    if project:
+                        # Récupérer tous les contenus de l'utilisateur pour ce projet
+                        contents = db_session.query(Content).filter(
+                            Content.project_id == project.id,
+                            Content.status.in_(["completed", "processing"])
+                        ).all()
+                        
+                        if contents:
+                            # Créer un nouveau dataset
+                            new_dataset = Dataset(
+                                name=dataset_name,
+                                project_id=project.id,
+                                description="Dataset généré automatiquement après l'onboarding gratuit",
+                                model=model,
+                                status="pending",
+                                system_content=system_content
+                            )
+                            db_session.add(new_dataset)
+                            db_session.commit()
+                            db_session.refresh(new_dataset)
+                            
+                            # Associer les contenus au dataset
+                            for content in contents:
+                                dataset_content = DatasetContent(
+                                    dataset_id=new_dataset.id,
+                                    content_id=content.id
+                                )
+                                db_session.add(dataset_content)
+                            
+                            db_session.commit()
+                            
+                            # Lancer la tâche de génération du dataset
+                            try:
+                                from celery_app import celery_app
+                                logger.info(f"Lancement de la tâche de génération pour le dataset {new_dataset.id}")
+                                
+                                # Envoyer la tâche à Celery
+                                celery_app.send_task(
+                                    "generate_dataset", 
+                                    args=[new_dataset.id], 
+                                    queue='dataset_generation'
+                                )
+                                
+                                # Vérifier si l'utilisateur a une clé API pour le provider
+                                api_key = db_session.query(ApiKey).filter(
+                                    ApiKey.user_id == current_user.id,
+                                    ApiKey.provider == provider
+                                ).first()
+                                
+                                if api_key:
+                                    # Créer le fine-tuning en attente
+                                    fine_tuning = FineTuning(
+                                        dataset_id=new_dataset.id,
+                                        name=f"Fine-tuning de {dataset_name}",
+                                        description="Fine-tuning généré automatiquement après l'onboarding gratuit",
+                                        model=model,
+                                        provider=provider,
+                                        status="pending",
+                                        hyperparameters={"n_epochs": 3}
+                                    )
+                                    db_session.add(fine_tuning)
+                                    db_session.commit()
+                                    
+                                    logger.info(f"Fine-tuning {fine_tuning.id} créé en attente pour le dataset {new_dataset.id}")
+                                else:
+                                    logger.warning(f"L'utilisateur {current_user.id} n'a pas de clé API pour le provider {provider}")
+                            
+                            except Exception as task_error:
+                                logger.error(f"Erreur lors du lancement de la tâche de génération: {str(task_error)}")
+                    
                     return {"checkout_url": f"{settings.FRONTEND_URL}/dashboard?free_characters=true"}
                 else:
                     logger.error(f"Échec de l'ajout gratuit de {character_count} caractères")
