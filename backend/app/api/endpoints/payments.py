@@ -98,7 +98,6 @@ async def create_onboarding_session(
                                         logger.error(f"Erreur lors du lancement de la transcription: {str(task_error)}")
                     
                     # Récupérer les paramètres pour le dataset/fine-tuning depuis la requête ou utiliser des valeurs par défaut
-                    from app.schemas.onboarding import OnboardingDatasetInfo
                     from app.models.project import Project
                     from app.models.content import Content
                     from app.models.dataset import Dataset, DatasetContent
