@@ -28,6 +28,9 @@ import TuneIcon from '@mui/icons-material/Tune';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import ForumIcon from '@mui/icons-material/Forum';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 
 // Animation variants
 const containerVariants = {
@@ -1300,6 +1303,259 @@ const AdvantageCard = ({ advantage, index, controls }) => {
   );
 }
 
+// --- Nouvelle Section: Exemples de Chat Animés --- //
+
+// Composant pour un seul message dans le chat
+const AnimatedChatMessage = ({ message, isUser, avatar, animationDelay }) => {
+  const theme = useTheme();
+  const controls = useAnimation();
+  const text = message;
+
+  const textVariants = {
+    hidden: { opacity: 0 },
+    visible: (i) => ({
+      opacity: 1,
+      transition: {
+        delay: i * 0.03, // Délai entre chaque caractère pour l'effet de frappe
+      },
+    }),
+  };
+
+  useEffect(() => {
+    const sequence = async () => {
+      // Attend le délai initial avant de commencer l'animation
+      await new Promise(res => setTimeout(res, animationDelay * 1000));
+      // Démarre l'animation de frappe
+      controls.start("visible");
+    };
+    sequence();
+  }, [controls, animationDelay]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10, x: isUser ? 10 : -10 }}
+      animate={{ opacity: 1, y: 0, x: 0 }}
+      transition={{ duration: 0.5, delay: animationDelay - 0.2 > 0 ? animationDelay - 0.2 : 0 }}
+    >
+      <Box sx={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: isUser ? 'row-reverse' : 'row' }}>
+          {avatar && (
+            <Avatar sx={{ bgcolor: isUser ? theme.palette.primary.main : theme.palette.secondary.main, width: 32, height: 32, m: 1 }}>
+              {avatar}
+            </Avatar>
+          )}
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: '16px',
+              borderTopLeftRadius: isUser ? '16px' : '4px',
+              borderTopRightRadius: isUser ? '4px' : '16px',
+              maxWidth: '80%',
+              background: isUser
+                ? `linear-gradient(135deg, ${theme.palette.primary.main}, ${alpha(theme.palette.primary.dark, 0.8)})`
+                : alpha(theme.palette.background.paper, 0.6),
+              color: isUser ? 'white' : 'text.primary',
+              backdropFilter: !isUser ? 'blur(10px)' : 'none',
+              border: !isUser ? `1px solid ${alpha(theme.palette.divider, 0.2)}` : 'none',
+              boxShadow: isUser
+                ? `0 4px 15px ${alpha(theme.palette.primary.main, 0.3)}`
+                : `0 4px 15px ${alpha(theme.palette.common.black, 0.2)}`,
+            }}
+          >
+            <Typography variant="body1" component="div" sx={{ wordBreak: 'break-word' }}>
+              {text.split("").map((char, index) => (
+                <motion.span key={index} custom={index} initial="hidden" animate={controls} variants={textVariants}>
+                  {char}
+                </motion.span>
+              ))}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    </motion.div>
+  );
+};
+
+// Composant pour un exemple de conversation complet
+const ChatExample = ({ title, Icon, messages, initialDelay }) => {
+  const theme = useTheme();
+  let cumulativeDelay = initialDelay;
+
+  return (
+    <Card
+      sx={{
+        p: 3,
+        borderRadius: '20px',
+        height: '100%',
+        background: alpha(theme.palette.background.default, 0.5),
+        backdropFilter: 'blur(12px)',
+        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.3)}`,
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, color: 'primary.light' }}>
+        <Icon sx={{ mr: 1.5 }} />
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>{title}</Typography>
+      </Box>
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 }}>
+        {messages.map((msg, index) => {
+          const delay = cumulativeDelay;
+          // Estimer le temps d'animation basé sur la longueur du message + délai fixe
+          cumulativeDelay += (msg.text.length * 0.03) + (msg.isUser ? 1.0 : 1.5); // Plus de délai après réponse IA
+          return (
+            <AnimatedChatMessage
+              key={index}
+              message={msg.text}
+              isUser={msg.isUser}
+              avatar={msg.avatar}
+              animationDelay={delay}
+            />
+          );
+        })}
+      </Box>
+    </Card>
+  );
+};
+
+const ChatExamplesSection = () => {
+  const theme = useTheme();
+  const controls = useAnimation();
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  useEffect(() => {
+    if (inView) controls.start('visible');
+  }, [controls, inView]);
+
+  // Exemples de conversations
+  const chatExamples = [
+    {
+      title: "Michael Scott Bot (The Office)",
+      Icon: TheaterComedyIcon,
+      initialDelay: 0.5,
+      messages: [
+        { text: "Que penses-tu de ma présentation PowerPoint ?", isUser: true, avatar: 'U' },
+        { text: "C'est... comment dire... C'est comme si PowerPoint avait rencontré un épisode de \"Threat Level Midnight\". Intense. Inoubliable. That's what she said!", isUser: false, avatar: 'MS' },
+        { text: "Ok... et pour le team building de vendredi ?", isUser: true, avatar: 'U' },
+        { text: "J'ai une idée GÉNIALE. On va tous... survivre dans la forêt ! Enfin, le parc d'à côté. Ça va créer des liens. Ou des procès. On verra !", isUser: false, avatar: 'MS' }
+      ]
+    },
+    {
+      title: "Support Technique Personnalisé",
+      Icon: ContactSupportIcon,
+      initialDelay: 1.0, // Démarrer un peu après le premier
+      messages: [
+        { text: "Bonjour, j'ai un problème avec l'API, erreur 403.", isUser: true, avatar: 'D' },
+        { text: "Bonjour ! L'erreur 403 indique un souci d'authentification. Vérifiez que votre clé API est correcte et bien incluse dans l'en-tête 'Authorization: Bearer VOTRE_CLÉ'.", isUser: false, avatar: 'IA' },
+        { text: "Ah oui, j'avais oublié le \"Bearer\". Merci !", isUser: true, avatar: 'D' },
+        { text: "Pas de problème ! N'hésitez pas si vous avez d'autres questions. L'important est de toujours vérifier les détails, comme Pam le fait avec mes notes de frais !", isUser: false, avatar: 'IA' } // Ton personnalisé
+      ]
+    },
+    {
+      title: "Assistant E-Learning Interactif",
+      Icon: SchoolIcon,
+      initialDelay: 1.5, // Démarrer encore un peu après
+      messages: [
+        { text: "Peux-tu m'expliquer le concept de fine-tuning simplement ?", isUser: true, avatar: 'A' },
+        { text: "Bien sûr ! Imagine un chef cuistot (le modèle de base). Le fine-tuning, c'est lui apprendre VOS recettes secrètes (vos données) pour qu'il cuisine exactement comme VOUS le voulez !", isUser: false, avatar: '🎓' },
+        { text: "Super analogie ! Et comment ça marche ici ?", isUser: true, avatar: 'A' },
+        { text: "Vous donnez les ingrédients (PDF, vidéos...), on apprend au chef (OpenAI/Claude) vos recettes (format Q/R), et hop ! Vous avez votre propre chef étoilé spécialisé !", isUser: false, avatar: '🎓' }
+      ]
+    }
+  ];
+
+  return (
+    <Box
+      ref={ref}
+      sx={{
+        py: { xs: 12, md: 20 },
+        position: 'relative',
+        overflow: 'hidden',
+        background: `linear-gradient(rgba(10, 4, 60, 0.9), rgba(10, 4, 60, 0.99)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="30" fill="none" stroke="${alpha('#00d4ff', 0.05)}" stroke-width="1"/><circle cx="50" cy="50" r="45" fill="none" stroke="${alpha('#bf00ff', 0.05)}" stroke-width="1"/></svg>')`,
+        backgroundSize: 'auto, 200px 200px',
+      }}
+    >
+       <Container maxWidth="lg">
+         {/* Titres */}
+         <Box sx={{ mb: 12, textAlign: 'center' }}>
+           <motion.div
+             initial={{ opacity: 0, y: 20 }}
+             animate={controls}
+             variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0 } } }}
+           >
+             <Typography
+               variant="h6"
+               component="p"
+               sx={{ color: "#a18cd1", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #a18cd1' }}
+             >
+               Voyez la Magie en Action
+             </Typography>
+           </motion.div>
+           <motion.div
+             initial={{ opacity: 0, y: 20 }}
+             animate={controls}
+             variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.1 } } }}
+           >
+             <Typography
+               variant="h2"
+               component="h2"
+               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #a18cd1, #fbc2eb)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(161, 140, 209, 0.4)' }}
+             >
+               L'IA Fine-Tunée en Conversation
+             </Typography>
+           </motion.div>
+            <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={controls}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.2 } } }}
+          >
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
+            >
+              Découvrez comment votre IA personnalisée peut répondre, aider ou même divertir, en adoptant le ton et les connaissances que VOUS lui avez donnés.
+            </Typography>
+          </motion.div>
+         </Box>
+
+         {/* Grille des exemples de chat */}
+         <Grid container spacing={4} alignItems="stretch">
+           {chatExamples.map((example, index) => (
+             <Grid item xs={12} md={4} key={index}>
+                <motion.div
+                  initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                  animate={controls}
+                  variants={{
+                    visible: {
+                      opacity: 1,
+                      y: 0,
+                      scale: 1,
+                      transition: {
+                        duration: 0.8,
+                        delay: 0.3 + index * 0.2,
+                        ease: [0.16, 1, 0.3, 1],
+                      },
+                    },
+                  }}
+                  style={{ height: '100%' }}
+                 >
+                   <ChatExample
+                    title={example.title}
+                    Icon={example.Icon}
+                    messages={example.messages}
+                    initialDelay={example.initialDelay}
+                   />
+               </motion.div>
+             </Grid>
+           ))}
+         </Grid>
+       </Container>
+    </Box>
+  );
+};
+
 // --- Nouvelle Section: Appel à l'Action Final (CTA) --- //
 const FinalCTASection = () => {
   const theme = useTheme();
@@ -1472,6 +1728,7 @@ const LandingPage = () => {
         <ProcessSection />
         <UseCasesSection />
         <AdvantagesSection />
+        <ChatExamplesSection />
         <FinalCTASection />
         <Footer />
       </Box>

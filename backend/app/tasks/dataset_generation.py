@@ -14,6 +14,8 @@ from app.services.ai_providers import get_ai_provider
 from app.services.content_processor import content_processor
 from app.services.character_service import character_service
 from app.core.config import settings
+from app.models.fine_tuning import FineTuning
+from app.models.api_key import ApiKey
 
 # Taille de chunk fixée à 3000 caractères (non configurable)
 CHUNK_SIZE = 3000
@@ -40,13 +42,20 @@ def generate_dataset(self, dataset_id: int):
     db = SessionLocal()
     
     try:
+        # --- MODIFIÉ: Déplacer les imports ici ---
+        from app.models.dataset import Dataset, DatasetContent, DatasetPair
+        from app.models.content import Content
+        from app.models.fine_tuning import FineTuning
+        from app.models.api_key import ApiKey
+        # --- FIN MODIFICATION ---
+
         dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
         
         if not dataset:
             logger.error(f"Dataset {dataset_id} not found")
             return {"status": "error", "message": "Dataset not found"}
         
-        # --- NOUVEAU: Vérifier si les contenus sont prêts ---
+        # --- NOUVEAU: Vérifier si les contenus sont prêts (maintenant DatasetContent est défini) ---
         dataset_contents_assoc = db.query(DatasetContent).filter(DatasetContent.dataset_id == dataset_id).all()
         content_ids = [dc.content_id for dc in dataset_contents_assoc]
         contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
@@ -74,26 +83,6 @@ def generate_dataset(self, dataset_id: int):
             dataset.status = "processing"
             dataset.started_at = datetime.now().isoformat()
             db.commit()
-        
-        # Important: Import the model classes here to avoid circular imports
-        from app.models.dataset import DatasetContent
-        from app.models.content import Content
-        
-        # Get all contents associated with this dataset
-        dataset_contents = db.query(DatasetContent).filter(DatasetContent.dataset_id == dataset_id).all()
-        
-        if not dataset_contents:
-            logger.error(f"No contents found for dataset {dataset_id}")
-            dataset.status = "error"
-            dataset.error_message = "No contents found for dataset"
-            db.commit()
-            return {"status": "error", "message": "No contents found for dataset"}
-        
-        # Get content IDs
-        content_ids = [dc.content_id for dc in dataset_contents]
-        
-        # Get contents
-        contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
         
         # Récupérer le provider et de la clé API :
         provider_name = getattr(dataset, "provider", "openai")
@@ -223,23 +212,19 @@ def generate_dataset(self, dataset_id: int):
         
         logger.info(f"Dataset {dataset_id} generated successfully with {total_pairs} pairs")
         
-        # --- MODIFIÉ: Déclencher le Fine-Tuning seulement si le statut est 'ready' ---
+        # --- MODIFIÉ: Déclencher le Fine-Tuning ---
         if dataset.status == "ready":
             try:
-                from app.models.fine_tuning import FineTuning
                 from celery_app import celery_app
-                
-                # Vérifier s'il y a déjà un fine-tuning en attente pour ce dataset
+
                 existing_fine_tuning = db.query(FineTuning).filter(
                     FineTuning.dataset_id == dataset_id,
-                    FineTuning.status == "pending" # Statut mis lors de l'onboarding
+                    FineTuning.status == "pending"
                 ).first()
 
                 if existing_fine_tuning:
-                     # Vérifier si l'utilisateur a une clé API pour le provider du fine-tuning
-                    from app.models.api_key import ApiKey
                     api_key = db.query(ApiKey).filter(
-                        ApiKey.user_id == dataset.user_id, # Assurez-vous d'avoir user_id sur le dataset
+                        ApiKey.user_id == dataset.user_id,
                         ApiKey.provider == existing_fine_tuning.provider
                     ).first()
 
