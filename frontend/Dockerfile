@@ -6,12 +6,18 @@ WORKDIR /app
 # Indiquer explicitement l'environnement
 ENV NODE_ENV=production
 
-# Copier et installer les dépendances
-COPY package*.json ./
-RUN npm install
+# Copier uniquement les fichiers nécessaires pour l'installation des dépendances
+COPY package.json package-lock.json ./
+
+# Nettoyer le cache npm avant d'installer les dépendances
+RUN npm cache clean --force && \
+    npm install --no-audit --no-fund
 
 # Copier le reste de l'application
 COPY . .
+
+# Vérifier que react-intersection-observer est bien installé
+RUN npm list react-intersection-observer || npm install react-intersection-observer --save
 
 # Construire l'application React
 RUN npm run build
