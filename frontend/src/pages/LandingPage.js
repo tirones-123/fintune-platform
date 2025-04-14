@@ -837,7 +837,7 @@ const HowItWorks = () => {
                         mb: 3,
                         background: step.gradient,
                         color: "white",
-                        boxShadow: `0 0 25px ${alpha(theme.palette.common.black, 0.5)}, 0 0 15px ${alpha(step.gradient.split(' ')[2].split(',')[0], 0.7)} inset`,
+                        boxShadow: `0 0 25px ${alpha(theme.palette.common.black, 0.5)}, 0 0 15px ${alpha(step.gradient.split(' ')[3], 0.7)} inset`,
                         border: '3px solid rgba(255,255,255,0.2)',
                       }}
                     >
@@ -866,7 +866,7 @@ const HowItWorks = () => {
                   </Typography>
 
                    {/* Indicateur de progression (décoratif) */}
-                   <Box sx={{ width: '60%', height: '4px', background: alpha(step.gradient.split(' ')[2].split(',')[0], 0.3), borderRadius: '2px', mt: 3, position: 'relative', overflow: 'hidden' }}>
+                   <Box sx={{ width: '60%', height: '4px', background: alpha(step.gradient.split(' ')[3], 0.3), borderRadius: '2px', mt: 3, position: 'relative', overflow: 'hidden' }}>
                       <motion.div
                         initial={{ width: '0%' }}
                         animate={controls}
