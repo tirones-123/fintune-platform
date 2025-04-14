@@ -102,61 +102,60 @@ class ContentProcessor:
     
     def process_youtube_content(self, video_url: str) -> Tuple[Optional[str], Dict[str, Any]]:
         """
-        Process a YouTube video by extracting both transcript and metadata.
-        
-        Args:
-            video_url: URL of the YouTube video
-            
-        Returns:
-            Tuple of (transcript_text, metadata)
+        Process a YouTube video by extracting transcript and metadata using RapidAPI.
         """
+        # Essayer d'abord avec l'API YouTube standard
         transcript = self.extract_text_from_youtube(video_url)
         metadata = self.get_youtube_metadata(video_url)
         
-        # Si l'API YouTube échoue, essayer avec yt-dlp
+        # Si l'API YouTube échoue, utiliser RapidAPI
         if transcript is None:
             try:
-                # Extraire l'ID de la vidéo (cette ligne manquait!)
                 video_id = self._extract_youtube_id(video_url)
                 if not video_id:
                     logger.error(f"Impossible d'extraire l'ID de la vidéo YouTube: {video_url}")
                     return None, metadata
                 
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    audio_path = os.path.join(temp_dir, f"{video_id}.mp3")
-                    import subprocess
+                # Appel à l'API RapidAPI YouTube Transcriptor
+                import requests
+                
+                url = f"https://youtube-transcriptor.p.rapidapi.com/transcript?video_id={video_id}&lang=en"
+                
+                headers = {
+                    "X-RapidAPI-Key": "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8",
+                    "X-RapidAPI-Host": "youtube-transcriptor.p.rapidapi.com"
+                }
+                
+                logger.info(f"Appel au service RapidAPI YouTube Transcriptor pour la vidéo {video_id}")
+                response = requests.get(url, headers=headers)
+                
+                if response.status_code == 200:
+                    data = response.json()
                     
-                    cmd = [
-                        'yt-dlp',
-                        f'https://www.youtube.com/watch?v={video_id}',
-                        '--extract-audio',
-                        '--audio-format', 'mp3',
-                        '--audio-quality', '0',
-                        '-o', audio_path,
-                        '--quiet'
-                    ]
-                    
-                    subprocess.run(cmd, check=True, capture_output=True)
-                    
-                    # Vérifier que le fichier existe
-                    if os.path.exists(audio_path) and os.path.getsize(audio_path) > 10000:
-                        # Utiliser l'API OpenAI pour transcrire
-                        from openai import OpenAI
-                        client = OpenAI()
+                    # Formater la transcription (concaténer tous les segments)
+                    if 'transcription' in data[0]:
+                        transcript_segments = data[0]['transcription']
+                        transcript = " ".join([segment.get('subtitle', '') for segment in transcript_segments])
                         
-                        with open(audio_path, "rb") as audio_file:
-                            whisper_result = client.audio.transcriptions.create(
-                                model="whisper-1", 
-                                file=audio_file
-                            )
-                        
-                        transcript = whisper_result.text
+                        # Enrichir les métadonnées avec les informations de l'API
                         if metadata is None:
                             metadata = {}
-                        metadata["transcription_source"] = "whisper"
-                        logger.info(f"Transcription réussie avec yt-dlp et whisper: {len(transcript)} caractères")
+                        
+                        if 'lengthInSeconds' in data[0]:
+                            metadata['duration_seconds'] = int(data[0]['lengthInSeconds'])
+                        if 'title' in data[0]:
+                            metadata['title'] = data[0]['title']
+                        
+                        metadata['transcription_source'] = 'rapidapi_youtube_transcriptor'
+                        
+                        logger.info(f"Transcription réussie via RapidAPI: {len(transcript)} caractères")
+                    else:
+                        logger.error("Format de réponse RapidAPI inattendu: pas de transcription trouvée")
+                else:
+                    logger.error(f"Échec de l'appel RapidAPI: {response.status_code} - {response.text}")
+                    
             except Exception as e:
-                logger.error(f"Échec de la transcription avec yt-dlp: {str(e)}")
+                logger.error(f"Erreur lors de l'utilisation du service RapidAPI: {str(e)}")
         
         return transcript, metadata
     
