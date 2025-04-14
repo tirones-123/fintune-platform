@@ -1820,9 +1820,33 @@ const DeploymentSection = () => {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
   const centerRef = useRef(null);
   
-  // Création des refs en dehors des callbacks
-  const platformRefs = Array(20).fill().map(() => useRef(null));
-  const connectionRefs = Array(20).fill().map(() => useRef(null));
+  // Création des refs en dehors des callbacks - correctement au niveau du composant
+  const platformRef0 = useRef(null);
+  const platformRef1 = useRef(null);
+  const platformRef2 = useRef(null);
+  const platformRef3 = useRef(null);
+  const platformRef4 = useRef(null);
+  const platformRef5 = useRef(null);
+  const platformRef6 = useRef(null);
+  const platformRef7 = useRef(null);
+  const platformRef8 = useRef(null);
+  const platformRef9 = useRef(null);
+  const platformRef10 = useRef(null);
+  const platformRef11 = useRef(null);
+  const platformRef12 = useRef(null);
+  const platformRef13 = useRef(null);
+  const platformRef14 = useRef(null);
+  const platformRef15 = useRef(null);
+  const platformRef16 = useRef(null);
+  const platformRef17 = useRef(null);
+  
+  // Tableau pour faciliter l'accès aux refs
+  const platformRefs = [
+    platformRef0, platformRef1, platformRef2, platformRef3, platformRef4, 
+    platformRef5, platformRef6, platformRef7, platformRef8, platformRef9, 
+    platformRef10, platformRef11, platformRef12, platformRef13, platformRef14, 
+    platformRef15, platformRef16, platformRef17
+  ];
 
   useEffect(() => {
     if (inView) controls.start('visible');
@@ -1998,16 +2022,21 @@ const DeploymentSection = () => {
              ))}
 
               {/* Lignes de connexion animées depuis le centre */}
-             {targetPlatforms.map((platform, index) => (
-                <NeonConnectionLine
-                  key={`line-${index}`}
-                  startRef={centerRef}
-                  endRef={platformRefs[index]}
-                  color={platform.color}
-                  delay={platform.delay + 0.2}
-                  thickness={2}
-                />
-             ))}
+             {targetPlatforms.map((platform, index) => {
+                if (index < platformRefs.length) {
+                  return (
+                    <NeonConnectionLine
+                      key={`line-${index}`}
+                      startRef={centerRef}
+                      endRef={platformRefs[index]}
+                      color={platform.color}
+                      delay={platform.delay + 0.2}
+                      thickness={2}
+                    />
+                  );
+                }
+                return null;
+             })}
              
              {/* Légende des catégories */}
              <Box sx={{ position: 'absolute', bottom: 10, width: '100%', textAlign: 'center', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
