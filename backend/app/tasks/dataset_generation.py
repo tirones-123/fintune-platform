@@ -178,7 +178,7 @@ def generate_dataset(self, dataset_id: int):
         # Traiter les caractères avec le CharacterService
         dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
         if dataset:
-            user_id = dataset.user_id  # ou dataset.project.user_id si relation
+            user_id = dataset.project.user_id  # Accès au user_id via la relation avec le projet
         success, paid_chars, price = character_service.process_dataset_characters(
             db, user_id, dataset_id, total_characters
         )

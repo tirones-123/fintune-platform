@@ -5,6 +5,7 @@ import time
 import os
 import json
 from datetime import datetime
+import re
 
 from app.db.session import SessionLocal
 from app.models.fine_tuning import FineTuning
@@ -56,6 +57,14 @@ def start_fine_tuning(fine_tuning_id: int):
                 if api.provider.lower() == fine_tuning.provider.lower():
                     user_api_key = api.key
                     break
+        
+        # Préparer un suffixe pour le modèle fine-tuné (en minuscules, sans espaces, sans caractères spéciaux)
+        model_suffix = None
+        if project and project.name:
+            # Convertir en format compatible (lettres, chiffres, tirets seulement)
+            model_suffix = re.sub(r'[^a-z0-9-]', '-', project.name.lower())
+            model_suffix = re.sub(r'-+', '-', model_suffix)  # Éviter les tirets multiples
+            logger.info(f"Using project name as model suffix: {model_suffix}")
         
         # Utiliser la clé récupérée pour initialiser le provider
         provider_service = get_ai_provider(fine_tuning.provider, user_api_key)
@@ -121,7 +130,8 @@ def start_fine_tuning(fine_tuning_id: int):
         response = provider_service.start_fine_tuning(
             dataset_path=file_id,
             model=fine_tuning.model,
-            hyperparameters=hyperparameters
+            hyperparameters=hyperparameters,
+            suffix=model_suffix
         )
         
         # Update fine-tuning with job ID

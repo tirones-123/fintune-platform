@@ -18,7 +18,7 @@ class AIProviderBase:
         """Validate the API key."""
         raise NotImplementedError
     
-    def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any]) -> Dict[str, Any]:
+    def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any], suffix: str = None) -> Dict[str, Any]:
         """Start a fine-tuning job."""
         raise NotImplementedError
     
@@ -51,15 +51,23 @@ class OpenAIProvider(AIProviderBase):
             logger.error(f"Error validating OpenAI API key: {str(e)}")
             return False
     
-    def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any]) -> Dict[str, Any]:
+    def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any], suffix: str = None) -> Dict[str, Any]:
         """Start a fine-tuning job with OpenAI."""
         try:
+            # Préparer les paramètres de la requête
+            request_params = {
+                "training_file": dataset_path,
+                "model": model,
+                "hyperparameters": hyperparameters
+            }
+            
+            # Ajouter le suffixe du modèle s'il est fourni
+            if suffix:
+                request_params["suffix"] = suffix
+                logger.info(f"Using model suffix: {suffix}")
+            
             # Create a fine-tuning job
-            response = self.client.fine_tuning.jobs.create(
-                training_file=dataset_path,
-                model=model,
-                hyperparameters=hyperparameters
-            )
+            response = self.client.fine_tuning.jobs.create(**request_params)
             
             logger.info(f"Started OpenAI fine-tuning job: {response.id}")
             
@@ -369,7 +377,7 @@ class AnthropicProvider(AIProviderBase):
             logger.error(f"Error validating Anthropic API key: {str(e)}")
             return False
     
-    def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any]) -> Dict[str, Any]:
+    def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any], suffix: str = None) -> Dict[str, Any]:
         """Start a fine-tuning job with Anthropic."""
         try:
             # Create a fine-tuning job
@@ -711,7 +719,7 @@ class MistralProvider(AIProviderBase):
             logger.error(f"Error validating Mistral API key: {str(e)}")
             return False
     
-    def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any]) -> Dict[str, Any]:
+    def start_fine_tuning(self, dataset_path: str, model: str, hyperparameters: Dict[str, Any], suffix: str = None) -> Dict[str, Any]:
         """Start a fine-tuning job with Mistral."""
         try:
             # Create a fine-tuning job
@@ -720,6 +728,11 @@ class MistralProvider(AIProviderBase):
                 "model": model,
                 **hyperparameters
             }
+            
+            # Ajouter le suffixe du modèle s'il est fourni
+            if suffix:
+                payload["suffix"] = suffix
+                logger.info(f"Using model suffix: {suffix}")
             
             response = requests.post(
                 f"{self.base_url}/fine-tuning",
