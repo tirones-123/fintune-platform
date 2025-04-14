@@ -1735,6 +1735,10 @@ const DeploymentSection = () => {
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
   const centerRef = useRef(null);
+  
+  // Création des refs en dehors des callbacks
+  const platformRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+  const connectionRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
 
   useEffect(() => {
     if (inView) controls.start('visible');
@@ -1867,7 +1871,7 @@ const DeploymentSection = () => {
                  initialPos={platform.initialPos}
                  delay={platform.delay}
                  isIALogo={false} // Utiliser le style standard
-                 ref={useRef(null)} // Chaque plateforme a sa propre ref (pourrait être utilisé pour les lignes)
+                 ref={platformRefs[index]} // Utiliser la ref pré-créée
                  aiCenterRef={centerRef} // Passer la ref centrale
                />
              ))}
@@ -1877,21 +1881,12 @@ const DeploymentSection = () => {
                 <NeonConnectionLine
                   key={`line-${index}`}
                   startRef={centerRef} // Toujours depuis le centre
-                  endRef={useRef(null)} // Temporaire - nécessite une vraie ref pour chaque plateforme
-                  // Pour que cela fonctionne, il faudrait stocker les refs des FloatingIcon
-                  // et les passer ici. C'est plus complexe, pour l'instant, c'est décoratif.
-                  // Solution alternative: Dessiner des lignes fixes après animation?
+                  endRef={connectionRefs[index]} // Utiliser la ref pré-créée
                   color={platform.color}
                   delay={platform.delay + 0.5} // Délai après l'apparition de l'icône
                   thickness={2}
                 />
              ))}
-             {/* Note: La connexion dynamique des lignes ici nécessiterait de stocker */}
-             {/* les refs de chaque FloatingIcon dans un état ou un tableau de refs, */}
-             {/* ce qui complexifie le code. L'implémentation actuelle montre les lignes */}
-             {/* mais elles ne pointeront pas correctement vers les icônes dynamiques. */}
-             {/* Une version future pourrait implémenter ce suivi de refs. */}
-
         </Box>
 
       </Container>
