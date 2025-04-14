@@ -116,6 +116,12 @@ class ContentProcessor:
         # Si l'API YouTube échoue, essayer avec yt-dlp
         if transcript is None:
             try:
+                # Extraire l'ID de la vidéo (cette ligne manquait!)
+                video_id = self._extract_youtube_id(video_url)
+                if not video_id:
+                    logger.error(f"Impossible d'extraire l'ID de la vidéo YouTube: {video_url}")
+                    return None, metadata
+                
                 with tempfile.TemporaryDirectory() as temp_dir:
                     audio_path = os.path.join(temp_dir, f"{video_id}.mp3")
                     import subprocess
@@ -148,6 +154,7 @@ class ContentProcessor:
                         if metadata is None:
                             metadata = {}
                         metadata["transcription_source"] = "whisper"
+                        logger.info(f"Transcription réussie avec yt-dlp et whisper: {len(transcript)} caractères")
             except Exception as e:
                 logger.error(f"Échec de la transcription avec yt-dlp: {str(e)}")
         
