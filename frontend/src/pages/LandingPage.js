@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, Container, Typography, Button, Grid, Card, CardContent, Avatar, Stack, useTheme, alpha } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { motion, useScroll, useTransform, useSpring, useAnimation } from 'framer-motion';
@@ -153,191 +153,171 @@ const Hero = () => {
   const theme = useTheme();
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
+  const controls = useAnimation();
 
-  // Refs for neon line connections
+  // Références pour les positions des éléments pour les lignes néon
   const pdfRef = useRef(null);
   const youtubeRef = useRef(null);
   const webRef = useRef(null);
-  const aiRef = useRef(null);
-  const heroRef = useRef(null);
+  const aiCenterRef = useRef(null);
+
+  // Références pour les logos 3D IA
+  const openAiRef = useRef(null);
+  const anthropicRef = useRef(null);
+
+  useEffect(() => {
+    controls.start("visible");
+  }, [controls]);
+
+  const glassmorphismStyle = {
+    backdropFilter: 'blur(12px)',
+    backgroundColor: alpha(theme.palette.background.paper, 0.5),
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+    boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.3)}`,
+    borderRadius: '16px',
+  };
 
   return (
     <Box
-      ref={heroRef}
       sx={{
         position: 'relative',
         overflow: 'hidden',
-        pt: { xs: 12, md: 18 },
-        pb: { xs: 14, md: 20 },
+        pt: { xs: 16, md: 24 }, // Plus d'espace en haut
+        pb: { xs: 16, md: 24 }, // Plus d'espace en bas
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
+        background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)`,
       }}
     >
-      {/* Futuristic background with grid */}
-      <Box
-        sx={{
+      {/* Fond d'étoiles animées */}
+      <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: -2 }}>
+        {[...Array(50)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: Math.random() * 100 + 'vw', y: Math.random() * 100 + 'vh' }}
+            animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
+            transition={{
+              duration: Math.random() * 10 + 5,
+              repeat: Infinity,
+              delay: Math.random() * 5,
+            }}
+            style={{
+              position: 'absolute',
+              width: Math.random() * 2 + 1,
+              height: Math.random() * 2 + 1,
+              background: `rgba(255, 255, 255, ${Math.random() * 0.5 + 0.1})`,
+              borderRadius: '50%',
+            }}
+          />
+        ))}
+      </Box>
+
+      {/* Nébuleuse animée en arrière-plan */}
+      <motion.div
+        animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
+        transition={{ duration: 15, repeat: Infinity, repeatType: 'reverse' }}
+        style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundImage: (theme) => 
-            theme.palette.mode === 'dark'
-              ? 'linear-gradient(to bottom, #000428, #0c0434, #150c41, #1c144e, #221b5b)'
-              : 'linear-gradient(to bottom, #f0f8ff, #e6f0fa, #dce9f5, #d3e1f0, #c9daeb)',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundImage: (theme) => 
-              theme.palette.mode === 'dark'
-                ? 'radial-gradient(circle at 20% 30%, rgba(120, 0, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(0, 200, 255, 0.15) 0%, transparent 50%)'
-                : 'radial-gradient(circle at 20% 30%, rgba(120, 0, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(0, 200, 255, 0.1) 0%, transparent 50%)',
-          },
-          '&::after': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg stroke='%23${theme.palette.mode === 'dark' ? '808BF0' : '6F7BDF'}' stroke-opacity='0.05'%3E%3Cpath d='M0 0h60v60H0z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            opacity: 0.2,
-          },
+          top: '-20%',
+          left: '-20%',
+          width: '140%',
+          height: '140%',
+          background: 'radial-gradient(circle, rgba(121, 40, 202, 0.3) 0%, transparent 70%)',
+          filter: 'blur(100px)',
           zIndex: -1,
         }}
       />
-
-      {/* Glowing orbs with animation */}
-      <Box
-        component={motion.div}
-        animate={{
-          y: [0, -20, 0],
-          opacity: [0.7, 1, 0.7],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          repeatType: 'reverse',
-        }}
-        sx={{
+      <motion.div
+        animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.3, 0.2] }}
+        transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', delay: 5 }}
+        style={{
           position: 'absolute',
-          top: '15%',
-          left: '10%',
-          width: { xs: 100, md: 200 },
-          height: { xs: 100, md: 200 },
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(120, 0, 255, 0.3) 0%, rgba(120, 0, 255, 0) 70%)',
-          filter: 'blur(30px)',
-          zIndex: -1,
-        }}
-      />
-
-      <Box
-        component={motion.div}
-        animate={{
-          y: [0, 20, 0],
-          opacity: [0.7, 1, 0.7],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          repeatType: 'reverse',
-          delay: 1,
-        }}
-        sx={{
-          position: 'absolute',
-          bottom: '20%',
-          right: '15%',
-          width: { xs: 120, md: 250 },
-          height: { xs: 120, md: 250 },
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0, 200, 255, 0.3) 0%, rgba(0, 200, 255, 0) 70%)',
-          filter: 'blur(30px)',
+          bottom: '-20%',
+          right: '-20%',
+          width: '120%',
+          height: '120%',
+          background: 'radial-gradient(circle, rgba(0, 198, 255, 0.3) 0%, transparent 70%)',
+          filter: 'blur(100px)',
           zIndex: -1,
         }}
       />
 
       <Container maxWidth="lg">
-        <Grid container spacing={6} alignItems="center" sx={{ position: 'relative' }}>
+        <Grid container spacing={8} alignItems="center" sx={{ position: 'relative' }}>
+          {/* Colonne texte */}
           <Grid item xs={12} md={6}>
             <motion.div
               initial="hidden"
-              animate="visible"
+              animate={controls}
               variants={containerVariants}
             >
               <motion.div variants={itemVariants}>
                 <Typography
                   component="h1"
-                  variant="h2"
+                  variant="h1"
                   sx={{
-                    fontWeight: 800,
-                    fontSize: { xs: '2.5rem', md: '3.75rem' },
+                    fontWeight: 900,
+                    fontSize: { xs: '3rem', md: '4.5rem' },
                     lineHeight: 1.1,
-                    background: 'linear-gradient(135deg, #7928CA, #00C6FF)',
+                    background: 'linear-gradient(145deg, #bf00ff, #00d4ff)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    textShadow: (theme) => 
-                      theme.palette.mode === 'dark' 
-                        ? '0 0 20px rgba(121, 40, 202, 0.5)' 
-                        : 'none',
-                    mb: 3,
-                    fontFamily: "'Orbitron', sans-serif",
-                    letterSpacing: '-0.5px',
+                    textShadow: '0 0 30px rgba(191, 0, 255, 0.5)',
+                    mb: 4,
+                    fontFamily: "'Exo 2', sans-serif", // Police plus futuriste
+                    letterSpacing: '-1px',
                   }}
                 >
-                  Transformez vos contenus en IA fine-tunée
+                  Votre Contenu,
+                  <br />
+                  Votre IA.
+                  <Box component="span" sx={{ color: '#00d4ff' }}> Amplifiée.</Box>
                 </Typography>
               </motion.div>
 
-              <motion.div variants={itemVariants}>
+              <motion.div variants={itemVariants} style={{ marginBottom: '32px' }}>
                 <Typography
                   variant="h5"
-                  color="text.secondary"
-                  paragraph
-                  sx={{ 
-                    mb: 4,
-                    fontSize: { xs: '1.1rem', md: '1.25rem' },
-                    lineHeight: 1.6,
+                  sx={{
+                    fontSize: { xs: '1.1rem', md: '1.3rem' },
+                    lineHeight: 1.7,
                     maxWidth: '95%',
                     fontWeight: 400,
-                    backdropFilter: 'blur(5px)',
-                    borderRadius: 2,
-                    p: 2,
-                    backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.5),
-                    border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                    color: alpha(theme.palette.text.secondary, 0.9),
+                    ...glassmorphismStyle, // Appliquer l'effet glassmorphism
+                    p: 3,
                   }}
                 >
-                  Créez facilement un assistant sur-mesure basé sur vos propres informations, sans compétences techniques. Vous apportez le contenu, nous nous occupons du reste.
+                  Transformez instantanément PDF, YouTube et sites web en assistants IA ultra-performants type <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span> ou <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>. Aucune expertise requise.
                 </Typography>
               </motion.div>
 
               <motion.div variants={itemVariants}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 5 }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5}>
                   <Button
                     component={RouterLink}
                     to="/register"
                     variant="contained"
                     size="large"
-                    sx={{ 
+                    endIcon={<ArrowForwardIcon />}
+                    sx={{
                       py: 2,
-                      px: 4,
-                      fontSize: '1.1rem',
-                      fontWeight: 600,
-                      borderRadius: 3,
-                      background: 'linear-gradient(45deg, #7928CA, #00C6FF)',
+                      px: 5,
+                      fontSize: '1.2rem',
+                      fontWeight: 700,
+                      borderRadius: '50px', // Plus arrondi
+                      background: 'linear-gradient(45deg, #bf00ff, #00d4ff)',
                       position: 'relative',
                       overflow: 'hidden',
-                      boxShadow: '0 8px 20px rgba(121, 40, 202, 0.3)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                      color: 'white',
+                      boxShadow: '0 10px 30px rgba(191, 0, 255, 0.4)',
+                      transition: 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)',
                       '&:hover': {
-                        transform: 'translateY(-3px)',
-                        boxShadow: '0 12px 24px rgba(121, 40, 202, 0.4)',
+                        transform: 'translateY(-5px) scale(1.05)',
+                        boxShadow: '0 15px 35px rgba(0, 212, 255, 0.5)',
                       },
                       '&::before': {
                         content: '""',
@@ -346,322 +326,141 @@ const Hero = () => {
                         left: '-100%',
                         width: '100%',
                         height: '100%',
-                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                        transition: 'all 0.6s',
+                        background: 'linear-gradient(120deg, transparent, rgba(255,255,255,0.3), transparent)',
+                        transition: 'all 0.7s cubic-bezier(0.25, 0.8, 0.25, 1)',
                       },
                       '&:hover::before': {
                         left: '100%',
                       },
                     }}
                   >
-                    <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
-                      <motion.div
-                        animate={{ 
-                          scale: [1, 1.1, 1],
-                        }}
-                        transition={{ 
-                          duration: 2,
-                          repeat: Infinity,
-                        }}
-                      >
-                        <SmartToyIcon />
-                      </motion.div>
-                    </Box>
-                    S'inscrire gratuitement
-                  </Button>
-                  
-                  <Button
-                    component={RouterLink}
-                    to="/login"
-                    variant="outlined"
-                    size="large"
-                    sx={{ 
-                      py: 2,
-                      px: 4,
-                      borderWidth: 2,
-                      fontSize: '1.1rem',
-                      fontWeight: 600,
-                      borderRadius: 3,
-                      borderColor: 'primary.main',
-                      color: 'primary.main',
-                      backdropFilter: 'blur(5px)',
-                      backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.1),
-                      '&:hover': {
-                        borderWidth: 2,
-                        backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.2),
-                      }
-                    }}
-                  >
-                    Se connecter
+                    Démarrez Gratuitement
                   </Button>
                 </Stack>
+                <Typography variant="caption" sx={{ display: 'block', mt: 2, color: alpha(theme.palette.text.secondary, 0.7) }}>
+                  Premiers pas en 60 secondes. Sans carte de crédit.
+                </Typography>
               </motion.div>
             </motion.div>
           </Grid>
-          
+
+          {/* Colonne visualisation 3D */}
           <Grid item xs={12} md={6}>
             <Box
               sx={{
                 position: 'relative',
-                height: { xs: 400, md: 500 },
+                height: { xs: 500, md: 650 }, // Hauteur augmentée
                 width: '100%',
+                perspective: '1200px',
+                transformStyle: 'preserve-3d',
               }}
             >
-              {/* 3D Data flow visualization */}
-              <Box 
-                sx={{
-                  position: 'relative',
-                  height: '100%',
-                  width: '100%',
-                  perspective: '1000px',
+              {/* Centre de traitement (effet noyau d'énergie) */}
+              <motion.div
+                ref={aiCenterRef}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1, delay: 0.5 }}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%) translateZ(50px)', // Léger décalage 3D
+                  width: 150,
+                  height: 150,
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(0, 212, 255, 0.5) 0%, rgba(191, 0, 255, 0.3) 70%, transparent 100%)',
+                  boxShadow: '0 0 50px rgba(0, 212, 255, 0.6), 0 0 80px rgba(191, 0, 255, 0.4)',
+                  zIndex: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                {/* Input sources */}
-                <Box
-                  ref={pdfRef}
-                  sx={{
-                    position: 'absolute',
-                    top: '10%',
-                    left: '5%',
-                  }}
-                >
-                  <ContentSourceIcon 
-                    icon={PictureAsPdfIcon} 
-                    label="PDF" 
-                    color="#FF5252" 
-                    delay={0.2}
-                  />
-                </Box>
-                
-                <Box
-                  ref={youtubeRef}
-                  sx={{
-                    position: 'absolute',
-                    top: '30%',
-                    left: '10%',
-                  }}
-                >
-                  <ContentSourceIcon 
-                    icon={YouTubeIcon} 
-                    label="YouTube" 
-                    color="#FF0000" 
-                    delay={0.4}
-                  />
-                </Box>
-                
-                <Box
-                  ref={webRef}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '5%',
-                  }}
-                >
-                  <ContentSourceIcon 
-                    icon={LanguageIcon} 
-                    label="Sites Web" 
-                    color="#4285F4" 
-                    delay={0.6}
-                  />
-                </Box>
-
-                {/* Processing center */}
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.8, delay: 0.8 }}
-                >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: '30%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: 120,
-                      height: 120,
-                      borderRadius: '50%',
-                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: (theme) => `0 0 30px ${alpha(theme.palette.primary.main, 0.5)}`,
-                      zIndex: 2,
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        top: -10,
-                        left: -10,
-                        right: -10,
-                        bottom: -10,
-                        borderRadius: '50%',
-                        border: (theme) => `4px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-                        borderTopColor: 'primary.main',
-                        borderRightColor: 'primary.main',
-                        animation: 'spin 3s linear infinite',
-                      },
-                      '&::after': {
-                        content: '""',
-                        position: 'absolute',
-                        top: -5,
-                        left: -5,
-                        right: -5,
-                        bottom: -5,
-                        borderRadius: '50%',
-                        border: (theme) => `2px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
-                        borderTopColor: 'secondary.main',
-                        borderLeftColor: 'secondary.main',
-                        animation: 'spin-reverse 2s linear infinite',
-                      },
-                    }}
-                  >
-                    <SyncAltIcon 
-                      sx={{ 
-                        fontSize: 50, 
-                        color: 'primary.main',
-                        animation: 'pulse 2s infinite',
-                      }} 
-                    />
-                  </Box>
-                </motion.div>
-
-                {/* Output AI model */}
-                <Box
-                  ref={aiRef}
-                  sx={{
-                    position: 'absolute',
-                    bottom: '25%',
-                    right: '15%',
-                    transform: 'translate(0, -50%)',
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+                  style={{
+                    width: '70%',
+                    height: '70%',
+                    border: '3px solid rgba(255, 255, 255, 0.5)',
+                    borderRadius: '50%',
+                    borderTopColor: '#00d4ff',
+                    borderRightColor: '#00d4ff',
                   }}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 1 }}
-                  >
-                    <Box
-                      sx={{
-                        position: 'relative',
-                        width: 150,
-                        height: 150,
-                        borderRadius: '20px',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: (theme) => `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)}, ${alpha(theme.palette.background.paper, 0.5)})`,
-                        backdropFilter: 'blur(10px)',
-                        border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                        boxShadow: (theme) => `0 10px 30px ${alpha(theme.palette.common.black, 0.2)}`,
-                        p: 2,
-                        '&::before': {
-                          content: '""',
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          zIndex: -1,
-                          background: 'linear-gradient(45deg, rgba(121, 40, 202, 0.4), rgba(0, 198, 255, 0.4))',
-                          filter: 'blur(20px)',
-                          opacity: 0.5,
-                        },
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          mb: 1,
-                          display: 'flex',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <SmartToyIcon sx={{ fontSize: 50, color: 'primary.main' }} />
-                      </Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 700,
-                          color: 'text.primary',
-                          textAlign: 'center',
-                          mb: 0.5,
-                        }}
-                      >
-                        IA Fine-tunée
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'text.secondary',
-                          textAlign: 'center',
-                          fontSize: '0.7rem',
-                        }}
-                      >
-                        OpenAI / Anthropic
-                      </Typography>
-                      
-                      {/* Pulsing dots animation */}
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        mt: 1, 
-                        gap: 0.5 
-                      }}>
-                        {[0, 1, 2].map((i) => (
-                          <motion.div
-                            key={i}
-                            animate={{ 
-                              scale: [1, 1.3, 1],
-                              opacity: [0.5, 1, 0.5]
-                            }}
-                            transition={{ 
-                              duration: 1.5, 
-                              repeat: Infinity, 
-                              delay: i * 0.2
-                            }}
-                            style={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: '50%',
-                              background: theme.palette.primary.main
-                            }}
-                          />
-                        ))}
-                      </Box>
-                    </Box>
-                  </motion.div>
-                </Box>
+                />
+                <motion.div
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
+                  style={{
+                    position: 'absolute',
+                    width: '85%',
+                    height: '85%',
+                    border: '2px dashed rgba(255, 255, 255, 0.3)',
+                    borderRadius: '50%',
+                  }}
+                />
+                 <SyncAltIcon sx={{ fontSize: 50, color: '#fff', position: 'absolute', animation: 'pulse 2s infinite' }} />
+              </motion.div>
 
-                {/* Neon connection lines */}
-                <NeonLine 
-                  start={{ x: 50, y: 65 }} 
-                  end={{ x: 150, y: 150 }} 
-                  color="#FF5252" 
-                  delay={1.2} 
-                  thickness={3}
-                />
-                <NeonLine 
-                  start={{ x: 60, y: 160 }} 
-                  end={{ x: 150, y: 150 }} 
-                  color="#FF0000" 
-                  delay={1.4} 
-                  thickness={3}
-                />
-                <NeonLine 
-                  start={{ x: 50, y: 250 }} 
-                  end={{ x: 150, y: 150 }} 
-                  color="#4285F4" 
-                  delay={1.6} 
-                  thickness={3}
-                />
-                <NeonLine 
-                  start={{ x: 210, y: 150 }} 
-                  end={{ x: 320, y: 250 }} 
-                  color="#7928CA" 
-                  delay={1.8} 
-                  thickness={4}
-                />
-              </Box>
+              {/* Sources de contenu flottantes */}
+              <FloatingIcon
+                ref={pdfRef}
+                icon={PictureAsPdfIcon}
+                label="PDF"
+                color="#FF6B6B"
+                initialPos={{ top: '15%', left: '10%', z: -50 }}
+                delay={0.8}
+                aiCenterRef={aiCenterRef}
+              />
+              <FloatingIcon
+                ref={youtubeRef}
+                icon={YouTubeIcon}
+                label="YouTube"
+                color="#FF0000"
+                initialPos={{ top: '40%', left: '0%', z: -20 }}
+                delay={1.0}
+                 aiCenterRef={aiCenterRef}
+             />
+              <FloatingIcon
+                ref={webRef}
+                icon={LanguageIcon}
+                label="Web"
+                color="#4ECDC4"
+                initialPos={{ top: '70%', left: '10%', z: -40 }}
+                delay={1.2}
+                 aiCenterRef={aiCenterRef}
+             />
+
+              {/* Logos IA 3D */}
+              <FloatingIcon
+                ref={openAiRef}
+                icon={SmartToyIcon} // Remplacer par un logo OpenAI si disponible
+                label="OpenAI"
+                color="#74AA9C"
+                initialPos={{ top: '30%', right: '5%', z: 80 }}
+                delay={1.4}
+                isIALogo
+                 aiCenterRef={aiCenterRef}
+             />
+              <FloatingIcon
+                ref={anthropicRef}
+                icon={SmartToyIcon} // Remplacer par un logo Anthropic/Claude si disponible
+                label="Claude"
+                color="#D09A74"
+                initialPos={{ top: '65%', right: '15%', z: 60 }}
+                delay={1.6}
+                isIALogo
+                 aiCenterRef={aiCenterRef}
+             />
+
+              {/* Lignes de connexion Neon animées */}
+              <NeonConnectionLine startRef={pdfRef} endRef={aiCenterRef} color="#FF6B6B" delay={1.8} />
+              <NeonConnectionLine startRef={youtubeRef} endRef={aiCenterRef} color="#FF0000" delay={2.0} />
+              <NeonConnectionLine startRef={webRef} endRef={aiCenterRef} color="#4ECDC4" delay={2.2} />
+              <NeonConnectionLine startRef={aiCenterRef} endRef={openAiRef} color="#74AA9C" delay={2.4} thickness={3} />
+              <NeonConnectionLine startRef={aiCenterRef} endRef={anthropicRef} color="#D09A74" delay={2.6} thickness={3} />
+
             </Box>
           </Grid>
         </Grid>
@@ -670,7 +469,158 @@ const Hero = () => {
   );
 };
 
-// Section How It Works
+// --- Nouveau composant pour les icônes flottantes --- //
+const FloatingIcon = React.forwardRef(({ icon: Icon, label, color, initialPos, delay, isIALogo = false, aiCenterRef }, ref) => {
+  const theme = useTheme();
+  const controls = useAnimation();
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+      controls.start({
+        opacity: 1,
+        scale: 1,
+        transition: { duration: 0.5, delay, ease: 'easeOut' }
+      });
+    }, 50); // Petit délai pour assurer le rendu initial
+    return () => clearTimeout(timer);
+  }, [controls, delay]);
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={controls}
+      whileHover={{ scale: 1.1, zIndex: 100 }} // Effet de survol
+      transition={{ type: 'spring', stiffness: 300 }}
+      style={{
+        position: 'absolute',
+        ...initialPos,
+        transform: `translateZ(${initialPos.z}px)`,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        cursor: 'pointer',
+        opacity: 0, // Initialement invisible
+      }}
+    >
+      <Box
+        sx={{
+          width: isIALogo ? 80 : 60,
+          height: isIALogo ? 80 : 60,
+          borderRadius: isIALogo ? '20px' : '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          mb: 1,
+          background: `radial-gradient(circle, ${alpha(color, 0.3)} 0%, ${alpha(color, 0.1)} 100%)`,
+          backdropFilter: 'blur(8px)',
+          border: `1px solid ${alpha(color, 0.5)}`,
+          boxShadow: `0 0 20px ${alpha(color, 0.6)}, 0 0 30px ${alpha(color, 0.3)} inset`,
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <Icon sx={{ fontSize: isIALogo ? 45 : 30, color: color }} />
+      </Box>
+      <Typography
+        variant="caption"
+        sx={{
+          color: alpha(theme.palette.text.primary, 0.8),
+          fontWeight: 600,
+          textShadow: `0 0 5px ${alpha(color, 0.5)}`,
+          textAlign: 'center'
+        }}
+      >
+        {label}
+      </Typography>
+    </motion.div>
+  );
+});
+
+// --- Nouveau composant pour les lignes de connexion Neon --- //
+const NeonConnectionLine = ({ startRef, endRef, color, delay, thickness = 2 }) => {
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const [endPos, setEndPos] = useState({ x: 0, y: 0 });
+  const controls = useAnimation();
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+  const lineRef = useRef(null);
+
+  useEffect(() => {
+    const updatePositions = () => {
+      if (startRef.current && endRef.current) {
+        const startRect = startRef.current.getBoundingClientRect();
+        const endRect = endRef.current.getBoundingClientRect();
+        const parentRect = startRef.current.parentElement.getBoundingClientRect();
+
+        // Calculer les centres des éléments par rapport au parent
+        setStartPos({
+          x: startRect.left - parentRect.left + startRect.width / 2,
+          y: startRect.top - parentRect.top + startRect.height / 2,
+        });
+        setEndPos({
+          x: endRect.left - parentRect.left + endRect.width / 2,
+          y: endRect.top - parentRect.top + endRect.height / 2,
+        });
+      }
+    };
+
+    updatePositions();
+    // Recalculer si la fenêtre est redimensionnée
+    window.addEventListener('resize', updatePositions);
+    return () => window.removeEventListener('resize', updatePositions);
+  }, [startRef, endRef]);
+
+  useEffect(() => {
+    if (inView && startPos.x !== 0) { // S'assurer que les positions sont calculées
+      controls.start({
+        pathLength: 1,
+        opacity: 1,
+        transition: { duration: 1.5, delay, ease: "easeInOut" }
+      });
+    }
+  }, [controls, inView, startPos, delay]);
+
+  return (
+    <Box ref={ref} sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}>
+      <svg style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+        <motion.path
+          ref={lineRef}
+          d={`M${startPos.x},${startPos.y} Q${startPos.x + (endPos.x - startPos.x) * 0.2},${startPos.y + (endPos.y - startPos.y) * 0.8} ${endPos.x},${endPos.y}`}
+          stroke={color}
+          strokeWidth={thickness}
+          strokeLinecap="round"
+          fill="transparent"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={controls}
+          style={{
+            filter: `drop-shadow(0 0 6px ${alpha(color, 0.8)}) drop-shadow(0 0 10px ${alpha(color, 0.5)})`,
+          }}
+        />
+        {/* Animation de flux lumineux */}
+        <motion.circle
+          r="4"
+          fill={color}
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: inView && startPos.x !== 0 ? [0, 1, 0] : 0,
+            transition: { duration: 1.5, repeat: Infinity, ease: "linear", delay: delay + 0.5 }
+          }}
+          style={{ filter: `drop-shadow(0 0 8px ${color})` }}
+        >
+          <animateMotion
+            dur="1.5s"
+            repeatCount="indefinite"
+            path={`M${startPos.x},${startPos.y} Q${startPos.x + (endPos.x - startPos.x) * 0.2},${startPos.y + (endPos.y - startPos.y) * 0.8} ${endPos.x},${endPos.y}`}
+            begin={`${delay + 0.5}s`}
+          />
+        </motion.circle>
+      </svg>
+    </Box>
+  );
+};
+
+// --- Section How It Works (Refonte Futuriste) --- //
 const HowItWorks = () => {
   const theme = useTheme();
   const controls = useAnimation();
@@ -687,31 +637,31 @@ const HowItWorks = () => {
 
   const steps = [
     {
-      icon: <CloudUploadIcon sx={{ fontSize: 45 }} />,
-      title: "Importez vos contenus",
-      description: "PDF, vidéos YouTube, sites web, documents texte... Notre plateforme accepte tous vos contenus.",
-      gradient: "linear-gradient(135deg, #FF9966, #FF5E62)",
+      icon: <CloudUploadIcon sx={{ fontSize: 50 }} />,
+      title: "1. Upload",
+      description: "Connectez vos sources : PDF, YouTube, Sites Web, Texte...",
+      gradient: "linear-gradient(135deg, #FF9A8B 0%, #FF6A88 100%)", // Rose/Orange
       delay: 0.2,
     },
     {
-      icon: <DatasetIcon sx={{ fontSize: 45 }} />,
-      title: "Transformation automatique",
-      description: "Vos contenus sont automatiquement transformés en datasets de questions/réponses optimisés pour l'IA.",
-      gradient: "linear-gradient(135deg, #5D26C1, #a17fe0)",
+      icon: <SyncAltIcon sx={{ fontSize: 50 }} />,
+      title: "2. Transformation IA",
+      description: "Notre moteur IA traite et structure vos données en format optimal.",
+      gradient: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)", // Mauve/Rose pâle
       delay: 0.4,
     },
     {
-      icon: <PsychologyIcon sx={{ fontSize: 45 }} />,
-      title: "Fine-tuning & déploiement",
-      description: "Entraînez votre modèle IA avec OpenAI ou Anthropic et déployez-le immédiatement.",
-      gradient: "linear-gradient(135deg, #59C173, #5D26C1)",
+      icon: <PsychologyIcon sx={{ fontSize: 50 }} />,
+      title: "3. Fine-Tuning",
+      description: "Entraînement sur mesure via OpenAI ou Anthropic.",
+      gradient: "linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)", // Vert/Bleu pâle
       delay: 0.6,
     },
     {
-      icon: <ChatIcon sx={{ fontSize: 45 }} />,
-      title: "Utilisez votre assistant",
-      description: "Utilisez directement votre IA personnalisée ou intégrez-la via API dans vos applications.",
-      gradient: "linear-gradient(135deg, #00C6FF, #0072FF)",
+      icon: <ChatIcon sx={{ fontSize: 50 }} />,
+      title: "4. Déploiement",
+      description: "Votre assistant IA est prêt : utilisez-le ou intégrez-le via API.",
+      gradient: "linear-gradient(135deg, #5ee7df 0%, #b490ca 100%)", // Cyan/Lavande
       delay: 0.8,
     },
   ];
@@ -720,278 +670,188 @@ const HowItWorks = () => {
     <Box
       ref={ref}
       sx={{
-        py: { xs: 10, md: 16 },
+        py: { xs: 12, md: 20 },
         position: "relative",
         overflow: "hidden",
-        backgroundColor: "background.paper",
+        background: `linear-gradient(rgba(3, 0, 30, 0.95), rgba(3, 0, 30, 0.95)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%2300d4ff;stop-opacity:0.1" /><stop offset="100%" style="stop-color:%23bf00ff;stop-opacity:0.1" /></linearGradient></defs><rect width="100" height="100" fill="url(%23g)"/><path d="M0 50 L50 0 L100 50 L50 100 Z" fill="rgba(255,255,255,0.02)"/></svg>')`,
+        backgroundSize: 'auto, 200px 200px', // Motif + dégradé
       }}
     >
-      {/* Futuristic background elements */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          opacity: 0.05,
-          zIndex: 0,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23${
-            theme.palette.mode === "dark" ? "ffffff" : "000000"
-          }' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+      {/* Ligne de connexion verticale animée (décorative) */}
+      <motion.div
+        initial={{ height: 0 }}
+        animate={inView ? { height: '80%' } : { height: 0 }}
+        transition={{ duration: 2, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          position: 'absolute',
+          top: '10%',
+          left: '50%',
+          width: '2px',
+          background: 'linear-gradient(to bottom, transparent, #00d4ff, #bf00ff, transparent)',
+          boxShadow: '0 0 10px #00d4ff, 0 0 10px #bf00ff',
+          zIndex: 1,
         }}
       />
 
-      {/* Horizontal timeline line */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "5%",
-          right: "5%",
-          height: "2px",
-          backgroundColor: alpha(theme.palette.primary.main, 0.3),
-          display: { xs: "none", md: "block" },
-          zIndex: 1,
-        }}
-      >
-        <motion.div
-          initial={{ scaleX: 0, transformOrigin: "left" }}
-          animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-          style={{
-            height: "100%",
-            background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-            boxShadow: `0 0 10px ${alpha(theme.palette.primary.main, 0.7)}`,
-          }}
-        />
-      </Box>
-
       <Container maxWidth="lg" sx={{ position: "relative", zIndex: 2 }}>
-        <Box sx={{ mb: 10, textAlign: "center" }}>
+        <Box sx={{ mb: 12, textAlign: "center" }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={controls}
-            variants={{
-              visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-            }}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } }}
           >
             <Typography
               variant="h6"
               component="p"
               sx={{
-                color: "primary.main",
-                fontWeight: 600,
+                color: "#00d4ff", // Cyan néon
+                fontWeight: 700,
                 textTransform: "uppercase",
                 mb: 2,
-                letterSpacing: 1,
+                letterSpacing: 2,
+                textShadow: '0 0 10px #00d4ff',
               }}
             >
-              4 étapes simples
+              Processus Simplifié
             </Typography>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={controls}
-            variants={{
-              visible: {
-                opacity: 1,
-                y: 0,
-                transition: { duration: 0.6, delay: 0.1 },
-              },
-            }}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.1 } } }}
           >
             <Typography
-              variant="h3"
+              variant="h2"
               component="h2"
               sx={{
-                fontWeight: 800,
-                mb: 2,
-                background: "linear-gradient(90deg, #7928CA, #00C6FF)",
+                fontWeight: 900,
+                mb: 3,
+                background: 'linear-gradient(145deg, #bf00ff, #00d4ff)',
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
-                fontFamily: "'Orbitron', sans-serif",
+                fontFamily: "'Exo 2', sans-serif",
+                textShadow: '0 0 20px rgba(191, 0, 255, 0.4)',
               }}
             >
-              Comment ça fonctionne
+              De Zéro à l'IA en 4 Étapes
             </Typography>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={controls}
-            variants={{
-              visible: {
-                opacity: 1,
-                y: 0,
-                transition: { duration: 0.6, delay: 0.2 },
-              },
-            }}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.2 } } }}
           >
             <Typography
-              variant="subtitle1"
+              variant="h6"
               color="text.secondary"
               sx={{
-                maxWidth: 650,
+                maxWidth: 700,
                 mx: "auto",
                 fontSize: "1.1rem",
-                lineHeight: 1.7,
+                lineHeight: 1.8,
+                color: alpha(theme.palette.text.secondary, 0.8),
               }}
             >
-              Notre plateforme transforme vos contenus bruts en assistants IA personnalisés en seulement quelques minutes, sans code.
+              Suivez notre flux de travail optimisé pour transformer vos données brutes en une intelligence artificielle sur-mesure, prête à révolutionner votre business.
             </Typography>
           </motion.div>
         </Box>
 
-        <Grid container spacing={4}>
+        <Grid container spacing={5} justifyContent="center">
           {steps.map((step, index) => (
-            <Grid item xs={12} md={3} key={index}>
+            <Grid item xs={12} sm={6} md={3} key={index}>
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 50, scale: 0.8 }}
                 animate={controls}
                 variants={{
                   visible: {
                     opacity: 1,
                     y: 0,
+                    scale: 1,
                     transition: {
-                      duration: 0.7,
-                      delay: step.delay,
+                      duration: 0.8,
+                      delay: step.delay + 0.2,
+                      ease: [0.16, 1, 0.3, 1],
                     },
                   },
                 }}
+                whileHover={{ y: -10, scale: 1.03 }}
+                transition={{ type: 'spring', stiffness: 200 }}
               >
                 <Card
                   sx={{
                     height: "100%",
                     display: "flex",
                     flexDirection: "column",
-                    p: 3,
-                    borderRadius: 4,
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    p: 4,
+                    borderRadius: '24px', // Bords plus arrondis
                     position: "relative",
-                    overflow: "hidden",
-                    transition: "transform 0.3s, box-shadow 0.3s",
-                    background: (theme) =>
-                      theme.palette.mode === "dark"
-                        ? alpha(theme.palette.background.paper, 0.8)
-                        : alpha(theme.palette.background.paper, 0.9),
-                    backdropFilter: "blur(10px)",
-                    border: `1px solid ${alpha(
-                      theme.palette.divider,
-                      0.1
-                    )}`,
-                    boxShadow: (theme) =>
-                      theme.palette.mode === "dark"
-                        ? `0 10px 30px ${alpha(
-                            theme.palette.common.black,
-                            0.2
-                          )}`
-                        : `0 10px 30px ${alpha(
-                            theme.palette.common.black,
-                            0.1
-                          )}`,
-                    "&:hover": {
-                      transform: "translateY(-10px)",
-                      boxShadow: (theme) =>
-                        theme.palette.mode === "dark"
-                          ? `0 15px 40px ${alpha(
-                              theme.palette.common.black,
-                              0.3
-                            )}`
-                          : `0 15px 40px ${alpha(
-                              theme.palette.common.black,
-                              0.15
-                            )}`,
-                    },
-                    "&::before": {
+                    overflow: "visible", // Permet aux éléments de déborder légèrement
+                    background: alpha(theme.palette.background.paper, 0.6),
+                    backdropFilter: "blur(15px)",
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                    boxShadow: `0 10px 40px ${alpha(theme.palette.common.black, 0.4)}`,
+                    transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                    '&::before': {
                       content: '""',
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: "4px",
-                      background: step.gradient,
+                      position: 'absolute',
+                      top: '-10px',
+                      left: '-10px',
+                      right: '-10px',
+                      bottom: '-10px',
+                      borderRadius: 'inherit',
+                      border: `2px solid transparent`,
+                      backgroundImage: `linear-gradient(${alpha(theme.palette.background.paper, 0)}, ${alpha(theme.palette.background.paper, 0)}), ${step.gradient}`,
+                      backgroundOrigin: 'border-box',
+                      backgroundClip: 'content-box, border-box',
+                      zIndex: -1,
+                      opacity: 0.6,
+                      filter: 'blur(8px)',
+                      transition: 'opacity 0.4s ease',
+                    },
+                    '&:hover::before': {
+                      opacity: 1,
                     },
                   }}
                 >
-                  {/* Step number badge */}
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: 16,
-                      right: 16,
-                      width: 30,
-                      height: 30,
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: "bold",
-                      fontSize: "0.8rem",
-                      color: "white",
-                      background: step.gradient,
-                      boxShadow: `0 3px 10px ${alpha(
-                        theme.palette.common.black,
-                        0.2
-                      )}`,
-                      zIndex: 1,
-                    }}
-                  >
-                    {index + 1}
-                  </Box>
-
-                  {/* Icon with gradient circle */}
-                  <Box
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: "24px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      mb: 3,
-                      background: (theme) =>
-                        alpha(theme.palette.background.paper, 0.6),
-                      position: "relative",
-                      "&::before": {
-                        content: '""',
-                        position: "absolute",
-                        inset: 0,
-                        borderRadius: "inherit",
-                        padding: "2px",
-                        background: step.gradient,
-                        WebkitMask:
-                          "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                        WebkitMaskComposite: "xor",
-                        maskComposite: "exclude",
-                      },
+                  {/* Icone stylisée */}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={controls}
+                    variants={{
+                       visible: { scale: 1, transition: { delay: step.delay + 0.4, type: 'spring', stiffness: 150 } }
                     }}
                   >
                     <Box
                       sx={{
-                        color: "common.white",
-                        background: step.gradient,
-                        width: 65,
-                        height: 65,
-                        borderRadius: "18px",
+                        width: 90,
+                        height: 90,
+                        borderRadius: "50%",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        mb: 3,
+                        background: step.gradient,
+                        color: "white",
+                        boxShadow: `0 0 25px ${alpha(theme.palette.common.black, 0.5)}, 0 0 15px ${alpha(step.gradient.split(' ')[2].split(',')[0], 0.7)} inset`,
+                        border: '3px solid rgba(255,255,255,0.2)',
                       }}
                     >
                       {step.icon}
                     </Box>
-                  </Box>
+                  </motion.div>
 
                   <Typography
-                    variant="h6"
+                    variant="h5"
                     component="h3"
                     sx={{
-                      mb: 2,
+                      mb: 1.5,
                       fontWeight: 700,
-                      background: step.gradient,
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
+                      color: 'text.primary',
                     }}
                   >
                     {step.title}
@@ -1000,40 +860,22 @@ const HowItWorks = () => {
                   <Typography
                     variant="body1"
                     color="text.secondary"
-                    sx={{ mb: 2, flexGrow: 1 }}
+                    sx={{ flexGrow: 1, color: alpha(theme.palette.text.secondary, 0.8) }}
                   >
                     {step.description}
                   </Typography>
 
-                  {/* Animated dot at the bottom */}
-                  <Box
-                    sx={{
-                      display: { xs: "none", md: "flex" },
-                      justifyContent: "center",
-                      mt: 2,
-                    }}
-                  >
-                    <motion.div
-                      animate={{
-                        y: [0, -5, 0],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        delay: index * 0.2,
-                      }}
-                      style={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: "50%",
-                        background: step.gradient,
-                        boxShadow: `0 0 10px ${alpha(
-                          theme.palette.primary.main,
-                          0.7
-                        )}`,
-                      }}
-                    />
-                  </Box>
+                   {/* Indicateur de progression (décoratif) */}
+                   <Box sx={{ width: '60%', height: '4px', background: alpha(step.gradient.split(' ')[2].split(',')[0], 0.3), borderRadius: '2px', mt: 3, position: 'relative', overflow: 'hidden' }}>
+                      <motion.div
+                        initial={{ width: '0%' }}
+                        animate={controls}
+                        variants={{
+                          visible: { width: '100%', transition: { delay: step.delay + 0.6, duration: 1 } }
+                        }}
+                        style={{ height: '100%', background: step.gradient, position: 'absolute', top: 0, left: 0 }}
+                      />
+                   </Box>
                 </Card>
               </motion.div>
             </Grid>
@@ -1044,7 +886,7 @@ const HowItWorks = () => {
   );
 };
 
-// Section Avantages
+// --- Section Avantages (Refonte Futuriste) --- //
 const Benefits = () => {
   const theme = useTheme();
   const controls = useAnimation();
@@ -1061,40 +903,40 @@ const Benefits = () => {
 
   const benefits = [
     {
-      icon: <ScienceIcon />,
-      title: "Zéro compétence technique requise",
-      description: "Notre interface intuitive vous guide pas à pas, du téléchargement initial au modèle fine-tuné prêt à l'emploi.",
-      color: "#7928CA",
+      icon: <ScienceIcon sx={{ fontSize: 35 }} />,
+      title: "Simplicité Radicale",
+      description: "Interface drag-and-drop. Zéro ligne de code. Focalisez sur votre contenu, pas la technique.",
+      color: "#00d4ff", // Cyan
     },
     {
-      icon: <DatasetIcon />,
-      title: "Datasets de qualité supérieure",
-      description: "Notre technologie génère des paires Q/R optimisées pour l'apprentissage, améliorant significativement les performances de votre IA.",
-      color: "#00C6FF", 
+      icon: <DatasetIcon sx={{ fontSize: 35 }}/>,
+      title: "Qualité de Données Pro",
+      description: "Génération automatique de datasets Q/R optimisés pour une performance IA maximale.",
+      color: "#a18cd1", // Mauve
     },
     {
-      icon: <SmartToyIcon />,
-      title: "Modèles de pointe",
-      description: "Compatibilité native avec les modèles de OpenAI et Anthropic, constamment mis à jour avec les dernières innovations.",
-      color: "#FF5E62",
+      icon: <SmartToyIcon sx={{ fontSize: 35 }}/>,
+      title: "Modèles IA de Pointe",
+      description: "Accès direct aux dernières versions OpenAI et Anthropic (Claude).",
+      color: "#fbc2eb", // Rose pâle
     },
     {
-      icon: <CloudUploadIcon />,
-      title: "Traitement multiformat",
-      description: "Support natif pour documents PDF, vidéos YouTube, sites web, et textes bruts sans prétraitement manuel.",
-      color: "#59C173",
+      icon: <CloudUploadIcon sx={{ fontSize: 35 }}/>,
+      title: "Polyvalence Totale",
+      description: "PDF, YouTube, Sites Web, Texte... Importez n'importe quel format sans effort.",
+      color: "#84fab0", // Vert pâle
     },
     {
-      icon: <ChatIcon />,
-      title: "Chat intégré & API",
-      description: "Testez votre modèle instantanément via notre interface de chat ou intégrez-le à vos applications via API.",
-      color: "#5D26C1",
+      icon: <ChatIcon sx={{ fontSize: 35 }}/>,
+      title: "Test & Intégration Faciles",
+      description: "Validez votre IA via chat intégré ou déployez-la via notre API robuste.",
+      color: "#ff9a8b", // Orange/Rose
     },
     {
-      icon: <CheckCircleIcon />,
-      title: "Conformité & sécurité",
-      description: "Vos données sont traitées avec les plus hauts standards de sécurité et de confidentialité. Aucun partage avec des tiers.",
-      color: "#0072FF",
+      icon: <CheckCircleIcon sx={{ fontSize: 35 }}/>,
+      title: "Sécurité & Confidentialité",
+      description: "Vos données restent vôtres. Chiffrement et conformité RGPD garantis.",
+      color: "#5ee7df", // Turquoise
     },
   ];
 
@@ -1102,265 +944,192 @@ const Benefits = () => {
     <Box
       ref={ref}
       sx={{
-        py: { xs: 10, md: 16 },
+        py: { xs: 12, md: 20 },
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: 'background.default',
+        background: `linear-gradient(rgba(3, 0, 30, 0.97), rgba(3, 0, 30, 0.97)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M50 0 L100 50 L50 100 L0 50 Z" fill="rgba(255, 255, 255, 0.01)"/></svg>')`,
+        backgroundSize: 'auto, 150px 150px',
       }}
     >
-      {/* Futuristic circuit board background */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          opacity: 0.03,
-          zIndex: 0,
-          backgroundImage: (theme) =>
-            theme.palette.mode === 'dark'
-              ? "url(\"data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M11 18a7 7 0 100-14 7 7 0 000 14zm48 25a7 7 0 100-14 7 7 0 000 14zm-43-7a3 3 0 100-6 3 3 0 000 6zm63 31a3 3 0 100-6 3 3 0 000 6zM34 90a3 3 0 100-6 3 3 0 000 6zm56-76a3 3 0 100-6 3 3 0 000 6zM12 86a4 4 0 100-8 4 4 0 000 8zm28-65a4 4 0 100-8 4 4 0 000 8zm23-11a5 5 0 100-10 5 5 0 000 10zm-6 60a4 4 0 100-8 4 4 0 000 8zm29 22a5 5 0 100-10 5 5 0 000 10zM32 63a5 5 0 100-10 5 5 0 000 10zm57-13a5 5 0 100-10 5 5 0 000 10zm-9-21a2 2 0 100-4 2 2 0 000 4zM60 91a2 2 0 100-4 2 2 0 000 4zM35 41a2 2 0 100-4 2 2 0 000 4zM12 60a2 2 0 100-4 2 2 0 000 4z'/%3E%3C/svg%3E\")"
-              : "url(\"data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M11 18a7 7 0 100-14 7 7 0 000 14zm48 25a7 7 0 100-14 7 7 0 000 14zm-43-7a3 3 0 100-6 3 3 0 000 6zm63 31a3 3 0 100-6 3 3 0 000 6zM34 90a3 3 0 100-6 3 3 0 000 6zm56-76a3 3 0 100-6 3 3 0 000 6zM12 86a4 4 0 100-8 4 4 0 000 8zm28-65a4 4 0 100-8 4 4 0 000 8zm23-11a5 5 0 100-10 5 5 0 000 10zm-6 60a4 4 0 100-8 4 4 0 000 8zm29 22a5 5 0 100-10 5 5 0 000 10zM32 63a5 5 0 100-10 5 5 0 000 10zm57-13a5 5 0 100-10 5 5 0 000 10zm-9-21a2 2 0 100-4 2 2 0 000 4zM60 91a2 2 0 100-4 2 2 0 000 4zM35 41a2 2 0 100-4 2 2 0 000 4zM12 60a2 2 0 100-4 2 2 0 000 4z'/%3E%3C/svg%3E\")",
-        }}
-      />
-
-      {/* Glowing orbs */}
-      <Box
-        component={motion.div}
-        animate={{
-          y: [0, -20, 0],
-          opacity: [0.3, 0.5, 0.3],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          repeatType: 'reverse',
-        }}
-        sx={{
-          position: 'absolute',
-          top: '10%',
-          right: '10%',
-          width: { xs: 150, md: 300 },
-          height: { xs: 150, md: 300 },
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0, 198, 255, 0.15) 0%, rgba(0, 198, 255, 0) 70%)',
-          filter: 'blur(40px)',
-          zIndex: 0,
-        }}
-      />
-
-      <Box
-        component={motion.div}
-        animate={{
-          y: [0, 20, 0],
-          opacity: [0.3, 0.5, 0.3],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          repeatType: 'reverse',
-          delay: 2,
-        }}
-        sx={{
-          position: 'absolute',
-          bottom: '10%',
-          left: '10%',
-          width: { xs: 150, md: 300 },
-          height: { xs: 150, md: 300 },
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(121, 40, 202, 0.15) 0%, rgba(121, 40, 202, 0) 70%)',
-          filter: 'blur(40px)',
-          zIndex: 0,
-        }}
-      />
+       {/* Vagues lumineuses animées */}
+       <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: 0 }}>
+          <motion.svg 
+            width="100%" 
+            height="100%" 
+            viewBox="0 0 1440 800" 
+            preserveAspectRatio="xMidYMid slice"
+            style={{ position: 'absolute', top: 0, left: 0 }}
+          >
+            <defs>
+              <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={alpha('#00d4ff', 0.3)} />
+                <stop offset="100%" stopColor={alpha('#bf00ff', 0.3)} />
+              </linearGradient>
+              <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={alpha('#bf00ff', 0.2)} />
+                <stop offset="100%" stopColor={alpha('#00d4ff', 0.2)} />
+              </linearGradient>
+            </defs>
+            <motion.path 
+              fill="none" 
+              stroke="url(#waveGradient1)"
+              strokeWidth="2"
+              initial={{ pathLength: 0, pathOffset: 1 }}
+              animate={{ pathLength: 1, pathOffset: 0 }}
+              transition={{ duration: 3, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+              d="M0,400 Q360,300 720,400 T1440,400"
+              style={{ filter: 'blur(2px)' }}
+            />
+            <motion.path 
+              fill="none" 
+              stroke="url(#waveGradient2)"
+              strokeWidth="3"
+              initial={{ pathLength: 0, pathOffset: 1 }}
+              animate={{ pathLength: 1, pathOffset: 0 }}
+              transition={{ duration: 4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut", delay: 0.5 }}
+              d="M0,450 Q360,550 720,450 T1440,450"
+              style={{ filter: 'blur(3px)' }}
+            />
+          </motion.svg>
+       </Box>
 
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-        <Box sx={{ mb: 10, textAlign: 'center' }}>
-          <motion.div
+        <Box sx={{ mb: 12, textAlign: 'center' }}>
+           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={controls}
-            variants={{
-              visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-            }}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } }}
           >
             <Typography
               variant="h6"
               component="p"
               sx={{
-                color: 'primary.main',
-                fontWeight: 600,
-                textTransform: 'uppercase',
+                color: "#bf00ff", // Violet néon
+                fontWeight: 700,
+                textTransform: "uppercase",
                 mb: 2,
-                letterSpacing: 1,
+                letterSpacing: 2,
+                textShadow: '0 0 10px #bf00ff',
               }}
             >
-              Pourquoi nous choisir
+              Votre Avantage Compétitif
             </Typography>
           </motion.div>
-
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={controls}
-            variants={{
-              visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.1 } },
-            }}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.1 } } }}
           >
             <Typography
-              variant="h3"
+              variant="h2"
               component="h2"
               sx={{
-                fontWeight: 800,
-                mb: 2,
-                background: 'linear-gradient(90deg, #7928CA, #00C6FF)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontFamily: "'Orbitron', sans-serif",
+                fontWeight: 900,
+                mb: 3,
+                background: 'linear-gradient(145deg, #00d4ff, #bf00ff)',
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                fontFamily: "'Exo 2', sans-serif",
+                textShadow: '0 0 20px rgba(0, 212, 255, 0.4)',
               }}
             >
-              Avantages de notre plateforme
+              Pourquoi FinTune Domine
             </Typography>
-          </motion.div>
-
+           </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={controls}
-            variants={{
-              visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.2 } },
-            }}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.2 } } }}
           >
             <Typography
-              variant="subtitle1"
+              variant="h6"
               color="text.secondary"
               sx={{
-                maxWidth: 650,
+                maxWidth: 700,
                 mx: 'auto',
                 fontSize: '1.1rem',
-                lineHeight: 1.7,
+                lineHeight: 1.8,
+                color: alpha(theme.palette.text.secondary, 0.8),
               }}
             >
-              Transformez vos contenus en assistants IA performants avec une facilité sans précédent grâce à notre technologie de pointe.
+              Allez au-delà des chatbots génériques. Créez une IA qui connaît VRAIMENT votre métier, vos produits, vos clients.
             </Typography>
-          </motion.div>
+           </motion.div>
         </Box>
 
         <Grid container spacing={4}>
           {benefits.map((benefit, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={controls}
                 variants={{
                   visible: {
                     opacity: 1,
-                    y: 0,
+                    scale: 1,
                     transition: {
-                      duration: 0.7,
+                      duration: 0.8,
                       delay: 0.2 + index * 0.1,
+                      ease: [0.16, 1, 0.3, 1],
                     },
                   },
                 }}
+                whileHover={{ scale: 1.05, zIndex: 10 }}
+                transition={{ type: "spring", stiffness: 250 }}
+                style={{ height: '100%' }}
               >
                 <Card
                   sx={{
                     height: '100%',
+                    p: 3.5,
+                    borderRadius: '20px',
                     position: 'relative',
                     overflow: 'hidden',
-                    borderRadius: 4,
-                    background: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? alpha(theme.palette.background.paper, 0.8)
-                        : alpha(theme.palette.background.paper, 0.9),
-                    backdropFilter: 'blur(10px)',
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    transition: 'transform 0.3s, box-shadow 0.3s',
-                    boxShadow: `0 10px 25px ${alpha(theme.palette.common.black, 0.1)}`,
+                    background: `linear-gradient(145deg, ${alpha(theme.palette.background.paper, 0.7)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+                    backdropFilter: 'blur(12px)',
+                    border: `1px solid ${alpha(benefit.color, 0.3)}`,
+                    boxShadow: `0 8px 30px ${alpha(theme.palette.common.black, 0.2)}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: `0 15px 30px ${alpha(theme.palette.common.black, 0.15)}`,
-                    },
+                      borderColor: alpha(benefit.color, 0.8),
+                      boxShadow: `0 0 25px ${alpha(benefit.color, 0.4)}, 0 12px 40px ${alpha(theme.palette.common.black, 0.3)}`,
+                    }
                   }}
                 >
-                  {/* Glowing circle background for icon */}
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 20,
-                      left: 20,
-                      width: 60,
-                      height: 60,
-                      borderRadius: '50%',
-                      background: `radial-gradient(circle, ${alpha(benefit.color, 0.2)} 0%, ${alpha(
-                        benefit.color,
-                        0
-                      )} 70%)`,
-                      filter: `blur(10px)`,
-                      zIndex: 0,
-                    }}
-                  />
-
-                  <CardContent sx={{ p: 4, pt: 5 }}>
-                    <Box
+                  {/* Icone néon */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5 }}>
+                    <Avatar
                       sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        mb: 3,
+                        bgcolor: alpha(benefit.color, 0.15),
+                        color: benefit.color,
+                        width: 52,
+                        height: 52,
+                        mr: 2,
+                        boxShadow: `0 0 15px ${alpha(benefit.color, 0.5)}`,
                       }}
                     >
-                      <Avatar
-                        sx={{
-                          bgcolor: alpha(benefit.color, 0.15),
-                          color: benefit.color,
-                          width: 56,
-                          height: 56,
-                          boxShadow: `0 0 20px ${alpha(benefit.color, 0.4)}`,
-                          zIndex: 1,
-                        }}
-                      >
-                        {benefit.icon}
-                      </Avatar>
-                      
-                      {/* Horizontal line extending from icon */}
-                      <Box
-                        component={motion.div}
-                        initial={{ scaleX: 0, originX: 0 }}
-                        animate={controls}
-                        variants={{
-                          visible: {
-                            scaleX: 1,
-                            transition: {
-                              duration: 0.8,
-                              delay: 0.4 + index * 0.1,
-                            },
-                          },
-                        }}
-                        sx={{
-                          height: '2px',
-                          background: `linear-gradient(90deg, ${benefit.color}, transparent)`,
-                          width: '100%',
-                          ml: 2,
-                          opacity: 0.5,
-                        }}
-                      />
-                    </Box>
-
+                      {benefit.icon}
+                    </Avatar>
                     <Typography
                       variant="h6"
                       component="h3"
-                      gutterBottom
                       sx={{
                         fontWeight: 700,
-                        mb: 1.5,
                         color: 'text.primary',
                       }}
                     >
                       {benefit.title}
                     </Typography>
+                  </Box>
 
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-                      {benefit.description}
-                    </Typography>
-                  </CardContent>
+                  <Typography variant="body1" sx={{ color: alpha(theme.palette.text.secondary, 0.9), flexGrow: 1 }}>
+                    {benefit.description}
+                  </Typography>
+
+                  {/* Ligne décorative */}
+                  <Box sx={{ height: '2px', background: `linear-gradient(90deg, ${alpha(benefit.color, 0.5)}, transparent)`, mt: 2.5, width: '70%' }} />
                 </Card>
               </motion.div>
             </Grid>
@@ -1371,78 +1140,111 @@ const Benefits = () => {
   );
 };
 
-// Section CTA
+// --- Section CTA (Refonte Futuriste) --- //
 const CTA = () => {
+  const theme = useTheme();
+  const controls = useAnimation();
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
+
+  useEffect(() => {
+    if (inView) controls.start('visible');
+  }, [controls, inView]);
+
   return (
     <Box
+      ref={ref}
       sx={{
-        py: { xs: 8, md: 12 },
-        backgroundColor: 'background.paper',
+        py: { xs: 10, md: 16 },
         position: 'relative',
         overflow: 'hidden',
+        background: `linear-gradient(to bottom, ${alpha("#03001e", 1)}, ${alpha("#0a043c", 1)})`,
       }}
     >
-      {/* Background gradient */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: (theme) => 
-            theme.palette.mode === 'dark'
-              ? 'radial-gradient(circle at 70% 50%, rgba(59, 130, 246, 0.15) 0%, rgba(0, 0, 0, 0) 70%)'
-              : 'radial-gradient(circle at 70% 50%, rgba(59, 130, 246, 0.1) 0%, rgba(255, 255, 255, 0) 70%)',
-          zIndex: 0,
-        }}
-      />
+       {/* Effet de grille laser animée */}
+       <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: 0 }}>
+         <motion.div 
+            style={{ position: 'absolute', inset: 0 }}
+            animate={{
+              backgroundPosition: ["0% 0%", "100% 100%"],
+            }}
+            transition={{ 
+              duration: 20,
+              repeat: Infinity,
+              repeatType: 'reverse',
+              ease: 'linear'
+            }}
+          > 
+            <Box sx={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `
+                linear-gradient(to right, ${alpha('#00d4ff', 0.1)} 1px, transparent 1px),
+                linear-gradient(to bottom, ${alpha('#00d4ff', 0.1)} 1px, transparent 1px)
+              `,
+              backgroundSize: '50px 50px',
+              maskImage: 'radial-gradient(ellipse at center, white 30%, transparent 70%)',
+            }} />
+            <Box sx={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `
+                linear-gradient(to right, ${alpha('#bf00ff', 0.1)} 1px, transparent 1px),
+                linear-gradient(to bottom, ${alpha('#bf00ff', 0.1)} 1px, transparent 1px)
+              `,
+              backgroundSize: '70px 70px',
+              maskImage: 'radial-gradient(ellipse at center, white 40%, transparent 80%)',
+              animation: 'grid-pan 15s linear infinite reverse' // Animation CSS pour le déplacement
+            }} />
+         </motion.div>
+       </Box>
 
       <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          initial="hidden"
+          animate={controls}
+          variants={{
+            hidden: { opacity: 0, scale: 0.8 },
+            visible: { opacity: 1, scale: 1, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
+          }}
         >
           <Box
             sx={{
               textAlign: 'center',
-              p: { xs: 4, md: 6 },
-              borderRadius: 4,
-              border: '1px solid',
-              borderColor: 'divider',
-              backgroundColor: (theme) => 
-                theme.palette.mode === 'dark'
-                  ? 'rgba(30, 41, 59, 0.7)'
-                  : 'rgba(255, 255, 255, 0.7)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: (theme) => 
-                theme.palette.mode === 'dark'
-                  ? '0 16px 40px rgba(0, 0, 0, 0.3)'
-                  : '0 16px 40px rgba(0, 0, 0, 0.1)',
+              p: { xs: 5, md: 8 },
+              borderRadius: '24px',
+              position: 'relative',
+              background: `linear-gradient(145deg, ${alpha(theme.palette.background.paper, 0.8)}, ${alpha(theme.palette.background.paper, 0.6)})`,
+              backdropFilter: 'blur(15px)',
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+              boxShadow: `0 15px 50px ${alpha(theme.palette.common.black, 0.3)}`,
             }}
           >
             <Typography
-              variant="h3"
+              variant="h2"
               component="h2"
-              sx={{ 
-                fontWeight: 700,
-                mb: 2,
+              sx={{
+                fontWeight: 900,
+                mb: 3,
+                background: 'linear-gradient(145deg, #bf00ff, #00d4ff)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontFamily: "'Exo 2', sans-serif",
+                textShadow: '0 0 15px rgba(191, 0, 255, 0.4)',
               }}
             >
-              Prêt à créer votre modèle d'IA ?
+              Prêt à Augmenter Votre Potentiel IA ?
             </Typography>
             <Typography
               variant="h6"
-              color="text.secondary"
-              sx={{ 
-                mb: 4,
+              sx={{
+                mb: 5,
                 maxWidth: 600,
                 mx: 'auto',
+                color: alpha(theme.palette.text.secondary, 0.9),
+                lineHeight: 1.7,
               }}
             >
-              Commencez gratuitement et découvrez la puissance du fine-tuning personnalisé
+              Rejoignez la révolution du fine-tuning. Créez votre premier assistant IA personnalisé en quelques minutes.
             </Typography>
             <Button
               component={RouterLink}
@@ -1450,21 +1252,30 @@ const CTA = () => {
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIcon />}
-              sx={{ 
-                py: 1.8,
-                px: 4,
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                borderRadius: 3,
-                boxShadow: '0 8px 20px rgba(59, 130, 246, 0.3)',
+              sx={{
+                py: 2.5,
+                px: 6,
+                fontSize: '1.3rem',
+                fontWeight: 700,
+                borderRadius: '50px',
+                background: 'linear-gradient(45deg, #bf00ff, #00d4ff)',
+                color: 'white',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                boxShadow: '0 10px 30px rgba(191, 0, 255, 0.4)',
+                transition: 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)',
                 '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: '0 12px 24px rgba(59, 130, 246, 0.4)',
-                }
+                  transform: 'translateY(-5px) scale(1.05)',
+                  boxShadow: '0 15px 35px rgba(0, 212, 255, 0.5)',
+                  background: 'linear-gradient(45deg, #00d4ff, #bf00ff)',
+                },
               }}
             >
-              Commencer maintenant
+              Lancez Votre Projet IA
             </Button>
+             <Typography variant="caption" sx={{ display: 'block', mt: 2.5, color: alpha(theme.palette.text.secondary, 0.7) }}>
+               Essai gratuit disponible. Libérez la puissance de vos données.
+             </Typography>
           </Box>
         </motion.div>
       </Container>
@@ -1475,7 +1286,7 @@ const CTA = () => {
 const LandingPage = () => {
   return (
     <PageTransition>
-      <Box sx={{ minHeight: '100vh' }}>
+      <Box sx={{ minHeight: '100vh', background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)` }}>
         <Navbar />
         <Hero />
         <HowItWorks />

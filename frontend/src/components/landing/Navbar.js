@@ -20,7 +20,6 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
 import { motion } from 'framer-motion';
-import ThemeToggle from '../common/ThemeToggle';
 
 // Animation pour le logo
 const logoVariants = {
@@ -226,7 +225,6 @@ const Navbar = () => {
               {/* Menu mobile */}
               {isMobile && (
                 <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
-                  <ThemeToggle />
                   <IconButton
                     color="inherit"
                     aria-label="open drawer"
@@ -270,7 +268,6 @@ const Navbar = () => {
                     ))}
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <ThemeToggle />
                     <motion.div
                       custom={4}
                       initial="hidden"
