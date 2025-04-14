@@ -28,28 +28,52 @@ def split_text_into_chunks(text, chunk_size=CHUNK_SIZE):
         return []
     return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
 
-@shared_task(name="generate_dataset")
-def generate_dataset(dataset_id: int):
+@shared_task(name="generate_dataset", bind=True, max_retries=5, default_retry_delay=60)
+def generate_dataset(self, dataset_id: int):
     """
     Generate a dataset from selected contents.
+    Waits for all contents to be 'completed' before proceeding.
+    Reads processed text directly from the database.
     """
     logger.info(f"Generating dataset {dataset_id}")
     
-    # Create a new database session
     db = SessionLocal()
     
     try:
-        # Get the dataset from the database
         dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
         
         if not dataset:
             logger.error(f"Dataset {dataset_id} not found")
             return {"status": "error", "message": "Dataset not found"}
         
-        # Update dataset status to processing
-        dataset.status = "processing"
-        dataset.started_at = datetime.now().isoformat()
-        db.commit()
+        # --- NOUVEAU: Vérifier si les contenus sont prêts ---
+        dataset_contents_assoc = db.query(DatasetContent).filter(DatasetContent.dataset_id == dataset_id).all()
+        content_ids = [dc.content_id for dc in dataset_contents_assoc]
+        contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
+
+        pending_contents = [c for c in contents if c.status not in ['completed', 'error']]
+
+        if pending_contents:
+            pending_ids = [c.id for c in pending_contents]
+            logger.warning(f"Dataset {dataset_id}: Contents {pending_ids} are not yet completed. Retrying in {self.default_retry_delay}s...")
+            try:
+                # Renvoyer la tâche dans la file d'attente pour réessayer plus tard
+                self.retry(countdown=self.default_retry_delay)
+            except self.MaxRetriesExceededError:
+                 logger.error(f"Max retries exceeded for dataset {dataset_id}. Contents {pending_ids} never completed.")
+                 dataset.status = "error"
+                 dataset.error_message = f"Contents {pending_ids} did not complete processing."
+                 db.commit()
+                 return {"status": "error", "message": f"Contents {pending_ids} did not complete processing."}
+            # Important: arrêter l'exécution ici pour cette tentative
+            return {"status": "waiting", "message": f"Waiting for contents {pending_ids} to complete."}
+        # --- FIN NOUVEAU: Vérification des contenus ---
+
+        # Mettre à jour le statut seulement si on commence réellement le traitement
+        if dataset.status != "processing":
+            dataset.status = "processing"
+            dataset.started_at = datetime.now().isoformat()
+            db.commit()
         
         # Important: Import the model classes here to avoid circular imports
         from app.models.dataset import DatasetContent
@@ -82,24 +106,23 @@ def generate_dataset(dataset_id: int):
         # Track total pairs generated
         total_pairs = 0
         
-        # Process each content
+        # Process each content (maintenant qu'on sait qu'ils sont 'completed')
         for content in contents:
+            # Ignorer les contenus en erreur
+            if content.status == 'error':
+                logger.warning(f"Skipping content {content.id} due to previous error: {content.error_message}")
+                continue
+
             logger.info(f"Processing content {content.id}: {content.name}")
             
             try:
-                # Extract text based on content type
-                text = None
-                if content.type in ["text", "pdf"] and content.file_path:
-                    text = content_processor.extract_text_from_file(content.file_path, content.type)
-                elif content.type == "youtube" and content.url:
-                    text = content_processor.extract_text_from_youtube(content.url)
-                else:
-                    logger.warning(f"Unsupported content type or missing data: {content.type}")
-                    continue
+                # --- MODIFIÉ: Lire le texte depuis la BDD ---
+                text = content.content # Lire directement le texte transcrit/extrait
                 
                 if not text:
-                    logger.warning(f"No text extracted from content {content.id}")
+                    logger.warning(f"No text found in content {content.id} (status: {content.status})")
                     continue
+                # --- FIN MODIFICATION ---
                 
                 # Split text into chunks
                 chunks = split_text_into_chunks(text)
@@ -200,45 +223,44 @@ def generate_dataset(dataset_id: int):
         
         logger.info(f"Dataset {dataset_id} generated successfully with {total_pairs} pairs")
         
-        # Créer automatiquement un fine-tuning pour ce dataset
-        try:
-            from app.models.fine_tuning import FineTuning
-            from celery_app import celery_app
+        # --- MODIFIÉ: Déclencher le Fine-Tuning seulement si le statut est 'ready' ---
+        if dataset.status == "ready":
+            try:
+                from app.models.fine_tuning import FineTuning
+                from celery_app import celery_app
+                
+                # Vérifier s'il y a déjà un fine-tuning en attente pour ce dataset
+                existing_fine_tuning = db.query(FineTuning).filter(
+                    FineTuning.dataset_id == dataset_id,
+                    FineTuning.status == "pending" # Statut mis lors de l'onboarding
+                ).first()
+
+                if existing_fine_tuning:
+                     # Vérifier si l'utilisateur a une clé API pour le provider du fine-tuning
+                    from app.models.api_key import ApiKey
+                    api_key = db.query(ApiKey).filter(
+                        ApiKey.user_id == dataset.user_id, # Assurez-vous d'avoir user_id sur le dataset
+                        ApiKey.provider == existing_fine_tuning.provider
+                    ).first()
+
+                    if api_key:
+                        logger.info(f"Dataset {dataset_id} is ready. Triggering pending fine-tuning {existing_fine_tuning.id}")
+                        # Mettre à jour le statut et envoyer la tâche
+                        existing_fine_tuning.status = "queued"
+                        db.commit()
+                        celery_app.send_task("start_fine_tuning", args=[existing_fine_tuning.id], queue='fine_tuning')
+                    else:
+                         logger.warning(f"Cannot start fine-tuning {existing_fine_tuning.id}: User {dataset.user_id} missing API key for provider {existing_fine_tuning.provider}")
+                         existing_fine_tuning.status = "error"
+                         existing_fine_tuning.error_message = f"User missing API key for provider {existing_fine_tuning.provider}"
+                         db.commit()
+                else:
+                    logger.info(f"No pending fine-tuning found for dataset {dataset_id}. Skipping auto-start.")
             
-            # Créer un fine-tuning avec des valeurs par défaut
-            fine_tuning = FineTuning(
-                name=f"Auto-generated fine-tuning for {dataset.name}",
-                description=f"Automatically created fine-tuning for dataset {dataset.name}",
-                model=dataset.model or "gpt-3.5-turbo",
-                provider="openai",  # Utilisation d'OpenAI par défaut
-                hyperparameters={"n_epochs": 3},  # Paramètres par défaut
-                status="queued",
-                dataset_id=dataset_id
-            )
-            
-            db.add(fine_tuning)
-            db.commit()
-            db.refresh(fine_tuning)
-            
-            # Démarrer le fine-tuning avec la tâche asynchrone
-            celery_app.send_task("start_fine_tuning", args=[fine_tuning.id])
-            
-            logger.info(f"Auto-created and started fine-tuning {fine_tuning.id} for dataset {dataset_id}")
-        
-        except Exception as e:
-            logger.error(f"Error auto-creating fine-tuning for dataset {dataset_id}: {str(e)}")
-            logger.error(traceback.format_exc())
-            # Continue anyway as the dataset generation succeeded
-        
-        # Mettre à jour le statut des contenus utilisés à "processed" s'ils sont encore en "processing"
-        try:
-            for content in contents:
-                if content.status == "processing":
-                    content.status = "processed"
-                    logger.info(f"Updated content {content.id} status from 'processing' to 'processed'")
-            db.commit()
-        except Exception as e:
-            logger.error(f"Error updating content statuses: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error auto-creating fine-tuning for dataset {dataset_id}: {str(e)}")
+                logger.error(traceback.format_exc())
+                # Continue anyway as the dataset generation succeeded
         
         return {"status": "success", "dataset_id": dataset_id, "pairs_count": total_pairs}
     
