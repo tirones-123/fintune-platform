@@ -1245,7 +1245,7 @@ const AdvantagesSection = () => {
 const AdvantageCard = ({ advantage, index, controls }) => {
   const theme = useTheme();
   return (
-    <Grid item xs={12} sm={6} md={advantages.length === 5 && index >= 3 ? 3 : (advantages.length === 5 ? 4 : 4) } > {/* Ajustement pour 5 éléments */}
+    <Grid item xs={12} sm={6} md={4} >
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={controls}
