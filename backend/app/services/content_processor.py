@@ -102,83 +102,82 @@ class ContentProcessor:
     
     def process_youtube_content(self, video_url: str) -> Tuple[Optional[str], Dict[str, Any]]:
         """
-        Process a YouTube video by extracting transcript and metadata using RapidAPI.
+        Process a YouTube video by extracting transcript and metadata.
+        Utilise le service Speech-to-Text AI de RapidAPI pour obtenir une transcription directe.
         """
         # Essayer d'abord avec l'API YouTube standard
         transcript = self.extract_text_from_youtube(video_url)
         metadata = self.get_youtube_metadata(video_url)
         
-        # Si l'API YouTube échoue, utiliser RapidAPI
+        # Si l'API YouTube échoue, utiliser RapidAPI Speech-to-Text
         if transcript is None:
             try:
+                # Extraire l'ID pour les logs
                 video_id = self._extract_youtube_id(video_url)
                 if not video_id:
                     logger.error(f"Impossible d'extraire l'ID de la vidéo YouTube: {video_url}")
                     return None, metadata
                 
-                # Appel à l'API RapidAPI YouTube Transcriptor
+                logger.info(f"Utilisation du service RapidAPI Speech-to-Text pour la vidéo {video_id}")
+                
                 import requests
+                import json
                 
-                # Construire l'URL exactement comme dans le snippet
-                url = f"https://youtube-transcriptor.p.rapidapi.com/transcript?video_id={video_id}&lang=en"
+                # Endpoint pour la transcription directe d'URL
+                url = "https://speech-to-text-ai.p.rapidapi.com/transcribe"
                 
-                headers = {
-                    "x-rapidapi-key": "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8",
-                    "x-rapidapi-host": "youtube-transcriptor.p.rapidapi.com"
+                # Paramètres de la requête
+                querystring = {
+                    "url": video_url,
+                    "lang": "fr",  # Préférer le français, retombera sur l'anglais si nécessaire
+                    "task": "transcribe"
                 }
                 
-                logger.info(f"Appel au service RapidAPI YouTube Transcriptor pour la vidéo {video_id}")
+                # En-têtes RapidAPI
+                headers = {
+                    "x-rapidapi-key": "9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8",
+                    "x-rapidapi-host": "speech-to-text-ai.p.rapidapi.com",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
                 
-                # Effectuer la requête
-                response = requests.get(url, headers=headers, timeout=30)
+                # Effectuer la requête POST
+                logger.info(f"Envoi de la requête de transcription pour {video_url}")
+                response = requests.post(url, headers=headers, params=querystring, data={})
                 
                 # Journaliser les détails de la réponse
                 logger.info(f"Statut de la réponse: {response.status_code}")
-                logger.info(f"Entêtes de la réponse: {dict(response.headers)}")
                 
                 if response.status_code == 200:
-                    # Journaliser le contenu brut pour debug
-                    content = response.text
-                    logger.info(f"Contenu brut reçu: {content[:100]}...")
-                    
                     try:
                         data = response.json()
-                        logger.info(f"Données JSON décodées avec succès: type={type(data)}")
                         
-                        # Si les données sont une liste non vide
-                        if isinstance(data, list) and len(data) > 0:
-                            first_item = data[0]
+                        # Extraire le texte transcrit
+                        if "text" in data and data["text"]:
+                            transcript = data["text"]
+                            logger.info(f"Transcription réussie via RapidAPI Speech-to-Text: {len(transcript)} caractères")
                             
-                            # Si la transcription est disponible
-                            if 'transcription' in first_item and isinstance(first_item['transcription'], list):
-                                transcript_segments = first_item['transcription']
-                                transcript = " ".join([segment.get('subtitle', '') for segment in transcript_segments])
-                                
-                                # Mettre à jour les métadonnées
-                                if not metadata:
-                                    metadata = {}
-                                
-                                # Récupérer les métadonnées additionnelles
-                                if 'lengthInSeconds' in first_item:
-                                    metadata['duration_seconds'] = int(first_item['lengthInSeconds'])
-                                if 'title' in first_item:
-                                    metadata['title'] = first_item['title']
-                                
-                                metadata['transcription_source'] = 'rapidapi_youtube_transcriptor'
-                                logger.info(f"Transcription réussie: {len(transcript)} caractères")
-                            else:
-                                logger.warning(f"Pas de transcription dans la réponse: {first_item}")
+                            # Mettre à jour les métadonnées
+                            if not metadata:
+                                metadata = {}
+                            
+                            metadata["transcription_source"] = "rapidapi_speech_to_text"
+                            
+                            # Si disponible, extraire la durée totale des chunks
+                            if "chunks" in data and data["chunks"]:
+                                total_duration = sum(chunk.get("duration", 0) for chunk in data["chunks"])
+                                if total_duration > 0:
+                                    metadata["duration_seconds"] = total_duration
                         else:
-                            logger.warning(f"Réponse vide ou format inattendu: {data}")
+                            logger.warning(f"Pas de transcription dans la réponse: {data}")
                     
                     except Exception as json_err:
                         logger.error(f"Erreur lors du traitement JSON: {str(json_err)}")
                 else:
                     logger.error(f"Erreur HTTP {response.status_code}: {response.text}")
-                    
+            
             except Exception as e:
                 import traceback
-                logger.error(f"Exception lors de l'appel RapidAPI: {str(e)}")
+                logger.error(f"Exception lors de l'appel RapidAPI Speech-to-Text: {str(e)}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
         
         # Si toutes les méthodes ont échoué, créer un transcript minimal
@@ -186,7 +185,7 @@ class ContentProcessor:
             transcript = f"[Aucune transcription disponible pour cette vidéo YouTube]"
             if not metadata:
                 metadata = {}
-            metadata['transcription_source'] = 'fallback_empty'
+            metadata["transcription_source"] = "fallback_empty"
         
         return transcript, metadata
     
