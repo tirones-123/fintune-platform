@@ -416,15 +416,11 @@ def transcribe_youtube_video(self, content_id: int):
                     if "chunks" in data and data["chunks"]:
                         total_duration = sum(chunk.get("duration", 0) for chunk in data["chunks"])
                         if total_duration > 0:
-                             content.content_metadata["duration_seconds"] = total_duration
-                             logger.info(f"Durée extraite des chunks: {total_duration} secondes")
+                            content.content_metadata["duration_seconds"] = total_duration
+                            logger.info(f"Durée extraite des chunks: {total_duration} secondes")
                 else:
                     logger.warning(f"RapidAPI n'a pas retourné de transcription: {data}")
                     raise Exception("RapidAPI n'a pas retourné de transcription.")
-        else:
-                logger.error(f"Erreur HTTP lors de l'appel RapidAPI: {response.status_code} - {response.text}")
-                raise Exception(f"Échec de l'appel RapidAPI: {response.status_code}")
-                
         except Exception as rapidapi_error:
             logger.error(f"Échec de la transcription via RapidAPI: {str(rapidapi_error)}")
             content.status = "error"
@@ -434,8 +430,8 @@ def transcribe_youtube_video(self, content_id: int):
             try:
                 self.retry(exc=rapidapi_error, countdown=60) # Réessayer après 60 secondes
             except self.MaxRetriesExceededError:
-                 logger.error(f"Nombre maximal de tentatives atteint pour la tâche {self.request.id}")
-                 return {"status": "error", "message": f"Échec final de la transcription RapidAPI après plusieurs tentatives: {str(rapidapi_error)}"}
+                logger.error(f"Nombre maximal de tentatives atteint pour la tâche {self.request.id}")
+                return {"status": "error", "message": f"Échec final de la transcription RapidAPI après plusieurs tentatives: {str(rapidapi_error)}"}
 
         # --- Fin Utilisation directe de RapidAPI ---
 
