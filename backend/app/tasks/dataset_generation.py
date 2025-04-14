@@ -64,18 +64,10 @@ def generate_dataset(self, dataset_id: int):
 
         if pending_contents:
             pending_ids = [c.id for c in pending_contents]
-            logger.warning(f"Dataset {dataset_id}: Contents {pending_ids} are not yet completed. Retrying in {self.default_retry_delay}s...")
-            try:
-                # Renvoyer la tâche dans la file d'attente pour réessayer plus tard
-                self.retry(countdown=self.default_retry_delay)
-            except self.MaxRetriesExceededError:
-                 logger.error(f"Max retries exceeded for dataset {dataset_id}. Contents {pending_ids} never completed.")
-                 dataset.status = "error"
-                 dataset.error_message = f"Contents {pending_ids} did not complete processing."
-                 db.commit()
-                 return {"status": "error", "message": f"Contents {pending_ids} did not complete processing."}
-            # Important: arrêter l'exécution ici pour cette tentative
-            return {"status": "waiting", "message": f"Waiting for contents {pending_ids} to complete."}
+            logger.warning(f"Dataset {dataset_id}: Contents {pending_ids} are not yet completed. Scheduling retry in {self.default_retry_delay}s...")
+            # Nous laissons l'exception de retry se propager - c'est Celery qui l'attrapera
+            # Note: ce code replanifie la tâche et arrête l'exécution actuelle
+            raise self.retry(countdown=self.default_retry_delay)
         # --- FIN NOUVEAU: Vérification des contenus ---
 
         # Mettre à jour le statut seulement si on commence réellement le traitement
