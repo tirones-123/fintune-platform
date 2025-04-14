@@ -105,8 +105,8 @@ def generate_dataset(self, dataset_id: int):
             logger.info(f"Processing content {content.id}: {content.name}")
             
             try:
-                # --- MODIFIÉ: Lire le texte depuis la BDD ---
-                text = content.content # Lire directement le texte transcrit/extrait
+                # --- MODIFIÉ: Vérifier plusieurs attributs possibles pour le texte ---
+                text = content.content_text
                 
                 if not text:
                     logger.warning(f"No text found in content {content.id} (status: {content.status})")

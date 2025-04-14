@@ -421,7 +421,7 @@ def transcribe_youtube_video(self, content_id: int):
                 else:
                     logger.warning(f"RapidAPI n'a pas retourné de transcription: {data}")
                     raise Exception("RapidAPI n'a pas retourné de transcription.")
-            else:
+        else:
                 logger.error(f"Erreur HTTP lors de l'appel RapidAPI: {response.status_code} - {response.text}")
                 raise Exception(f"Échec de l'appel RapidAPI: {response.status_code}")
                 
@@ -441,7 +441,7 @@ def transcribe_youtube_video(self, content_id: int):
 
         # Enregistrer la transcription si obtenue
         if transcript_text:
-            content.content = transcript_text
+            content.content_text = transcript_text
             content.status = "completed"
             content.processed_at = datetime.utcnow()
             

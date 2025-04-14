@@ -20,6 +20,7 @@ class Content(Base):
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    content_text = Column(Text, nullable=True)
     
     # Relationships - utilisez toujours des chaînes pour éviter les importations circulaires
     project = relationship("Project", back_populates="contents")

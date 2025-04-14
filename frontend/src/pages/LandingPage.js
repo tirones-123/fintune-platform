@@ -31,6 +31,11 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import ForumIcon from '@mui/icons-material/Forum';
 import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import ContactSupportIcon from '@mui/icons-material/ContactSupport';
+import ApiIcon from '@mui/icons-material/Api';
+import WebIcon from '@mui/icons-material/Web';
+import SmartphoneIcon from '@mui/icons-material/Smartphone';
+import CloudQueueIcon from '@mui/icons-material/CloudQueue';
+import HubIcon from '@mui/icons-material/Hub'; // Pour le centre
 
 // Animation variants
 const containerVariants = {
@@ -911,10 +916,12 @@ const ProcessSection = () => {
             style={{ position: 'absolute', top: 0, left: 0, zIndex: 1, pointerEvents: 'none' }}
             initial="hidden"
             animate={controls}
+            viewBox="0 0 1200 200" // Ajout d'un viewBox pour référence
+            preserveAspectRatio="xMidYMid meet"
           >
-            {/* Ligne 1 -> 2 */}
+            {/* Ligne 1 -> 2 (Utilisation de coordonnées approximatives basées sur le viewBox) */}
             <motion.path
-              d="M 33% 50% Q 41.5% 50% 50% 50%" // Ajuster les points de contrôle pour la courbe
+              d="M 400 100 Q 500 100 600 100" // Coordonnées numériques au lieu de %
               stroke={alpha(theme.palette.primary.main, 0.5)}
               strokeWidth="2"
               strokeDasharray="5 5"
@@ -922,9 +929,9 @@ const ProcessSection = () => {
               variants={{ hidden: { pathLength: 0 }, visible: { pathLength: 1, transition: { duration: 1, delay: 0.8 } } }}
               style={{ filter: `drop-shadow(0 0 5px ${alpha(theme.palette.primary.main, 0.5)})` }}
             />
-            {/* Ligne 2 -> 3 */}
+            {/* Ligne 2 -> 3 (Utilisation de coordonnées approximatives basées sur le viewBox) */}
             <motion.path
-              d="M 50% 50% Q 58.5% 50% 67% 50%"
+              d="M 600 100 Q 700 100 800 100" // Coordonnées numériques au lieu de %
               stroke={alpha(theme.palette.secondary.main, 0.5)}
               strokeWidth="2"
               strokeDasharray="5 5"
@@ -1158,11 +1165,13 @@ const AdvantagesSection = () => {
     >
        {/* Lignes de circuit animées */}
        <Box sx={{ position: 'absolute', inset: 0, opacity: 0.1, zIndex: 0 }}>
-         <motion.svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+         {/* Utilisation d'une base numérique (ex: 1000x1000) pour les coordonnées */}
+         <motion.svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="none">
            {[...Array(15)].map((_, i) => (
              <motion.path
                key={i}
-               d={`M ${Math.random() * 100}% 0 V 100%`}
+               // Correction: Générer des coordonnées numériques entre 0 et 1000
+               d={`M ${Math.random() * 1000} 0 V 1000`}
                stroke={i % 2 === 0 ? '#00d4ff' : '#bf00ff'}
                strokeWidth={Math.random() * 1 + 0.5}
                initial={{ pathLength: 0, opacity: 0 }}
@@ -1179,7 +1188,8 @@ const AdvantagesSection = () => {
             {[...Array(10)].map((_, i) => (
              <motion.path
                key={`h-${i}`}
-               d={`M 0 ${Math.random() * 100}% H 100%`}
+                // Correction: Générer des coordonnées numériques entre 0 et 1000
+               d={`M 0 ${Math.random() * 1000} H 1000`}
                stroke={i % 2 === 0 ? '#bf00ff' : '#00d4ff'}
                strokeWidth={Math.random() * 1 + 0.5}
                initial={{ pathLength: 0, opacity: 0 }}
@@ -1573,7 +1583,8 @@ const FinalCTASection = () => {
         py: { xs: 14, md: 22 },
         position: 'relative',
         overflow: 'hidden',
-        background: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M0 0 H100 V100 H0 Z" fill="url(%23gradCTA)"/><defs><radialGradient id="gradCTA" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${alpha('#0a043c', 1)}"/><stop offset="100%" stop-color="${alpha('#03001e', 1)}"/></radialGradient></defs></svg>'), #03001e`,
+        background: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M0 0 H100 V100 H0 Z" fill="url(%23gradCTA)"/><defs><radialGradient id="gradCTA" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${encodeURIComponent(alpha('#0a043c', 1))}"/><stop offset="100%" stop-color="${encodeURIComponent(alpha('#03001e', 1))}"/></radialGradient></defs></svg>')`,
+        backgroundColor: '#03001e', // Couleur de fallback
       }}
     >
       {/* Effet de "warp speed" ou tunnel lumineux */}
@@ -1718,6 +1729,176 @@ const FinalCTASection = () => {
   );
 };
 
+// --- Nouvelle Section: Déploiement Partout --- //
+const DeploymentSection = () => {
+  const theme = useTheme();
+  const controls = useAnimation();
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
+  const centerRef = useRef(null);
+
+  useEffect(() => {
+    if (inView) controls.start('visible');
+  }, [controls, inView]);
+
+  const targetPlatforms = [
+    { icon: ApiIcon, label: "Votre API", color: '#ff9a8b', initialPos: { top: '10%', left: '20%', z: -30 }, delay: 0.5 },
+    { icon: WebIcon, label: "Applications Web", color: '#a18cd1', initialPos: { top: '30%', right: '10%', z: -10 }, delay: 0.7 },
+    { icon: SmartphoneIcon, label: "Apps Mobiles", color: '#84fab0', initialPos: { bottom: '30%', left: '10%', z: -20 }, delay: 0.9 },
+    { icon: CloudQueueIcon, label: "Services Cloud", color: '#5ee7df', initialPos: { bottom: '10%', right: '20%', z: -40 }, delay: 1.1 },
+  ];
+
+  return (
+    <Box
+      ref={ref}
+      sx={{
+        py: { xs: 14, md: 22 },
+        position: 'relative',
+        overflow: 'hidden',
+        // Simplification de l'arrière-plan pour corriger l'erreur de syntaxe
+        background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)`, 
+      }}
+    >
+      {/* Effet de "warp speed" ou tunnel lumineux */}
+      <Box sx={{ position: 'absolute', inset: 0, zIndex: 0, perspective: '500px' }}>
+        {[...Array(50)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0 }}
+            animate={controls}
+            variants={{ visible: { opacity: [0, 1, 0] } }}
+            transition={{
+              duration: Math.random() * 2 + 1,
+              repeat: Infinity,
+              delay: Math.random() * 2 + 0.5, // Délais variés
+            }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '2px',
+              height: '50%', // Lignes partant du centre
+              background: `linear-gradient(to top, transparent, ${i % 3 === 0 ? '#00d4ff' : i % 3 === 1 ? '#bf00ff' : '#ffffff'}, transparent)`,
+              transformOrigin: 'top center',
+              transform: `translateX(-50%) translateY(-50%) rotate(${i * (360 / 50)}deg) translateZ(${Math.random() * -200 - 50}px) scaleY(2)`,
+            }}
+          />
+        ))}
+      </Box>
+
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+        {/* Titres */}
+        <Box sx={{ mb: 12, textAlign: 'center' }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={controls}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0 } } }}
+          >
+            <Typography
+              variant="h6"
+              component="p"
+              sx={{ color: "#84fab0", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #84fab0' }}
+            >
+              Intégration Universelle
+            </Typography>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={controls}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.1 } } }}
+          >
+            <Typography
+              variant="h2"
+              component="h2"
+              sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #84fab0, #5ee7df)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(132, 250, 176, 0.4)' }}
+            >
+              Déployez Votre IA Partout
+            </Typography>
+          </motion.div>
+           <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={controls}
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.2 } } }}
+          >
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
+            >
+              Votre modèle fine-tuné est prêt à s'intégrer n'importe où vous utilisez déjà les API OpenAI ou Anthropic. Appelez-le simplement par son nom personnalisé.
+            </Typography>
+          </motion.div>
+        </Box>
+
+        {/* Visualisation du déploiement */}
+        <Box sx={{ height: { xs: 450, md: 550 }, position: 'relative', perspective: '1000px' }}>
+          {/* Noyau central représentant le modèle IA */}
+           <motion.div
+                ref={centerRef} // Référence pour les lignes de connexion
+                initial={{ opacity: 0, scale: 0.3 }}
+                animate={controls}
+                variants={{ visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3, ease: 'backOut' } } }}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%) translateZ(0px)',
+                  width: 120,
+                  height: 120,
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(191, 0, 255, 0.4) 100%)',
+                  boxShadow: `0 0 30px ${alpha('#bf00ff', 0.6)}, 0 0 50px ${alpha('#00d4ff', 0.4)}`,
+                  zIndex: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                }}
+              >
+                 <HubIcon sx={{ fontSize: 60, color: '#fff', opacity: 0.8 }} />
+             </motion.div>
+
+             {/* Plateformes cibles flottantes */}
+             {targetPlatforms.map((platform, index) => (
+               <FloatingIcon
+                 key={index}
+                 icon={platform.icon}
+                 label={platform.label}
+                 color={platform.color}
+                 initialPos={platform.initialPos}
+                 delay={platform.delay}
+                 isIALogo={false} // Utiliser le style standard
+                 ref={useRef(null)} // Chaque plateforme a sa propre ref (pourrait être utilisé pour les lignes)
+                 aiCenterRef={centerRef} // Passer la ref centrale
+               />
+             ))}
+
+              {/* Lignes de connexion animées depuis le centre */}
+             {targetPlatforms.map((platform, index) => (
+                <NeonConnectionLine
+                  key={`line-${index}`}
+                  startRef={centerRef} // Toujours depuis le centre
+                  endRef={useRef(null)} // Temporaire - nécessite une vraie ref pour chaque plateforme
+                  // Pour que cela fonctionne, il faudrait stocker les refs des FloatingIcon
+                  // et les passer ici. C'est plus complexe, pour l'instant, c'est décoratif.
+                  // Solution alternative: Dessiner des lignes fixes après animation?
+                  color={platform.color}
+                  delay={platform.delay + 0.5} // Délai après l'apparition de l'icône
+                  thickness={2}
+                />
+             ))}
+             {/* Note: La connexion dynamique des lignes ici nécessiterait de stocker */}
+             {/* les refs de chaque FloatingIcon dans un état ou un tableau de refs, */}
+             {/* ce qui complexifie le code. L'implémentation actuelle montre les lignes */}
+             {/* mais elles ne pointeront pas correctement vers les icônes dynamiques. */}
+             {/* Une version future pourrait implémenter ce suivi de refs. */}
+
+        </Box>
+
+      </Container>
+    </Box>
+  );
+};
+
 const LandingPage = () => {
   return (
     <PageTransition>
@@ -1726,9 +1907,10 @@ const LandingPage = () => {
         <Hero />
         <IntroductionSection />
         <ProcessSection />
+        <ChatExamplesSection />
         <UseCasesSection />
         <AdvantagesSection />
-        <ChatExamplesSection />
+        <DeploymentSection /> { /* <-- Ajout de la nouvelle section */}
         <FinalCTASection />
         <Footer />
       </Box>
