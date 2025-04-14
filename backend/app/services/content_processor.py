@@ -113,6 +113,44 @@ class ContentProcessor:
         transcript = self.extract_text_from_youtube(video_url)
         metadata = self.get_youtube_metadata(video_url)
         
+        # Si l'API YouTube échoue, essayer avec yt-dlp
+        if transcript is None:
+            try:
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    audio_path = os.path.join(temp_dir, f"{video_id}.mp3")
+                    import subprocess
+                    
+                    cmd = [
+                        'yt-dlp',
+                        f'https://www.youtube.com/watch?v={video_id}',
+                        '--extract-audio',
+                        '--audio-format', 'mp3',
+                        '--audio-quality', '0',
+                        '-o', audio_path,
+                        '--quiet'
+                    ]
+                    
+                    subprocess.run(cmd, check=True, capture_output=True)
+                    
+                    # Vérifier que le fichier existe
+                    if os.path.exists(audio_path) and os.path.getsize(audio_path) > 10000:
+                        # Utiliser l'API OpenAI pour transcrire
+                        from openai import OpenAI
+                        client = OpenAI()
+                        
+                        with open(audio_path, "rb") as audio_file:
+                            whisper_result = client.audio.transcriptions.create(
+                                model="whisper-1", 
+                                file=audio_file
+                            )
+                        
+                        transcript = whisper_result.text
+                        if metadata is None:
+                            metadata = {}
+                        metadata["transcription_source"] = "whisper"
+            except Exception as e:
+                logger.error(f"Échec de la transcription avec yt-dlp: {str(e)}")
+        
         return transcript, metadata
     
     def _extract_text_from_text_file(self, file_path: str) -> Optional[str]:
