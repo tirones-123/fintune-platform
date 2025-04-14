@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Container, Typography, Button, Grid, Card, CardContent, Avatar, Stack, useTheme, alpha } from '@mui/material';
+import { Box, Container, Typography, Button, Grid, Card, CardContent, Avatar, Stack, useTheme, alpha, Chip, IconButton } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { motion, useScroll, useTransform, useSpring, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -36,6 +36,18 @@ import WebIcon from '@mui/icons-material/Web';
 import SmartphoneIcon from '@mui/icons-material/Smartphone';
 import CloudQueueIcon from '@mui/icons-material/CloudQueue';
 import HubIcon from '@mui/icons-material/Hub'; // Pour le centre
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import ElectricBoltIcon from '@mui/icons-material/ElectricBolt';
+import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import TwitterIcon from '@mui/icons-material/Twitter';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import LinkedInIcon from '@mui/icons-material/LinkedIn';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
+import ContactsIcon from '@mui/icons-material/Contacts';
+import SendIcon from '@mui/icons-material/Send';
+import HomeIcon from '@mui/icons-material/Home';
 
 // Animation variants
 const containerVariants = {
@@ -1315,8 +1327,8 @@ const AdvantageCard = ({ advantage, index, controls }) => {
 
 // --- Nouvelle Section: Exemples de Chat Animés --- //
 
-// Composant pour un seul message dans le chat
-const AnimatedChatMessage = ({ message, isUser, avatar, animationDelay }) => {
+// Composant pour un seul message dans le chat avec design amélioré
+const AnimatedChatMessage = ({ message, isUser, avatar, animationDelay, accentColor }) => {
   const theme = useTheme();
   const controls = useAnimation();
   const text = message;
@@ -1326,7 +1338,7 @@ const AnimatedChatMessage = ({ message, isUser, avatar, animationDelay }) => {
     visible: (i) => ({
       opacity: 1,
       transition: {
-        delay: i * 0.03, // Délai entre chaque caractère pour l'effet de frappe
+        delay: i * 0.02, // Délai entre chaque caractère pour l'effet de frappe (plus rapide)
       },
     }),
   };
@@ -1350,29 +1362,52 @@ const AnimatedChatMessage = ({ message, isUser, avatar, animationDelay }) => {
       <Box sx={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: isUser ? 'row-reverse' : 'row' }}>
           {avatar && (
-            <Avatar sx={{ bgcolor: isUser ? theme.palette.primary.main : theme.palette.secondary.main, width: 32, height: 32, m: 1 }}>
+            <Avatar 
+              sx={{ 
+                bgcolor: isUser ? alpha(theme.palette.primary.main, 0.8) : alpha(accentColor || theme.palette.secondary.main, 0.8), 
+                width: 36, 
+                height: 36, 
+                m: 1,
+                boxShadow: `0 2px 10px ${alpha(isUser ? theme.palette.primary.main : accentColor || theme.palette.secondary.main, 0.4)}`,
+                border: `2px solid ${alpha(isUser ? theme.palette.primary.main : accentColor || theme.palette.secondary.main, 0.3)}`,
+                fontWeight: 'bold',
+                fontSize: '0.9rem'
+              }}
+            >
               {avatar}
             </Avatar>
           )}
           <Box
             sx={{
-              p: 1.5,
-              borderRadius: '16px',
-              borderTopLeftRadius: isUser ? '16px' : '4px',
-              borderTopRightRadius: isUser ? '4px' : '16px',
-              maxWidth: '80%',
+              p: 2,
+              borderRadius: '18px',
+              borderTopLeftRadius: isUser ? '18px' : '4px',
+              borderTopRightRadius: isUser ? '4px' : '18px',
+              maxWidth: '85%',
               background: isUser
                 ? `linear-gradient(135deg, ${theme.palette.primary.main}, ${alpha(theme.palette.primary.dark, 0.8)})`
-                : alpha(theme.palette.background.paper, 0.6),
+                : `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.6)}, ${alpha(theme.palette.background.paper, 0.3)})`,
               color: isUser ? 'white' : 'text.primary',
               backdropFilter: !isUser ? 'blur(10px)' : 'none',
-              border: !isUser ? `1px solid ${alpha(theme.palette.divider, 0.2)}` : 'none',
+              border: !isUser ? `1px solid ${alpha(accentColor || theme.palette.divider, 0.2)}` : 'none',
               boxShadow: isUser
-                ? `0 4px 15px ${alpha(theme.palette.primary.main, 0.3)}`
-                : `0 4px 15px ${alpha(theme.palette.common.black, 0.2)}`,
+                ? `0 6px 20px ${alpha(theme.palette.primary.main, 0.4)}`
+                : `0 6px 20px ${alpha(theme.palette.common.black, 0.15)}`,
+              position: 'relative',
+              '&::after': !isUser ? {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: 'inherit',
+                border: `1px solid ${alpha(accentColor || theme.palette.secondary.main, 0.3)}`,
+                opacity: 0.6,
+              } : {},
             }}
           >
-            <Typography variant="body1" component="div" sx={{ wordBreak: 'break-word' }}>
+            <Typography variant="body1" component="div" sx={{ wordBreak: 'break-word', lineHeight: 1.5, fontWeight: !isUser ? 500 : 400 }}>
               {text.split("").map((char, index) => (
                 <motion.span key={index} custom={index} initial="hidden" animate={controls} variants={textVariants}>
                   {char}
@@ -1386,34 +1421,54 @@ const AnimatedChatMessage = ({ message, isUser, avatar, animationDelay }) => {
   );
 };
 
-// Composant pour un exemple de conversation complet
-const ChatExample = ({ title, Icon, messages, initialDelay }) => {
+// Composant pour un exemple de conversation complet avec design amélioré
+const ChatExample = ({ title, Icon, messages, initialDelay, accentColor }) => {
   const theme = useTheme();
   let cumulativeDelay = initialDelay;
 
   return (
     <Card
       sx={{
-        p: 3,
-        borderRadius: '20px',
+        p: 0,
+        borderRadius: '24px',
         height: '100%',
-        background: alpha(theme.palette.background.default, 0.5),
+        background: `linear-gradient(135deg, ${alpha(theme.palette.background.default, 0.5)}, ${alpha(theme.palette.background.default, 0.2)})`,
         backdropFilter: 'blur(12px)',
-        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-        boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.3)}`,
+        border: `1px solid ${alpha(accentColor || theme.palette.divider, 0.3)}`,
+        boxShadow: `0 10px 40px 0 ${alpha(theme.palette.common.black, 0.3)}, 0 0 20px ${alpha(accentColor || theme.palette.primary.main, 0.2)}`,
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        overflow: 'hidden'
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, color: 'primary.light' }}>
-        <Icon sx={{ mr: 1.5 }} />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>{title}</Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        p: 2.5, 
+        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        background: `linear-gradient(90deg, ${alpha(accentColor || theme.palette.primary.light, 0.1)}, transparent)`,
+      }}>
+        <Avatar sx={{ 
+          bgcolor: alpha(accentColor || theme.palette.primary.light, 0.2), 
+          color: accentColor || theme.palette.primary.light,
+          mr: 2,
+          boxShadow: `0 0 10px ${alpha(accentColor || theme.palette.primary.light, 0.3)}`
+        }}>
+          <Icon />
+        </Avatar>
+        <Typography variant="h6" sx={{ fontWeight: 600, color: alpha(theme.palette.text.primary, 0.9) }}>{title}</Typography>
       </Box>
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 1 }}>
+      <Box sx={{ 
+        flexGrow: 1, 
+        overflowY: 'auto', 
+        p: 2.5,
+        background: `radial-gradient(circle at center, ${alpha(accentColor || theme.palette.primary.main, 0.05)} 0%, transparent 70%)`,
+        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}` 
+      }}>
         {messages.map((msg, index) => {
           const delay = cumulativeDelay;
           // Estimer le temps d'animation basé sur la longueur du message + délai fixe
-          cumulativeDelay += (msg.text.length * 0.03) + (msg.isUser ? 1.0 : 1.5); // Plus de délai après réponse IA
+          cumulativeDelay += (msg.text.length * 0.02) + (msg.isUser ? 0.8 : 1.2); // Plus de délai après réponse IA
           return (
             <AnimatedChatMessage
               key={index}
@@ -1421,9 +1476,34 @@ const ChatExample = ({ title, Icon, messages, initialDelay }) => {
               isUser={msg.isUser}
               avatar={msg.avatar}
               animationDelay={delay}
+              accentColor={accentColor}
             />
           );
         })}
+      </Box>
+      <Box sx={{ 
+        p: 2, 
+        display: 'flex',
+        borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        background: alpha(theme.palette.background.paper, 0.3),
+      }}>
+        <Box sx={{ 
+          flexGrow: 1,
+          borderRadius: '50px',
+          border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+          p: 1,
+          pl: 2,
+          display: 'flex',
+          alignItems: 'center',
+          backgroundColor: alpha(theme.palette.background.default, 0.5)
+        }}>
+          <Typography variant="body2" sx={{ color: alpha(theme.palette.text.secondary, 0.6), flexGrow: 1 }}>
+            Votre message...
+          </Typography>
+          <IconButton size="small" sx={{ color: accentColor || theme.palette.primary.main }}>
+            <SendIcon fontSize="small" />
+          </IconButton>
+        </Box>
       </Box>
     </Card>
   );
@@ -1444,6 +1524,7 @@ const ChatExamplesSection = () => {
       title: "Michael Scott Bot (The Office)",
       Icon: TheaterComedyIcon,
       initialDelay: 0.5,
+      accentColor: '#fbc2eb', // Rose pour le côté fun
       messages: [
         { text: "Que penses-tu de ma présentation PowerPoint ?", isUser: true, avatar: 'U' },
         { text: "C'est... comment dire... C'est comme si PowerPoint avait rencontré un épisode de \"Threat Level Midnight\". Intense. Inoubliable. That's what she said!", isUser: false, avatar: 'MS' },
@@ -1455,17 +1536,19 @@ const ChatExamplesSection = () => {
       title: "Support Technique Personnalisé",
       Icon: ContactSupportIcon,
       initialDelay: 1.0, // Démarrer un peu après le premier
+      accentColor: '#84fab0', // Vert pour le côté assistance
       messages: [
         { text: "Bonjour, j'ai un problème avec l'API, erreur 403.", isUser: true, avatar: 'D' },
         { text: "Bonjour ! L'erreur 403 indique un souci d'authentification. Vérifiez que votre clé API est correcte et bien incluse dans l'en-tête 'Authorization: Bearer VOTRE_CLÉ'.", isUser: false, avatar: 'IA' },
         { text: "Ah oui, j'avais oublié le \"Bearer\". Merci !", isUser: true, avatar: 'D' },
-        { text: "Pas de problème ! N'hésitez pas si vous avez d'autres questions. L'important est de toujours vérifier les détails, comme Pam le fait avec mes notes de frais !", isUser: false, avatar: 'IA' } // Ton personnalisé
+        { text: "Pas de problème ! N'hésitez pas si vous avez d'autres questions. L'important est de toujours vérifier les détails, comme Pam le fait avec mes notes de frais !", isUser: false, avatar: 'IA' }
       ]
     },
     {
       title: "Assistant E-Learning Interactif",
       Icon: SchoolIcon,
-      initialDelay: 1.5, // Démarrer encore un peu après
+      initialDelay: 1.5,
+      accentColor: '#a18cd1', // Mauve pour l'éducation
       messages: [
         { text: "Peux-tu m'expliquer le concept de fine-tuning simplement ?", isUser: true, avatar: 'A' },
         { text: "Bien sûr ! Imagine un chef cuistot (le modèle de base). Le fine-tuning, c'est lui apprendre VOS recettes secrètes (vos données) pour qu'il cuisine exactement comme VOUS le voulez !", isUser: false, avatar: '🎓' },
@@ -1556,6 +1639,7 @@ const ChatExamplesSection = () => {
                     Icon={example.Icon}
                     messages={example.messages}
                     initialDelay={example.initialDelay}
+                    accentColor={example.accentColor}
                    />
                </motion.div>
              </Grid>
@@ -1737,18 +1821,45 @@ const DeploymentSection = () => {
   const centerRef = useRef(null);
   
   // Création des refs en dehors des callbacks
-  const platformRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
-  const connectionRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+  const platformRefs = Array(20).fill().map(() => useRef(null));
+  const connectionRefs = Array(20).fill().map(() => useRef(null));
 
   useEffect(() => {
     if (inView) controls.start('visible');
   }, [controls, inView]);
 
+  // Ajout de nombreuses plateformes organisées par catégories
   const targetPlatforms = [
-    { icon: ApiIcon, label: "Votre API", color: '#ff9a8b', initialPos: { top: '10%', left: '20%', z: -30 }, delay: 0.5 },
-    { icon: WebIcon, label: "Applications Web", color: '#a18cd1', initialPos: { top: '30%', right: '10%', z: -10 }, delay: 0.7 },
-    { icon: SmartphoneIcon, label: "Apps Mobiles", color: '#84fab0', initialPos: { bottom: '30%', left: '10%', z: -20 }, delay: 0.9 },
-    { icon: CloudQueueIcon, label: "Services Cloud", color: '#5ee7df', initialPos: { bottom: '10%', right: '20%', z: -40 }, delay: 1.1 },
+    // APIs & Web
+    { icon: ApiIcon, label: "API REST", color: '#ff9a8b', initialPos: { top: '10%', left: '20%', z: -30 }, delay: 0.5, category: 'API' },
+    { icon: WebIcon, label: "Applications Web", color: '#a18cd1', initialPos: { top: '25%', right: '15%', z: -10 }, delay: 0.7, category: 'Web' },
+    
+    // Automatisation / No-code
+    { icon: AutoFixHighIcon, label: "Make (Integromat)", color: '#84fab0', initialPos: { top: '45%', left: '8%', z: -20 }, delay: 0.9, category: 'Automatisation' },
+    { icon: ElectricBoltIcon, label: "Zapier", color: '#ff7eb3', initialPos: { bottom: '35%', right: '10%', z: -40 }, delay: 1.1, category: 'Automatisation' },
+    { icon: SettingsEthernetIcon, label: "n8n", color: '#5ee7df', initialPos: { top: '5%', right: '30%', z: -15 }, delay: 1.3, category: 'Automatisation' },
+    
+    // Appareils
+    { icon: SmartphoneIcon, label: "Apps Mobiles", color: '#fbc2eb', initialPos: { bottom: '15%', left: '25%', z: -35 }, delay: 1.2, category: 'Appareils' },
+    { icon: HomeIcon, label: "Objets Connectés", color: '#adda83', initialPos: { top: '60%', right: '20%', z: -45 }, delay: 1.4, category: 'Appareils' },
+    
+    // Cloud
+    { icon: CloudQueueIcon, label: "Services Cloud", color: '#00d4ff', initialPos: { bottom: '5%', right: '35%', z: -25 }, delay: 1.0, category: 'Cloud' },
+    
+    // Réseaux sociaux
+    { icon: FacebookIcon, label: "Facebook", color: '#1877f2', initialPos: { top: '20%', left: '7%', z: -50 }, delay: 1.5, category: 'Réseaux Sociaux' },
+    { icon: TwitterIcon, label: "Twitter", color: '#1da1f2', initialPos: { bottom: '25%', right: '22%', z: -30 }, delay: 1.6, category: 'Réseaux Sociaux' },
+    { icon: InstagramIcon, label: "Instagram", color: '#e1306c', initialPos: { top: '15%', right: '8%', z: -40 }, delay: 1.7, category: 'Réseaux Sociaux' },
+    { icon: LinkedInIcon, label: "LinkedIn", color: '#0077b5', initialPos: { bottom: '20%', left: '17%', z: -45 }, delay: 1.8, category: 'Réseaux Sociaux' },
+    
+    // Messageries
+    { icon: WhatsAppIcon, label: "WhatsApp", color: '#25d366', initialPos: { top: '35%', left: '15%', z: -15 }, delay: 1.9, category: 'Messageries' },
+    { icon: ChatIcon, label: "Slack", color: '#4a154b', initialPos: { top: '50%', right: '12%', z: -35 }, delay: 2.0, category: 'Messageries' },
+    { icon: ForumIcon, label: "Discord", color: '#5865f2', initialPos: { bottom: '45%', left: '12%', z: -20 }, delay: 2.1, category: 'Messageries' },
+    
+    // CRM
+    { icon: BusinessCenterIcon, label: "Salesforce", color: '#00a1e0', initialPos: { bottom: '10%', right: '15%', z: -30 }, delay: 2.2, category: 'CRM' },
+    { icon: ContactsIcon, label: "HubSpot", color: '#ff7a59', initialPos: { top: '55%', left: '25%', z: -25 }, delay: 2.3, category: 'CRM' },
   ];
 
   return (
@@ -1758,7 +1869,6 @@ const DeploymentSection = () => {
         py: { xs: 14, md: 22 },
         position: 'relative',
         overflow: 'hidden',
-        // Simplification de l'arrière-plan pour corriger l'erreur de syntaxe
         background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)`, 
       }}
     >
@@ -1828,13 +1938,13 @@ const DeploymentSection = () => {
               color="text.secondary"
               sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
             >
-              Votre modèle fine-tuné est prêt à s'intégrer n'importe où vous utilisez déjà les API OpenAI ou Anthropic. Appelez-le simplement par son nom personnalisé.
+              Votre modèle fine-tuné est prêt à s'intégrer avec tous vos outils préférés. De la messagerie aux CRM, des réseaux sociaux à l'automatisation no-code, utilisez-le partout où vous en avez besoin.
             </Typography>
           </motion.div>
         </Box>
 
         {/* Visualisation du déploiement */}
-        <Box sx={{ height: { xs: 450, md: 550 }, position: 'relative', perspective: '1000px' }}>
+        <Box sx={{ height: { xs: 500, md: 650 }, position: 'relative', perspective: '1500px' }}>
           {/* Noyau central représentant le modèle IA */}
            <motion.div
                 ref={centerRef} // Référence pour les lignes de connexion
@@ -1846,8 +1956,8 @@ const DeploymentSection = () => {
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%) translateZ(0px)',
-                  width: 120,
-                  height: 120,
+                  width: 140,
+                  height: 140,
                   borderRadius: '50%',
                   background: 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(191, 0, 255, 0.4) 100%)',
                   boxShadow: `0 0 30px ${alpha('#bf00ff', 0.6)}, 0 0 50px ${alpha('#00d4ff', 0.4)}`,
@@ -1858,7 +1968,18 @@ const DeploymentSection = () => {
                   border: '2px solid rgba(255, 255, 255, 0.3)',
                 }}
               >
-                 <HubIcon sx={{ fontSize: 60, color: '#fff', opacity: 0.8 }} />
+                <HubIcon sx={{ fontSize: 70, color: '#fff', opacity: 0.8 }} />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+                  style={{
+                    position: 'absolute',
+                    width: '110%',
+                    height: '110%',
+                    border: '2px dashed rgba(255,255,255,0.2)',
+                    borderRadius: '50%'
+                  }}
+                />
              </motion.div>
 
              {/* Plateformes cibles flottantes */}
@@ -1870,9 +1991,9 @@ const DeploymentSection = () => {
                  color={platform.color}
                  initialPos={platform.initialPos}
                  delay={platform.delay}
-                 isIALogo={false} // Utiliser le style standard
-                 ref={platformRefs[index]} // Utiliser la ref pré-créée
-                 aiCenterRef={centerRef} // Passer la ref centrale
+                 isIALogo={false}
+                 ref={platformRefs[index]}
+                 aiCenterRef={centerRef}
                />
              ))}
 
@@ -1880,15 +2001,32 @@ const DeploymentSection = () => {
              {targetPlatforms.map((platform, index) => (
                 <NeonConnectionLine
                   key={`line-${index}`}
-                  startRef={centerRef} // Toujours depuis le centre
-                  endRef={connectionRefs[index]} // Utiliser la ref pré-créée
+                  startRef={centerRef}
+                  endRef={platformRefs[index]}
                   color={platform.color}
-                  delay={platform.delay + 0.5} // Délai après l'apparition de l'icône
+                  delay={platform.delay + 0.2}
                   thickness={2}
                 />
              ))}
+             
+             {/* Légende des catégories */}
+             <Box sx={{ position: 'absolute', bottom: 10, width: '100%', textAlign: 'center', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
+               {['API', 'Web', 'Automatisation', 'Appareils', 'Cloud', 'Réseaux Sociaux', 'Messageries', 'CRM'].map((category, index) => (
+                 <Chip 
+                   key={category}
+                   label={category}
+                   size="small"
+                   sx={{ 
+                     background: alpha(theme.palette.primary.main, 0.1), 
+                     backdropFilter: 'blur(5px)',
+                     border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                     color: 'text.secondary',
+                     '& .MuiChip-label': { fontWeight: 500 }
+                   }}
+                 />
+               ))}
+             </Box>
         </Box>
-
       </Container>
     </Box>
   );
@@ -1903,9 +2041,9 @@ const LandingPage = () => {
         <IntroductionSection />
         <ProcessSection />
         <ChatExamplesSection />
+        <DeploymentSection /> {/* Maintenant placé juste après les chats */}
         <UseCasesSection />
         <AdvantagesSection />
-        <DeploymentSection /> { /* <-- Ajout de la nouvelle section */}
         <FinalCTASection />
         <Footer />
       </Box>
