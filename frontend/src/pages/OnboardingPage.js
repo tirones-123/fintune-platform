@@ -585,6 +585,7 @@ const OnboardingPage = () => {
   // Fonction pour finaliser l'onboarding et lancer le fine-tuning
   const completeOnboarding = async () => {
     setProcessingFineTuning(true);
+    setCompletionError(null);
 
     try {
       // Mise à jour du profil utilisateur
@@ -610,14 +611,37 @@ const OnboardingPage = () => {
         system_content: systemContent
       });
 
-      // Redirection vers l'URL de paiement Stripe
-      if (response && response.payment_url) {
+      console.log("Réponse de l'API session:", response);
+
+      // Cas 1: Redirection vers Stripe pour paiement
+      if (response.payment_url) {
         window.location.href = response.payment_url;
-      } else {
-        throw new Error("URL de paiement non reçue");
+        return;
       }
+      
+      // Cas 2: Traitement gratuit avec redirection spécifiée
+      if (response.redirect_url) {
+        window.location.href = response.redirect_url;
+        return;
+      }
+      
+      // Cas 3: Traitement gratuit sans redirection spécifiée
+      if (response.free_processing === true || (response.status && response.status === "success")) {
+        // Rediriger vers la page d'accueil/dashboard
+        enqueueSnackbar('Votre onboarding est terminé avec succès!', { variant: 'success' });
+        setTimeout(() => {
+          // Redirection vers le dashboard
+          window.location.href = '/dashboard';
+        }, 1500);
+        return;
+      }
+      
+      // Si on arrive ici, c'est un cas non géré
+      throw new Error("Format de réponse inattendu. Veuillez contacter le support.");
     } catch (error) {
-      // ... existing code ...
+      console.error("Erreur lors de la finalisation de l'onboarding:", error);
+      setCompletionError(error.message || "Une erreur est survenue lors de la finalisation");
+      enqueueSnackbar(error.message || "Erreur lors de la finalisation de l'onboarding", { variant: 'error' });
     } finally {
       setProcessingFineTuning(false);
     }
