@@ -69,6 +69,10 @@ def process_pdf_content(content_id: int):
         character_count = len(extracted_text)
         logger.info(f"PDF content {content_id} has {character_count} characters")
         
+        # --- CORRECTION: Sauvegarder le texte extrait dans la base de données ---
+        content.content_text = extracted_text
+        # --- FIN CORRECTION ---
+        
         # Mettre à jour les métadonnées
         if not content.content_metadata:
             content.content_metadata = {}
@@ -137,6 +141,10 @@ def process_text_content(content_id: int):
             db.commit()
             return {"status": "error", "message": error_msg}
         
+        # --- CORRECTION: Sauvegarder le texte extrait dans la base de données ---
+        content.content_text = extracted_text
+        # --- FIN CORRECTION ---
+
         # Compter les caractères - méthode exacte
         character_count = len(extracted_text)
         logger.info(f"Text content {content_id} has {character_count} characters")
@@ -197,6 +205,11 @@ def process_docx_content(content_id: int):
             content.error_message = str(file_error)
             db.commit()
             return {"status": "error", "message": str(file_error)}
+            
+        # --- CORRECTION: Sauvegarder le texte extrait dans la base de données ---
+        content.content_text = extracted_text
+        # --- FIN CORRECTION ---
+        
         character_count = len(extracted_text)
         logger.info(f"DOCX content {content_id} has {character_count} characters")
         if not content.content_metadata:
