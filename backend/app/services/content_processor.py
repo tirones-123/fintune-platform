@@ -5,7 +5,6 @@ import PyPDF2
 import logging
 from typing import Optional, Dict, Any, Tuple
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
-from pytube import YouTube
 
 from app.services.storage import storage_service
 
@@ -67,13 +66,8 @@ class ContentProcessor:
     
     def get_youtube_metadata(self, video_url: str) -> Dict[str, Any]:
         """
-        Extract metadata from a YouTube video including duration.
-        
-        Args:
-            video_url: URL of the YouTube video
-            
-        Returns:
-            Dictionary with metadata or empty dict if extraction failed
+        Récupère les métadonnées de base pour une vidéo YouTube.
+        Nous n'utilisons plus pytube, donc cette méthode retourne un dictionnaire minimal.
         """
         try:
             video_id = self._extract_youtube_id(video_url)
@@ -81,21 +75,13 @@ class ContentProcessor:
                 logger.error(f"Could not extract YouTube video ID from URL: {video_url}")
                 return {}
             
-            # Get YouTube video metadata using pytube
-            yt = YouTube(video_url)
-            
-            # Extract the metadata we want
+            # Comme nous n'avons plus pytube, retournons un dictionnaire minimal
             metadata = {
-                "title": yt.title,
-                "duration_seconds": yt.length,
-                "author": yt.author,
-                "publish_date": yt.publish_date.isoformat() if yt.publish_date else None,
-                "views": yt.views
+                "video_id": video_id,
+                "transcription_source": "rapidapi_speech_to_text"  # Par défaut
             }
             
-            logger.info(f"Extracted metadata for YouTube video {video_id}: duration={yt.length}s, title='{yt.title}'")
             return metadata
-            
         except Exception as e:
             logger.error(f"Error extracting metadata from YouTube video {video_url}: {str(e)}")
             return {}
