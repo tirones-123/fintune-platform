@@ -87,17 +87,29 @@ export const AuthProvider = ({ children }) => {
             // Récupérer le profil utilisateur depuis l'API
             let user = await authService.getProfile();
             
-            // Si le signal est présent, forcer l'état d'onboarding
+            // Si le signal est présent, forcer l'état d'onboarding ET mettre à jour le backend
             if (onboardingCompletedSignal) {
-              console.log("Signal d'onboarding détecté, mise à jour forcée de l'état utilisateur.");
-              user = {
-                ...user,
-                has_completed_onboarding: true,
-                hasCompletedOnboarding: true // Assurer les deux formats
-              };
-              
-              // Optionnel: Nettoyer l'URL après lecture du signal
-              // window.history.replaceState({}, document.title, window.location.pathname);
+              console.log("Signal d'onboarding détecté. Tentative de mise à jour du backend...");
+              try {
+                // Appeler PUT /api/users/me pour marquer l'onboarding comme terminé
+                const updatedUser = await authService.updateProfile({
+                  has_completed_onboarding: true
+                });
+                user = updatedUser; // Utiliser l'utilisateur mis à jour par l'API
+                console.log("Backend mis à jour avec succès:", user);
+                
+                // Optionnel: Nettoyer l'URL après lecture et mise à jour réussie
+                window.history.replaceState({}, document.title, window.location.pathname);
+
+              } catch (updateError) {
+                console.error("Échec de la mise à jour du statut d'onboarding via API:", updateError);
+                // En cas d'échec de l'API, on force quand même l'état local pour débloquer l'utilisateur
+                user = {
+                  ...user,
+                  has_completed_onboarding: true,
+                  hasCompletedOnboarding: true
+                };
+              }
             }
             
             // Récupérer l'abonnement de l'utilisateur
