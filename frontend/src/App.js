@@ -17,7 +17,7 @@ import ProjectsPage from './pages/ProjectsPage';
 import NewProjectPage from './pages/NewProjectPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 // import ContentUploadPage from './pages/ContentUploadPage'; // Supprimé
-import NewDatasetPage from './pages/NewDatasetPage';
+import NewDatasetPage from './pages/NewDatasetPage'; // Supprimé
 // import NewFineTuningPage from './pages/NewFineTuningPage'; // Supprimé
 import FineTuningDetailPage from './pages/FineTuningDetailPage';
 import ChatPage from './pages/ChatPage';
