@@ -633,10 +633,18 @@ const OnboardingPage = () => {
       
       // Cas 3: Traitement gratuit sans redirection spécifiée
       if (response.free_processing === true || (response.status && response.status === "success")) {
-        // Rediriger vers la page d'accueil/dashboard
+        // Mettre à jour l'état utilisateur localement avant redirection
+        // pour éviter d'être redirigé à nouveau vers l'onboarding
+        updateUser({
+          ...user,
+          has_completed_onboarding: true
+        });
+        
+        // Afficher une notification de succès
         enqueueSnackbar('Votre onboarding est terminé avec succès!', { variant: 'success' });
+        
+        // Rediriger vers le dashboard après un court délai
         setTimeout(() => {
-          // Redirection vers le dashboard
           window.location.href = '/dashboard';
         }, 1500);
         return;
