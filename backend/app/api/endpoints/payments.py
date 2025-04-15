@@ -186,6 +186,11 @@ async def create_onboarding_session(
                             except Exception as task_error:
                                 logger.error(f"Erreur lors du lancement de la tâche de génération: {str(task_error)}")
                     
+                    # Marquer que l'utilisateur a terminé l'onboarding
+                    current_user.has_completed_onboarding = True
+                    db_session.commit()
+                    logger.info(f"Utilisateur {current_user.id} a terminé l'onboarding")
+                    
                     return {"checkout_url": f"{settings.FRONTEND_URL}/dashboard?free_characters=true"}
                 else:
                     logger.error(f"Échec de l'ajout gratuit de {character_count} caractères")
@@ -256,6 +261,11 @@ async def create_onboarding_session(
             except Exception as e:
                 logger.error(f"Erreur dans le traitement gratuit pour montant trop faible: {str(e)}")
                 db_session.rollback()
+            
+            # Marquer que l'utilisateur a terminé l'onboarding
+            current_user.has_completed_onboarding = True
+            db_session.commit()
+            logger.info(f"Utilisateur {current_user.id} a terminé l'onboarding (montant trop faible)")
             
             # Renvoyer une réponse compatible avec le frontend
             return {
