@@ -92,21 +92,46 @@ class OpenAIProvider(AIProviderBase):
             response = self.client.fine_tuning.jobs.retrieve(job_id)
             
             progress = 0
-            if response.status == "succeeded":
+            details = {}
+            # Vérifier si le job est terminé et a un ID de fichier de résultats
+            if response.result_files and response.status == "succeeded":
                 progress = 100
-            elif response.status == "running" and response.training_metrics:
-                # Calculate approximate progress from training metrics
-                if "step" in response.training_metrics and "total_steps" in response.training_metrics:
-                    progress = min(99, int((response.training_metrics["step"] / response.training_metrics["total_steps"]) * 100))
+                try:
+                    # Essayer de récupérer le contenu du fichier de métriques
+                    metrics_file_id = response.result_files[0] # Suppose que le premier est le fichier de métriques
+                    metrics_content = self.client.files.content(metrics_file_id).read()
+                    # Les métriques sont souvent ligne par ligne JSON, essayons de parser
+                    metrics_data = []
+                    for line in metrics_content.decode('utf-8').splitlines():
+                        if line.strip():
+                            metrics_data.append(json.loads(line))
+                    details["training_metrics"] = metrics_data
+                    # Essayer d'extraire la dernière étape si possible
+                    if metrics_data:
+                        last_metric = metrics_data[-1]
+                        details["last_step_metrics"] = last_metric
+                        # Si total_steps est disponible, calculer la progression
+                        # Note: OpenAI ne fournit plus total_steps de manière fiable
+                        if 'step' in last_metric and response.trained_tokens:
+                            # Approximation basée sur les tokens si step seul
+                            # Ceci est une heuristique, car total_steps n'est pas fourni
+                             pass # Difficile de calculer sans total_steps
+                except Exception as metrics_error:
+                    logger.warning(f"Could not retrieve or parse metrics file for job {job_id}: {metrics_error}")
+                    details["training_metrics"] = "Could not retrieve metrics"
+
+            elif response.status == "running":
+                # Approximation de la progression si en cours (difficile sans total_steps)
+                progress = 50 # Valeur par défaut arbitraire si running
+            elif response.status == "failed":
+                details["error"] = response.error.message if response.error else "Unknown error"
+
             
             return {
                 "status": response.status,
                 "progress": progress,
-                "details": {
-                    "created_at": response.created_at,
-                    "finished_at": response.finished_at,
-                    "training_metrics": response.training_metrics
-                }
+                "details": details,
+                "fine_tuned_model": response.fine_tuned_model # Le modèle fine-tuné ID
             }
             
         except Exception as e:
