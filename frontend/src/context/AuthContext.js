@@ -77,11 +77,28 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initialize = async () => {
       try {
+        // Vérifier le signal dans l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const onboardingCompletedSignal = urlParams.get('onboarding_completed') === 'true';
+
         // Vérifier si l'utilisateur est authentifié
         if (authService.isAuthenticated()) {
           try {
             // Récupérer le profil utilisateur depuis l'API
-            const user = await authService.getProfile();
+            let user = await authService.getProfile();
+            
+            // Si le signal est présent, forcer l'état d'onboarding
+            if (onboardingCompletedSignal) {
+              console.log("Signal d'onboarding détecté, mise à jour forcée de l'état utilisateur.");
+              user = {
+                ...user,
+                has_completed_onboarding: true,
+                hasCompletedOnboarding: true // Assurer les deux formats
+              };
+              
+              // Optionnel: Nettoyer l'URL après lecture du signal
+              // window.history.replaceState({}, document.title, window.location.pathname);
+            }
             
             // Récupérer l'abonnement de l'utilisateur
             let subscription = null;
@@ -89,15 +106,13 @@ export const AuthProvider = ({ children }) => {
               subscription = await authService.getSubscription();
             } catch (subscriptionError) {
               console.error('Error fetching subscription:', subscriptionError);
-              // Ne pas lancer d'erreur, simplement laisser subscription à null
-              // C'est normal pour un nouvel utilisateur de ne pas avoir d'abonnement
             }
 
             dispatch({
               type: ActionType.INITIALIZE,
               payload: {
                 isAuthenticated: true,
-                user,
+                user, // Utiliser l'objet user potentiellement modifié
                 subscription,
               },
             });
@@ -138,7 +153,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     initialize();
-  }, []);
+  }, []); // L'effet ne dépend que du montage initial
 
   // Connexion
   const login = async (email, password) => {
