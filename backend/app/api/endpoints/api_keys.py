@@ -29,7 +29,8 @@ async def verify_api_key(
         # Vérifier si la clé est valide en premier
         try:
             client = OpenAI(api_key=key)
-            client.models.list(limit=1)
+            # Utiliser une méthode plus simple pour tester la clé
+            models = client.models.list()  # Sans paramètre 'limit'
             
             # Vérifier le solde du compte
             response = requests.get(
