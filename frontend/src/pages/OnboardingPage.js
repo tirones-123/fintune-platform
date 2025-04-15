@@ -613,9 +613,15 @@ const OnboardingPage = () => {
 
       console.log("Réponse de l'API session:", response);
 
-      // Cas 1: Redirection vers Stripe pour paiement
+      // Cas 1: Redirection vers Stripe pour paiement via payment_url
       if (response.payment_url) {
         window.location.href = response.payment_url;
+        return;
+      }
+      
+      // Cas 1 bis: Redirection via checkout_url (format actuel du backend)
+      if (response.checkout_url) {
+        window.location.href = response.checkout_url;
         return;
       }
       
