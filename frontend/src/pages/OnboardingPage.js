@@ -367,26 +367,41 @@ const OnboardingPage = () => {
     setApiKeyError(null);
     
     try {
-      // Sauvegarder d'abord la clé
-      await apiKeyService.addKey(provider, apiKey);
-      
-      // Tester la clé avec une requête simple à l'API
-      const testResponse = await api.post('/api/test-openai-connection', {
-        provider, 
-        message: "Test de connexion"
+      // Vérifier d'abord la validité de la clé
+      const verificationResponse = await api.post('/api/users/verify-api-key', {
+        provider,
+        key: apiKey
       });
       
-      if (testResponse.data.success) {
-        setApiKeySaved(true);
-        enqueueSnackbar('Clé API validée avec succès', { variant: 'success' });
-        return true;
-      } else {
-        setApiKeyError("Clé API invalide ou problème de connexion");
+      const { valid, credits, message } = verificationResponse.data;
+      
+      if (!valid) {
+        setApiKeyError(message || "La clé API n'est pas valide");
         return false;
       }
+      
+      if (credits === 0) {
+        setApiKeyError("Votre compte ne dispose pas de crédits suffisants pour le fine-tuning. Veuillez recharger votre compte API.");
+        return false;
+      }
+      
+      // Si tout est OK, sauvegarder la clé
+      await apiKeyService.addKey(provider, apiKey);
+      
+      setApiKeySaved(true);
+      enqueueSnackbar('Clé API validée avec succès', { variant: 'success' });
+      return true;
     } catch (error) {
-      // Gestion simplifiée des erreurs
-      setApiKeyError("La clé API semble invalide. Veuillez vérifier et réessayer.");
+      console.error('Erreur lors de la validation de la clé API:', error);
+      
+      // Messages d'erreur spécifiques selon le type d'erreur
+      if (error.response) {
+        setApiKeyError(error.response.data?.detail || "Erreur lors de la vérification de la clé API");
+      } else {
+        setApiKeyError("Erreur de connexion. Veuillez réessayer.");
+      }
+      
+      enqueueSnackbar(`Erreur: ${error.message || "Échec de la validation de la clé API"}`, { variant: 'error' });
       return false;
     } finally {
       setSavingApiKey(false);
