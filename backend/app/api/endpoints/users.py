@@ -14,7 +14,6 @@ from app.models.dataset import Dataset, DatasetContent, DatasetPair
 from app.models.fine_tuning import FineTuning
 from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.api_key import ApiKeyResponse, ApiKeyCreate
-from app.schemas.subscription import SubscriptionResponse
 
 router = APIRouter()
 
@@ -42,23 +41,6 @@ def update_user(
     db.refresh(current_user)
     
     return current_user
-
-@router.get("/me/subscription", response_model=SubscriptionResponse)
-def get_user_subscription(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Get current user subscription.
-    """
-    subscription = db.query(Subscription).filter(Subscription.user_id == current_user.id).first()
-    if not subscription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Subscription not found"
-        )
-    
-    return subscription
 
 @router.get("/me/api-keys", response_model=List[ApiKeyResponse])
 def get_user_api_keys(
