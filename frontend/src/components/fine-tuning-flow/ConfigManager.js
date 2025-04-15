@@ -63,13 +63,19 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
         if (currentProviderKey) {
           setApiKey(currentProviderKey.key);
           setApiKeySaved(true); // Si une clé existe, on la considère validée initialement
+          onApiKeyValidation(true);
+        } else {
+          setApiKey('');
+          setApiKeySaved(false);
+          onApiKeyValidation(false);
         }
       } catch (error) {
         console.error("Erreur chargement clés API", error);
+        onApiKeyValidation(false);
       }
     };
     fetchKeys();
-  }, [provider]); // Recharger si le provider change
+  }, [provider, onApiKeyValidation]);
 
   // Informer le parent des changements de config (sauf clé API)
   useEffect(() => {
