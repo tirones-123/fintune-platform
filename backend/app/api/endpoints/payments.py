@@ -190,7 +190,7 @@ async def create_onboarding_session(
                     current_user.has_completed_onboarding = True
                     db_session.commit()
                     logger.info(f"Utilisateur {current_user.id} a terminé l'onboarding")
-                    
+                        
                     return {"checkout_url": f"{settings.FRONTEND_URL}/dashboard?free_characters=true"}
                 else:
                     logger.error(f"Échec de l'ajout gratuit de {character_count} caractères")

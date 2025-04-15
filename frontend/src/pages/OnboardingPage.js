@@ -633,17 +633,14 @@ const OnboardingPage = () => {
       
       // Cas 3: Traitement gratuit sans redirection spécifiée
       if (response.free_processing === true || (response.status && response.status === "success")) {
-        // Mettre à jour l'état utilisateur localement avant redirection
-        // pour éviter d'être redirigé à nouveau vers l'onboarding
-        updateUser({
-          ...user,
-          has_completed_onboarding: true
-        });
+        // Le backend a marqué l'utilisateur comme ayant terminé l'onboarding.
+        // On redirige simplement vers le dashboard.
+        // L'AuthContext rechargera l'utilisateur avec le bon statut.
         
         // Afficher une notification de succès
         enqueueSnackbar('Votre onboarding est terminé avec succès!', { variant: 'success' });
         
-        // Rediriger vers le dashboard après un court délai
+        // Rediriger vers le dashboard après un court délai pour que la notification soit visible
         setTimeout(() => {
           window.location.href = '/dashboard';
         }, 1500);
@@ -2035,17 +2032,17 @@ const OnboardingPage = () => {
                       {completionError}
                     </Typography>
                   )}
-                  <Button
-                    variant="contained"
-                    onClick={handleNext}
+                <Button
+                  variant="contained"
+                  onClick={handleNext}
                     endIcon={activeStep === steps.length - 2 ? null : <ArrowForwardIcon />}
                     startIcon={activeStep === steps.length - 2 && isCompleting ? <CircularProgress size={20} color="inherit" /> : null}
-                    sx={{ borderRadius: 3 }}
+                  sx={{ borderRadius: 3 }}
                     disabled={uploading || creatingProject || savingApiKey || isCompleting || 
                       (activeStep === 2 && !apiKeySaved)} // Désactiver si l'API key n'est pas validée
-                  >
+                >
                     {activeStep === steps.length - 2 ? (isCompleting ? 'Traitement en cours...' : 'Terminer') : 'Suivant'}
-                  </Button>
+                </Button>
                 </Box>
               </Box>
             )}
