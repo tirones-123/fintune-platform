@@ -216,7 +216,7 @@ def generate_dataset(self, dataset_id: int):
 
                 if existing_fine_tuning:
                     api_key = db.query(ApiKey).filter(
-                        ApiKey.user_id == dataset.user_id,
+                        ApiKey.user_id == dataset.project.user_id,
                         ApiKey.provider == existing_fine_tuning.provider
                     ).first()
 
@@ -227,7 +227,7 @@ def generate_dataset(self, dataset_id: int):
                         db.commit()
                         celery_app.send_task("start_fine_tuning", args=[existing_fine_tuning.id], queue='fine_tuning')
                     else:
-                         logger.warning(f"Cannot start fine-tuning {existing_fine_tuning.id}: User {dataset.user_id} missing API key for provider {existing_fine_tuning.provider}")
+                         logger.warning(f"Cannot start fine-tuning {existing_fine_tuning.id}: User {dataset.project.user_id} missing API key for provider {existing_fine_tuning.provider}")
                          existing_fine_tuning.status = "error"
                          existing_fine_tuning.error_message = f"User missing API key for provider {existing_fine_tuning.provider}"
                          db.commit()
