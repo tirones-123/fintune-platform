@@ -18,7 +18,18 @@ import PageTransition from '../components/common/PageTransition';
 import ContentManager from '../components/fine-tuning-flow/ContentManager';
 import ConfigManager from '../components/fine-tuning-flow/ConfigManager';
 import CharacterEstimator from '../components/fine-tuning-flow/CharacterEstimator';
+import PsychologyIcon from '@mui/icons-material/Psychology';
 import { projectService, api } from '../services/apiService'; // Importer api pour l'endpoint
+
+// Copier/Coller depuis ConfigManager ou OnboardingPage
+const providerModels = {
+  openai: [
+    { id: 'gpt-4o', name: 'GPT-4o (Modèle le plus performant et récent)', apiId: 'gpt-4o-2024-08-06' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Bon rapport qualité/prix)', apiId: 'gpt-4o-mini-2024-07-18' },
+    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo (Économique, bonne performance)', apiId: 'gpt-3.5-turbo-0125' },
+  ],
+  anthropic: [],
+};
 
 const steps = ['Sélectionner/Ajouter Contenu', 'Configurer le Fine-tuning', 'Lancer le Job'];
 
@@ -126,7 +137,9 @@ const NewFineTuningFlowPage = () => {
             window.location.href = response.data.checkout_url;
         } else if (response.data.status === "processing_started" && response.data.redirect_url) {
             enqueueSnackbar("Fine-tuning lancé avec succès !", { variant: 'success' });
-            navigate(response.data.redirect_url.replace(settings.FRONTEND_URL, '')); // Naviguer vers la page projet
+            // Utiliser navigate pour la redirection relative
+            const relativeRedirectUrl = response.data.redirect_url.replace(process.env.REACT_APP_FRONTEND_URL || '', ''); // Obtenir le chemin relatif
+            navigate(relativeRedirectUrl || '/dashboard'); // Naviguer
         } else {
              throw new Error(response.data.message || "Réponse inattendue de l'API");
         }

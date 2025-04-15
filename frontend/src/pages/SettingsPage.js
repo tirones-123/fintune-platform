@@ -34,6 +34,7 @@ import {
   DialogContentText,
   DialogTitle,
   Select,
+  ListItemSecondaryAction
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -42,6 +43,7 @@ import KeyIcon from '@mui/icons-material/Key';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SecurityIcon from '@mui/icons-material/Security';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useSnackbar } from 'notistack';
 import { apiKeyService, userService, characterService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
