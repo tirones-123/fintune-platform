@@ -192,12 +192,15 @@ const OnboardingPage = () => {
   // Modèles disponibles par fournisseur
   const providerModels = {
     openai: [
-      { id: 'gpt-4', name: 'GPT-4' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+      { id: 'gpt-4o', name: 'GPT-4o (Modèle le plus performant et récent)' },
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Bon rapport qualité/prix)' },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo (Économique, bonne performance)' },
+      { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini (Version compacte de GPT-4.1)' },
+      { id: 'gpt-4.1', name: 'GPT-4.1 (Haute performance, plus coûteux)' },
     ],
     anthropic: [
-      { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet' },
-      { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
+      { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet (Coming soon)' },
+      { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku (Coming soon)' },
     ],
   };
 
