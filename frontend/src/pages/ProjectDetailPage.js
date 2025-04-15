@@ -449,6 +449,20 @@ const ProjectDetailPage = () => {
             </CardContent>
           </Card>
 
+          {/* --- NOUVEAU BOUTON PRINCIPAL --- */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+            <Button 
+              variant="contained" 
+              size="large"
+              startIcon={<PsychologyIcon />}
+              onClick={() => navigate(`/dashboard/projects/${projectId}/new-fine-tuning`)}
+              sx={{ py: 1.5, px: 4, borderRadius: 3 }}
+            >
+              ✨ Lancer un nouveau Fine-tuning
+            </Button>
+          </Box>
+          {/* --- FIN NOUVEAU BOUTON PRINCIPAL --- */}
+
           <Box sx={{ mb: 4 }}>
             <Tabs value={tabValue} onChange={handleTabChange} aria-label="project tabs">
               <Tab label="Contenus" id="tab-0" />
@@ -463,13 +477,6 @@ const ProjectDetailPage = () => {
                   <Typography variant="h5">
                     Contenus ({contents.length})
                   </Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => navigate(`/dashboard/content/upload/${projectId}`)}
-                  >
-                    Ajouter du contenu
-                  </Button>
                 </Box>
 
                 {contents.length === 0 ? (
@@ -479,15 +486,8 @@ const ProjectDetailPage = () => {
                       Aucun contenu
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                      Commencez par ajouter du contenu à votre projet pour générer des datasets.
+                       Utilisez le bouton "Lancer un nouveau Fine-tuning" ci-dessus pour ajouter du contenu.
                     </Typography>
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={() => navigate(`/dashboard/content/upload/${projectId}`)}
-                    >
-                      Ajouter du contenu
-                    </Button>
                   </Paper>
                 ) : (
                   <List component={Paper}>
@@ -573,16 +573,8 @@ const ProjectDetailPage = () => {
               <>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Typography variant="h5">
-                    Fine-tunings
+                    Fine-tunings ({fineTunings.length})
                   </Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => navigate(`/dashboard/datasets/new/${projectId}`)}
-                    disabled={contents.length === 0}
-                  >
-                    Créer un dataset
-                  </Button>
                 </Box>
 
                 {fineTunings.length === 0 ? (
@@ -592,36 +584,8 @@ const ProjectDetailPage = () => {
                       Aucun fine-tuning
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                      {datasets.length === 0 
-                        ? 'Créez d\'abord un dataset avant de fine-tuner un modèle.'
-                        : 'Fine-tunez un modèle à partir de vos datasets.'}
+                       Utilisez le bouton "Lancer un nouveau Fine-tuning" ci-dessus pour commencer.
                     </Typography>
-                    {datasets.length === 0 ? (
-                      <Button
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                        onClick={() => navigate(`/dashboard/datasets/new/${projectId}`)}
-                        disabled={contents.length === 0}
-                      >
-                        Créer un dataset
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="contained"
-                        startIcon={<PsychologyIcon />}
-                        onClick={() => {
-                          // Rediriger vers le dataset prêt le plus récent
-                          const readyDataset = datasets.find(d => d.status === 'ready');
-                          if (readyDataset) {
-                            navigate(`/dashboard/fine-tuning/new/${readyDataset.id}`);
-                          } else {
-                            enqueueSnackbar('Aucun dataset prêt pour le fine-tuning', { variant: 'warning' });
-                          }
-                        }}
-                      >
-                        Fine-tuner un modèle
-                      </Button>
-                    )}
                   </Paper>
                 ) : (
                   <>

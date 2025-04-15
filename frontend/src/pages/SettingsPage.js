@@ -20,6 +20,20 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
+  Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Chip,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Select,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -29,416 +43,530 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SecurityIcon from '@mui/icons-material/Security';
 import { useSnackbar } from 'notistack';
-import { apiKeyService } from '../services/apiService';
+import { apiKeyService, userService, characterService } from '../services/apiService';
+import { useAuth } from '../context/AuthContext';
+import PageTransition from '../components/common/PageTransition';
+import LoadingScreen from '../components/common/LoadingScreen';
 
 const SettingsPage = () => {
-  const [tabValue, setTabValue] = useState(0);
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [anthropicKey, setAnthropicKey] = useState('');
-  const [mistralKey, setMistralKey] = useState('');
-  const [hasOpenaiKey, setHasOpenaiKey] = useState(false);
-  const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
-  const [hasMistralKey, setHasMistralKey] = useState(false);
-  const [showOpenaiKey, setShowOpenaiKey] = useState(false);
-  const [showAnthropicKey, setShowAnthropicKey] = useState(false);
-  const [showMistralKey, setShowMistralKey] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [savingKey, setSavingKey] = useState(false);
-  const [fetchingRealKey, setFetchingRealKey] = useState(false);
+  const { user, updateUser, logout } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
+  const [name, setName] = useState(user?.name || '');
+  const [email] = useState(user?.email || '');
+  const [apiKeys, setApiKeys] = useState([]);
+  const [newApiKey, setNewApiKey] = useState('');
+  const [newProvider, setNewProvider] = useState('openai'); // Par défaut
+  const [loading, setLoading] = useState(true);
+  const [tabValue, setTabValue] = useState(0);
+  const [apiKeyToDelete, setApiKeyToDelete] = useState(null);
+  const [apiKeyAnchorEl, setApiKeyAnchorEl] = useState(null);
+  const [usageStats, setUsageStats] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [loadingUsage, setLoadingUsage] = useState(true);
 
-  // Charger les clés API au chargement de la page
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [verificationResult, setVerificationResult] = useState(null);
+  const [loadingVerification, setLoadingVerification] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  
+  // Nouveaux états pour la suppression de compte
+  const [deleteAccountConfirmOpen, setDeleteAccountConfirmOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  // Charger les données initiales
   useEffect(() => {
-    const fetchApiKeys = async () => {
+    const fetchData = async () => {
       setLoading(true);
+      setLoadingUsage(true);
       try {
-        const apiKeys = await apiKeyService.getKeys();
+        const keys = await apiKeyService.getKeys();
+        setApiKeys(keys || []);
+
+        const stats = await characterService.getUsageStats();
+        setUsageStats(stats);
         
-        // Initialiser l'état pour chaque provider
-        apiKeys.forEach(apiKey => {
-          if (apiKey.provider === 'openai') {
-            setHasOpenaiKey(true);
-            // Masquer la valeur réelle de la clé
-            setOpenaiKey('•'.repeat(16));
-          } else if (apiKey.provider === 'anthropic') {
-            setHasAnthropicKey(true);
-            setAnthropicKey('•'.repeat(16));
-          } else if (apiKey.provider === 'mistral') {
-            setHasMistralKey(true);
-            setMistralKey('•'.repeat(16));
-          }
-        });
-        
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching API keys:', err);
-        setError('Impossible de récupérer vos clés API');
-        enqueueSnackbar('Erreur lors de la récupération des clés API', { variant: 'error' });
+        const trans = await characterService.getTransactions();
+        setTransactions(trans);
+
+      } catch (error) {
+        console.error("Erreur chargement données Settings:", error);
+        enqueueSnackbar("Erreur lors du chargement des données.", { variant: 'error' });
       } finally {
         setLoading(false);
+        setLoadingUsage(false);
       }
     };
-    
-    fetchApiKeys();
+    fetchData();
   }, [enqueueSnackbar]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
 
-  // Fonction pour récupérer la vraie valeur d'une clé API
-  const fetchRealApiKey = async (provider, setKeyState, setShowState) => {
-    setFetchingRealKey(true);
+  const handleNameChange = (event) => {
+    setName(event.target.value);
+  };
+
+  const handleUpdateProfile = async () => {
     try {
-      // Récupérer la clé complète depuis l'API
-      const apiKeys = await apiKeyService.getKeys();
-      const apiKey = apiKeys.find(key => key.provider === provider);
-      
-      if (apiKey && apiKey.key) {
-        setKeyState(apiKey.key);
-        setShowState(true); // Afficher automatiquement la clé
-      } else {
-        enqueueSnackbar(`Impossible de récupérer la clé ${provider}`, { variant: 'error' });
-      }
+      await updateUser({ name });
+      enqueueSnackbar('Profil mis à jour avec succès', { variant: 'success' });
     } catch (error) {
-      console.error(`Error fetching real ${provider} key:`, error);
-      enqueueSnackbar(`Erreur lors de la récupération de la clé ${provider}`, { variant: 'error' });
-    } finally {
-      setFetchingRealKey(false);
+      enqueueSnackbar('Erreur lors de la mise à jour du profil', { variant: 'error' });
     }
   };
 
-  // Gérer le toggle de visibilité des clés API
-  const handleToggleKeyVisibility = (provider, isVisible, setShowState) => {
-    if (isVisible) {
-      // Si on cache la clé, pas besoin d'API call
-      setShowState(false);
-    } else {
-      // Si on montre la clé, il faut récupérer la vraie valeur
-      if (provider === 'openai' && hasOpenaiKey && openaiKey === '•'.repeat(16)) {
-        fetchRealApiKey('openai', setOpenaiKey, setShowOpenaiKey);
-      } else if (provider === 'anthropic' && hasAnthropicKey && anthropicKey === '•'.repeat(16)) {
-        fetchRealApiKey('anthropic', setAnthropicKey, setShowAnthropicKey);
-      } else if (provider === 'mistral' && hasMistralKey && mistralKey === '•'.repeat(16)) {
-        fetchRealApiKey('mistral', setMistralKey, setShowMistralKey);
-      } else {
-        // Si ce n'est pas une clé masquée, on change juste la visibilité
-        setShowState(true);
-      }
-    }
-  };
-
-  const handleSaveApiKey = async (provider, key, setStateHasKey) => {
-    if (!key || (key.includes('•') && key.length === 16)) {
-      // Ne pas enregistrer si c'est la clé masquée existante
+  const handleAddApiKey = async () => {
+    if (!newApiKey || !newProvider) {
+      enqueueSnackbar('Veuillez saisir une clé API et choisir un fournisseur', { variant: 'warning' });
       return;
     }
-    
-    setSavingKey(true);
     try {
-      // Enregistrer la clé via l'API
-      await apiKeyService.addKey(provider, key);
-      
-      // Mettre à jour l'état pour indiquer que la clé existe
-      setStateHasKey(true);
-      
-      enqueueSnackbar(`Clé API ${provider} enregistrée avec succès`, { variant: 'success' });
-    } catch (err) {
-      console.error(`Error saving ${provider} API key:`, err);
-      enqueueSnackbar(`Erreur lors de l'enregistrement de la clé API ${provider}`, { variant: 'error' });
+      await apiKeyService.addKey(newProvider, newApiKey);
+      setNewApiKey('');
+      // Recharger les clés
+      const keys = await apiKeyService.getKeys();
+      setApiKeys(keys || []);
+      enqueueSnackbar(`Clé API pour ${newProvider} ajoutée/mise à jour`, { variant: 'success' });
+    } catch (error) {
+      enqueueSnackbar("Erreur lors de l'ajout de la clé API", { variant: 'error' });
+    }
+  };
+
+  const handleOpenApiKeyMenu = (event, key) => {
+    setApiKeyAnchorEl(event.currentTarget);
+    setApiKeyToDelete(key);
+  };
+
+  const handleCloseApiKeyMenu = () => {
+    setApiKeyAnchorEl(null);
+    setApiKeyToDelete(null);
+  };
+
+  const openDeleteConfirm = () => {
+    setDeleteConfirmOpen(true);
+    handleCloseApiKeyMenu();
+  };
+
+  const closeDeleteConfirm = () => {
+    setDeleteConfirmOpen(false);
+    setApiKeyToDelete(null);
+  };
+
+  const handleDeleteApiKey = async () => {
+    if (!apiKeyToDelete) return;
+    try {
+      await apiKeyService.deleteKey(apiKeyToDelete.provider);
+      // Recharger les clés
+      const keys = await apiKeyService.getKeys();
+      setApiKeys(keys || []);
+      enqueueSnackbar(`Clé API pour ${apiKeyToDelete.provider} supprimée`, { variant: 'success' });
+    } catch (error) {
+      enqueueSnackbar("Erreur lors de la suppression de la clé API", { variant: 'error' });
     } finally {
-      setSavingKey(false);
+      closeDeleteConfirm();
     }
   };
 
-  const handleSaveOpenaiKey = () => {
-    handleSaveApiKey('openai', openaiKey, setHasOpenaiKey);
-  };
-
-  const handleSaveAnthropicKey = () => {
-    handleSaveApiKey('anthropic', anthropicKey, setHasAnthropicKey);
-  };
-
-  const handleSaveMistralKey = () => {
-    handleSaveApiKey('mistral', mistralKey, setHasMistralKey);
-  };
-
-  const handleDeleteApiKey = async (provider) => {
+  const handleVerifyKey = async () => {
+    if (!newApiKey || !newProvider) {
+      enqueueSnackbar('Veuillez saisir une clé API et choisir un fournisseur', { variant: 'warning' });
+      return;
+    }
+    setLoadingVerification(true);
     try {
-      await apiKeyService.deleteKey(provider);
-      
-      // Réinitialiser l'état correspondant
-      if (provider === 'openai') {
-        setHasOpenaiKey(false);
-        setOpenaiKey('');
-      } else if (provider === 'anthropic') {
-        setHasAnthropicKey(false);
-        setAnthropicKey('');
-      } else if (provider === 'mistral') {
-        setHasMistralKey(false);
-        setMistralKey('');
+      const result = await apiKeyService.verifyKey(newProvider, newApiKey);
+      setVerificationResult(result);
+      if (result.valid) {
+        await apiKeyService.addKey(newProvider, newApiKey);
+        setNewApiKey('');
+        // Recharger les clés
+        const keys = await apiKeyService.getKeys();
+        setApiKeys(keys || []);
+        enqueueSnackbar(`Clé API pour ${newProvider} ajoutée/mise à jour`, { variant: 'success' });
       }
-      
-      enqueueSnackbar(`Clé API ${provider} supprimée avec succès`, { variant: 'success' });
-    } catch (err) {
-      console.error(`Error deleting ${provider} API key:`, err);
-      enqueueSnackbar(`Erreur lors de la suppression de la clé API ${provider}`, { variant: 'error' });
+    } catch (error) {
+      enqueueSnackbar("Erreur lors de la vérification de la clé API", { variant: 'error' });
+    } finally {
+      setLoadingVerification(false);
     }
   };
 
-  // Gérer les champs de saisie de clé API
-  const handleKeyChange = (setValue, hasKey) => (e) => {
-    const value = e.target.value;
-    
-    // Si on avait déjà une clé (masquée) et qu'on commence à taper, effacer la valeur masquée
-    if (hasKey && value !== '•'.repeat(16)) {
-      setValue(value.replace(/•/g, ''));
-    } else {
-      setValue(value);
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('Veuillez remplir tous les champs');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Les mots de passe ne correspondent pas');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await userService.changePassword(currentPassword, newPassword);
+      enqueueSnackbar('Mot de passe changé avec succès', { variant: 'success' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordError('');
+    } catch (error) {
+      enqueueSnackbar('Erreur lors de la modification du mot de passe', { variant: 'error' });
+    } finally {
+      setChangingPassword(false);
     }
   };
+
+  // Nouvelle fonction pour gérer la suppression de compte
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      // Appeler le service (qui appellera DELETE /api/users/me)
+      await userService.deleteAccount(); 
+      enqueueSnackbar("Compte supprimé avec succès. Vous allez être déconnecté.", { variant: 'success' });
+      // Utiliser le logout du contexte pour nettoyer et rediriger
+      logout(); 
+    } catch (error) {
+      console.error("Erreur lors de la suppression du compte:", error);
+      enqueueSnackbar(error.message || "Erreur lors de la suppression du compte", { variant: 'error' });
+      setDeletingAccount(false); // Réactiver le bouton si erreur
+      setDeleteAccountConfirmOpen(false); // Fermer le dialogue d'erreur
+    }
+    // Pas de setDeletingAccount(false) ici car on est déconnecté si succès
+  };
+
+  // Formatage des dates
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return new Date(dateString).toLocaleDateString('fr-FR', options);
+  };
+
+  if (loading) {
+    return <LoadingScreen />; 
+  }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Paramètres
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Configurez votre compte et vos préférences
-      </Typography>
+    <PageTransition>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Paramètres
+        </Typography>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
-          <Tab icon={<KeyIcon />} label="Clés API" />
-          <Tab icon={<AccountCircleIcon />} label="Profil" />
-          <Tab icon={<NotificationsIcon />} label="Notifications" />
-          <Tab icon={<SecurityIcon />} label="Sécurité" />
-        </Tabs>
-      </Box>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
+            <Tab label="Profil" icon={<AccountCircleIcon />} iconPosition="start" id="tab-0" />
+            <Tab label="Clés API" icon={<KeyIcon />} iconPosition="start" id="tab-1" />
+            <Tab label="Utilisation & Facturation" icon={<NotificationsIcon />} iconPosition="start" id="tab-2" />
+            <Tab label="Sécurité" icon={<SecurityIcon />} iconPosition="start" id="tab-3" />
+          </Tabs>
+        </Box>
 
-      {tabValue === 0 && (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Alert severity="info" sx={{ mb: 3 }}>
-              Les clés API sont nécessaires pour utiliser les services de fine-tuning. Vos clés sont stockées de manière sécurisée.
-            </Alert>
-          </Grid>
-          
-          {loading ? (
-            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
-            </Grid>
-          ) : error ? (
-            <Grid item xs={12}>
-              <Alert severity="error">{error}</Alert>
-            </Grid>
-          ) : (
-            <>
-              {/* OpenAI API Key */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      OpenAI API
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      Utilisée pour fine-tuner les modèles GPT-3.5 et GPT-4. Obtenez votre clé sur <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com</a>.
-                    </Typography>
-                    
-                    <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
-                      <InputLabel htmlFor="openai-api-key">Clé API OpenAI</InputLabel>
-                      <OutlinedInput
-                        id="openai-api-key"
-                        type={showOpenaiKey ? 'text' : 'password'}
-                        value={openaiKey}
-                        onChange={handleKeyChange(setOpenaiKey, hasOpenaiKey)}
-                        endAdornment={
-                          <InputAdornment position="end">
-                            <IconButton
-                              aria-label="toggle password visibility"
-                              onClick={() => handleToggleKeyVisibility('openai', showOpenaiKey, setShowOpenaiKey)}
-                              edge="end"
-                              disabled={fetchingRealKey}
-                            >
-                              {fetchingRealKey ? <CircularProgress size={20} /> : 
-                                showOpenaiKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                            </IconButton>
-                          </InputAdornment>
-                        }
-                        label="Clé API OpenAI"
-                        placeholder="sk-..."
-                      />
-                      <FormHelperText>
-                        {hasOpenaiKey ? 'Clé API déjà configurée. Entrez une nouvelle clé pour la remplacer.' : 'Commence par "sk-"'}
-                      </FormHelperText>
-                    </FormControl>
-                    
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<SaveIcon />}
-                        onClick={handleSaveOpenaiKey}
-                        disabled={!openaiKey || savingKey || (hasOpenaiKey && openaiKey === '•'.repeat(16))}
-                      >
-                        {savingKey ? <CircularProgress size={24} /> : 'Sauvegarder'}
-                      </Button>
-                      
-                      {hasOpenaiKey && (
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          onClick={() => handleDeleteApiKey('openai')}
-                          disabled={savingKey}
-                        >
-                          Supprimer
-                        </Button>
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-              
-              {/* Anthropic API Key */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Anthropic API
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      Utilisée pour fine-tuner les modèles Claude. Obtenez votre clé sur <a href="https://console.anthropic.com/account/keys" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>.
-                    </Typography>
-                    
-                    <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
-                      <InputLabel htmlFor="anthropic-api-key">Clé API Anthropic</InputLabel>
-                      <OutlinedInput
-                        id="anthropic-api-key"
-                        type={showAnthropicKey ? 'text' : 'password'}
-                        value={anthropicKey}
-                        onChange={handleKeyChange(setAnthropicKey, hasAnthropicKey)}
-                        endAdornment={
-                          <InputAdornment position="end">
-                            <IconButton
-                              aria-label="toggle password visibility"
-                              onClick={() => handleToggleKeyVisibility('anthropic', showAnthropicKey, setShowAnthropicKey)}
-                              edge="end"
-                              disabled={fetchingRealKey}
-                            >
-                              {fetchingRealKey ? <CircularProgress size={20} /> : 
-                                showAnthropicKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                            </IconButton>
-                          </InputAdornment>
-                        }
-                        label="Clé API Anthropic"
-                        placeholder="sk-ant-..."
-                      />
-                      <FormHelperText>
-                        {hasAnthropicKey ? 'Clé API déjà configurée. Entrez une nouvelle clé pour la remplacer.' : 'Commence par "sk-ant-"'}
-                      </FormHelperText>
-                    </FormControl>
-                    
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<SaveIcon />}
-                        onClick={handleSaveAnthropicKey}
-                        disabled={!anthropicKey || savingKey || (hasAnthropicKey && anthropicKey === '•'.repeat(16))}
-                      >
-                        {savingKey ? <CircularProgress size={24} /> : 'Sauvegarder'}
-                      </Button>
-                      
-                      {hasAnthropicKey && (
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          onClick={() => handleDeleteApiKey('anthropic')}
-                          disabled={savingKey}
-                        >
-                          Supprimer
-                        </Button>
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-              
-              {/* Mistral API Key */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Mistral AI API
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      Utilisée pour fine-tuner les modèles Mistral. Obtenez votre clé sur <a href="https://console.mistral.ai/api-keys/" target="_blank" rel="noopener noreferrer">console.mistral.ai</a>.
-                    </Typography>
-                    
-                    <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
-                      <InputLabel htmlFor="mistral-api-key">Clé API Mistral</InputLabel>
-                      <OutlinedInput
-                        id="mistral-api-key"
-                        type={showMistralKey ? 'text' : 'password'}
-                        value={mistralKey}
-                        onChange={handleKeyChange(setMistralKey, hasMistralKey)}
-                        endAdornment={
-                          <InputAdornment position="end">
-                            <IconButton
-                              aria-label="toggle password visibility"
-                              onClick={() => handleToggleKeyVisibility('mistral', showMistralKey, setShowMistralKey)}
-                              edge="end"
-                              disabled={fetchingRealKey}
-                            >
-                              {fetchingRealKey ? <CircularProgress size={20} /> : 
-                                showMistralKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                            </IconButton>
-                          </InputAdornment>
-                        }
-                        label="Clé API Mistral"
-                      />
-                      <FormHelperText>
-                        {hasMistralKey ? 'Clé API déjà configurée. Entrez une nouvelle clé pour la remplacer.' : ''}
-                      </FormHelperText>
-                    </FormControl>
-                    
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<SaveIcon />}
-                        onClick={handleSaveMistralKey}
-                        disabled={!mistralKey || savingKey || (hasMistralKey && mistralKey === '•'.repeat(16))}
-                      >
-                        {savingKey ? <CircularProgress size={24} /> : 'Sauvegarder'}
-                      </Button>
-                      
-                      {hasMistralKey && (
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          onClick={() => handleDeleteApiKey('mistral')}
-                          disabled={savingKey}
-                        >
-                          Supprimer
-                        </Button>
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </>
+        {/* Onglet Profil */}
+        <Box role="tabpanel" hidden={tabValue !== 0}>
+          {tabValue === 0 && (
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Informations du profil</Typography>
+              <TextField
+                label="Nom"
+                value={name}
+                onChange={handleNameChange}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Email"
+                value={email}
+                fullWidth
+                margin="normal"
+                disabled // Email non modifiable pour l'instant
+              />
+              <Button 
+                variant="contained" 
+                onClick={handleUpdateProfile} 
+                sx={{ mt: 2 }}
+                disabled={name === user?.name}
+              >
+                Enregistrer les modifications
+              </Button>
+            </Paper>
           )}
-        </Grid>
-      )}
-      {tabValue === 1 && (
-        <Typography variant="h6">Paramètres du profil</Typography>
-      )}
-      {tabValue === 2 && (
-        <Typography variant="h6">Paramètres des notifications</Typography>
-      )}
-      {tabValue === 3 && (
-        <Typography variant="h6">Paramètres de sécurité</Typography>
-      )}
-    </Container>
+        </Box>
+
+        {/* Onglet Clés API */}
+        <Box role="tabpanel" hidden={tabValue !== 1}>
+          {tabValue === 1 && (
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Gestion des Clés API</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Ajoutez les clés API des fournisseurs IA que vous souhaitez utiliser pour le fine-tuning.
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'flex-start' }}>
+                 <FormControl sx={{ minWidth: 150 }}>
+                    <InputLabel id="provider-select-label">Fournisseur</InputLabel>
+                    <Select
+                        labelId="provider-select-label"
+                        value={newProvider}
+                        label="Fournisseur"
+                        onChange={(e) => setNewProvider(e.target.value)}
+                        size="small"
+                    >
+                        <MenuItem value="openai">OpenAI</MenuItem>
+                        <MenuItem value="anthropic" disabled>Anthropic (Bientôt)</MenuItem>
+                        {/* <MenuItem value="mistral">Mistral</MenuItem> */}
+                    </Select>
+                 </FormControl>
+                <TextField
+                  label="Nouvelle Clé API"
+                  value={newApiKey}
+                  onChange={(e) => setNewApiKey(e.target.value)}
+                  type="password"
+                  size="small"
+                  sx={{ flexGrow: 1 }}
+                  placeholder={newProvider === 'openai' ? 'sk-...' : ''}
+                />
+                <Button 
+                  variant="outlined" 
+                  onClick={handleVerifyKey} 
+                  disabled={!newApiKey || loadingVerification}
+                  sx={{ ml: 1 }}
+                >
+                   {loadingVerification ? <CircularProgress size={20}/> : 'Vérifier'}
+                 </Button>
+                <Button 
+                  variant="contained" 
+                  onClick={handleAddApiKey}
+                  disabled={!newApiKey}
+                  sx={{ ml: 1 }}
+                >
+                  Ajouter / Mettre à jour
+                </Button>
+              </Box>
+              
+              {/* Affichage du résultat de la vérification */}
+              {verificationResult && (
+                 <Alert 
+                    severity={verificationResult.valid ? 'success' : 'error'} 
+                    sx={{ mb: 2 }}
+                    onClose={() => setVerificationResult(null)} // Permet de fermer l'alerte
+                 >
+                     {verificationResult.message}
+                     {verificationResult.valid && verificationResult.credits !== undefined && ` (Crédits disponibles: ${verificationResult.credits ?? 'N/A'})`}
+                 </Alert>
+              )}
+
+              <Typography variant="subtitle1" gutterBottom>Clés enregistrées</Typography>
+              {apiKeys.length === 0 ? (
+                <Typography>Aucune clé API enregistrée.</Typography>
+              ) : (
+                <List dense>
+                  {apiKeys.map((key) => (
+                    <ListItem key={key.provider} divider>
+                      <ListItemIcon sx={{ minWidth: 36 }}><KeyIcon /></ListItemIcon>
+                      <ListItemText 
+                        primary={key.provider.toUpperCase()} 
+                        secondary={`Clé: ****${key.key.slice(-4)} - Ajoutée le: ${formatDate(key.created_at)}`}
+                      />
+                      <ListItemSecondaryAction>
+                        <IconButton edge="end" onClick={(e) => handleOpenApiKeyMenu(e, key)} title="Supprimer">
+                          <DeleteIcon />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </Paper>
+          )}
+        </Box>
+
+        {/* Onglet Utilisation & Facturation - Simplifié */}
+        <Box role="tabpanel" hidden={tabValue !== 2}>
+          {tabValue === 2 && (
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Utilisation des Caractères</Typography>
+              {loadingUsage ? (
+                <CircularProgress />
+              ) : usageStats ? (
+                <Box sx={{ mb: 3 }}>
+                    <Typography>Crédits gratuits restants: <strong>{usageStats.free_characters_remaining?.toLocaleString() || '0'}</strong></Typography>
+                    <Typography>Total utilisé: <strong>{usageStats.total_characters_used?.toLocaleString() || '0'}</strong></Typography>
+                    <Typography>Total acheté: <strong>{usageStats.total_characters_purchased?.toLocaleString() || '0'}</strong></Typography>
+                </Box>
+              ) : (
+                 <Typography>Impossible de charger les statistiques d'utilisation.</Typography>
+              )}
+
+              <Typography variant="h6" gutterBottom sx={{ mt: 3}}>Historique des Transactions</Typography>
+               {loadingUsage ? (
+                 <CircularProgress />
+               ) : transactions.length === 0 ? (
+                 <Typography>Aucune transaction.</Typography>
+               ) : (
+                 <List dense>
+                   {transactions.map(tx => (
+                     <ListItem key={tx.id} divider>
+                       <ListItemText
+                         primary={tx.description}
+                         secondary={
+                           `Date: ${formatDate(tx.created_at)} | Montant: ${tx.amount > 0 ? '+' : ''}${tx.amount.toLocaleString()} caractères ${tx.total_price ? `(${tx.total_price.toFixed(2)}$)` : ''}`
+                         }
+                       />
+                     </ListItem>
+                   ))}
+                 </List>
+               )}
+            </Paper>
+          )}
+        </Box>
+
+        {/* Onglet Sécurité (Nouveau) */}
+        <Box role="tabpanel" hidden={tabValue !== 3}>
+          {tabValue === 3 && (
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Sécurité du Compte</Typography>
+              {/* Section Changement de Mot de Passe */}
+              <Box sx={{ mt: 3 }}>
+                 <Typography variant="subtitle1" gutterBottom>Changer le mot de passe</Typography>
+                 <TextField
+                   label="Mot de passe actuel"
+                   type="password"
+                   fullWidth
+                   margin="normal"
+                   value={currentPassword}
+                   onChange={(e) => setCurrentPassword(e.target.value)}
+                   error={!!passwordError}
+                 />
+                 <TextField
+                   label="Nouveau mot de passe"
+                   type="password"
+                   fullWidth
+                   margin="normal"
+                   value={newPassword}
+                   onChange={(e) => setNewPassword(e.target.value)}
+                   error={!!passwordError}
+                 />
+                 <TextField
+                   label="Confirmer le nouveau mot de passe"
+                   type="password"
+                   fullWidth
+                   margin="normal"
+                   value={confirmPassword}
+                   onChange={(e) => setConfirmPassword(e.target.value)}
+                   error={!!passwordError}
+                   helperText={passwordError}
+                 />
+                 <Button 
+                   variant="contained" 
+                   onClick={handleChangePassword}
+                   sx={{ mt: 2 }}
+                   disabled={!currentPassword || !newPassword || !confirmPassword || changingPassword}
+                 >
+                   {changingPassword ? <CircularProgress size={24} /> : 'Changer le mot de passe'}
+                 </Button>
+              </Box>
+               {/* Section Email (Lecture seule pour l'instant) */}
+              {/* <Box sx={{ mt: 4 }}>
+                 <Typography variant="subtitle1" gutterBottom>Adresse Email</Typography>
+                 <TextField
+                   label="Email"
+                   value={email}
+                   fullWidth
+                   margin="normal"
+                   disabled
+                   helperText="Pour changer votre email, veuillez contacter le support."
+                 />
+              </Box> */}
+              
+              {/* Section Suppression de Compte */}
+              <Box sx={{ mt: 5, borderTop: '1px solid', borderColor: 'divider', pt: 3 }}>
+                <Typography variant="subtitle1" color="error" gutterBottom>
+                  Zone Dangereuse
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  color="error"
+                  onClick={() => setDeleteAccountConfirmOpen(true)}
+                  disabled={deletingAccount}
+                >
+                   {deletingAccount ? <CircularProgress size={24} color="inherit" /> : 'Supprimer mon compte'}
+                </Button>
+                <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+                  Attention : Cette action est irréversible et supprimera définitivement votre compte et toutes les données associées (projets, contenus, datasets, fine-tunings).
+                </Typography>
+              </Box>
+            </Paper>
+          )}
+        </Box>
+
+        {/* Menu pour supprimer clé API */}
+        <Menu
+          anchorEl={apiKeyAnchorEl}
+          open={Boolean(apiKeyAnchorEl)}
+          onClose={handleCloseApiKeyMenu}
+        >
+          <MenuItem onClick={openDeleteConfirm} sx={{ color: 'error.main' }}>
+            Supprimer la clé pour {apiKeyToDelete?.provider}
+          </MenuItem>
+        </Menu>
+
+         {/* Dialogue de confirmation de suppression */}
+        <Dialog open={deleteConfirmOpen} onClose={closeDeleteConfirm}>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogContent>
+                <DialogContentText>
+                    Êtes-vous sûr de vouloir supprimer la clé API pour {apiKeyToDelete?.provider} ? 
+                    Vous ne pourrez plus lancer de fine-tuning avec ce fournisseur tant qu'une nouvelle clé ne sera pas ajoutée.
+                </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={closeDeleteConfirm}>Annuler</Button>
+                <Button onClick={handleDeleteApiKey} color="error">Supprimer</Button>
+            </DialogActions>
+        </Dialog>
+
+         {/* Dialogue de confirmation de suppression de compte */}
+        <Dialog open={deleteAccountConfirmOpen} onClose={() => setDeleteAccountConfirmOpen(false)}>
+            <DialogTitle sx={{ bgcolor: 'error.main', color: 'error.contrastText' }}>
+                Suppression Définitive du Compte
+            </DialogTitle>
+            <DialogContent>
+                <DialogContentText sx={{ mt: 2 }}>
+                    <strong>Attention !</strong> Cette action est irréversible.
+                    La suppression de votre compte entraînera la perte définitive de :
+                    <ul>
+                        <li>Vos informations de profil</li>
+                        <li>Tous vos projets</li>
+                        <li>Tous vos contenus (fichiers, vidéos, sites web)</li>
+                        <li>Tous vos datasets générés</li>
+                        <li>Tous vos modèles fine-tunés</li>
+                        <li>Vos clés API enregistrées</li>
+                        <li>Votre historique de transactions</li>
+                    </ul>
+                    Êtes-vous absolument sûr de vouloir continuer ?
+                </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+                <Button onClick={() => setDeleteAccountConfirmOpen(false)} disabled={deletingAccount}>Annuler</Button>
+                <Button 
+                    onClick={handleDeleteAccount} 
+                    color="error" 
+                    variant="contained"
+                    disabled={deletingAccount}
+                    startIcon={deletingAccount ? <CircularProgress size={18} color="inherit" /> : null}
+                >
+                    {deletingAccount ? 'Suppression...' : 'Confirmer la Suppression'}
+                </Button>
+            </DialogActions>
+        </Dialog>
+
+      </Container>
+    </PageTransition>
   );
 };
 

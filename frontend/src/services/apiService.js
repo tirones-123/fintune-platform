@@ -550,94 +550,6 @@ export const apiKeyService = {
   },
 };
 
-// Service de gestion des abonnements
-export const subscriptionService = {
-  // Récupérer l'abonnement actuel
-  getCurrent: async () => {
-    try {
-      const response = await api.get('/api/users/me/subscription');
-      return response.data;
-    } catch (error) {
-      // Si l'erreur est 404, cela signifie qu'il n'y a pas d'abonnement
-      if (error.response?.status === 404) {
-        return null; // Retourner null au lieu de lancer une erreur
-      }
-      throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération de l\'abonnement');
-    }
-  },
-
-  // Créer une session de paiement
-  createCheckoutSession: async (planId) => {
-    console.log(`Création de session de paiement pour plan: ${planId}`);
-    
-    try {
-      // L'API attend un ID de plan (starter, pro, enterprise) directement
-      // Mapper l'ID de plan de manière explicite
-      let planType = 'starter'; // Par défaut
-      
-      if (planId === 'STRIPE_PRICE_STARTER') {
-        planType = 'starter';
-      } else if (planId === 'STRIPE_PRICE_PRO') {
-        planType = 'pro';
-      } else if (planId === 'STRIPE_PRICE_ENTERPRISE') {
-        planType = 'enterprise';
-      } else {
-        // Si planId est déjà un type de plan (starter, pro, enterprise), l'utiliser directement
-        if (['starter', 'pro', 'enterprise'].includes(planId)) {
-          planType = planId;
-        }
-      }
-      
-      console.log(`Type de plan mappé: ${planType}`);
-      const apiUrl = `/api/checkout/create-checkout-session/${planType}`;
-      console.log(`Appel API: ${apiUrl}`);
-      
-      // Appeler l'API avec le bon format
-      const response = await api.post(apiUrl);
-      console.log('Réponse API reçue:', response.data);
-      
-      // Vérifier que l'URL de checkout existe dans la réponse
-      if (!response.data || !response.data.checkout_url) {
-        console.error('URL de checkout manquante dans la réponse:', response.data);
-        throw new Error('L\'URL de paiement n\'a pas été reçue');
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la création de la session de paiement:', error);
-      
-      // Logs détaillés pour le débogage
-      if (error.response) {
-        console.error('Détails de la réponse d\'erreur:', {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data,
-          headers: error.response.headers,
-          config: {
-            url: error.response.config.url,
-            method: error.response.config.method,
-            data: error.response.config.data
-          }
-        });
-        
-        throw new Error(`Erreur ${error.response.status}: ${error.response.data?.detail || error.message}`);
-      }
-      
-      throw error; // Rethrow l'erreur originale si pas de réponse
-    }
-  },
-
-  // Récupérer le portail client
-  getCustomerPortal: async () => {
-    try {
-      const response = await api.post('/api/checkout/customer-portal');
-      return response.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération du portail client');
-    }
-  },
-};
-
 // Service de gestion des caractères
 export const characterService = {
   // Récupérer les statistiques d'utilisation
@@ -860,6 +772,45 @@ export const userService = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.detail || 'Erreur lors de la vérification de la clé API');
+    }
+  },
+
+  // Utilisation de userService pour la vérification
+  verifyKey: async (provider, key) => {
+    try {
+      const response = await api.post('/api/users/verify-api-key', { provider, key });
+      return response.data; // Renvoie { valid: bool, credits: int|null, message: str }
+    } catch (error) {
+      console.error("Erreur vérification clé API:", error);
+      // Renvoyer une structure d'erreur cohérente
+      return {
+        valid: false,
+        credits: null,
+        message: error.response?.data?.detail || error.message || "Erreur lors de la vérification"
+      };
+    }
+  },
+
+  // Changer le mot de passe
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      const response = await api.put('/api/users/me/password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors du changement de mot de passe');
+    }
+  },
+
+  // Supprimer le compte utilisateur
+  deleteAccount: async () => {
+    try {
+      await api.delete('/api/users/me');
+      // La déconnexion et la redirection sont gérées par le contexte après succès
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la suppression du compte');
     }
   }
 };

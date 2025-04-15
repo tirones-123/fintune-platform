@@ -144,7 +144,7 @@ def process_text_content(content_id: int):
         # --- CORRECTION: Sauvegarder le texte extrait dans la base de données ---
         content.content_text = extracted_text
         # --- FIN CORRECTION ---
-
+        
         # Compter les caractères - méthode exacte
         character_count = len(extracted_text)
         logger.info(f"Text content {content_id} has {character_count} characters")

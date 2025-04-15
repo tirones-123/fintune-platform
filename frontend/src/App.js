@@ -28,6 +28,7 @@ import ContentsPage from './pages/ContentsPage';
 import DatasetsPage from './pages/DatasetsPage';
 import FineTuningsPage from './pages/FineTuningsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import NewFineTuningFlowPage from './pages/NewFineTuningFlowPage';
 
 // Layouts
 import DashboardLayout from './components/dashboard/DashboardLayout';
@@ -107,18 +108,19 @@ const AppRoutes = () => {
           {/* Routes des projets */}
           <Route path="projects/new" element={<NewProjectPage />} />
           <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="projects/:projectId/new-fine-tuning" element={<NewFineTuningFlowPage />} />
           
-          {/* Routes du contenu - Conservées pour la compatibilité */}
-          <Route path="content/upload/:projectId" element={<ContentUploadPage />} />
-          <Route path="content/upload" element={<ContentUploadPage />} />
-          <Route path="content/:contentId" element={<ContentUploadPage />} />
+          {/* Routes du contenu - Supprimées car intégrées */}
+          {/* <Route path="content/upload/:projectId" element={<ContentUploadPage />} /> */}
+          {/* <Route path="content/upload" element={<ContentUploadPage />} /> */}
+          {/* <Route path="content/:contentId" element={<ContentUploadPage />} /> */}
           
-          {/* Routes des datasets - Conservées pour la compatibilité */}
-          <Route path="datasets/new/:projectId" element={<NewDatasetPage />} />
+          {/* Routes des datasets - Supprimées car intégrées */}
+          {/* <Route path="datasets/new/:projectId" element={<NewDatasetPage />} /> */}
           <Route path="datasets/:datasetId" element={<DatasetDetailPage />} />
           
-          {/* Routes du fine-tuning - Conservées pour la compatibilité */}
-          <Route path="fine-tuning/new/:datasetId" element={<NewFineTuningPage />} />
+          {/* Routes du fine-tuning - Supprimées car intégrées */}
+          {/* <Route path="fine-tuning/new/:datasetId" element={<NewFineTuningPage />} /> */}
           <Route path="fine-tuning/:fineTuningId" element={<FineTuningDetailPage />} />
           <Route path="chat/:fineTuningId" element={<ChatPage />} />
           

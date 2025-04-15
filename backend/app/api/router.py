@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth, users, projects, contents, datasets, fine_tunings, payments, helpers, characters, video_transcription, web_scraping, api_keys
+from app.api.endpoints import auth, users, projects, contents, datasets, fine_tunings, payments, helpers, characters, video_transcription, web_scraping, api_keys, fine_tuning_jobs
 
 api_router = APIRouter()
 

@@ -224,5 +224,24 @@ class CharacterService:
         
         return suggestions
 
+    def handle_fine_tuning_cost(self, amount_usd: float) -> dict:
+        """
+        Gère le coût de fine tuning en fonction du montant en dollars.
+        
+        Args:
+            amount_usd: Montant en dollars.
+            
+        Returns:
+            Un dictionnaire contenant:
+            - needs_payment: Booléen indiquant si le coût nécessite un paiement
+            - reason: Raison pour laquelle le coût est traité gratuitement
+        """
+        # Si le coût est inférieur à 0.50
+        if amount_usd < 0.50:
+            logger.info(f"Coût (${amount_usd:.2f}) inférieur au minimum Stripe. Traitement gratuit.")
+            return {"needs_payment": False, "reason": "low_amount"}
+        else:
+            return {"needs_payment": True, "reason": None}
+
 # Créer une instance singleton
 character_service = CharacterService() 
