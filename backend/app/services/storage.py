@@ -8,7 +8,7 @@ from typing import Optional
 from app.core.config import settings
 
 class StorageService:
-    """Service for handling file storage."""
+    """Service for handling file storage.""" 
     
     def __init__(self, upload_dir: str = settings.UPLOAD_DIR):
         """

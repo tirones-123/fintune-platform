@@ -8,7 +8,6 @@ import docx
 import sys
 import tempfile
 import yt_dlp
-import whisper
 import re
 from datetime import datetime
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
@@ -487,5 +486,5 @@ def transcribe_youtube_video(self, content_id: int):
         db.close()
 
 # --- NE PAS OUBLIER DE SUPPRIMER LA FONCTION extract_youtube_video_id SI ELLE N'EST PLUS UTILISÉE AILLEURS ---
-# def extract_youtube_video_id(url: str) -> Optional[str]:
+# def extract_youtube_video_id(url: str) -> Optional[str] :
 #     ... 
