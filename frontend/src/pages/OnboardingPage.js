@@ -70,6 +70,14 @@ import HelpIcon from '@mui/icons-material/Help';
 import UploadStatusCard from '../components/content/UploadStatusCard';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
+// Import pour la popup d'aide
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import CloseIcon from '@mui/icons-material/Close';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import Link from '@mui/material/Link';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -184,7 +192,7 @@ const OnboardingPage = () => {
   
   // Données du fine-tuning
   const [provider, setProvider] = useState('openai');
-  const [model, setModel] = useState('gpt-4');
+  const [model, setModel] = useState('gpt-4o');
   const [creatingFineTuning, setCreatingFineTuning] = useState(false);
   const [createdFineTuning, setCreatedFineTuning] = useState(null);
   const [fineTuningError, setFineTuningError] = useState(null);
@@ -229,6 +237,9 @@ const OnboardingPage = () => {
   const [uploadedWeb, setUploadedWeb] = useState([]);
   const [scrapeError, setScrapeError] = useState(null);
   const [scrapeLoading, setScrapeLoading] = useState(false);
+
+  // Ajouter un état pour gérer la popup d'aide
+  const [apiHelpOpen, setApiHelpOpen] = useState(false);
 
   // Créer automatiquement un projet au chargement de la page
   useEffect(() => {
@@ -356,16 +367,26 @@ const OnboardingPage = () => {
     setApiKeyError(null);
     
     try {
-      // Appel API pour sauvegarder la clé API
+      // Sauvegarder d'abord la clé
       await apiKeyService.addKey(provider, apiKey);
       
-      setApiKeySaved(true);
-      enqueueSnackbar('Clé API enregistrée avec succès', { variant: 'success' });
-      return true;
+      // Tester la clé avec une requête simple à l'API
+      const testResponse = await api.post('/api/test-openai-connection', {
+        provider, 
+        message: "Test de connexion"
+      });
+      
+      if (testResponse.data.success) {
+        setApiKeySaved(true);
+        enqueueSnackbar('Clé API validée avec succès', { variant: 'success' });
+        return true;
+      } else {
+        setApiKeyError("Clé API invalide ou problème de connexion");
+        return false;
+      }
     } catch (error) {
-      console.error('Erreur lors de l\'enregistrement de la clé API:', error);
-      setApiKeyError(error.message || "Erreur lors de l'enregistrement de la clé API");
-      enqueueSnackbar(`Erreur: ${error.message || "Échec de l'enregistrement de la clé API"}`, { variant: 'error' });
+      // Gestion simplifiée des erreurs
+      setApiKeyError("La clé API semble invalide. Veuillez vérifier et réessayer.");
       return false;
     } finally {
       setSavingApiKey(false);
@@ -1854,7 +1875,11 @@ const OnboardingPage = () => {
                   disabled={createdDataset !== null}
                 >
                   {provider && providerModels[provider] && providerModels[provider].map((modelOption) => (
-                    <MenuItem key={modelOption.id} value={modelOption.id}>
+                    <MenuItem 
+                      key={modelOption.id} 
+                      value={modelOption.id}
+                      disabled={modelOption.name.includes("Coming soon")}
+                    >
                       {modelOption.name}
                     </MenuItem>
                   ))}
@@ -1873,6 +1898,17 @@ const OnboardingPage = () => {
                   error={!!apiKeyError}
                   helperText={apiKeyError}
                   disabled={apiKeySaved}
+                  InputProps={{
+                    endAdornment: (
+                      <IconButton 
+                        onClick={() => setApiHelpOpen(true)} 
+                        edge="end"
+                        aria-label="aide sur les clés API"
+                      >
+                        <HelpOutlineIcon />
+                      </IconButton>
+                    ),
+                  }}
                 />
               </Box>
               
@@ -2045,6 +2081,107 @@ const OnboardingPage = () => {
           </Paper>
         </Container>
       </Box>
+      {/* Popup d'aide pour la clé API */}
+      <Dialog 
+        open={apiHelpOpen} 
+        onClose={() => setApiHelpOpen(false)}
+        maxWidth="md"
+      >
+        <DialogTitle>
+          Comment obtenir votre clé API {provider === 'openai' ? 'OpenAI' : 'Anthropic'}
+          <IconButton
+            aria-label="fermer"
+            onClick={() => setApiHelpOpen(false)}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="h6" gutterBottom>
+            Pourquoi avons-nous besoin de votre clé API ?
+          </Typography>
+          <Typography paragraph>
+            Pour réaliser le fine-tuning de votre modèle, nous devons accéder à l'API {provider === 'openai' ? 'OpenAI' : 'Anthropic'} en utilisant votre propre clé. 
+            Cela permet de:
+          </Typography>
+          <List>
+            <ListItem>
+              <ListItemIcon><CheckCircleIcon color="success" /></ListItemIcon>
+              <ListItemText primary="Créer un modèle fine-tuné personnalisé qui vous appartient" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon><CheckCircleIcon color="success" /></ListItemIcon>
+              <ListItemText primary="Garantir la confidentialité de vos données" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon><CheckCircleIcon color="success" /></ListItemIcon>
+              <ListItemText primary="Vous permettre d'utiliser ce modèle dans vos propres applications" />
+            </ListItem>
+          </List>
+          
+          {provider === 'openai' && (
+            <>
+              <Typography variant="h6" gutterBottom>
+                Comment obtenir votre clé API OpenAI
+              </Typography>
+              <List>
+                <ListItem>
+                  <ListItemIcon><Typography variant="body2" color="primary">1</Typography></ListItemIcon>
+                  <ListItemText 
+                    primary="Connectez-vous à votre compte OpenAI" 
+                    secondary={<Link href="https://platform.openai.com/login" target="_blank" rel="noopener">https://platform.openai.com/login</Link>}
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon><Typography variant="body2" color="primary">2</Typography></ListItemIcon>
+                  <ListItemText 
+                    primary="Allez dans 'API Keys'" 
+                    secondary="Cliquez sur votre profil en haut à droite, puis sélectionnez 'View API keys'"
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon><Typography variant="body2" color="primary">3</Typography></ListItemIcon>
+                  <ListItemText 
+                    primary="Créez une nouvelle clé API" 
+                    secondary="Cliquez sur 'Create new secret key', donnez-lui un nom et copiez la clé générée"
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon><Typography variant="body2" color="primary">4</Typography></ListItemIcon>
+                  <ListItemText 
+                    primary="Assurez-vous d'avoir des crédits disponibles" 
+                    secondary="Vérifiez votre solde sous 'Billing' pour vous assurer que vous avez des crédits pour le fine-tuning"
+                  />
+                </ListItem>
+              </List>
+            </>
+          )}
+          
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            <AlertTitle>Important</AlertTitle>
+            Nous ne stockons jamais votre clé API en clair. Elle est chiffrée dans notre base de données et utilisée uniquement pour les opérations de fine-tuning que vous initiez.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setApiHelpOpen(false)}>Fermer</Button>
+          {provider === 'openai' && (
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={() => {
+                window.open('https://platform.openai.com/api-keys', '_blank');
+              }}
+            >
+              Accéder à OpenAI
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </PageTransition>
   );
 };
