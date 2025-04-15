@@ -15,7 +15,7 @@ from app.models.project import Project
 from app.models.content import Content
 from app.models.dataset import Dataset, DatasetContent
 from app.models.fine_tuning import FineTuning
-from app.models.fine_tuning_job_config import FineTuningJobConfig
+from app.api.endpoints.fine_tuning_jobs import FineTuningJobConfig
 from app.tasks.content_processing import transcribe_youtube_video
 from celery_app import celery_app
 

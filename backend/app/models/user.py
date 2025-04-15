@@ -24,6 +24,5 @@ class User(Base):
     # Relationships
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
     api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete-orphan")
-    subscription = relationship("Subscription", back_populates="user", uselist=False, cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")
     character_transactions = relationship("CharacterTransaction", back_populates="user", cascade="all, delete-orphan")

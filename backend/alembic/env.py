@@ -12,7 +12,7 @@ from app.models.content import Content
 from app.models.dataset import Dataset, DatasetContent, DatasetPair
 from app.models.fine_tuning import FineTuning
 from app.models.api_key import ApiKey
-from app.models.subscription import Subscription
+from app.models.payment import Payment, CharacterTransaction
 from app.db.session import Base
 
 # this is the Alembic Config object, which provides

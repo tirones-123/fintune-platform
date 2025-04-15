@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 
 from app.core.security import get_password_hash
 from app.models.user import User
-from app.models.subscription import Subscription
 from app.models.project import Project
 from app.models.content import Content
 from app.models.dataset import Dataset, DatasetContent, DatasetPair
 from app.models.fine_tuning import FineTuning
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -48,20 +48,6 @@ def init_db(db: Session) -> None:
         db.commit()
         db.refresh(admin_user)
         logger.info(f"Created admin user: {admin_user.email}")
-    
-    # Create subscription for test user
-    test_subscription = db.query(Subscription).filter(Subscription.user_id == test_user.id).first()
-    if not test_subscription:
-        test_subscription = Subscription(
-            user_id=test_user.id,
-            stripe_subscription_id="sub_test",
-            plan="Starter",
-            status="active"
-        )
-        db.add(test_subscription)
-        db.commit()
-        db.refresh(test_subscription)
-        logger.info(f"Created subscription for test user")
     
     # Create test project
     test_project = db.query(Project).filter(
