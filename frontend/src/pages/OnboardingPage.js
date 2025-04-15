@@ -62,7 +62,9 @@ import {
   apiKeyService,
   videoService,
   api,
-  scrapingService
+  scrapingService,
+  checkoutService,
+  userService
 } from '../services/apiService';
 import { useSnackbar } from 'notistack';
 import FileUpload from '../components/common/FileUpload';
@@ -200,11 +202,11 @@ const OnboardingPage = () => {
   // Modèles disponibles par fournisseur
   const providerModels = {
     openai: [
-      { id: 'gpt-4o', name: 'GPT-4o (Modèle le plus performant et récent)' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Bon rapport qualité/prix)' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo (Économique, bonne performance)' },
-      { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini (Version compacte de GPT-4.1)' },
-      { id: 'gpt-4.1', name: 'GPT-4.1 (Haute performance, plus coûteux)' },
+      { id: 'gpt-4o', name: 'GPT-4o (Modèle le plus performant et récent)', apiId: 'gpt-4o-2024-08-06' },
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Bon rapport qualité/prix)', apiId: 'gpt-4o-mini-2024-07-18' },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo (Économique, bonne performance)', apiId: 'gpt-3.5-turbo-0125' },
+      { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini (Version compacte de GPT-4.1)', apiId: 'gpt-4.1-mini-2025-04-14' },
+      { id: 'gpt-4.1', name: 'GPT-4.1 (Haute performance, plus coûteux)', apiId: 'gpt-4.1-2025-04-14' },
     ],
     anthropic: [
       { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet (Coming soon)' },
@@ -510,10 +512,14 @@ const OnboardingPage = () => {
     setFineTuningError(null);
     
     try {
+      // Trouver l'apiId correspondant au modèle sélectionné
+      const selectedModel = providerModels[provider].find(m => m.id === model);
+      const apiModelId = selectedModel?.apiId || model;
+      
       const fineTuningData = {
         name: `Fine-tuning de ${datasetName}`,
         dataset_id: createdDataset.id,
-        model: model,
+        model: apiModelId,
         provider: provider,
         hyperparameters: {
           n_epochs: 3
@@ -578,130 +584,42 @@ const OnboardingPage = () => {
 
   // Fonction pour finaliser l'onboarding et lancer le fine-tuning
   const completeOnboarding = async () => {
-    setIsCompleting(true);
-    setCompletionError(null);
     setProcessingFineTuning(true);
-    
-    // Déclaration des variables en dehors des blocs pour qu'elles soient accessibles partout
-    let characterCount = 0;
-    let pendingTranscriptions = [];
-    
-    try {
-      // 1. Mettre à jour le profil utilisateur immédiatement
-      const payload = {
-        email: user.email,
-        name: user.name,
-        is_active: user.is_active,
-        has_completed_onboarding: true,
-      };
 
-      console.log("Mise à jour de l'utilisateur avec payload:", payload);
-      const updatedUser = await updateUser(payload);
-      console.log("Résultat de la mise à jour:", updatedUser);
+    try {
+      // Mise à jour du profil utilisateur
+      const userProfilePayload = {
+        name: user.name,
+        company: user.company
+      };
       
-      // 2. Redirection vers la page de paiement ou traitement gratuit
-      if (updatedUser && updatedUser.has_completed_onboarding) {
-        try {
-          // Récupérer le nombre de caractères (réel ou estimé)
-          characterCount = isEstimated ? estimateCharacterCount() : actualCharacterCount;
-          console.log(`Nombre de caractères à facturer: ${characterCount}`);
-          
-          // Sauvegarder la liste des vidéos YouTube en attente de transcription complète
-          pendingTranscriptions = uploadedYouTube
-            .filter(c => c.status === 'awaiting_transcription')
-            .map(c => ({
-              id: c.id, 
-              url: c.url,
-              video_id: c.metadata?.video_id || c.video_id,
-              estimated_characters: c.estimated_characters
-            }));
-          
-          // Calculer le prix en USD pour afficher des informations à l'utilisateur
-          const billableCharacters = Math.max(0, characterCount - FREE_CHARACTER_QUOTA);
-          const priceUSD = billableCharacters * PRICE_PER_CHARACTER;
-          const estimatedPriceEUR = priceUSD * 0.93; // Conversion approximative USD -> EUR
-          
-          console.log(`Prix estimé: $${priceUSD.toFixed(2)} (~ €${estimatedPriceEUR.toFixed(2)})`);
-          
-          // Informer l'utilisateur si le traitement sera gratuit
-          if (billableCharacters === 0 || estimatedPriceEUR < MIN_STRIPE_AMOUNT_EUR) {
-            console.log(`Montant trop faible (${estimatedPriceEUR.toFixed(2)}€ < ${MIN_STRIPE_AMOUNT_EUR}€), sera traité gratuitement`);
-            
-            // On peut faire un toast de notification mais on continue le processus standard
-            // car le backend gère déjà automatiquement les cas gratuits
-            enqueueSnackbar("Votre contenu est en-dessous du seuil de facturation et sera traité gratuitement!", 
-              { variant: 'success', autoHideDuration: 3000 });
-          }
-          
-          // Appeler l'endpoint standard - le backend gèrera automatiquement
-          // si c'est gratuit (< 10,000 caractères) ou si le montant est trop petit pour Stripe
-          console.log("Création de la session d'onboarding");
-          const session = await api.post('/api/checkout/create-onboarding-session', {
-            character_count: characterCount,
-            pending_transcriptions: pendingTranscriptions,
-            dataset_name: datasetName,
-            provider: provider,
-            model: model,
-            system_content: systemContent
-          });
-          console.log("Session créée avec succès:", session.data);
-          
-          // Si l'URL contient "dashboard", c'est que le backend a décidé que c'était gratuit
-          // et nous a directement redirigé vers le tableau de bord
-          if (session.data && session.data.checkout_url && session.data.checkout_url.includes('/dashboard')) {
-            console.log("Traitement gratuit détecté, redirection vers le dashboard");
-            enqueueSnackbar("Votre assistant est en cours de création!", { variant: 'success' });
-            window.location.href = session.data.checkout_url;
-          } 
-          // Sinon c'est une redirection vers la page de paiement Stripe
-          else if (session.data && session.data.checkout_url) {
-            console.log("Redirection vers la page de paiement Stripe:", session.data.checkout_url);
-            window.location.href = session.data.checkout_url;
-          } 
-          else {
-            console.error("URL de redirection non reçue dans la session:", session.data);
-            setCompletionError("Erreur de redirection: URL non disponible");
-            setProcessingFineTuning(false);
-            setIsCompleting(false);
-          }
-        } catch (checkoutError) {
-          console.error('Erreur lors de la création de la session:', checkoutError);
-          if (checkoutError.response) {
-            console.error('Détails de la réponse d\'erreur:', {
-              status: checkoutError.response.status,
-              data: checkoutError.response.data,
-              headers: checkoutError.response.headers
-            });
-            
-            // Si l'erreur est "amount_too_small", informer l'utilisateur
-            if (checkoutError.response.data && 
-                checkoutError.response.data.detail && 
-                checkoutError.response.data.detail.includes("amount_too_small")) {
-              
-              setCompletionError("Le montant est trop faible pour être traité par Stripe. Veuillez ajouter plus de contenu ou contacter le support.");
-            } else {
-              setCompletionError(`Erreur lors de la création de la session: ${checkoutError.message}`);
-            }
-          } else {
-            setCompletionError(`Erreur de connexion: ${checkoutError.message}`);
-          }
-          setProcessingFineTuning(false);
-          setIsCompleting(false);
-        }
+      await userService.updateUserProfile(userProfilePayload);
+      
+      // Trouver l'apiId correspondant au modèle sélectionné
+      const selectedModel = providerModels[provider].find(m => m.id === model);
+      const apiModelId = selectedModel?.apiId || model;
+      
+      // Création de la session de paiement Stripe
+      const response = await checkoutService.createOnboardingSession({
+        character_count: actualCharacterCount,
+        pending_transcriptions: uploadedYouTube.map(video => video.id),
+        pending_web_extractions: uploadedWeb.map(site => site.id),
+        dataset_name: datasetName,
+        provider: provider,
+        model: apiModelId,
+        system_content: systemContent
+      });
+
+      // Redirection vers l'URL de paiement Stripe
+      if (response && response.payment_url) {
+        window.location.href = response.payment_url;
       } else {
-        console.error("La mise à jour de l'état d'onboarding a échoué. Données reçues:", JSON.stringify(updatedUser, null, 2));
-        setCompletionError("L'état d'onboarding n'a pas pu être mis à jour correctement");
-        setProcessingFineTuning(false);
-        setIsCompleting(false);
+        throw new Error("URL de paiement non reçue");
       }
     } catch (error) {
-      console.error('Erreur lors de la finalisation:', error);
-      setCompletionError(error.message || "Erreur lors de la finalisation");
+      // ... existing code ...
+    } finally {
       setProcessingFineTuning(false);
-      setIsCompleting(false);
-      if (error.message === 'Not authenticated') {
-        navigate('/login');
-      }
     }
   };
 
