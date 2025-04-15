@@ -187,8 +187,26 @@ def check_fine_tuning_status(fine_tuning_id: int):
             logger.info(f"Fine-tuning {fine_tuning_id} is not in training status, skipping update")
             return {"status": "skipped", "message": "Fine-tuning is not in training status"}
         
-        # Get provider service
-        provider_service = get_ai_provider(fine_tuning.provider, fine_tuning.api_key or None)
+        # --- CORRECTION: Récupérer la clé API de l'utilisateur associé ---
+        user_api_key = None
+        if fine_tuning.dataset and fine_tuning.dataset.project and fine_tuning.dataset.project.user:
+            user = fine_tuning.dataset.project.user
+            for api_key in user.api_keys:
+                if api_key.provider.lower() == fine_tuning.provider.lower():
+                    user_api_key = api_key.key
+                    break
+        
+        if not user_api_key:
+            error_msg = f"Could not find API key for provider {fine_tuning.provider} for user {fine_tuning.dataset.project.user_id}"
+            logger.error(error_msg)
+            fine_tuning.status = "error"
+            fine_tuning.error_message = error_msg
+            db.commit()
+            return {"status": "error", "message": error_msg}
+        # --- FIN CORRECTION ---
+        
+        # Get provider service avec la clé récupérée
+        provider_service = get_ai_provider(fine_tuning.provider, user_api_key)
         
         # Get status from provider
         status_response = provider_service.get_fine_tuning_status(fine_tuning.external_id)

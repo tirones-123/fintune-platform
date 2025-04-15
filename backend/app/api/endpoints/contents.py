@@ -149,6 +149,7 @@ def add_url_content(
 ):
     """
     Add a URL-based content (YouTube, webpage, etc.).
+    For 'website' type, the description should contain the scraped text.
     """
     # Verify project belongs to user
     project = db.query(Project).filter(
@@ -165,20 +166,32 @@ def add_url_content(
     # Create content
     db_content = Content(
         name=content_in.name,
-        description=content_in.description,
+        description=content_in.description if content_in.type != 'website' else None, # Clear description for website type if text is in content_text
         type=content_in.type,
         url=content_in.url,
-        status="processing",
+        status="processing", # Default status
         project_id=content_in.project_id,
-        content_metadata={"original_url": content_in.url}  # Initialiser les métadonnées
+        content_metadata={"original_url": content_in.url}
     )
+    
+    # Special handling for website type: text is already scraped by frontend
+    if content_in.type == 'website':
+        db_content.content_text = content_in.description # Store scraped text here
+        db_content.status = "completed" # Mark as completed immediately
+        # Calculate character count
+        character_count = len(content_in.description or "")
+        if not db_content.content_metadata:
+             db_content.content_metadata = {}
+        db_content.content_metadata["character_count"] = character_count
+        db_content.content_metadata["is_exact_count"] = True
     
     db.add(db_content)
     db.commit()
     db.refresh(db_content)
     
-    # Déclencher la tâche de traitement de contenu
-    process_content.delay(db_content.id)
+    # Trigger processing only if not already completed (i.e., not website type)
+    if db_content.status != "completed":
+        process_content.delay(db_content.id)
     
     return db_content
 
