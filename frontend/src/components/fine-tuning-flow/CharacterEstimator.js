@@ -17,13 +17,6 @@ import { contentService } from '../../services/apiService'; // Pour récupérer 
 // --- Constantes copiées de OnboardingPage --- 
 const PRICE_PER_CHARACTER = 0.000365;
 const FREE_CHARACTER_QUOTA = 10000;
-const USAGE_THRESHOLDS = {
-  legal: { min: 5000, optimal: 30000, max: 100000 },
-  customer_service: { min: 5000, optimal: 50000, max: 200000 },
-  knowledge_base: { min: 10000, optimal: 100000, max: 500000 },
-  education: { min: 8000, optimal: 80000, max: 300000 },
-  other: { min: 5000, optimal: 30000, max: 100000 }
-};
 
 // Calculer le coût estimé
 const getEstimatedCost = (characterCount) => {
@@ -33,7 +26,7 @@ const getEstimatedCost = (characterCount) => {
 
 // Calculer la progression sur la barre multi-paliers
 const calculateProgressValue = (currentCount, minRecommended) => {
-    if (!minRecommended) return 0;
+    if (!minRecommended || minRecommended <= 0) return 0;
     const freeCredits = 10000;
     const maxRecommended = minRecommended * 4;
     let progressValue = 0;
@@ -51,12 +44,12 @@ const calculateProgressValue = (currentCount, minRecommended) => {
   };
 // --- Fin Constantes copiées --- 
 
-const CharacterEstimator = ({ selectedContentIds, onCharacterCountChange }) => {
+const CharacterEstimator = ({ selectedContentIds, onCharacterCountChange, minCharactersRecommended = 5000 }) => {
   const [totalCharacters, setTotalCharacters] = useState(0);
   const [isEstimated, setIsEstimated] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [minRecommended] = useState(USAGE_THRESHOLDS.other.min); // TODO: Rendre dynamique si besoin
-  const [maxRecommended] = useState(USAGE_THRESHOLDS.other.max);
+  const minRecommended = minCharactersRecommended;
+  const maxRecommended = minRecommended * 4;
   
   // Recalculer quand les contenus sélectionnés changent
   useEffect(() => {

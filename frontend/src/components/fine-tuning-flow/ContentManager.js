@@ -259,23 +259,41 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
       enqueueSnackbar("Site web retiré", { variant: 'info' });
     };
 
-  const allContent = [...projectContents, ...newlyAddedFiles, ...newlyAddedYouTube, ...newlyAddedWebsites];
+  // Créer une liste unifiée en évitant les doublons
+  const allContent = [
+    // D'abord les contenus existants qui N'ONT PAS été ajoutés dans ce flux
+    ...projectContents.filter(pc => 
+      !newlyAddedFiles.some(naf => naf.id === pc.id) &&
+      !newlyAddedYouTube.some(nay => nay.id === pc.id) &&
+      !newlyAddedWebsites.some(naw => naw.id === pc.id)
+    ),
+    // Ensuite les contenus ajoutés dans ce flux
+    ...newlyAddedFiles,
+    ...newlyAddedYouTube,
+    ...newlyAddedWebsites
+  ];
 
   return (
     <Box>
       <Typography variant="h6" gutterBottom>Sélectionner ou Ajouter du Contenu</Typography>
       
-      {/* Section pour ajouter du contenu */}
+      {/* Section pour ajouter du contenu - Ordre modifié */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="subtitle1" gutterBottom>Fichiers</Typography>
+        {/* 1. Upload Fichiers (prend toute la largeur sur petit écran) */}
+        <Grid item xs={12} md={12}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle1" gutterBottom>1. Ajouter des Fichiers</Typography>
             <FileUpload projectId={projectId} onSuccess={handleFileUploadSuccess} />
+             <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                Formats supportés : PDF, TXT, DOCX.
+            </Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} md={4}>
+        
+        {/* 2. Ajouter URL YouTube */}
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="subtitle1" gutterBottom>Vidéo YouTube</Typography>
+            <Typography variant="subtitle1" gutterBottom>2. Ajouter une Vidéo YouTube</Typography>
             <TextField
               label="URL YouTube"
               value={youtubeUrl}
@@ -292,9 +310,11 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
             </Button>
           </Paper>
         </Grid>
-        <Grid item xs={12} md={4}>
+        
+        {/* 3. Ajouter URL Web */}
+        <Grid item xs={12} md={6}>
            <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="subtitle1" gutterBottom>Site Web</Typography>
+            <Typography variant="subtitle1" gutterBottom>3. Ajouter un Site Web</Typography>
              <TextField
               label="URL Site Web"
               value={scrapeUrl}
@@ -307,8 +327,11 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
               sx={{ mb: 1 }}
             />
             <Button onClick={handleScrapeUrl} disabled={scrapeLoading || !scrapeUrl.trim()} size="small">
-              {scrapeLoading ? <CircularProgress size={20} /> : "Ajouter Site"}
+              {scrapeLoading ? <CircularProgress size={20} /> : "Extraire Contenu"}
             </Button>
+             <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                Extrait le contenu textuel principal de la page.
+            </Typography>
            </Paper>
         </Grid>
       </Grid>

@@ -20,6 +20,7 @@ import ConfigManager from '../components/fine-tuning-flow/ConfigManager';
 import CharacterEstimator from '../components/fine-tuning-flow/CharacterEstimator';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import { projectService, api } from '../services/apiService'; // Importer api pour l'endpoint
+import SystemPromptGenerator from '../components/fine-tuning-flow/SystemPromptGenerator';
 
 // Copier/Coller depuis ConfigManager ou OnboardingPage
 const providerModels = {
@@ -31,7 +32,7 @@ const providerModels = {
   anthropic: [],
 };
 
-const steps = ['Sélectionner/Ajouter Contenu', 'Configurer le Fine-tuning', 'Lancer le Job'];
+const steps = ['Définir l\'Assistant', 'Ajouter/Sélectionner Contenu', 'Configurer Modèle & Clé API', 'Lancer le Job'];
 
 const NewFineTuningFlowPage = () => {
   const { projectId } = useParams();
@@ -42,11 +43,15 @@ const NewFineTuningFlowPage = () => {
   const [project, setProject] = useState(null);
   const [loadingProject, setLoadingProject] = useState(true);
 
-  // États gérés par les sous-composants, remontés ici
+  // États gérés par les sous-composants
   const [selectedContentIds, setSelectedContentIds] = useState([]);
   const [fineTuningConfig, setFineTuningConfig] = useState({});
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [characterCount, setCharacterCount] = useState(0);
+  
+  // Nouveaux états pour l'étape 0
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [minCharactersRecommended, setMinCharactersRecommended] = useState(0);
 
   // État pour le lancement
   const [isLaunching, setIsLaunching] = useState(false);
@@ -68,31 +73,41 @@ const NewFineTuningFlowPage = () => {
     fetchProject();
   }, [projectId, navigate, enqueueSnackbar]);
 
-  const handleContentChange = useCallback((ids) => {
-    setSelectedContentIds(ids);
-  }, []);
-
+  // Callbacks pour remonter l'état
+  const handleContentChange = useCallback((ids) => setSelectedContentIds(ids), []);
   const handleConfigChange = useCallback((config) => {
-    setFineTuningConfig(prev => ({ ...prev, ...config }));
-  }, []);
+      // Mettre à jour la config mais NE PAS écraser le systemPrompt géré séparément
+      setFineTuningConfig(prev => ({ 
+          ...prev, 
+          provider: config.provider, 
+          model: config.model 
+        }));
+    }, []);
+  const handleApiKeyValidation = useCallback((isValid) => setIsApiKeyValid(isValid), []);
+  const handleCharacterCountChange = useCallback((count) => setCharacterCount(count), []);
+  
+  // Callback pour la nouvelle étape 0
+  const handleSystemPromptGenerated = useCallback((data) => {
+      setSystemPrompt(data.system_prompt);
+      setMinCharactersRecommended(data.min_characters_recommended);
+       // Mettre à jour aussi la config principale
+      setFineTuningConfig(prev => ({ ...prev, system_prompt: data.system_prompt }));
+    }, []);
 
-  const handleApiKeyValidation = useCallback((isValid) => {
-    setIsApiKeyValid(isValid);
-  }, []);
-
-  const handleCharacterCountChange = useCallback((count) => {
-    setCharacterCount(count);
-  }, []);
-
+  // Mettre à jour la logique de navigation entre étapes
   const handleNext = () => {
-    if (activeStep === 0 && selectedContentIds.length === 0) {
+    if (activeStep === 0 && !systemPrompt) { // Valider étape 0
+         enqueueSnackbar("Veuillez générer un System Prompt.", { variant: 'warning' });
+         return;
+       }
+    if (activeStep === 1 && selectedContentIds.length === 0) { // Valider étape 1
       enqueueSnackbar("Veuillez sélectionner au moins un contenu.", { variant: 'warning' });
       return;
     }
-    if (activeStep === 1 && !isApiKeyValid) {
+    if (activeStep === 2 && !isApiKeyValid) { // Valider étape 2
         enqueueSnackbar("Veuillez valider votre clé API avant de continuer.", { variant: 'warning' });
         return;
-      }
+    }
     setActiveStep((prev) => prev + 1);
   };
 
@@ -100,6 +115,7 @@ const NewFineTuningFlowPage = () => {
     setActiveStep((prev) => prev - 1);
   };
 
+  // Mettre à jour handleLaunchJob pour utiliser le systemPrompt de l'état
   const handleLaunchJob = async () => {
     setIsLaunching(true);
     setLaunchError(null);
@@ -109,10 +125,9 @@ const NewFineTuningFlowPage = () => {
         content_ids: selectedContentIds,
         config: {
             provider: fineTuningConfig.provider,
-            model: fineTuningConfig.model, // Assurer que l'apiId est utilisé si nécessaire
-            system_prompt: fineTuningConfig.system_prompt,
-            job_name: `FineTune_${project?.name || 'Projet'}_${Date.now()}` // Nom auto-généré
-            // Les hyperparamètres et suffix sont optionnels
+            model: fineTuningConfig.model, 
+            system_prompt: systemPrompt, // Utiliser l'état local
+            job_name: `FineTune_${project?.name || 'Projet'}_${Date.now()}`
         }
     };
     
@@ -154,32 +169,36 @@ const NewFineTuningFlowPage = () => {
     }
   };
 
+  // Mettre à jour le rendu des étapes
   const getStepComponent = (step) => {
     switch (step) {
-      case 0:
+      case 0: // Nouvelle étape
+        return <SystemPromptGenerator onSystemPromptGenerated={handleSystemPromptGenerated} />;
+      case 1:
         return (
-            <>                
+            <>
                 <ContentManager 
                     projectId={projectId} 
                     onContentChange={handleContentChange} 
                 />
-                 {/* Afficher l'estimateur seulement si du contenu est sélectionné */}
                  {selectedContentIds.length > 0 && (
                     <CharacterEstimator 
-                    selectedContentIds={selectedContentIds} 
-                    onCharacterCountChange={handleCharacterCountChange}
+                        selectedContentIds={selectedContentIds} 
+                        onCharacterCountChange={handleCharacterCountChange}
+                        minCharactersRecommended={minCharactersRecommended} // Passer la prop
                     />
                  )}
             </>
         );
-      case 1:
+      case 2: // Ancienne étape 1
         return (
           <ConfigManager 
+            // Ne plus passer initialConfig.system_prompt
             onConfigChange={handleConfigChange} 
             onApiKeyValidation={handleApiKeyValidation} 
           />
         );
-      case 2:
+      case 3: // Ancienne étape 2
         return (
             <Box>
                 <Typography variant="h6" gutterBottom>Récapitulatif et Lancement</Typography>
@@ -190,11 +209,12 @@ const NewFineTuningFlowPage = () => {
                     <Divider sx={{ my: 1 }} />
                     <Typography><strong>Fournisseur:</strong> {fineTuningConfig.provider}</Typography>
                     <Typography><strong>Modèle:</strong> {fineTuningConfig.model}</Typography>
-                    <Typography><strong>System Prompt:</strong> {fineTuningConfig.system_prompt || "(Par défaut)"}</Typography>
+                    <Typography><strong>System Prompt:</strong> {systemPrompt || "(Par défaut)"}</Typography>
                 </Paper>
                  <CharacterEstimator 
                     selectedContentIds={selectedContentIds} 
-                />
+                    minCharactersRecommended={minCharactersRecommended} // Passer la prop
+                 />
                 {launchError && <Alert severity="error" sx={{ mb: 2 }}>{launchError}</Alert>}
                 <Button 
                     variant="contained" 
@@ -247,12 +267,15 @@ const NewFineTuningFlowPage = () => {
                     <Button 
                         variant="contained" 
                         onClick={handleNext}
-                        // Désactiver si étape 1 et pas de contenu, ou étape 2 et clé non valide
-                        disabled={ (activeStep === 0 && selectedContentIds.length === 0) || (activeStep === 1 && !isApiKeyValid) } 
+                        disabled={ 
+                            (activeStep === 0 && !systemPrompt) ||
+                            (activeStep === 1 && selectedContentIds.length === 0) || 
+                            (activeStep === 2 && !isApiKeyValid) 
+                        } 
                     >
                         Suivant
                     </Button>
-                ) : null /* Le bouton de lancement est dans l'étape 3 */}
+                ) : null}
              </Box>
         </Paper>
       </Container>

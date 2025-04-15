@@ -135,18 +135,6 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
       <Typography variant="h6" gutterBottom>Configuration du Fine-tuning</Typography>
       
       <FormControl fullWidth margin="normal">
-        <TextField
-          label="Instruction Système (System Prompt)"
-          value={systemPrompt}
-          onChange={(e) => setSystemPrompt(e.target.value)}
-          multiline
-          rows={4}
-          placeholder="Exemple: Tu es un assistant expert en énergies renouvelables, toujours enthousiaste et pédagogue."
-          helperText="Décrit la personnalité et le rôle de votre modèle fine-tuné."
-        />
-      </FormControl>
-      
-      <FormControl fullWidth margin="normal">
         <InputLabel id="provider-select-label">Fournisseur IA</InputLabel>
         <Select
           labelId="provider-select-label"
