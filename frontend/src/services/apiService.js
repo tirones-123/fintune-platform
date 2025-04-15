@@ -831,6 +831,52 @@ export const videoService = {
   }
 };
 
+// Service pour la gestion des utilisateurs
+export const userService = {
+  // Récupérer le profil utilisateur
+  getUserProfile: async () => {
+    try {
+      const response = await api.get('/api/users/me');
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération du profil utilisateur');
+    }
+  },
+
+  // Mettre à jour le profil utilisateur
+  updateUserProfile: async (userData) => {
+    try {
+      const response = await api.put('/api/users/me', userData);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la mise à jour du profil utilisateur');
+    }
+  },
+
+  // Vérifier une clé API
+  verifyApiKey: async (provider, key) => {
+    try {
+      const response = await api.post('/api/users/verify-api-key', { provider, key });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la vérification de la clé API');
+    }
+  }
+};
+
+// Service pour la gestion des paiements Stripe et checkout
+export const checkoutService = {
+  // Créer une session de paiement pour l'onboarding
+  createOnboardingSession: async (sessionData) => {
+    try {
+      const response = await api.post('/api/checkout/create-onboarding-session', sessionData);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la création de la session de paiement');
+    }
+  }
+};
+
 // Exportation des services
 export { api };
 export default api; 
