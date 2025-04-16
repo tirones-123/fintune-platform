@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -16,12 +16,12 @@ import {
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import { fineTuningService } from '../services/apiService';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
 
 function PlaygroundPage() {
   const theme = useTheme();
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [prompt, setPrompt] = useState('');
