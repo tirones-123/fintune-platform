@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -23,15 +23,75 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
+import NotificationsPopover from './NotificationsPopover';
+import { notificationService } from '../../services/notificationService';
 
 const drawerWidth = 280;
 
 const Header = ({ onDrawerToggle }) => {
   const [anchorEl, setAnchorEl] = useState(null);
-  const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const theme = useTheme();
+
+  // États pour les notifications
+  const [notifications, setNotifications] = useState([]);
+  const [totalUnread, setTotalUnread] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const pollingIntervalRef = useRef(null);
+
+  // Fonction pour charger les notifications
+  const fetchNotifications = async () => {
+    // Ne pas mettre setLoading ici pour un polling silencieux
+    try {
+      const data = await notificationService.getNotifications(20); // Limite à 20
+      setNotifications(data || []);
+      setTotalUnread(data.filter(n => !n.is_read).length);
+    } catch (error) {
+      console.error("Erreur chargement notifications:", error);
+      // Gérer l'erreur discrètement
+    }
+  };
+
+  // Polling des notifications
+  useEffect(() => {
+    fetchNotifications(); // Charger au montage
+    
+    pollingIntervalRef.current = setInterval(fetchNotifications, 60000); // Polling toutes les 60 secondes
+
+    // Nettoyer l'intervalle au démontage
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Marquer une notification comme lue
+  const handleMarkOneAsRead = async (notificationId) => {
+    try {
+      await notificationService.markAsRead(notificationId);
+      // Mettre à jour l'état local pour refléter le changement immédiatement
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+      );
+      setTotalUnread(prev => Math.max(0, prev - 1)); // Décrémenter le compteur non lu
+    } catch (error) {
+      console.error("Erreur marquage comme lu:", error);
+    }
+  };
+
+  // Marquer tout comme lu
+  const handleMarkAllAsRead = async () => {
+     try {
+      await notificationService.markAllAsRead();
+      // Mettre à jour l'état local
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setTotalUnread(0);
+    } catch (error) {
+      console.error("Erreur marquage tout comme lu:", error);
+    }
+  };
 
   const handleOpenUserMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -39,14 +99,6 @@ const Header = ({ onDrawerToggle }) => {
 
   const handleCloseUserMenu = () => {
     setAnchorEl(null);
-  };
-
-  const handleOpenNotifications = (event) => {
-    setNotificationsAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseNotifications = () => {
-    setNotificationsAnchorEl(null);
   };
 
   const handleLogout = () => {
@@ -93,13 +145,13 @@ const Header = ({ onDrawerToggle }) => {
           <ThemeToggle />
 
           {/* Notifications */}
-          <Tooltip title="Notifications">
-            <IconButton color="inherit" onClick={handleOpenNotifications}>
-              <Badge badgeContent={3} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-          </Tooltip>
+          <NotificationsPopover
+             notifications={notifications}
+             totalUnread={totalUnread}
+             onMarkAllAsRead={handleMarkAllAsRead}
+             onMarkOneAsRead={handleMarkOneAsRead}
+             isLoading={loadingNotifications}
+          />
 
           {/* User Menu */}
           <Tooltip title="Options du compte">
@@ -125,66 +177,6 @@ const Header = ({ onDrawerToggle }) => {
           </Tooltip>
         </Box>
       </Toolbar>
-
-      {/* Notifications Menu */}
-      <Menu
-        id="notifications-menu"
-        anchorEl={notificationsAnchorEl}
-        open={Boolean(notificationsAnchorEl)}
-        onClose={handleCloseNotifications}
-        PaperProps={{
-          elevation: 2,
-          sx: {
-            overflow: 'visible',
-            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
-            mt: 1.5,
-            minWidth: 250,
-            maxWidth: 350,
-            '&:before': {
-              content: '""',
-              display: 'block',
-              position: 'absolute',
-              top: 0,
-              right: 14,
-              width: 10,
-              height: 10,
-              bgcolor: 'background.paper',
-              transform: 'translateY(-50%) rotate(45deg)',
-              zIndex: 0,
-            },
-          },
-        }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-      >
-        <MenuItem onClick={() => navigate('/dashboard/notifications')}>
-          <ListItemText 
-            primary="Nouveau modèle disponible" 
-            secondary="Il y a 1 heure"
-          />
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => navigate('/dashboard/notifications')}>
-          <ListItemText 
-            primary="Fine-tuning terminé" 
-            secondary="Il y a 3 heures"
-          />
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => navigate('/dashboard/notifications')}>
-          <ListItemText 
-            primary="Bienvenue sur FinTune" 
-            secondary="Il y a 1 jour"
-          />
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => navigate('/dashboard/notifications')}>
-          <ListItemText 
-            primary="Voir toutes les notifications" 
-            sx={{ color: 'primary.main' }}
-          />
-        </MenuItem>
-      </Menu>
 
       {/* User Menu */}
       <Menu

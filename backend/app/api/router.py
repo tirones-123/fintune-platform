@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth, users, projects, contents, datasets, fine_tunings, payments, helpers, characters, video_transcription, web_scraping, api_keys, fine_tuning_jobs
+from app.api.endpoints import auth, users, projects, contents, datasets, fine_tunings, payments, helpers, characters, video_transcription, web_scraping, api_keys, fine_tuning_jobs, notifications
 
 api_router = APIRouter()
 
@@ -17,4 +17,5 @@ api_router.include_router(characters.router, prefix="/characters", tags=["charac
 api_router.include_router(video_transcription.router, prefix="/helpers", tags=["helpers"])
 api_router.include_router(web_scraping.router, prefix="/helpers", tags=["helpers"])
 api_router.include_router(api_keys.router, prefix="/users", tags=["users"])
-api_router.include_router(fine_tuning_jobs.router, prefix="", tags=["fine-tuning-jobs"]) 
+api_router.include_router(fine_tuning_jobs.router, prefix="", tags=["fine-tuning-jobs"])
+api_router.include_router(notifications.router, prefix="", tags=["notifications"]) 

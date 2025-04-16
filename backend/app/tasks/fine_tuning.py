@@ -14,6 +14,7 @@ from app.services.ai_providers import get_ai_provider
 from app.services.storage import storage_service
 from app.core.config import settings
 from app.models.project import Project
+from app.api.endpoints.notifications import create_notification
 
 @shared_task(name="start_fine_tuning")
 def start_fine_tuning(fine_tuning_id: int):
@@ -41,6 +42,17 @@ def start_fine_tuning(fine_tuning_id: int):
             fine_tuning.status = "error"
             fine_tuning.error_message = "Dataset not found"
             db.commit()
+            # --- Ajout Notification --- 
+            user_id = fine_tuning.dataset.project.user_id
+            create_notification(
+                db=db,
+                user_id=user_id,
+                message=f"Échec du lancement du fine-tuning '{fine_tuning.name}': Dataset non trouvé.",
+                type='error',
+                related_id=fine_tuning_id,
+                related_type='fine_tuning'
+            )
+            # --- Fin Notification ---
             return {"status": "error", "message": "Dataset not found"}
         
         # Update fine-tuning status to preparing
@@ -77,6 +89,17 @@ def start_fine_tuning(fine_tuning_id: int):
             fine_tuning.status = "error"
             fine_tuning.error_message = "No pairs found in dataset"
             db.commit()
+            # --- Ajout Notification --- 
+            user_id = fine_tuning.dataset.project.user_id
+            create_notification(
+                db=db,
+                user_id=user_id,
+                message=f"Échec du lancement du fine-tuning '{fine_tuning.name}': Aucun couple Q/A trouvé dans le dataset.",
+                type='error',
+                related_id=fine_tuning_id,
+                related_type='fine_tuning'
+            )
+            # --- Fin Notification ---
             return {"status": "error", "message": "Dataset is empty"}
         
         # Récupérer le system_content du dataset (ou utiliser une valeur par défaut si vide)
@@ -140,6 +163,18 @@ def start_fine_tuning(fine_tuning_id: int):
         fine_tuning.started_at = datetime.now().isoformat()
         db.commit()
         
+        # --- Ajout Notification --- 
+        user_id = fine_tuning.dataset.project.user_id
+        create_notification(
+            db=db,
+            user_id=user_id,
+            message=f"Le fine-tuning '{fine_tuning.name}' a été lancé avec succès.",
+            type='info',
+            related_id=fine_tuning_id,
+            related_type='fine_tuning'
+        )
+        # --- Fin Notification ---
+        
         # Schedule periodic status check
         check_fine_tuning_status.apply_async(
             args=[fine_tuning_id],
@@ -158,6 +193,21 @@ def start_fine_tuning(fine_tuning_id: int):
             fine_tuning.status = "error"
             fine_tuning.error_message = str(e)
             db.commit()
+        
+        # --- Ajout Notification --- 
+        try: # Try/except au cas où fine_tuning ou user_id n'est pas accessible
+            user_id = fine_tuning.dataset.project.user_id
+            create_notification(
+                db=db,
+                user_id=user_id,
+                message=f"Erreur lors du lancement du fine-tuning '{fine_tuning.name}': {str(e)}",
+                type='error',
+                related_id=fine_tuning_id,
+                related_type='fine_tuning'
+            )
+        except Exception as notify_err:
+             logger.error(f"Failed to create error notification for starting fine-tuning {fine_tuning_id}: {notify_err}")
+        # --- Fin Notification ---
         
         return {"status": "error", "message": str(e)}
     
@@ -251,6 +301,34 @@ def check_fine_tuning_status(fine_tuning_id: int):
             )
             logger.info(f"Fine-tuning {fine_tuning_id} in progress ({fine_tuning.progress}%), checking again in {check_delay} seconds")
         
+        # --- Ajout Notifications si statut final atteint --- 
+        notification_message = None
+        notification_type = None
+
+        previous_status = fine_tuning.status 
+        user_id = fine_tuning.dataset.project.user_id # Récupérer user_id tôt
+        
+        if fine_tuning.status == "completed" and previous_status != "completed":
+            notification_message = f"Le fine-tuning '{fine_tuning.name}' est terminé avec succès ! Modèle prêt: {fine_tuning.fine_tuned_model}"
+            notification_type = 'success'
+        elif fine_tuning.status == "error" and previous_status != "error":
+            notification_message = f"Échec du fine-tuning '{fine_tuning.name}'. Raison: {fine_tuning.error_message}"
+            notification_type = 'error'
+        elif fine_tuning.status == "cancelled" and previous_status != "cancelled":
+            notification_message = f"Le fine-tuning '{fine_tuning.name}' a été annulé."
+            notification_type = 'warning'
+        
+        if notification_message and notification_type:
+             create_notification(
+                 db=db,
+                 user_id=user_id,
+                 message=notification_message,
+                 type=notification_type,
+                 related_id=fine_tuning_id,
+                 related_type='fine_tuning'
+             )
+        # --- Fin Notifications ---
+        
         db.commit()
         
         return {
@@ -262,6 +340,20 @@ def check_fine_tuning_status(fine_tuning_id: int):
     
     except Exception as e:
         logger.error(f"Error checking fine-tuning status {fine_tuning_id}: {str(e)}")
+        # --- Ajout Notification --- 
+        try: # Essayer de notifier même si le check échoue
+            user_id = fine_tuning.dataset.project.user_id
+            create_notification(
+                 db=db,
+                 user_id=user_id,
+                 message=f"Erreur lors de la vérification du statut du fine-tuning '{fine_tuning.name}'.",
+                 type='error',
+                 related_id=fine_tuning_id,
+                 related_type='fine_tuning'
+             )
+        except Exception as notify_err:
+             logger.error(f"Failed to create error notification for checking fine-tuning {fine_tuning_id}: {notify_err}")
+        # --- Fin Notification ---
         return {"status": "error", "message": str(e)}
     
     finally:
@@ -303,11 +395,37 @@ def cancel_fine_tuning(fine_tuning_id: int):
         fine_tuning.completed_at = datetime.now().isoformat()
         db.commit()
         
+        # --- Ajout Notification --- 
+        user_id = fine_tuning.dataset.project.user_id
+        create_notification(
+            db=db,
+            user_id=user_id,
+            message=f"Le fine-tuning '{fine_tuning.name}' a été annulé manuellement.",
+            type='warning',
+            related_id=fine_tuning_id,
+            related_type='fine_tuning'
+        )
+        # --- Fin Notification ---
+        
         logger.info(f"Fine-tuning {fine_tuning_id} cancelled successfully")
         return {"status": "success", "fine_tuning_id": fine_tuning_id}
     
     except Exception as e:
         logger.error(f"Error cancelling fine-tuning {fine_tuning_id}: {str(e)}")
+        # --- Ajout Notification --- 
+        try:
+            user_id = fine_tuning.dataset.project.user_id
+            create_notification(
+                 db=db,
+                 user_id=user_id,
+                 message=f"Erreur lors de l'annulation du fine-tuning '{fine_tuning.name}': {str(e)}",
+                 type='error',
+                 related_id=fine_tuning_id,
+                 related_type='fine_tuning'
+             )
+        except Exception as notify_err:
+            logger.error(f"Failed to create error notification for cancelling fine-tuning {fine_tuning_id}: {notify_err}")
+        # --- Fin Notification ---
         return {"status": "error", "message": str(e)}
     
     finally:

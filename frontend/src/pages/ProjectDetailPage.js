@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Breadcrumbs,
@@ -30,6 +30,7 @@ import {
   DialogContentText,
   DialogTitle,
   TextField,
+  LinearProgress,
 } from '@mui/material';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -67,6 +68,8 @@ const ProjectDetailPage = () => {
   const [editDescription, setEditDescription] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingIntervalRef = useRef(null);
 
   const { enqueueSnackbar } = useSnackbar();
 
@@ -126,6 +129,71 @@ const ProjectDetailPage = () => {
   useEffect(() => {
     fetchProjectData();
   }, [projectId]);
+
+  // Fonction pour mettre à jour un fine-tuning spécifique dans l'état
+  const updateFineTuningState = (updatedFineTuning) => {
+    setFineTunings(prev => 
+      prev.map(ft => 
+        ft.id === updatedFineTuning.id ? { ...ft, ...updatedFineTuning } : ft
+      )
+    );
+  };
+
+  // Polling pour les statuts des fine-tunings
+  useEffect(() => {
+    const pollStatuses = async () => {
+      const trainingJobs = fineTunings.filter(ft => [
+        'training', 'queued', 'preparing'
+      ].includes(ft.status));
+
+      if (trainingJobs.length === 0) {
+        if (pollingIntervalRef.current) {
+          console.log("Arrêt du polling: Aucun job en cours.");
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+          setIsPolling(false);
+        }
+        return;
+      }
+
+      if (!isPolling) setIsPolling(true);
+      console.log(`Polling ${trainingJobs.length} fine-tuning jobs...`);
+
+      for (const job of trainingJobs) {
+        try {
+          const updatedJob = await fineTuningService.getById(job.id);
+          updateFineTuningState(updatedJob); 
+          // Arrêter le polling pour ce job s'il est terminé
+          if (['completed', 'failed', 'cancelled'].includes(updatedJob.status)) {
+             console.log(`Job ${job.id} terminé (${updatedJob.status}), arrêt du polling pour ce job.`);
+          }
+        } catch (error) {
+          console.error(`Erreur polling job ${job.id}:`, error);
+          // Optionnel: marquer le job comme potentiellement en erreur dans l'UI
+        }
+      }
+    };
+
+    // Démarrer le polling seulement si fineTunings a été chargé et contient des jobs
+    if (fineTunings.length > 0 && !pollingIntervalRef.current) {
+        const initialTrainingJobs = fineTunings.filter(ft => [
+            'training', 'queued', 'preparing'
+        ].includes(ft.status));
+        
+        if (initialTrainingJobs.length > 0) {
+             console.log("Démarrage du polling des fine-tunings...");
+             pollingIntervalRef.current = setInterval(pollStatuses, 30000); // Poll toutes les 30 secondes
+             pollStatuses(); // Appel immédiat
+        }
+    }
+
+    // Nettoyer l'intervalle au démontage
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [fineTunings, isPolling]); // Dépend de fineTunings pour redémarrer si la liste change
 
   // Gestion des onglets
   const handleTabChange = (event, newValue) => {
@@ -614,17 +682,26 @@ const ProjectDetailPage = () => {
                                 </Box>
                               }
                               secondary={
-                                <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                                  <Typography variant="caption" color="text.secondary">
-                                    Modèle: {fineTuning.model}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    Provider: {fineTuning.provider}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    Créé le: {formatDate(fineTuning.created_at)}
-                                  </Typography>
-                                </Box>
+                                <>
+                                  {/* Afficher la barre de progression si en cours */}
+                                  {['training', 'preparing'].includes(fineTuning.status) && fineTuning.progress !== undefined && (
+                                      <Box sx={{ width: '100%', my: 0.5 }}>
+                                          <LinearProgress variant="determinate" value={fineTuning.progress} />
+                                          <Typography variant="caption" sx={{ float: 'right' }}>{fineTuning.progress.toFixed(0)}%</Typography>
+                                      </Box>
+                                  )}
+                                  <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Modèle: {fineTuning.model}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Provider: {fineTuning.provider}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Créé le: {formatDate(fineTuning.created_at)}
+                                    </Typography>
+                                  </Box>
+                                </>
                               }
                             />
                             <ListItemSecondaryAction>
