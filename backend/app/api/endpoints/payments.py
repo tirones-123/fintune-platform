@@ -104,14 +104,16 @@ async def create_onboarding_session(
                             else:
                                 logger.warning(f"ID de contenu invalide reçu dans pending_transcriptions: {content_id_data}")
                     
-                    # Récupérer les paramètres pour le dataset/fine-tuning depuis la requête ou utiliser des valeurs par défaut
-                    from app.models.project import Project
-                    from app.models.content import Content
-                    from app.models.dataset import Dataset, DatasetContent
-                    from app.models.fine_tuning import FineTuning
-                    from app.models.api_key import ApiKey
+                    # --- Logique de création Dataset/FineTuning --- 
+                    # Supprimer les imports locaux redondants ici
+                    # from app.models.project import Project
+                    # from app.models.content import Content <-- Suppression
+                    # from app.models.dataset import Dataset, DatasetContent
+                    # from app.models.fine_tuning import FineTuning
+                    # from app.models.api_key import ApiKey
                     
                     # Extraire les données supplémentaires de l'onboarding si disponibles
+                    # Utiliser les imports globaux (déjà faits en haut du fichier)
                     dataset_name = request.dataset_name if hasattr(request, 'dataset_name') else "Dataset d'onboarding"
                     system_content = request.system_content if hasattr(request, 'system_content') else "You are a helpful assistant."
                     provider = request.provider if hasattr(request, 'provider') else "openai"
@@ -121,14 +123,28 @@ async def create_onboarding_session(
                     project = db_session.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
                     
                     if project:
-                        # Récupérer tous les contenus de l'utilisateur pour ce projet
+                        # Récupérer tous les contenus de l'utilisateur pour ce projet (utilisant Content importé globalement)
                         contents = db_session.query(Content).filter(
                             Content.project_id == project.id,
-                            Content.status.in_(["completed", "processing"])
+                            Content.status.in_(["completed", "processing"]) # Statuts pertinents
                         ).all()
                         
-                        if contents:
-                            # Créer un nouveau dataset
+                        # Filtrer pour n'inclure que les contenus *réellement* traités ou en cours (liés à cet onboarding)
+                        # Ceci est une simplification, idéalement on lierait le contenu à la session d'onboarding
+                        content_ids_in_this_onboarding = []
+                        for item in pending_transcriptions:
+                             item_id = None
+                             if isinstance(item, dict) and "id" in item:
+                                 item_id = item["id"]
+                             elif isinstance(item, (int, str)): 
+                                 try: item_id = int(item)
+                                 except ValueError: pass
+                             if item_id: content_ids_in_this_onboarding.append(item_id)
+
+                        relevant_contents = [c for c in contents if c.id in content_ids_in_this_onboarding or c.type != 'youtube'] # Inclure non-youtube aussi
+
+                        if relevant_contents:
+                            # Créer un nouveau dataset (utilisant Dataset importé globalement)
                             new_dataset = Dataset(
                                 name=dataset_name,
                                 project_id=project.id,
@@ -141,11 +157,11 @@ async def create_onboarding_session(
                             db_session.commit()
                             db_session.refresh(new_dataset)
                             
-                            # Associer les contenus au dataset
-                            for content in contents:
+                            # Associer les contenus pertinents au dataset (utilisant DatasetContent importé globalement)
+                            for content_item in relevant_contents:
                                 dataset_content = DatasetContent(
                                     dataset_id=new_dataset.id,
-                                    content_id=content.id
+                                    content_id=content_item.id
                                 )
                                 db_session.add(dataset_content)
                             
@@ -153,24 +169,23 @@ async def create_onboarding_session(
                             
                             # Lancer la tâche de génération du dataset
                             try:
-                                from celery_app import celery_app
+                                from celery_app import celery_app # Import local OK ici car spécifique à la tâche
                                 logger.info(f"Lancement de la tâche de génération pour le dataset {new_dataset.id}")
                                 
-                                # Envoyer la tâche à Celery
                                 celery_app.send_task(
                                     "generate_dataset", 
                                     args=[new_dataset.id], 
                                     queue='dataset_generation'
                                 )
                                 
-                                # Vérifier si l'utilisateur a une clé API pour le provider
+                                # Vérifier si l'utilisateur a une clé API (utilisant ApiKey importé globalement)
                                 api_key = db_session.query(ApiKey).filter(
                                     ApiKey.user_id == current_user.id,
                                     ApiKey.provider == provider
                                 ).first()
                                 
                                 if api_key:
-                                    # Créer le fine-tuning en attente
+                                    # Créer le fine-tuning en attente (utilisant FineTuning importé globalement)
                                     fine_tuning = FineTuning(
                                         dataset_id=new_dataset.id,
                                         name=f"Fine-tuning de {dataset_name}",
@@ -185,10 +200,15 @@ async def create_onboarding_session(
                                     
                                     logger.info(f"Fine-tuning {fine_tuning.id} créé en attente pour le dataset {new_dataset.id}")
                                 else:
-                                    logger.warning(f"L'utilisateur {current_user.id} n'a pas de clé API pour le provider {provider}")
+                                    logger.warning(f"L'utilisateur {current_user.id} n'a pas de clé API pour le provider {provider}, fine-tuning non créé.")
                             
                             except Exception as task_error:
-                                logger.error(f"Erreur lors du lancement de la tâche de génération: {str(task_error)}")
+                                logger.error(f"Erreur lors du lancement de la tâche de génération ou création fine-tuning: {str(task_error)}")
+                        else:
+                             logger.warning(f"Aucun contenu pertinent trouvé pour créer le dataset pour le projet {project.id} après onboarding gratuit.")
+                    else:
+                        logger.warning(f"Aucun projet trouvé pour l'utilisateur {current_user.id} pour créer le dataset/fine-tuning post-onboarding.")
+                    # --- Fin Logique création ---                    
                     
                     # Retourner l'URL avec le signal
                     return {
