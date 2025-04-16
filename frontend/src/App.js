@@ -29,6 +29,8 @@ import DatasetsPage from './pages/DatasetsPage';
 import FineTuningsPage from './pages/FineTuningsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import NewFineTuningFlowPage from './pages/NewFineTuningFlowPage';
+import PlaygroundPage from './pages/PlaygroundPage';
+import HelpPage from './pages/HelpPage';
 
 // Layouts
 import DashboardLayout from './components/dashboard/DashboardLayout';
@@ -106,9 +108,9 @@ const AppRoutes = () => {
           <Route index element={<ProjectsPage />} />
           
           {/* Routes des projets */}
-          <Route path="projects/new" element={<NewProjectPage />} />
-          <Route path="projects/:projectId" element={<ProjectDetailPage />} />
-          <Route path="projects/:projectId/new-fine-tuning" element={<NewFineTuningFlowPage />} />
+          <Route path="projects/new" element={<ProtectedRoute><NewProjectPage /></ProtectedRoute>} />
+          <Route path="projects/:projectId" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
+          <Route path="projects/:projectId/new-fine-tuning" element={<ProtectedRoute><NewFineTuningFlowPage /></ProtectedRoute>} />
           
           {/* Routes du contenu - Supprimées car intégrées */}
           {/* <Route path="content/upload/:projectId" element={<ContentUploadPage />} /> */}
@@ -126,7 +128,12 @@ const AppRoutes = () => {
           
           {/* Autres routes */}
           <Route path="analytics" element={<AnalyticsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="playground" element={<ProtectedRoute><PlaygroundPage /></ProtectedRoute>} />
+          <Route path="help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+
+          {/* Catch-all pour les routes non trouvées dans le dashboard */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
 
         {/* Route par défaut */}

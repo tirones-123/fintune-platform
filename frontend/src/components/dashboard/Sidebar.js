@@ -25,6 +25,10 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AddIcon from '@mui/icons-material/Add';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 const drawerWidth = 280;
 
@@ -44,7 +48,30 @@ const itemVariants = {
 
 const menuItems = [
   { name: 'Projets', icon: FolderIcon, path: '/dashboard', description: 'Gérer vos projets' },
-  { name: 'Analyse', icon: BarChartIcon, path: '/dashboard/analytics', description: 'Statistiques et métriques' },
+  { name: 'Fine-Tunings', icon: <PsychologyIcon />, path: '/dashboard/fine-tuning', description: 'Gérer les fine-tunings' },
+  { name: 'Playground', icon: <ScienceOutlinedIcon />, path: '/dashboard/playground', description: 'Accéder au playground' },
+  { name: 'Analyses', icon: AnalyticsIcon, path: '/dashboard/analytics', description: 'Statistiques et métriques' },
+  {
+    text: 'Aide & Documentation',
+    icon: <HelpOutlineIcon />,
+    path: '/dashboard/help',
+    description: 'Documentation et guides'
+  },
+];
+
+const bottomNavItems = [
+  {
+    text: 'Paramètres',
+    icon: <SettingsIcon />,
+    path: '/dashboard/settings',
+    description: 'Gérer vos paramètres'
+  },
+  {
+    text: 'Déconnexion',
+    icon: <LogoutIcon />,
+    action: logout,
+    description: 'Se déconnecter'
+  }
 ];
 
 const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
@@ -152,7 +179,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
                           color: isSelected ? 'primary.main' : 'text.secondary',
                         }}
                       >
-                        <item.icon />
+                        {React.isValidElement(item.icon) ? item.icon : <item.icon />}
                       </ListItemIcon>
                       <ListItemText 
                         primary={item.name} 
@@ -171,56 +198,55 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
 
       <Divider sx={{ mt: 2 }} />
 
-      {/* Paramètres et déconnexion */}
+      {/* Paramètres et déconnexion (Utilisation de bottomNavItems) */}
       <Box sx={{ p: 2 }}>
-        <ListItem disablePadding sx={{ mb: 1 }}>
-          <ListItemButton
-            onClick={() => navigate('/dashboard/settings')}
-            selected={location.pathname === '/dashboard/settings'}
-            sx={{
-              borderRadius: 3,
-              py: 1.2,
-              transition: 'all 0.3s ease',
-              '&.Mui-selected': {
-                backgroundColor: (theme) => 
-                  theme.palette.mode === 'dark'
-                    ? alpha(theme.palette.primary.main, 0.2)
-                    : alpha(theme.palette.primary.main, 0.1),
-                color: 'primary.main',
-                '& .MuiListItemIcon-root': {
-                  color: 'primary.main',
-                },
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 40 }}>
-              <SettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary="Paramètres" />
-          </ListItemButton>
-        </ListItem>
-
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={logout}
-            sx={{
-              borderRadius: 3,
-              py: 1.2,
-              color: 'text.secondary',
-              '&:hover': {
-                color: 'error.main',
-                '& .MuiListItemIcon-root': {
-                  color: 'error.main',
-                },
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
-              <LogoutIcon />
-            </ListItemIcon>
-            <ListItemText primary="Déconnexion" />
-          </ListItemButton>
-        </ListItem>
+        <List>
+          {bottomNavItems.map((item, index) => {
+             const isSelected = location.pathname === item.path;
+             return (
+              <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
+                 <Tooltip title={item.description} placement="right" arrow>
+                  <ListItemButton
+                    onClick={item.action ? item.action : () => navigate(item.path)}
+                    selected={isSelected}
+                    sx={{
+                      borderRadius: 3,
+                      py: 1.2,
+                      color: item.text === 'Déconnexion' ? 'error.main' : 'text.secondary',
+                      transition: 'all 0.3s ease',
+                      '&.Mui-selected': {
+                        backgroundColor: (theme) => 
+                          theme.palette.mode === 'dark'
+                            ? alpha(theme.palette.primary.main, 0.2)
+                            : alpha(theme.palette.primary.main, 0.1),
+                        color: 'primary.main',
+                        '& .MuiListItemIcon-root': {
+                          color: 'primary.main',
+                        },
+                      },
+                      '&:hover': {
+                         backgroundColor: item.text === 'Déconnexion' 
+                            ? alpha(theme.palette.error.main, 0.1)
+                            : (theme.palette.mode === 'dark' 
+                                ? 'rgba(255, 255, 255, 0.05)' 
+                                : 'rgba(0, 0, 0, 0.04)'),
+                          color: item.text === 'Déconnexion' ? 'error.dark' : undefined,
+                         '& .MuiListItemIcon-root': {
+                           color: item.text === 'Déconnexion' ? 'error.main' : undefined,
+                         },
+                      },
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
+                       {React.isValidElement(item.icon) ? item.icon : <item.icon />}
+                    </ListItemIcon>
+                    <ListItemText primary={item.text} />
+                  </ListItemButton>
+                 </Tooltip>
+              </ListItem>
+             );
+          })}
+        </List>
       </Box>
 
       {/* Version */}
