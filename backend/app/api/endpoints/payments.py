@@ -55,7 +55,6 @@ async def create_onboarding_session(
         if character_count <= 10000:  # Les 10 000 premiers caractères sont gratuits
             logger.info(f"Nombre de caractères ({character_count}) dans la limite gratuite")
             
-            # Ajouter les caractères gratuitement
             db_session = next(get_db())
             try:
                 # Initialiser le service de caractères
@@ -66,7 +65,7 @@ async def create_onboarding_session(
                     db=db_session,
                     user_id=current_user.id,
                     character_count=character_count,
-                    payment_id=None  # Pas de paiement associé pour les caractères gratuits
+                    payment_id=None  # Pas de paiement associé
                 )
                 
                 if success:
@@ -75,31 +74,35 @@ async def create_onboarding_session(
                     # Si des transcriptions sont en attente, démarrer le traitement
                     if pending_transcriptions:
                         logger.info(f"Traitement de {len(pending_transcriptions)} transcriptions en attente")
-                        
-                        # Traiter chaque transcription
-                        for content_id in pending_transcriptions:
-                            # Vérifier si content_id est un entier ou un dictionnaire
-                            if isinstance(content_id, dict) and "id" in content_id:
-                                content_id = content_id["id"]
-                            
+                        # Utiliser le Content importé
+                        for content_id_data in pending_transcriptions:
+                            content_id = None
+                            if isinstance(content_id_data, dict) and "id" in content_id_data:
+                                content_id = content_id_data["id"]
+                            elif isinstance(content_id_data, (int, str)): # Accepter aussi int ou str au cas où
+                                try:
+                                    content_id = int(content_id_data)
+                                except ValueError:
+                                    logger.warning(f"Impossible de convertir content_id '{content_id_data}' en entier.")
+
                             if content_id:
                                 # Récupérer le contenu
                                 content = db_session.query(Content).filter(Content.id == content_id).first()
                                 
                                 if content and content.type == 'youtube' and content.url:
-                                    # Mettre à jour le statut
                                     content.status = 'processing'
                                     db_session.commit()
-                                    
-                                    # Lancer la tâche de transcription
                                     try:
-                                        task = transcribe_youtube_video.delay(content_id)
+                                        task = transcribe_youtube_video.delay(content_id=content_id)
                                         content.task_id = task.id
                                         db_session.commit()
-                                        
-                                        logger.info(f"Tâche de transcription lancée pour le contenu {content_id}, ID de tâche: {task.id}")
+                                        logger.info(f"Tâche de transcription lancée pour contenu {content_id}, tâche ID: {task.id}")
                                     except Exception as task_error:
-                                        logger.error(f"Erreur lors du lancement de la transcription: {str(task_error)}")
+                                        logger.error(f"Erreur lancement transcription pour {content_id}: {task_error}")
+                                else:
+                                    logger.warning(f"Contenu YouTube {content_id} non trouvé ou invalide.")
+                            else:
+                                logger.warning(f"ID de contenu invalide reçu dans pending_transcriptions: {content_id_data}")
                     
                     # Récupérer les paramètres pour le dataset/fine-tuning depuis la requête ou utiliser des valeurs par défaut
                     from app.models.project import Project
@@ -195,68 +198,27 @@ async def create_onboarding_session(
                     }
                 else:
                     logger.error(f"Échec de l'ajout gratuit de {character_count} caractères")
+                    # Ne pas continuer vers la logique payante si l'ajout gratuit échoue
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Erreur lors de l'attribution des crédits gratuits."
+                    )
             except Exception as e:
-                logger.error(f"Erreur lors de l'ajout gratuit de caractères: {str(e)}")
+                # Log l'erreur spécifique qui a causé l'échec
+                logger.error(f"Erreur lors de l'ajout gratuit de caractères ou lancement transcription: {str(e)}", exc_info=True)
                 db_session.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Erreur interne lors du traitement gratuit: {str(e)}"
+                )
             finally:
                 db_session.close()
         
-        # Calcul du montant à facturer (uniquement les caractères au-delà de 10 000)
+        # Si on arrive ici, c'est que character_count > 10000
         billable_characters = max(0, character_count - 10000)
-        # Prix par caractère: 0.000365$
-        amount_in_cents = max(50, round(billable_characters * 0.000365 * 100))  # Minimum 50 cents (0.50$)
+        amount_in_cents = max(60, round(billable_characters * 0.000365 * 100)) # Minimum Stripe 60 cents maintenant
         
-        logger.info(f"Facturation de {billable_characters} caractères à ${amount_in_cents/100}")
-        
-        # Juste après le calcul de amount_in_cents
-        if amount_in_cents < 60:
-            # Si le montant est trop faible, traiter comme un onboard gratuit pour les tests ou promotions futures
-            logger.info(f"Montant trop faible ({amount_in_cents} centimes) pour l'utilisateur {current_user.id}, traitement comme gratuit.")
-            # Initialisation du service de caractères dans ce bloc aussi
-            character_service = CharacterService()
-            character_service.add_free_characters(current_user.id)
-            logger.info(f"Crédits gratuits ajoutés pour l'utilisateur {current_user.id}")
-            
-            # Si des transcriptions sont en attente, démarrer le traitement
-            if pending_transcriptions:
-                logger.info(f"Traitement de {len(pending_transcriptions)} transcriptions en attente")
-                
-                # Traiter chaque transcription
-                for content_id in pending_transcriptions:
-                    # Vérifier si content_id est un entier ou un dictionnaire
-                    if isinstance(content_id, dict) and "id" in content_id:
-                        content_id = content_id["id"]
-                    
-                    if content_id:
-                        # Récupérer le contenu
-                        from app.models.content import Content
-                        content = db_session.query(Content).filter(Content.id == content_id).first()
-                        
-                        if content and content.type == 'youtube' and content.url:
-                            # Mettre à jour le statut
-                            content.status = 'processing'
-                            db_session.commit()
-                            
-                            # Lancer la tâche de transcription
-                            try:
-                                from celery_app import celery_app
-                                from app.tasks.content_processing import transcribe_youtube_video
-                                
-                                # Lancer la tâche avec content_id
-                                task = transcribe_youtube_video.delay(content_id)
-                                content.task_id = task.id
-                                db_session.commit()
-                                
-                                logger.info(f"Tâche de transcription lancée pour le contenu {content_id}, ID de tâche: {task.id}")
-                            except Exception as task_error:
-                                logger.error(f"Erreur lors du lancement de la transcription: {str(task_error)}")
-            
-            # Renvoyer une réponse compatible avec le frontend, incluant le signal
-            return {
-                "status": "success", 
-                "free_processing": True,
-                "redirect_url": f"{settings.FRONTEND_URL}/dashboard?onboarding_completed=true"
-            }
+        logger.info(f"Facturation de {billable_characters} caractères pour ${amount_in_cents/100:.2f}")
         
         # Métadonnées pour la session Stripe
         metadata = {
@@ -267,48 +229,62 @@ async def create_onboarding_session(
             "billable_characters": str(billable_characters)
         }
         
-        # Ajouter les informations sur les transcriptions en attente s'il y en a
+        # Ajouter les IDs des transcriptions en attente
         if pending_transcriptions:
-            # Limiter la taille des métadonnées Stripe en ne stockant que les IDs des transcriptions
-            transcription_ids = [str(trans["id"]) for trans in pending_transcriptions]
-            metadata["pending_transcription_ids"] = ",".join(transcription_ids)
-            metadata["has_pending_transcriptions"] = "true"
+            transcription_ids = []
+            for item in pending_transcriptions:
+                item_id = None
+                if isinstance(item, dict) and "id" in item:
+                    item_id = item["id"]
+                elif isinstance(item, (int, str)):
+                    try:
+                        item_id = int(item)
+                    except ValueError:
+                        pass
+                if item_id:
+                    transcription_ids.append(str(item_id))
             
-            # Stocker les détails complets dans une table temporaire ou un cache pour traitement ultérieur
-            # par le webhook
-            logger.info(f"Stockage des détails de {len(pending_transcriptions)} transcriptions pour traitement webhook")
-            # TODO: Implémenter le stockage des détails de transcription
+            if transcription_ids:
+                metadata["pending_transcription_ids"] = ",".join(transcription_ids)
+                metadata["has_pending_transcriptions"] = "true"
+                logger.info(f"Stockage des IDs {transcription_ids} pour traitement webhook")
         
-        # Créer une session de paiement pour les caractères facturables
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[
-                {
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {
-                            "name": f"Fine-tuning - {character_count} caractères",
-                            "description": f"Onboarding avec {billable_characters} caractères facturables (10 000 caractères gratuits inclus)"
+        # Créer une session de paiement Stripe
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=["card"],
+                line_items=[
+                    {
+                        "price_data": {
+                            "currency": "usd",
+                            "product_data": {
+                                "name": f"FinTune Onboarding - {character_count} caractères",
+                                "description": f"{billable_characters} caractères facturables (10k gratuits)"
+                            },
+                            "unit_amount": amount_in_cents, 
                         },
-                        "unit_amount": amount_in_cents,  # Montant en cents
+                        "quantity": 1,
                     },
-                    "quantity": 1,
-                },
-            ],
-            mode="payment",
-            success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true",
-            cancel_url=f"{settings.FRONTEND_URL}/dashboard?payment_cancel=true",
-            client_reference_id=str(current_user.id),
-            metadata=metadata
-        )
-        
-        return {"checkout_url": checkout_session.url}
+                ],
+                mode="payment",
+                success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
+                cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true", # Retour à l'onboarding si annulé
+                client_reference_id=str(current_user.id),
+                metadata=metadata
+            )
+            return {"checkout_url": checkout_session.url}
+        except stripe.error.StripeError as e:
+            logger.error(f"Erreur Stripe lors de la création de la session: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erreur de communication avec Stripe: {str(e)}"
+            )
     
     except Exception as e:
-        logger.error(f"Erreur lors de la création de la session d'onboarding: {str(e)}")
+        logger.error(f"Erreur inattendue dans create_onboarding_session: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erreur lors de la création de la session de paiement pour l'onboarding: {str(e)}"
+            detail=f"Erreur interne inattendue: {str(e)}"
         )
 
 @router.post("/webhook")
