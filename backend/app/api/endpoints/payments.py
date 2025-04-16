@@ -20,9 +20,16 @@ from app.services.character_service import CharacterService
 from app.api.endpoints.fine_tuning_jobs import FineTuningJobConfig
 from app.tasks.content_processing import transcribe_youtube_video
 from celery_app import celery_app
+from app.models.payment import Payment
 
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+# Importer get_db pour le webhook
+from app.db.session import get_db
+
+# Importer Payment pour le webhook
+from app.models.payment import Payment
 
 router = APIRouter()
 
@@ -207,7 +214,6 @@ async def create_onboarding_session(
         # Cas 2: <= 10k mais crédits gratuits déjà reçus
         elif already_received_free_credits:
             logger.warning(f"Utilisateur {current_user.id} a déjà reçu les crédits gratuits. Traitement standard en cours ({character_count} caractères).")
-            # Pas d'ajout de crédits, mais on lance quand même les tâches
             db_session = next(get_db())
             try:
                 if pending_transcriptions:
@@ -218,9 +224,10 @@ async def create_onboarding_session(
                              content_id = content_id_data["id"]
                         elif isinstance(content_id_data, (int, str)):
                              try:
-                                 item_id = int(content_id_data)
+                                 content_id = int(content_id_data) 
                              except ValueError:
-                                 pass
+                                 logger.warning(f"Impossible convertir ID {content_id_data} en int")
+                                 content_id = None
                         if content_id:
                              content = db_session.query(Content).filter(Content.id == content_id).first()
                              if content and content.type == 'youtube' and content.url:
@@ -242,18 +249,18 @@ async def create_onboarding_session(
                 if project:
                     contents = db_session.query(Content).filter(
                         Content.project_id == project.id,
-                        Content.status.in_(["completed", "processing"]) # Statuts pertinents
+                        Content.status.in_(["completed", "processing"])
                     ).all()
                     content_ids_in_this_onboarding = []
                     for item in pending_transcriptions:
-                         item_id = None
-                         if isinstance(item, dict) and "id" in item:
-                             item_id = item["id"]
-                         elif isinstance(item, (int, str)): 
-                             try:
-                                 item_id = int(item)
-                             except ValueError: pass
-                         if item_id: content_ids_in_this_onboarding.append(item_id)
+                        item_id = None
+                        if isinstance(item, dict) and "id" in item:
+                            item_id = item["id"]
+                        elif isinstance(item, (int, str)): 
+                            try:
+                                item_id = int(item)
+                            except ValueError: pass
+                        if item_id: content_ids_in_this_onboarding.append(item_id)
                     relevant_contents = [c for c in contents if c.id in content_ids_in_this_onboarding or c.type != 'youtube']
 
                     if relevant_contents:
@@ -264,7 +271,7 @@ async def create_onboarding_session(
                         new_dataset = Dataset(
                             name=dataset_name,
                             project_id=project.id,
-                            description="Dataset généré lors de l'onboarding (crédits gratuits déjà utilisés)", # Description ajustée
+                            description="Dataset généré lors de l'onboarding (crédits gratuits déjà utilisés)",
                             model=model,
                             status="pending",
                             system_content=system_content
@@ -296,7 +303,7 @@ async def create_onboarding_session(
                                 fine_tuning = FineTuning(
                                     dataset_id=new_dataset.id,
                                     name=f"Fine-tuning de {dataset_name}",
-                                    description="Fine-tuning d'onboarding (crédits gratuits déjà utilisés)", # Description ajustée
+                                    description="Fine-tuning d'onboarding (crédits gratuits déjà utilisés)",
                                     model=model,
                                     provider=provider,
                                     status="pending",
@@ -314,13 +321,11 @@ async def create_onboarding_session(
                 else:
                     logger.warning(f"Aucun projet trouvé pour l'utilisateur {current_user.id} (crédits déjà reçus).")
                 
-                # Retourner succès, mais sans indiquer free_processing
                 return {
                     "status": "success",
-                    "free_processing": False, # Indiquer que ce n'est pas le traitement gratuit initial
+                    "free_processing": False, 
                     "redirect_url": f"{settings.FRONTEND_URL}/dashboard?onboarding_completed=true"
                 }
-
             except Exception as e:
                 logger.error(f"Erreur lors du traitement standard (crédits déjà reçus): {str(e)}", exc_info=True)
                 db_session.rollback()
@@ -330,7 +335,7 @@ async def create_onboarding_session(
                 )
             finally:
                 db_session.close()
-
+                
         # Cas 3: > 10k caractères (payant)
         else: # character_count > 10000
             logger.info(f"Nombre de caractères ({character_count}) supérieur au quota gratuit. Redirection vers Stripe.")
@@ -338,13 +343,36 @@ async def create_onboarding_session(
             amount_in_cents = max(60, round(billable_characters * 0.000365 * 100))
             logger.info(f"Facturation de {billable_characters} caractères pour ${amount_in_cents/100:.2f}")
 
-            # Logique Stripe (existante et correcte)
+            # Trouver le projet par défaut ou le créer s'il n'existe pas
+            db = next(get_db())
+            try:
+                project = db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
+                if not project:
+                     # Optionnel: Créer un projet par défaut si aucun n'existe
+                     project = Project(name="Projet Onboarding", user_id=current_user.id)
+                     db.add(project)
+                     db.commit()
+                     db.refresh(project)
+                     logger.info(f"Projet Onboarding créé (ID: {project.id}) pour user {current_user.id}")
+                project_id = project.id
+            finally:
+                db.close()
+            
+            # !!! Enrichir les metadata ici !!!
             metadata = {
                 "payment_type": "onboarding_characters", 
                 "user_id": str(current_user.id),
                 "character_count": str(character_count),
                 "free_characters": "10000",
-                "billable_characters": str(billable_characters)
+                "billable_characters": str(billable_characters),
+                # Informations nécessaires pour le webhook:
+                "dataset_name": request.dataset_name, 
+                "system_content": request.system_content,
+                "provider": request.provider,
+                "model": request.model,
+                # Ajouter l'ID du projet (supposons qu'il est créé/récupéré plus tôt)
+                "project_id": str(project_id), 
+                "hyperparameters": json.dumps({"n_epochs": 3}) # Ou passer via request
             }
             if pending_transcriptions:
                 transcription_ids = []
@@ -363,7 +391,8 @@ async def create_onboarding_session(
                     metadata["pending_transcription_ids"] = ",".join(transcription_ids)
                     metadata["has_pending_transcriptions"] = "true"
                     logger.info(f"Stockage des IDs {transcription_ids} pour traitement webhook")
-            
+
+            # Créer la session Stripe avec les metadata enrichies
             try:
                 checkout_session = stripe.checkout.Session.create(
                     payment_method_types=["card"],
@@ -393,7 +422,7 @@ async def create_onboarding_session(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Erreur de communication avec Stripe: {str(e)}"
                 )
-
+    
     except Exception as e:
         logger.error(f"Erreur inattendue dans create_onboarding_session: {str(e)}", exc_info=True)
         raise HTTPException(
@@ -415,11 +444,9 @@ async def stripe_webhook(request: Request):
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
     except ValueError as e:
-        # Invalid payload
         logger.error(f"Webhook error: Invalid payload: {e}")
         raise HTTPException(status_code=400, detail="Invalid payload")
     except stripe.error.SignatureVerificationError as e:
-        # Invalid signature
         logger.error(f"Webhook error: Invalid signature: {e}")
         raise HTTPException(status_code=400, detail="Invalid signature")
     except Exception as e:
@@ -428,62 +455,230 @@ async def stripe_webhook(request: Request):
 
     # Gérer l'événement checkout.session.completed
     if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        metadata = session.get("metadata", {})
+        session_data = event['data']['object']
+        metadata = session_data.get("metadata", {})
         payment_type = metadata.get("payment_type")
-        payment_intent_id = session.get("payment_intent")
-        amount_total = session.get("amount_total", 0) # Montant en cents
+        
+        logger.info(f"Webhook: checkout.session.completed reçu pour type: {payment_type}")
 
-        logger.info(f"Webhook: checkout.session.completed pour type: {payment_type}")
-
-        db: Session = SessionLocal()
+        # Utiliser get_db pour gérer la session
+        db: Session = next(get_db())
         try:
             if payment_type == "fine_tuning_job":
                 logger.info("Webhook: Traitement paiement pour fine_tuning_job")
-                # Mettre à jour le paiement si nécessaire
-                payment_id = metadata.get("payment_id") # Assurez-vous que payment_id est dans les métadonnées
-                if payment_id:
-                     payment = db.query(Payment).filter(Payment.id == int(payment_id)).first()
-                     if payment:
-                         payment.status = "completed"
-                         payment.stripe_payment_intent_id = payment_intent_id
-                         db.commit()
-                         logger.info(f"Webhook: Paiement {payment_id} mis à jour.")
-                # Appeler la logique de création et lancement
-                await handle_fine_tuning_job_payment(db, event)
+                await handle_fine_tuning_job_payment(db, event) # Passer db ici
 
             elif payment_type == "character_credits":
                 logger.info("Webhook: Traitement paiement pour character_credits")
-                await stripe_service.handle_character_purchase(db, event)
+                await _handle_character_purchase_success(db, session_data)
             
             elif payment_type == "onboarding_characters":
                  logger.info("Webhook: Traitement paiement pour onboarding_characters")
-                 await stripe_service.handle_onboarding_payment(db, event)
+                 await _handle_onboarding_payment_success(db, session_data)
             
             else:
                 logger.warning(f"Webhook: Type de paiement non géré: {payment_type}")
 
         except Exception as e:
-            logger.error(f"Webhook: Erreur interne lors du traitement de checkout.session.completed: {e}", exc_info=True)
-            # Ne pas renvoyer 500 à Stripe, sinon il réessaiera
+            logger.error(f"Webhook: Erreur interne lors du traitement de {payment_type}: {e}", exc_info=True)
+            # Important: Ne pas lever d'exception ici pour que Stripe reçoive un 200 OK
+            # et ne réessaie pas indéfiniment une tâche qui échoue.
+            # L'erreur est logguée pour investigation manuelle.
         finally:
             db.close()
             
     elif event['type'] == 'payment_intent.succeeded':
-        # Optionnel : gérer d'autres événements si nécessaire
         payment_intent = event['data']['object']
         logger.info(f"Webhook: PaymentIntent {payment_intent['id']} succeeded.")
         
     elif event['type'] == 'payment_intent.payment_failed':
         payment_intent = event['data']['object']
         logger.warning(f"Webhook: PaymentIntent {payment_intent['id']} failed.")
-        # Mettre à jour le statut du paiement dans votre DB si nécessaire
 
     else:
         logger.info(f"Webhook: Événement non géré reçu: {event['type']}")
 
+    # Toujours retourner 200 OK à Stripe si la signature est valide,
+    # même si notre traitement interne échoue, pour éviter les rejeux constants.
         return {"status": "success"}
     
+# --- Fonctions Helper pour le Webhook ---
+
+async def _handle_onboarding_payment_success(db: Session, stripe_session: Dict[str, Any]):
+    """Logique à exécuter après un paiement réussi pour l'onboarding."""
+    metadata = stripe_session.get("metadata", {})
+    user_id = metadata.get("user_id")
+    character_count = metadata.get("character_count")
+    billable_characters = metadata.get("billable_characters")
+    payment_intent_id = stripe_session.get("payment_intent")
+    pending_ids_str = metadata.get("pending_transcription_ids")
+    # Récupérer les infos ajoutées aux metadata
+    dataset_name = metadata.get("dataset_name")
+    system_content = metadata.get("system_content")
+    provider = metadata.get("provider")
+    model = metadata.get("model")
+    project_id = metadata.get("project_id")
+    hyperparameters_json = metadata.get("hyperparameters")
+
+    if not all([user_id, dataset_name, system_content, provider, model, project_id]):
+        logger.error(f"Webhook onboarding: Données essentielles manquantes dans metadata pour user {user_id}")
+        return
+
+    try:
+        user_id = int(user_id)
+        project_id = int(project_id)
+        try: character_count = int(character_count) if character_count else 0
+        except (ValueError, TypeError): character_count = 0
+        try: billable_characters = int(billable_characters) if billable_characters else 0
+        except (ValueError, TypeError): billable_characters = 0
+        
+        hyperparameters = {"n_epochs": 3} # Défaut
+        if hyperparameters_json:
+            try: hyperparameters = json.loads(hyperparameters_json)
+            except json.JSONDecodeError: logger.warning(f"Webhook onboarding: Erreur parsing hyperparameters JSON: {hyperparameters_json}")
+
+        pending_transcription_ids = []
+        if pending_ids_str:
+            try:
+                pending_transcription_ids = [int(id_str) for id_str in pending_ids_str.split(',') if id_str.isdigit()]
+            except Exception as e:
+                logger.error(f"Webhook onboarding: Erreur parsing pending_transcription_ids '{pending_ids_str}': {e}")
+
+        logger.info(f"Webhook onboarding: Traitement pour user {user_id}, projet {project_id}, {character_count} total chars, {billable_characters} facturés, {len(pending_transcription_ids)} transcriptions.")
+
+        # 1. Enregistrer le paiement ou la transaction de caractères (si billable_characters > 0)
+        if billable_characters > 0:
+            # TODO: Implémenter une logique robuste d'enregistrement du paiement/
+            # transaction, potentiellement dans CharacterService ou ici.
+            # Par exemple, créer/mettre à jour une entrée dans la table Payment.
+            # payment_record = Payment(user_id=user_id, amount=stripe_session.get('amount_total')/100, ...) 
+            # db.add(payment_record)
+            logger.info(f"Paiement {payment_intent_id} reçu pour {billable_characters} caractères facturables (user {user_id}). Logique d'enregistrement à implémenter.")
+        
+        # Marquer l'utilisateur comme ayant utilisé son quota gratuit 
+        user = db.query(User).filter(User.id == user_id).first()
+        if user and not user.has_received_free_credits:
+            user.has_received_free_credits = True
+            db.add(user)
+
+        # 2. Créer Dataset et FineTuning
+        project = db.query(Project).filter(Project.id == project_id, Project.user_id == user_id).first()
+        if not project:
+            logger.error(f"Webhook onboarding: Projet {project_id} non trouvé pour user {user_id}")
+            return
+
+        # Récupérer les contenus (principalement ceux en attente de transcription)
+        # Idéalement, les IDs de *tous* les contenus de l'onboarding seraient passés via metadata
+        content_ids_to_process = pending_transcription_ids
+        # Si d'autres IDs étaient passés: content_ids_to_process.extend(other_content_ids)
+        contents = db.query(Content).filter(Content.id.in_(content_ids_to_process)).all()
+        
+        if contents:
+            new_dataset = Dataset(
+                name=dataset_name,
+                project_id=project.id,
+                description="Dataset généré automatiquement après paiement onboarding",
+                model=model,
+                status="pending",
+                system_content=system_content,
+                character_count=character_count # Stocker le compte total
+            )
+            db.add(new_dataset)
+            db.flush() 
+            logger.info(f"Webhook onboarding: Dataset {new_dataset.id} créé pour user {user_id}.")
+
+            for content_item in contents:
+                 dataset_content = DatasetContent(dataset_id=new_dataset.id, content_id=content_item.id)
+                 db.add(dataset_content)
+            
+            api_key = db.query(ApiKey).filter(ApiKey.user_id == user_id, ApiKey.provider == provider).first()
+            if api_key:
+                 fine_tuning = FineTuning(
+                     dataset_id=new_dataset.id,
+                     name=f"Fine-tuning payé de {dataset_name}",
+                     description="Fine-tuning généré après paiement onboarding",
+                     model=model,
+                     provider=provider,
+                     status="pending",
+                     hyperparameters=hyperparameters
+                 )
+                 db.add(fine_tuning)
+                 db.flush() # Obtenir l'ID pour le log
+                 logger.info(f"Webhook onboarding: FineTuning {fine_tuning.id} créé pour user {user_id}.")
+            else:
+                 logger.warning(f"Webhook onboarding: Pas de clé API {provider} pour user {user_id}, FT non créé.")
+            
+            # 3. Lancer les tâches
+            if pending_transcription_ids:
+                logger.info(f"Webhook onboarding: Lancement de {len(pending_transcription_ids)} transcriptions pour user {user_id}.")
+                for content_id in pending_transcription_ids:
+                    try:
+                        # Relancer la transcription même si déjà faite, pour s'assurer qu'elle est liée à ce FT
+                        task = transcribe_youtube_video.delay(content_id=content_id)
+                        content_obj = db.query(Content).get(content_id)
+                        if content_obj: 
+                             content_obj.task_id = task.id
+                             content_obj.status = 'processing' 
+                    except Exception as e:
+                        logger.error(f"Webhook onboarding: Erreur lancement transcription pour content {content_id}: {e}")
+            
+            logger.info(f"Webhook onboarding: Lancement génération dataset {new_dataset.id} pour user {user_id}.")
+            celery_app.send_task("generate_dataset", args=[new_dataset.id], queue='dataset_generation')
+
+            db.commit() 
+            logger.info(f"Webhook onboarding: Traitement réussi pour user {user_id}.")
+        else:
+            logger.warning(f"Webhook onboarding: Aucun contenu trouvé pour les IDs {content_ids_to_process} pour user {user_id}.")
+            db.rollback()
+
+    except Exception as e:
+        logger.error(f"Webhook onboarding: Erreur générale traitement pour user {user_id}: {e}", exc_info=True)
+        db.rollback()
+
+async def _handle_character_purchase_success(db: Session, stripe_session: Dict[str, Any]):
+    """Logique à exécuter après un achat de crédits réussi."""
+    metadata = stripe_session.get("metadata", {})
+    user_id = metadata.get("user_id")
+    character_count = metadata.get("character_count") # Nombre de caractères achetés
+    payment_intent_id = stripe_session.get("payment_intent")
+
+    if not user_id or not character_count:
+        logger.error(f"Webhook achat crédits: Données manquantes dans metadata: user={user_id}, count={character_count}")
+        return
+
+    try:
+        user_id = int(user_id)
+        character_count = int(character_count)
+    except ValueError:
+        logger.error(f"Webhook achat crédits: user_id ou character_count invalide dans metadata")
+        return
+
+    logger.info(f"Webhook achat crédits: Traitement pour user {user_id}, achat de {character_count} caractères.")
+    
+    # Enregistrer le paiement 
+    # TODO: Ajouter la logique pour créer une entrée dans la table Payment
+    # payment_record = Payment(user_id=user_id, amount=stripe_session.get('amount_total', 0)/100, status='succeeded', ...) 
+    # db.add(payment_record)
+    # db.flush() # pour obtenir payment_record.id
+    payment_db_id = None # Remplacer par l'ID réel si enregistré
+
+    # Ajouter les crédits achetés via CharacterService
+    character_service = CharacterService()
+    success = character_service.add_character_credits(
+        db=db, # Laisser add_character_credits gérer son commit/rollback
+        user_id=user_id,
+        character_count=character_count,
+        payment_id=payment_db_id, # Utiliser l'ID du paiement enregistré
+        description=f"Achat de {character_count} crédits via Stripe ({payment_intent_id})"
+    )
+    
+    if success:
+        logger.info(f"Webhook achat crédits: {character_count} crédits ajoutés pour user {user_id}.")
+    else:
+        logger.error(f"Webhook achat crédits: Échec de l'ajout de {character_count} crédits pour user {user_id}.")
+
+# --- Fonction handle_fine_tuning_job_payment (Déjà définie) --- 
+# S'assurer qu'elle utilise bien la session `db` passée en argument
 async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
     """
     Gère un paiement réussi pour un fine-tuning job spécifique.
@@ -491,106 +686,108 @@ async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
     """
     session = event["data"]["object"]
     metadata = session.get("metadata", {})
-    user_id = int(metadata.get("user_id"))
-    project_id = int(metadata.get("project_id"))
+    user_id = metadata.get("user_id")
+    project_id = metadata.get("project_id")
     content_ids_json = metadata.get("content_ids", "[]")
     config_json = metadata.get("config", "{}")
     payment_intent_id = session.get("payment_intent")
     amount_received = session.get("amount_total", 0) # Montant en cents
 
+    # Vérifications initiales
     if not all([user_id, project_id, content_ids_json, config_json]):
-        logger.error(f"Webhook: Métadonnées manquantes pour fine_tuning_job. User: {user_id}, Project: {project_id}")
+        logger.error(f"Webhook FT Job: Métadonnées manquantes. User: {user_id}, Project: {project_id}")
         return
-
     try:
+        user_id = int(user_id)
+        project_id = int(project_id)
         content_ids = json.loads(content_ids_json)
         config_dict = json.loads(config_json)
-        config = FineTuningJobConfig(**config_dict) # Valider avec Pydantic
-    except (json.JSONDecodeError, TypeError) as e:
-        logger.error(f"Webhook: Erreur de parsing des métadonnées JSON: {e}")
+        config = FineTuningJobConfig(**config_dict) 
+    except (json.JSONDecodeError, TypeError, ValueError) as e:
+        logger.error(f"Webhook FT Job: Erreur parsing métadonnées JSON/int: {e}")
         return
 
-    logger.info(f"Webhook: Traitement paiement pour User {user_id}, Projet {project_id}, Contenus: {content_ids}")
+    logger.info(f"Webhook FT Job: Traitement paiement pour User {user_id}, Projet {project_id}, Contenus: {content_ids}")
 
     try:
-        # 1. Ajouter les crédits (si on a un système de crédit)
-        # Note: Ici on pourrait aussi juste valider que le paiement est reçu.
-        # Pour l'instant, on assume que le paiement couvre exactement le coût.
+        # 1. Enregistrer le paiement (Exemple, à adapter)
+        # payment_record = Payment(user_id=user_id, amount=amount_received/100, ...) 
+        # db.add(payment_record)
+        logger.info(f"Paiement {payment_intent_id} reçu pour FT Job (user {user_id}). Logique d'enregistrement à implémenter.")
         
         # 2. Créer Dataset & FineTuning
-        from app.models.dataset import Dataset, DatasetContent
-        from app.models.fine_tuning import FineTuning
-        from app.models.content import Content
-        from app.tasks.content_processing import transcribe_youtube_video
-        from celery_app import celery_app
-        import datetime
-        
-        # Générer noms par défaut
-        project_name = db.query(Project).filter(Project.id == project_id).first().name or f"proj{project_id}"
-        dataset_name = config.dataset_name or f"Dataset_{project_name.replace(' ','_')}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
-        job_name = config.job_name or f"FineTune_{project_name.replace(' ','_')}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        project = db.query(Project).filter(Project.id == project_id, Project.user_id == user_id).first()
+        if not project:
+            logger.error(f"Webhook FT Job: Projet {project_id} non trouvé pour user {user_id}")
+            return
 
+        dataset_name = config.dataset_name or f"Dataset_{project.name.replace(' ','_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        job_name = config.job_name or f"FineTune_{project.name.replace(' ','_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Récupérer les contenus et identifier ceux à transcrire
+        contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
+        if len(contents) != len(content_ids):
+             logger.warning(f"Webhook FT Job: Certains contenus ({content_ids}) n'ont pas été trouvés.")
+             # Décider si on continue avec les contenus trouvés ou si on arrête
+             # Pour l'instant, on continue avec les contenus trouvés
+             content_ids = [c.id for c in contents] # Utiliser les IDs réels trouvés
+             if not content_ids:
+                 logger.error(f"Webhook FT Job: Aucun contenu valide trouvé pour {content_ids_json}.")
+                 return
+
+        pending_transcriptions = [c.id for c in contents if c.type == 'youtube' and c.status != 'completed']
+        
         # Créer le dataset
         new_dataset = Dataset(
             name=dataset_name,
-            project_id=project_id,
-            description=f"Dataset pour fine-tuning job (payé)",
+            project_id=project.id,
+            description=f"Dataset pour fine-tuning job payé ({job_name})",
             model=config.model,
             status="pending",
             system_content=config.system_prompt
+            # character_count pourrait être ajouté si calculé
         )
         db.add(new_dataset)
-        db.commit()
-        db.refresh(new_dataset)
-        logger.info(f"Webhook: Dataset {new_dataset.id} créé.")
+        db.flush()
+        logger.info(f"Webhook FT Job: Dataset {new_dataset.id} créé.")
 
         # Associer les contenus
-        pending_transcriptions = []
-        contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
-        for content in contents:
-            db.add(DatasetContent(dataset_id=new_dataset.id, content_id=content.id))
-            if content.type == 'youtube' and content.status != 'completed':
-                pending_transcriptions.append(content.id)
-        db.commit()
-        logger.info(f"Webhook: {len(content_ids)} contenus associés au dataset {new_dataset.id}.")
-
+        for content_id in content_ids: # Utiliser les IDs validés
+            db.add(DatasetContent(dataset_id=new_dataset.id, content_id=content_id))
+        
         # Créer le fine-tuning
         new_fine_tuning = FineTuning(
             dataset_id=new_dataset.id,
             name=job_name,
-            description=f"Job (payé) pour projet {project_id}",
+            description=f"Job payé ({payment_intent_id}) pour projet {project.id}",
             model=config.model,
             provider=config.provider,
             status="pending",
             hyperparameters=config.hyperparameters
         )
         db.add(new_fine_tuning)
-        db.commit()
-        db.refresh(new_fine_tuning)
-        logger.info(f"Webhook: FineTuning {new_fine_tuning.id} créé.")
+        db.flush()
+        logger.info(f"Webhook FT Job: FineTuning {new_fine_tuning.id} créé.")
 
         # 3. Lancer les tâches
         if pending_transcriptions:
-            logger.info(f"Webhook: Lancement de {len(pending_transcriptions)} transcriptions YouTube.")
+            logger.info(f"Webhook FT Job: Lancement de {len(pending_transcriptions)} transcriptions YouTube.")
             for content_id in pending_transcriptions:
                 try:
-                    task = transcribe_youtube_video.delay(content_id)
+                    task = transcribe_youtube_video.delay(content_id=content_id)
                     content_obj = db.query(Content).get(content_id)
-                    if content_obj:
-                        content_obj.task_id = task.id
-                        content_obj.status = 'processing'
-                        db.commit()
+                    if content_obj: 
+                         content_obj.task_id = task.id
+                         content_obj.status = 'processing' 
                 except Exception as e:
-                    logger.error(f"Webhook: Erreur lancement transcription pour content {content_id}: {e}")
+                    logger.error(f"Webhook FT Job: Erreur lancement transcription pour content {content_id}: {e}")
         
-        logger.info(f"Webhook: Lancement de la génération pour dataset {new_dataset.id}")
+        logger.info(f"Webhook FT Job: Lancement de la génération pour dataset {new_dataset.id}")
         celery_app.send_task("generate_dataset", args=[new_dataset.id], queue='dataset_generation')
-        logger.info(f"Webhook: Traitement du paiement pour fine_tuning_job terminé.")
+        
+        db.commit() # Commit final après toutes les opérations DB
+        logger.info(f"Webhook FT Job: Traitement du paiement terminé avec succès pour user {user_id}, projet {project_id}.")
 
     except Exception as e:
-        logger.error(f"Webhook: Erreur lors du traitement du paiement fine_tuning_job: {e}", exc_info=True)
-        # Il faudrait idéalement avoir un mécanisme pour notifier ou réessayer
-
-# Supprimer ou commenter l'ancienne fonction si elle n'est plus utilisée
-# async def handle_subscription_payment(session: Dict[str, Any]):
-#     pass 
+        logger.error(f"Webhook FT Job: Erreur lors du traitement: {e}", exc_info=True)
+        db.rollback() # Rollback en cas d'erreur pendant le traitement 

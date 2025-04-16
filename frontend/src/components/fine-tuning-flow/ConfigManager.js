@@ -28,6 +28,9 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import CloseIcon from '@mui/icons-material/Close';
 import { useSnackbar } from 'notistack';
 import { api, apiKeyService, userService } from '../../services/apiService';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import DownloadIcon from '@mui/icons-material/Download';
 
 // Définition des modèles disponibles (similaire à OnboardingPage)
 const providerModels = {
@@ -232,15 +235,73 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
            </IconButton>
          </DialogTitle>
          <DialogContent dividers>
-           {/* ... Contenu de l'aide ... */}
+           {/* Contenu copié depuis OnboardingPage */}
            <Typography variant="h6" gutterBottom>
              Pourquoi avons-nous besoin de votre clé API ?
            </Typography>
-           {/* ... (le reste du contenu identique à OnboardingPage) ... */}
+           <Typography paragraph>
+             Pour fine-tuner un modèle, nous devons envoyer vos données d'entraînement au fournisseur d'IA que vous avez choisi (OpenAI ou Anthropic). L'entraînement se déroule sur leur infrastructure.
+           </Typography>
+           <Typography paragraph>
+             Votre clé API nous permet d'agir en votre nom pour :
+           </Typography>
+           <List dense>
+             <ListItem>
+               {/* Remplacer par des icônes Material UI standard si UploadFileIcon etc. ne sont pas importées */}
+               <ListItemIcon sx={{ minWidth: 30 }}><CloudUploadIcon fontSize="small" /></ListItemIcon>
+               <ListItemText primary="Envoyer le fichier d'entraînement" />
+             </ListItem>
+             <ListItem>
+               <ListItemIcon sx={{ minWidth: 30 }}><PlayCircleOutlineIcon fontSize="small" /></ListItemIcon>
+               <ListItemText primary="Lancer le job de fine-tuning" />
+             </ListItem>
+             <ListItem>
+               <ListItemIcon sx={{ minWidth: 30 }}><DownloadIcon fontSize="small" /></ListItemIcon>
+               <ListItemText primary="Récupérer l'identifiant du modèle fine-tuné une fois terminé" />
+             </ListItem>
+           </List>
+           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+             Où trouver votre clé API ?
+           </Typography>
+           {provider === 'openai' && (
+             <>
+               <Typography paragraph>
+                 Connectez-vous à votre compte sur le site d'OpenAI, puis accédez à la section des clés API.
+               </Typography>
+               <Typography paragraph>
+                 Créez une nouvelle clé secrète (elle commence généralement par "sk-..."). Copiez-la et collez-la ici.
+               </Typography>
+               <Alert severity="warning" sx={{ mb: 2 }}>
+                 <AlertTitle>Important</AlertTitle>
+                 Assurez-vous d'avoir ajouté des crédits à votre compte OpenAI, car le fine-tuning et l'utilisation des modèles sont payants. Vérifiez votre <Link href="https://platform.openai.com/account/billing/overview" target="_blank" rel="noopener noreferrer">page de facturation OpenAI</Link>.
+               </Alert>
+             </>
+           )}
+           {provider === 'anthropic' && (
+              <Typography paragraph>
+                 Connectez-vous à votre compte Anthropic et allez dans les paramètres pour générer une clé API. Copiez-la ici. (Instructions spécifiques à venir si l'intégration est activée)
+               </Typography>
+           )}
+           <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+             Sécurité de votre clé
+           </Typography>
+           <Typography paragraph>
+             Votre clé API est sensible. Nous la stockons de manière sécurisée et ne l'utilisons que pour les opérations de fine-tuning que vous lancez via notre plateforme. Elle n'est jamais exposée côté client.
+           </Typography>
          </DialogContent>
          <DialogActions>
            <Button onClick={() => setApiHelpOpen(false)}>Fermer</Button>
-           {/* ... Boutons spécifiques au provider ... */}
+           {/* Boutons spécifiques au provider */}
+           {provider === 'openai' && (
+             <Button href="https://platform.openai.com/account/api-keys" target="_blank" rel="noopener noreferrer">
+               Aller aux clés OpenAI
+             </Button>
+           )}
+            {provider === 'anthropic' && (
+             <Button href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" disabled>
+               Aller aux clés Anthropic (Bientôt)
+             </Button>
+           )}
          </DialogActions>
        </Dialog>
     </Box>
