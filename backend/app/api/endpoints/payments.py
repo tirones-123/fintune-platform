@@ -47,7 +47,8 @@ class OnboardingCheckoutRequest(BaseModel):
 @router.post("/create-onboarding-session")
 async def create_onboarding_session(
     request: OnboardingCheckoutRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
     Créer une session de paiement pour la fin de l'onboarding avec un nombre spécifique de caractères.
@@ -66,11 +67,10 @@ async def create_onboarding_session(
         # Cas 1: Éligible aux crédits gratuits (première fois <= 10k)
         if eligible_for_free_credits:
             logger.info(f"Utilisateur {current_user.id} éligible aux crédits gratuits ({character_count} caractères).")
-            db_session = next(get_db())
             try:
                 character_service = CharacterService()
                 success = character_service.add_character_credits(
-                    db=db_session,
+                    db=db,
                     user_id=current_user.id,
                     character_count=character_count,
                     payment_id=None
@@ -80,9 +80,9 @@ async def create_onboarding_session(
                     logger.info(f"Ajout gratuit de {character_count} caractères réussi pour user {current_user.id}")
                     # Marquer que l'utilisateur a reçu les crédits
                     current_user.has_received_free_credits = True
-                    db_session.add(current_user) # Ajouter l'utilisateur à la session pour sauvegarder le changement
-                    db_session.commit()
-                    db_session.refresh(current_user)
+                    db.add(current_user) # Ajouter l'utilisateur à la session pour sauvegarder le changement
+                    db.commit()
+                    db.refresh(current_user)
 
                     # Lancer les transcriptions et la création du dataset/FT (logique existante)
                     if pending_transcriptions:
@@ -97,14 +97,14 @@ async def create_onboarding_session(
                                  except ValueError:
                                      pass
                              if content_id:
-                                 content = db_session.query(Content).filter(Content.id == content_id).first()
+                                 content = db.query(Content).filter(Content.id == content_id).first()
                                  if content and content.type == 'youtube' and content.url:
                                      content.status = 'processing'
-                                     db_session.commit()
+                                     db.commit()
                                      try:
                                          task = transcribe_youtube_video.delay(content_id=content_id)
                                          content.task_id = task.id
-                                         db_session.commit()
+                                         db.commit()
                                          logger.info(f"Tâche de transcription lancée pour contenu {content_id}, tâche ID: {task.id}")
                                      except Exception as task_error:
                                          logger.error(f"Erreur lancement transcription pour {content_id}: {task_error}")
@@ -114,9 +114,9 @@ async def create_onboarding_session(
                                  logger.warning(f"ID de contenu invalide reçu dans pending_transcriptions: {content_id_data}")
 
                     # Création Dataset/FineTuning (logique existante)
-                    project = db_session.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
+                    project = db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
                     if project:
-                        contents = db_session.query(Content).filter(
+                        contents = db.query(Content).filter(
                             Content.project_id == project.id,
                             Content.status.in_(["completed", "processing"]) # Statuts pertinents
                         ).all()
@@ -145,16 +145,16 @@ async def create_onboarding_session(
                                 status="pending",
                                 system_content=system_content
                             )
-                            db_session.add(new_dataset)
-                            db_session.commit()
-                            db_session.refresh(new_dataset)
+                            db.add(new_dataset)
+                            db.commit()
+                            db.refresh(new_dataset)
                             for content_item in relevant_contents:
                                  dataset_content = DatasetContent(
                                      dataset_id=new_dataset.id,
                                      content_id=content_item.id
                                  )
-                                 db_session.add(dataset_content)
-                            db_session.commit()
+                                 db.add(dataset_content)
+                            db.commit()
 
                             try:
                                 from celery_app import celery_app
@@ -164,7 +164,7 @@ async def create_onboarding_session(
                                     args=[new_dataset.id], 
                                     queue='dataset_generation'
                                 )
-                                api_key = db_session.query(ApiKey).filter(
+                                api_key = db.query(ApiKey).filter(
                                     ApiKey.user_id == current_user.id,
                                     ApiKey.provider == provider
                                 ).first()
@@ -178,8 +178,8 @@ async def create_onboarding_session(
                                         status="pending",
                                         hyperparameters={"n_epochs": 3}
                                     )
-                                    db_session.add(fine_tuning)
-                                    db_session.commit()
+                                    db.add(fine_tuning)
+                                    db.commit()
                                     logger.info(f"Fine-tuning {fine_tuning.id} créé en attente pour le dataset {new_dataset.id}")
                                 else:
                                     logger.warning(f"L'utilisateur {current_user.id} n'a pas de clé API pour le provider {provider}, fine-tuning non créé.")
@@ -203,18 +203,15 @@ async def create_onboarding_session(
                     )
             except Exception as e:
                 logger.error(f"Erreur lors de l'ajout gratuit de caractères ou lancement tâches: {str(e)}", exc_info=True)
-                db_session.rollback()
+                db.rollback()
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Erreur interne lors du traitement gratuit: {str(e)}"
                 )
-            finally:
-                db_session.close()
         
         # Cas 2: <= 10k mais crédits gratuits déjà reçus
         elif already_received_free_credits:
             logger.warning(f"Utilisateur {current_user.id} a déjà reçu les crédits gratuits. Traitement standard en cours ({character_count} caractères).")
-            db_session = next(get_db())
             try:
                 if pending_transcriptions:
                     logger.info(f"Traitement de {len(pending_transcriptions)} transcriptions en attente (crédits déjà reçus)")
@@ -229,14 +226,14 @@ async def create_onboarding_session(
                                  logger.warning(f"Impossible convertir ID {content_id_data} en int")
                                  content_id = None
                         if content_id:
-                             content = db_session.query(Content).filter(Content.id == content_id).first()
+                             content = db.query(Content).filter(Content.id == content_id).first()
                              if content and content.type == 'youtube' and content.url:
                                  content.status = 'processing'
-                                 db_session.commit()
+                                 db.commit()
                                  try:
                                      task = transcribe_youtube_video.delay(content_id=content_id)
                                      content.task_id = task.id
-                                     db_session.commit()
+                                     db.commit()
                                      logger.info(f"Tâche de transcription lancée pour contenu {content_id}, tâche ID: {task.id}")
                                  except Exception as task_error:
                                      logger.error(f"Erreur lancement transcription pour {content_id}: {task_error}")
@@ -245,9 +242,9 @@ async def create_onboarding_session(
                         else:
                              logger.warning(f"ID de contenu invalide reçu dans pending_transcriptions: {content_id_data}")
 
-                project = db_session.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
+                project = db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
                 if project:
-                    contents = db_session.query(Content).filter(
+                    contents = db.query(Content).filter(
                         Content.project_id == project.id,
                         Content.status.in_(["completed", "processing"])
                     ).all()
@@ -276,16 +273,16 @@ async def create_onboarding_session(
                             status="pending",
                             system_content=system_content
                         )
-                        db_session.add(new_dataset)
-                        db_session.commit()
-                        db_session.refresh(new_dataset)
+                        db.add(new_dataset)
+                        db.commit()
+                        db.refresh(new_dataset)
                         for content_item in relevant_contents:
                              dataset_content = DatasetContent(
                                  dataset_id=new_dataset.id,
                                  content_id=content_item.id
                              )
-                             db_session.add(dataset_content)
-                        db_session.commit()
+                             db.add(dataset_content)
+                        db.commit()
 
                         try:
                             from celery_app import celery_app
@@ -295,7 +292,7 @@ async def create_onboarding_session(
                                 args=[new_dataset.id], 
                                 queue='dataset_generation'
                             )
-                            api_key = db_session.query(ApiKey).filter(
+                            api_key = db.query(ApiKey).filter(
                                 ApiKey.user_id == current_user.id,
                                 ApiKey.provider == provider
                             ).first()
@@ -309,8 +306,8 @@ async def create_onboarding_session(
                                     status="pending",
                                     hyperparameters={"n_epochs": 3}
                                 )
-                                db_session.add(fine_tuning)
-                                db_session.commit()
+                                db.add(fine_tuning)
+                                db.commit()
                                 logger.info(f"Fine-tuning {fine_tuning.id} créé en attente pour le dataset {new_dataset.id}")
                             else:
                                 logger.warning(f"L'utilisateur {current_user.id} n'a pas de clé API pour le provider {provider}, fine-tuning non créé.")
@@ -328,14 +325,12 @@ async def create_onboarding_session(
                 }
             except Exception as e:
                 logger.error(f"Erreur lors du traitement standard (crédits déjà reçus): {str(e)}", exc_info=True)
-                db_session.rollback()
+                db.rollback()
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Erreur interne lors du traitement standard: {str(e)}"
                 )
-            finally:
-                db_session.close()
-                
+
         # Cas 3: > 10k caractères (payant)
         else: # character_count > 10000
             logger.info(f"Nombre de caractères ({character_count}) supérieur au quota gratuit. Redirection vers Stripe.")
@@ -344,19 +339,19 @@ async def create_onboarding_session(
             logger.info(f"Facturation de {billable_characters} caractères pour ${amount_in_cents/100:.2f}")
 
             # Trouver le projet par défaut ou le créer s'il n'existe pas
-            db = next(get_db())
+            db_temp = next(get_db())
             try:
-                project = db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
+                project = db_temp.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
                 if not project:
                      # Optionnel: Créer un projet par défaut si aucun n'existe
                      project = Project(name="Projet Onboarding", user_id=current_user.id)
-                     db.add(project)
-                     db.commit()
-                     db.refresh(project)
+                     db_temp.add(project)
+                     db_temp.commit()
+                     db_temp.refresh(project)
                      logger.info(f"Projet Onboarding créé (ID: {project.id}) pour user {current_user.id}")
                 project_id = project.id
             finally:
-                db.close()
+                db_temp.close()
             
             # !!! Enrichir les metadata ici !!!
             metadata = {
