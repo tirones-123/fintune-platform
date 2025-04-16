@@ -149,6 +149,7 @@ Récupère les informations du profil de l'utilisateur courant.
   "name": "John Doe",
   "is_active": true,
   "has_completed_onboarding": true,
+  "has_received_free_credits": false,
   "created_at": "2023-03-10T12:00:00",
   "free_characters_remaining": 5000,
   "total_characters_used": 5000
@@ -1134,27 +1135,52 @@ Annule un job de fine-tuning en cours.
 
 ## Gestion des paiements
 
-### Créer une session de paiement
+### Créer une session de paiement (Onboarding)
 
 ```
-POST /checkout/create-checkout-session/{plan_id}
+POST /checkout/create-onboarding-session
 ```
 
-Crée une session Stripe pour l'abonnement.
+Crée une session de paiement Stripe ou lance le traitement gratuit pour finaliser l'onboarding.
 
-**Paramètres**
-- `plan_id`: ID du plan (starter, pro, enterprise)
+**Corps de la requête**
+```json
+{
+  "character_count": 15000,
+  "pending_transcriptions": [{"id": 12}, {"id": 15}],
+  "dataset_name": "Mon Dataset Onboarding",
+  "system_content": "Tu es un assistant utile.",
+  "provider": "openai",
+  "model": "gpt-3.5-turbo"
+}
+```
 
-**Réponse**
+**Logique de traitement**
+1. Vérifie si `character_count <= 10000` ET si l'utilisateur (`current_user`) n'a pas encore reçu les crédits gratuits (`has_received_free_credits == False`).
+    * Si oui : Ajoute les crédits gratuits, marque l'utilisateur comme les ayant reçus (`has_received_free_credits = True`), lance les transcriptions et la création du dataset/fine-tuning en arrière-plan.
+2. Vérifie si `character_count <= 10000` MAIS l'utilisateur a déjà reçu les crédits gratuits.
+    * Si oui : Lance les transcriptions et la création du dataset/fine-tuning, mais n'ajoute pas de crédits.
+3. Si `character_count > 10000`:
+    * Calcule le nombre de caractères facturables (`billable_characters = character_count - 10000`).
+    * Calcule le montant en cents (`amount_cents`).
+    * Si `amount_cents` est inférieur au seuil Stripe (ex: 60 cents), traite comme le cas 2 (gratuit, sans ajout de crédits).
+    * Sinon, crée une session de paiement Stripe avec les informations nécessaires dans les `metadata` (user\_id, project\_id, dataset\_name, provider, model, content\_ids, etc.) pour que le webhook puisse lancer le traitement après paiement.
+
+**Réponse (Traitement gratuit)**
+```json
+{
+  "status": "success",
+  "free_processing": true,
+  "redirect_url": "{FRONTEND_URL}/dashboard?onboarding_completed=true"
+}
+```
+
+**Réponse (Paiement requis)**
 ```json
 {
   "checkout_url": "https://checkout.stripe.com/pay/cs_test_..."
 }
 ```
-
-**Codes d'erreur possibles**
-- `400 Bad Request`: ID de plan invalide
-- `500 Internal Server Error`: Erreur lors de la création de la session Stripe (détails dans le corps de la réponse)
 
 ### Webhook Stripe
 
@@ -1162,56 +1188,17 @@ Crée une session Stripe pour l'abonnement.
 POST /checkout/webhook
 ```
 
-Gère les événements de webhook de Stripe.
+Gère les événements de webhook de Stripe (ex: `checkout.session.completed`).
 
-**Corps de la requête**
-Un événement Stripe conforme à leur format de webhook, avec en-tête `stripe-signature`.
-
-**Réponse**
-```json
-{
-  "status": "success"
-}
-```
-
-**Codes d'erreur possibles**
-- `400 Bad Request`: Erreur de vérification de signature ou événement non reconnu
-
-**Détails d'implémentation des webhooks Stripe**
-
-L'endpoint `/checkout/webhook` traite les événements Stripe avec les spécificités suivantes:
-
-1. **Vérification de la signature**: Chaque requête entrante est vérifiée à l'aide de la signature Stripe pour garantir son authenticité.
-
-2. **Gestion de `checkout.session.completed`**: 
-   - Vérifie si un ID de souscription est présent dans la session
-   - Recherche une souscription existante avec cet ID
-   - Si trouvé, met à jour son statut à "active" et enregistre l'ID client Stripe
-   - Si non trouvé, crée une nouvelle souscription en utilisant les métadonnées de la session, notamment:
-     - `user_id`: ID de l'utilisateur 
-     - `plan_id`: Type de plan (starter, pro, enterprise)
-     - `is_upgrade`: Booléen indiquant s'il s'agit d'une mise à niveau
-
-3. **Gestion de `customer.subscription.updated`**:
-   - Met à jour le statut de l'abonnement et les dates de période
-   - Préserve les informations spécifiques à l'application (comme les limites de projets)
-
-4. **Gestion de `customer.subscription.deleted`**:
-   - Marque l'abonnement comme "canceled" sans le supprimer de la base
-
-5. **Journalisation**: Tous les événements sont journalisés pour le débogage et l'audit
-
-**Événements gérés par le webhook Stripe**
-
-L'endpoint `/checkout/webhook` gère les événements Stripe suivants:
-
-- `checkout.session.completed`: Déclenché lorsqu'une session de paiement est complétée avec succès. Crée ou met à jour l'abonnement de l'utilisateur.
-  
-- `customer.subscription.updated`: Déclenché lorsqu'un abonnement est modifié (changement de plan, informations de facturation, etc.). Met à jour les informations d'abonnement dans la base de données.
-  
-- `customer.subscription.deleted`: Déclenché lorsqu'un abonnement est supprimé. Marque l'abonnement comme "canceled" dans la base de données.
-
-Pour chaque événement, le système vérifie l'authenticité à l'aide de la signature Stripe et met à jour la base de données en conséquence.
+**Détails d'implémentation importants**
+- Vérifie le `payment_type` dans les `metadata` de la session Stripe.
+- Si `payment_type` est `"onboarding_characters"` ou `"fine_tuning_job"`, le webhook:
+    - Récupère les informations nécessaires (user\_id, project\_id, content\_ids, config, etc.) depuis les `metadata`.
+    - Marque l'utilisateur comme ayant reçu les crédits gratuits (si applicable et non déjà fait).
+    - Crée les entrées `Dataset` et `FineTuning` dans la base de données.
+    - Lance les tâches Celery nécessaires (transcription, génération de dataset).
+- Si `payment_type` est `"character_credits"`, ajoute les crédits achetés à l'utilisateur.
+- **IMPORTANT**: Le webhook doit toujours retourner un statut `200 OK` à Stripe (ex: `{"status": "success"}`) si la signature est valide, même si le traitement interne échoue, pour éviter les rejeux. Les erreurs de traitement doivent être gérées via les logs.
 
 ## Gestion des caractères
 
@@ -1367,19 +1354,107 @@ Le processus de fine-tuning suit les étapes suivantes :
 1. **Configuration de la clé API**
    - L'utilisateur doit d'abord configurer sa clé API pour le provider souhaité via l'endpoint `/users/me/api-keys`
 
-2. **Création du Dataset**
-   - Créer un dataset à partir des contenus via l'endpoint `/datasets`
-   - Attendre que le status du dataset passe à "ready"
+2. **Préparation des contenus**
+   - Upload/ajout via les endpoints `/contents/...`
 
-3. **Lancement du Fine-tuning**
-   - Créer un job de fine-tuning via l'endpoint `/fine-tunings`
-   - Le système récupère automatiquement la clé API associée au provider choisi
-   - Le job passe par différents états : "queued" → "preparing" → "training" → "completed"
+3. **Lancement du Fine-tuning Job**
+   - via l'endpoint **`/fine-tuning-jobs`** (voir ci-dessous)
+     * Le système calcule le coût basé sur les caractères des contenus sélectionnés
+     * Si le coût est nul (quota gratuit non utilisé ou montant trop faible), le système crée le `Dataset`, le `FineTuning` et lance les tâches (transcription, génération)
+     * Si un paiement est requis, l'API retourne une URL Stripe. Après paiement, le webhook Stripe déclenche la création du `Dataset`, du `FineTuning` et le lancement des tâches
 
 4. **Suivi du Progrès**
-   - Utiliser l'endpoint GET `/fine-tunings/{fine_tuning_id}` pour suivre l'avancement
-   - Le champ `progress` indique le pourcentage de progression (0-100)
-   - Le champ `status` indique l'état actuel du job 
+   - via `GET /fine-tunings/{fine_tuning_id}` ou `GET /datasets/{dataset_id}`
+
+5. **Test du modèle**
+   - via l'endpoint `/fine-tunings/{fine_tuning_id}/test` (voir ci-dessous)
+
+## Nouvel Endpoint : Création de Fine-Tuning Job
+
+```
+POST /fine-tuning-jobs
+```
+
+Crée et lance un nouveau job de fine-tuning complet (Dataset + FineTuning) à partir d'un projet et de contenus sélectionnés. Gère la logique de coût et de paiement.
+
+**Corps de la requête** (`CreateFineTuningJobRequest`)
+```json
+{
+  "project_id": 1,
+  "content_ids": [10, 12, 15],
+  "config": {
+    "provider": "openai",
+    "model": "gpt-3.5-turbo-0125",
+    "hyperparameters": {"n_epochs": 3},
+    "system_prompt": "Assistant spécialisé en...",
+    "job_name": "Mon Job de Test",
+    "dataset_name": "Dataset pour Job Test"
+  }
+}
+```
+
+**Logique de traitement**
+- Calcule le nombre total de caractères des `content_ids`
+- Appelle `character_service.handle_fine_tuning_cost` en passant l'utilisateur pour vérifier `has_received_free_credits`
+- **Si paiement requis** : Retourne une réponse avec `status: "pending_payment"` et `checkout_url`
+- **Si traitement gratuit** :
+    - Vérifie si les crédits gratuits doivent être appliqués (première fois)
+    - Si oui, ajoute les crédits via `CharacterService` et marque `user.has_received_free_credits = True`
+    - Crée le `Dataset` et le `FineTuning`
+    - Lance les tâches Celery (`transcribe_youtube_video` si besoin, `generate_dataset`)
+    - Retourne une réponse avec `status: "processing_started"`, `redirect_url`, `fine_tuning_id`, `dataset_id`
+
+**Réponse** (`FineTuningJobResponse`)
+```json
+// Si paiement requis
+{
+  "status": "pending_payment",
+  "message": "Paiement requis pour lancer le fine-tuning.",
+  "checkout_url": "https://checkout.stripe.com/pay/cs_test_...",
+  "redirect_url": null,
+  "fine_tuning_id": null,
+  "dataset_id": null
+}
+
+// Si traitement gratuit lancé
+{
+  "status": "processing_started",
+  "message": "Le processus de fine-tuning a été lancé.",
+  "checkout_url": null,
+  "redirect_url": "{FRONTEND_URL}/dashboard/projects/1?tab=finetune",
+  "fine_tuning_id": 5,
+  "dataset_id": 10
+}
+```
+
+## Nouvel Endpoint : Tester un Modèle Fine-tuné
+
+```
+POST /fine-tunings/{fine_tuning_id}/test
+```
+
+Permet d'envoyer un prompt à un modèle fine-tuné spécifique (qui doit avoir le statut "completed") et d'obtenir sa réponse. Utilisé par le Playground.
+
+**Paramètres URL**
+- `fine_tuning_id` (int): ID du fine-tuning à tester
+
+**Corps de la requête**
+```json
+{
+  "prompt": "Quelle est la procédure pour... ?"
+}
+```
+
+**Réponse**
+```json
+{
+  "response": "La procédure est la suivante : ... (réponse du modèle fine-tuné)"
+}
+```
+
+**Codes d'erreur possibles**
+- `404 Not Found`: Fine-tuning non trouvé ou non autorisé
+- `400 Bad Request`: Modèle non complété ou erreur lors de l'appel à l'API du fournisseur
 
 ### Transcription de vidéos YouTube
 
@@ -1424,4 +1499,7 @@ Extrait la transcription d'une vidéo YouTube en utilisant soit les sous-titres 
 **Notes:**
 1. En mode synchrone, la réponse est immédiate mais peut être plus lente pour les longues vidéos
 2. En mode asynchrone, la transcription est traitée en arrière-plan, et il faut vérifier l'état avec l'endpoint `/helpers/transcript-status/{task_id}`
-3. Le mode asynchrone nécessite maintenant un `content_id` valide, qui fait référence à un contenu existant dans la base de données 
+3. Le mode asynchrone nécessite maintenant un `content_id` valide, qui fait référence à un contenu existant dans la base de données
+4. **Important**: Les tâches Celery internes (`transcribe_youtube_video`) sont maintenant appelées avec `content_id` comme argument principal pour récupérer l'URL et mettre à jour le bon objet `Content`.
+
+# ... (Reste du fichier inchangé) ... 

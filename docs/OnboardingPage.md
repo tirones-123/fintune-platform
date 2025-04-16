@@ -67,32 +67,30 @@ import PageTransition from '../components/common/PageTransition';
 
 ### 3. Import de contenu
 - Plusieurs méthodes d'import sont disponibles:
-  - `FileUpload`: Upload direct de fichiers (PDF, DOC, TXT, etc.) (lignes ~1400-1430)
-  - `handleAddYouTubeUrl()`: Ajout de vidéos YouTube pour transcription (lignes ~850-950)
-  - `handleScrapeUrl()`: Extraction de contenu de sites web (lignes ~960-1010)
-- **Amélioration**: Synchronisation robuste du comptage des caractères:
-  - Utilisation de références React pour un suivi fiable des données (`youtubeVideosRef`, `webSitesRef`)
-  - Mises à jour immédiates du compteur total via `totalCharCountRef`
-  - Résolution des problèmes de mise à jour asynchrone des états React
-- Le système estime et/ou compte les caractères avec `estimateCharacterCount()` (lignes ~710-750) et `calculateActualCharacterCount()` (lignes ~760-820)
-- Une barre de progression visuelle indique la qualité du dataset en fonction du cas d'utilisation (lignes ~1300-1370)
+  - `FileUpload`: Upload direct de fichiers (PDF, DOC, TXT, etc.)
+  - `handleAddYouTubeUrl()`: Ajout de vidéos YouTube. La transcription réelle se fait **en arrière-plan après cette étape** (gratuit) ou **après le paiement** (payant), initiée par le backend.
+  - `handleScrapeUrl()`: Extraction de contenu de sites web.
+- **Amélioration**: Synchronisation robuste du comptage des caractères avec `forceSyncCharacterCount`.
+- Le système estime (`estimateCharacterCount()`) et/ou compte les caractères (`calculateActualCharacterCount()`).
+- Une barre de progression visuelle indique la qualité du dataset.
 
 ### 4. Fine-tuning du modèle
-- Configuration du modèle et du fournisseur (lignes ~1550-1650)
-- Ajout de la clé API via `saveApiKey()` (lignes ~215-240)
-- Création du dataset avec `createDataset()` (lignes ~440-490)
-- Lancement du fine-tuning avec `createFineTuning()` (lignes ~540-570)
-- Vérification périodique du statut avec `checkDatasetStatus()` (lignes ~500-530)
+- Configuration du modèle et du fournisseur.
+- Ajout et **validation** de la clé API via `saveApiKey()`. Le popover d\'aide (?) a été mis à jour avec des informations détaillées.
+- La création du dataset et le lancement du fine-tuning sont maintenant gérés **à l\'étape de finalisation** par l\'endpoint `/api/checkout/create-onboarding-session`.
 
 ### 5. Finalisation
-- Mise à jour du statut utilisateur (`has_completed_onboarding: true`) (lignes ~580-610)
-- **Processus amélioré**: Gestion intelligente du traitement gratuit ou payant:
-  - Si le montant est insuffisant pour Stripe (< 0,50€), traitement gratuit automatique
-  - Le backend détermine si le traitement est gratuit (≤ 10 000 caractères)
-  - Détection intelligente du type de traitement en fonction de l'URL retournée
-  - Notification utilisateur claire sur le traitement gratuit
-- Utilisation unifiée de l'endpoint `/api/checkout/create-onboarding-session` (lignes ~620-650)
-- Redirection vers la page de paiement ou directement vers le dashboard (lignes ~640-650)
+- Appel à l\'endpoint `/api/checkout/create-onboarding-session` avec les détails (compte de caractères, ID des contenus YouTube, config du modèle, etc.).
+- **Logique Côté Backend**:
+  - Vérifie si l\'utilisateur est éligible aux **crédits gratuits (10 000 caractères, une seule fois)** en regardant le compte et le flag `user.has_received_free_credits`.
+  - **Si gratuit (première fois)**: Le backend ajoute les crédits, marque le flag utilisateur, lance les transcriptions YouTube, crée le `Dataset` et le `FineTuning` en attente, et lance la tâche de génération du dataset. L\'API retourne `{ \"status\": \"success\", \"free_processing\": true, \"redirect_url\": \"...dashboard?onboarding_completed=true\" }`.
+  - **Si gratuit (déjà reçu ou montant faible)**: Le backend lance les transcriptions, crée le `Dataset`/`FineTuning` et la tâche de génération, mais n\'ajoute pas de crédits. L\'API retourne `{ \"status\": \"success\", \"free_processing\": false, \"redirect_url\": \"...dashboard?onboarding_completed=true\" }`.
+  - **Si paiement requis**: L\'API retourne `{ \"checkout_url\": \"...\" }`. Après paiement réussi, le **webhook Stripe** côté backend déclenche la création du `Dataset`/`FineTuning` et le lancement des tâches.
+- **Côté Frontend**:
+  - Si une `checkout_url` est reçue, redirige vers Stripe.
+  - Si une `redirect_url` est reçue, redirige vers le Dashboard (avec `?onboarding_completed=true`).
+- Une fois redirigé vers le Dashboard avec `?onboarding_completed=true`, une **modale de bienvenue** s\'affiche une seule fois pour expliquer la suite.
+- La mise à jour du statut utilisateur (`has_completed_onboarding: true`) est maintenant gérée par le backend (implicitement après le premier job lancé ou explicitement si nécessaire).
 
 ## Calculs et logique métier
 
@@ -153,19 +151,15 @@ const stepVariants = {
 - **Amélioration**: Messages d'erreur spécifiques pour les problèmes courants (ex: montant Stripe trop faible)
 
 ## Points d'attention pour la maintenance
-1. Les vidéos YouTube nécessitent une transcription post-paiement (lignes ~850-950)
-2. Le processus de création du dataset et fine-tuning peut continuer en arrière-plan (lignes ~590-620)
-3. Plusieurs timers et intervalles sont utilisés pour vérifier les statuts (lignes ~500-530, ~760-820)
-4. Les estimations de caractères varient selon les types de contenu (lignes ~710-750)
-5. **Nouveauté**: L'utilisation de refs React (`youtubeVideosRef`, `webSitesRef`) est essentielle pour
-   maintenir une synchronisation fiable des compteurs de caractères
+1. La transcription YouTube est lancée par le backend (onboarding gratuit) ou le webhook (onboarding payant).
+2. Le processus de création dataset/fine-tuning est lancé par le backend (gratuit) ou le webhook (payant).
+3. Les estimations de caractères pour YouTube sont utilisées avant la redirection Stripe, le compte réel après transcription.
+4. L\'utilisation de `forceSyncCharacterCount` est essentielle pour la fiabilité du compteur.
 
 ## Flux de navigation
-- Progression linéaire à travers les étapes via `handleNext()` (lignes ~650-680) et `handleBack()` (lignes ~690-700)
-- Certaines étapes requièrent des validations (ex: présence de contenu, clé API valide) (lignes ~650-680)
-- **Amélioration**: Redirection intelligente en fonction du type de traitement (gratuit ou payant)
-  - Redirection vers Stripe pour les paiements standards
-  - Redirection directe vers le dashboard pour les traitements gratuits
+- Progression linéaire.
+- Validation de la clé API à l\'étape 3.
+- L\'étape 4 (Finalisation) appelle l\'API et gère la redirection soit vers Stripe, soit vers le Dashboard (`/dashboard?onboarding_completed=true`).
 
 ## Composants connexes
 - `FileUpload`: Gestion de l'upload des fichiers (importé ligne ~58, utilisé lignes ~1400-1430)
