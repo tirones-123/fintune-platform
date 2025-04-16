@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
   Button,
@@ -19,8 +19,15 @@ import {
   ListItemText,
   ListItemIcon,
   Link,
+  Container,
+  useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
@@ -34,6 +41,8 @@ import CountUp from 'react-countup';
 import { projectService, contentService, datasetService, fineTuningService, characterService } from '../services/apiService';
 import CharacterCounter from '../components/dashboard/CharacterCounter';
 import QualityAssessment from '../components/dashboard/QualityAssessment';
+import PageTransition from '../components/common/PageTransition';
+import { STORAGE_PREFIX } from '../config';
 
 // Animation variants
 const containerVariants = {
@@ -542,6 +551,30 @@ const DashboardPage = () => {
     creditBalance: user?.creditBalance || 0
   });
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+
+  // État pour la modale de bienvenue
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+  // Clé localStorage pour la modale de bienvenue
+  const welcomeModalSeenKey = `${STORAGE_PREFIX || 'fintune_'}hasSeenOnboardingWelcome`;
+
+  // Effet pour afficher la modale après l'onboarding
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const onboardingCompleted = queryParams.get('onboarding_completed') === 'true';
+    const hasSeenModal = localStorage.getItem(welcomeModalSeenKey);
+
+    if (onboardingCompleted && !hasSeenModal) {
+      setShowWelcomeModal(true);
+    }
+  }, [location.search, welcomeModalSeenKey]);
+
+  // Fonction pour fermer la modale et marquer comme vue
+  const handleCloseWelcomeModal = () => {
+    setShowWelcomeModal(false);
+    localStorage.setItem(welcomeModalSeenKey, 'true');
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -570,83 +603,110 @@ const DashboardPage = () => {
   }, [user]);
 
   return (
-    <Box 
-      component={motion.div}
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      sx={{ flexGrow: 1, maxWidth: '100%' }}
-    >
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-          Bonjour, {user?.name || 'utilisateur'}
+    <PageTransition>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
+          Bienvenue sur votre Dashboard, {user?.name || 'Utilisateur'} !
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Voici un aperçu de votre activité et de vos projets récents.
-        </Typography>
-      </Box>
 
-      <Grid container spacing={3}>
-        {/* Statistiques */}
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Projets"
-            value={loading ? 0 : stats.projectCount}
-            icon={AddIcon}
-            color={theme.palette.primary.main}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Contenus"
-            value={loading ? 0 : stats.contentCount}
-            icon={CloudUploadIcon}
-            color={theme.palette.info.main}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Datasets"
-            value={loading ? 0 : stats.datasetCount}
-            icon={DatasetIcon}
-            color={theme.palette.success.main}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Crédit"
-            value={stats.creditBalance}
-            icon={BarChartIcon}
-            color={theme.palette.warning.main}
-            prefix="€"
-          />
-        </Grid>
+        {loading && <CircularProgress sx={{ display: 'block', margin: 'auto' }} />}
 
-        {/* Actions rapides */}
-        <Grid item xs={12} md={6} lg={4}>
-          <QuickActions />
-        </Grid>
+        {!loading && (
+          <Grid container spacing={3}>
+            {/* Cartes de statistiques */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ display: 'flex', alignItems: 'center', p: 2, height: '100%' }}>
+                <Avatar sx={{ bgcolor: theme.palette.primary.main, mr: 2 }}>
+                  <FolderIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6">{stats.projectCount}</Typography>
+                  <Typography color="text.secondary">Projets</Typography>
+                </Box>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ display: 'flex', alignItems: 'center', p: 2, height: '100%' }}>
+                <Avatar sx={{ bgcolor: theme.palette.secondary.main, mr: 2 }}>
+                  <DescriptionIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6">{stats.contentCount}</Typography>
+                  <Typography color="text.secondary">Contenus</Typography>
+                </Box>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ display: 'flex', alignItems: 'center', p: 2, height: '100%' }}>
+                <Avatar sx={{ bgcolor: theme.palette.info.main, mr: 2 }}>
+                  <BuildIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6">{stats.datasetCount}</Typography>
+                  <Typography color="text.secondary">Datasets</Typography>
+                </Box>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ display: 'flex', alignItems: 'center', p: 2, height: '100%' }}>
+                <Avatar sx={{ bgcolor: theme.palette.success.main, mr: 2 }}>
+                  <AccountBalanceWalletIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6">{stats.creditBalance.toLocaleString()} €</Typography>
+                  <Typography color="text.secondary">Crédits restants</Typography>
+                </Box>
+              </Card>
+            </Grid>
 
-        {/* Projets récents */}
-        <Grid item xs={12} md={6} lg={4}>
-          <RecentProjects />
-        </Grid>
+            {/* Actions rapides */}
+            <Grid item xs={12} md={6} lg={4}>
+              <QuickActions />
+            </Grid>
 
-        {/* Modèles récents */}
-        <Grid item xs={12} lg={4}>
-          <RecentModels />
-        </Grid>
-      </Grid>
+            {/* Projets récents */}
+            <Grid item xs={12} md={6} lg={4}>
+              <RecentProjects />
+            </Grid>
 
-      <Grid container spacing={3} sx={{ mt: 4 }}>
-        <Grid item xs={12} md={6}>
-          <CharacterCounter />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <QualityAssessment />
-        </Grid>
-      </Grid>
-    </Box>
+            {/* Modèles récents */}
+            <Grid item xs={12} lg={4}>
+              <RecentModels />
+            </Grid>
+          </Grid>
+        )}
+
+        {/* Modale de bienvenue après l'onboarding */}
+        <Dialog
+          open={showWelcomeModal}
+          onClose={handleCloseWelcomeModal}
+          aria-labelledby="welcome-dialog-title"
+          aria-describedby="welcome-dialog-description"
+        >
+          <DialogTitle id="welcome-dialog-title">
+            🎉 Bienvenue sur FinTune Platform !
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText id="welcome-dialog-description">
+              Votre premier fine-tuning est maintenant en cours de traitement !
+              <br /><br />
+              Voici quelques points importants :
+              <ul>
+                <li>Le processus de fine-tuning peut prendre du temps (de quelques minutes à plusieurs heures) en fonction de la taille de votre dataset et du fournisseur (OpenAI, etc.).</li>
+                <li>Vous pouvez suivre la progression de votre fine-tuning dans la section "Fine-Tunings" de ce dashboard.</li>
+                <li>Vous pouvez également consulter le statut directement sur le tableau de bord de votre fournisseur d'IA (par exemple, <a href="https://platform.openai.com/finetune" target="_blank" rel="noopener noreferrer">OpenAI Fine-tuning</a>).</li>
+                <li>Pendant ce temps, n'hésitez pas à explorer les autres sections : gérez vos Projets, consultez vos Datasets, ou préparez votre prochain fine-tuning !</li>
+              </ul>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseWelcomeModal} autoFocus>
+              Compris !
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </PageTransition>
   );
 };
 
