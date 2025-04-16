@@ -34,225 +34,203 @@ def split_text_into_chunks(text, chunk_size=CHUNK_SIZE):
 def generate_dataset(self, dataset_id: int):
     """
     Generate a dataset from selected contents.
-    Waits for all contents to be 'completed' before proceeding.
-    Reads processed text directly from the database.
+    Aggregates text from all completed contents, chunks the combined text,
+    and generates QA pairs from those chunks.
     """
     logger.info(f"Generating dataset {dataset_id}")
-    
     db = SessionLocal()
     
     try:
-        # --- MODIFIÉ: Déplacer les imports ici ---
         from app.models.dataset import Dataset, DatasetContent, DatasetPair
         from app.models.content import Content
         from app.models.fine_tuning import FineTuning
         from app.models.api_key import ApiKey
-        # --- FIN MODIFICATION ---
-
-        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
         
+        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
         if not dataset:
             logger.error(f"Dataset {dataset_id} not found")
             return {"status": "error", "message": "Dataset not found"}
-        
-        # --- NOUVEAU: Vérifier si les contenus sont prêts (maintenant DatasetContent est défini) ---
+
+        # Vérifier si les contenus sont prêts
         dataset_contents_assoc = db.query(DatasetContent).filter(DatasetContent.dataset_id == dataset_id).all()
         content_ids = [dc.content_id for dc in dataset_contents_assoc]
         contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
-
         pending_contents = [c for c in contents if c.status not in ['completed', 'error']]
-
         if pending_contents:
             pending_ids = [c.id for c in pending_contents]
-            logger.warning(f"Dataset {dataset_id}: Contents {pending_ids} are not yet completed. Scheduling retry in {self.default_retry_delay}s...")
-            # Nous laissons l'exception de retry se propager - c'est Celery qui l'attrapera
-            # Note: ce code replanifie la tâche et arrête l'exécution actuelle
+            logger.warning(f"Dataset {dataset_id}: Contents {pending_ids} not ready. Retrying...")
             raise self.retry(countdown=self.default_retry_delay)
-        # --- FIN NOUVEAU: Vérification des contenus ---
 
-        # Mettre à jour le statut seulement si on commence réellement le traitement
+        # Mettre à jour le statut
         if dataset.status != "processing":
             dataset.status = "processing"
             dataset.started_at = datetime.now().isoformat()
             db.commit()
-        
-        # Récupérer le provider et de la clé API :
+
+        # Récupérer provider et clé API
         provider_name = getattr(dataset, "provider", "openai")
-        dataset_api_key = getattr(dataset, "api_key", None) or os.getenv("OPENAI_API_KEY")
-        provider = get_ai_provider(provider_name, dataset_api_key)
-        
-        # Model to use for generation
+        # Utiliser la clé API de l'utilisateur associé au projet du dataset
+        api_key_record = db.query(ApiKey).filter(
+            ApiKey.user_id == dataset.project.user_id,
+            ApiKey.provider == provider_name
+        ).first()
+        if not api_key_record:
+             raise ValueError(f"API Key for provider {provider_name} not found for user {dataset.project.user_id}")
+        provider = get_ai_provider(provider_name, api_key_record.key)
         model = dataset.model or DEFAULT_MODEL
-        
-        # Track total pairs generated
-        total_pairs = 0
-        
-        # Process each content (maintenant qu'on sait qu'ils sont 'completed')
+
+        # --- NOUVELLE LOGIQUE : Agréger tout le texte --- 
+        aggregated_text = ""
+        processed_content_ids = []
         for content in contents:
-            # Ignorer les contenus en erreur
             if content.status == 'error':
                 logger.warning(f"Skipping content {content.id} due to previous error: {content.error_message}")
                 continue
-
-            logger.info(f"Processing content {content.id}: {content.name}")
             
-            try:
-                # --- MODIFIÉ: Vérifier plusieurs attributs possibles pour le texte ---
-                text = content.content_text
-                
-                if not text:
-                    logger.warning(f"No text found in content {content.id} (status: {content.status})")
-                    continue
-                # --- FIN MODIFICATION ---
-                
-                # Split text into chunks
-                chunks = split_text_into_chunks(text)
-                logger.info(f"Split content {content.id} into {len(chunks)} chunks")
-                
-                # Process each chunk
-                for i, chunk in enumerate(chunks):
-                    logger.info(f"Processing chunk {i+1}/{len(chunks)} of content {content.id}")
-                    
-                    try:
-                        # Generate QA pairs for this chunk
-                        qa_pairs = provider.generate_qa_pairs(chunk, model)
-                        
-                        if not qa_pairs:
-                            logger.warning(f"No QA pairs generated for chunk {i+1} of content {content.id}")
-                            continue
-                        
-                        # Add pairs to database
-                        for pair in qa_pairs:
-                            # Vérification que les paires contiennent bien question et réponse
-                            if not isinstance(pair, dict) or "question" not in pair or "answer" not in pair:
-                                logger.warning(f"Invalid QA pair format: {pair}")
-                                continue
-                                
-                            db_pair = DatasetPair(
-                                question=pair["question"],
-                                answer=pair["answer"],
-                                dataset_id=dataset_id,
-                                metadata={"source": content.id, "chunk": i}
-                            )
-                            db.add(db_pair)
-                        
-                        # Increment count
-                        total_pairs += len(qa_pairs)
-                        
-                        # Commit in batches to avoid large transactions
-                        db.commit()
-                        
-                        # Small delay to avoid API rate limits
-                        time.sleep(1)
-                        
-                    except Exception as e:
-                        logger.error(f"Error processing chunk {i} of content {content.id}: {str(e)}")
-                        logger.error(traceback.format_exc())
-                        # Continue with next chunk
-            
-            except Exception as e:
-                logger.error(f"Error processing content {content.id}: {str(e)}")
-                logger.error(traceback.format_exc())
-                # Continue with next content
+            text = content.content_text
+            if text:
+                # Ajouter un séparateur clair entre les contenus
+                aggregated_text += f"\n\n--- Contenu {content.id}: {content.name} ---\n\n" + text 
+                processed_content_ids.append(content.id)
+            else:
+                logger.warning(f"No text found in content {content.id} (status: {content.status}) despite being 'completed'.")
         
-        # Check if any pairs were generated
+        if not aggregated_text:
+            dataset.status = "error"
+            dataset.error_message = "No text could be extracted from any of the selected contents."
+            db.commit()
+            logger.error(f"No text aggregated for dataset {dataset_id} from contents {processed_content_ids}.")
+            return {"status": "error", "message": "No text found in contents"}
+
+        logger.info(f"Aggregated text from {len(processed_content_ids)} contents for dataset {dataset_id}. Total length: {len(aggregated_text)}")
+
+        # --- Découper le texte agrégé en chunks --- 
+        chunks = split_text_into_chunks(aggregated_text)
+        logger.info(f"Split aggregated text into {len(chunks)} chunks for dataset {dataset_id}")
+
+        # --- Traiter les chunks agrégés --- 
+        total_pairs = 0
+        all_pairs = [] # Stocker temporairement les paires
+        for i, chunk in enumerate(chunks):
+            logger.info(f"Processing aggregated chunk {i+1}/{len(chunks)} for dataset {dataset_id}")
+            try:
+                qa_pairs = provider.generate_qa_pairs(chunk, model)
+                if qa_pairs:
+                    # Valider et stocker les paires valides
+                    valid_pairs_in_chunk = []
+                    for pair in qa_pairs:
+                         if isinstance(pair, dict) and "question" in pair and "answer" in pair:
+                             valid_pairs_in_chunk.append(pair)
+                         else:
+                             logger.warning(f"Invalid QA pair format skipped: {pair}")
+                    
+                    if valid_pairs_in_chunk:
+                        all_pairs.extend(valid_pairs_in_chunk) 
+                        total_pairs += len(valid_pairs_in_chunk)
+                        logger.info(f"Generated {len(valid_pairs_in_chunk)} pairs for chunk {i+1}.")
+                    else:
+                        logger.warning(f"No valid QA pairs generated for chunk {i+1}.")
+                else:
+                     logger.warning(f"No QA pairs generated for chunk {i+1}.")
+                
+                # Délai pour éviter rate limit
+                time.sleep(1)
+
+            except Exception as e:
+                logger.error(f"Error processing aggregated chunk {i+1}: {str(e)}")
+                logger.error(traceback.format_exc())
+                # Continuer avec le chunk suivant en cas d'erreur sur un chunk
+
+        # Vérifier si des paires ont été générées au total
         if total_pairs == 0:
             dataset.status = "error"
-            dataset.error_message = "No pairs could be generated from the provided contents"
+            dataset.error_message = "No QA pairs could be generated from the aggregated content."
             db.commit()
-            logger.error(f"No pairs generated for dataset {dataset_id}")
+            logger.error(f"No pairs generated for dataset {dataset_id} from aggregated chunks.")
             return {"status": "error", "message": "No pairs could be generated"}
-        
-        # Calculer le nombre total de caractères dans le dataset
+
+        # Ajouter toutes les paires valides à la base de données en une fois (ou par lots plus petits si nécessaire)
+        logger.info(f"Adding {total_pairs} generated pairs to dataset {dataset_id}...")
+        for idx, pair_data in enumerate(all_pairs):
+             db_pair = DatasetPair(
+                 question=pair_data["question"],
+                 answer=pair_data["answer"],
+                 dataset_id=dataset_id,
+                 # Metadata simplifiée: juste l'index du chunk agrégé
+                 metadata={"aggregated_chunk_index": idx // (len(qa_pairs)/len(chunks)) if len(chunks)>0 and len(qa_pairs)>0 else 0} 
+                 # Alternative: metadata={"info": f"From aggregated chunk {idx}"} 
+             )
+             db.add(db_pair)
+        # Commit après avoir ajouté toutes les paires
+        db.commit()
+        logger.info(f"Successfully added {total_pairs} pairs to the database.")
+
+        # Calculer le compte total de caractères (comme avant)
         total_characters = 0
         for pair in db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset_id).all():
-            # Compter les caractères dans la question et la réponse
             total_characters += len(pair.question) + len(pair.answer)
-        
-        # Compter les caractères du system_content, multiplié par le nombre de paires
-        system_content = dataset.system_content if hasattr(dataset, 'system_content') else ""
-        total_characters += len(system_content) * len(db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset_id).all())
-        
-        logger.info(f"Dataset {dataset_id} contains {total_characters} characters")
-        
-        # Traiter les caractères avec le CharacterService
-        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
-        if dataset:
-            user_id = dataset.project.user_id  # Accès au user_id via la relation avec le projet
-        success, paid_chars, price = character_service.process_dataset_characters(
-            db, user_id, dataset_id, total_characters
-        )
-        
-        if not success:
-            dataset.status = "error"
-            dataset.error_message = "Error processing character usage"
-            db.commit()
-            logger.error(f"Error processing character usage for dataset {dataset_id}")
-            return {"status": "error", "message": "Error processing character usage"}
-        
-        # Si des caractères doivent être payés, indiquer le prix dans les logs
-        if paid_chars > 0:
-            logger.info(f"Dataset {dataset_id} requires payment for {paid_chars} characters, price: ${price:.2f}")
-        
-        # Update dataset
+        system_content = dataset.system_content or ""
+        total_characters += len(system_content) * total_pairs # Utiliser total_pairs calculé
+        logger.info(f"Dataset {dataset_id} final character count: {total_characters}")
+
+        # Mettre à jour le dataset final
         dataset.status = "ready"
         dataset.pairs_count = total_pairs
         dataset.character_count = total_characters
-        dataset.size = total_pairs * 1024  # Approximate size calculation
+        dataset.size = total_pairs * 1024 # Approximation
         dataset.completed_at = datetime.now().isoformat()
         db.commit()
-        
-        logger.info(f"Dataset {dataset_id} generated successfully with {total_pairs} pairs")
-        
-        # --- MODIFIÉ: Déclencher le Fine-Tuning ---
+        logger.info(f"Dataset {dataset_id} generation completed successfully.")
+
+        # Déclencher le Fine-Tuning (logique inchangée)
         if dataset.status == "ready":
             try:
                 from celery_app import celery_app
-
                 existing_fine_tuning = db.query(FineTuning).filter(
                     FineTuning.dataset_id == dataset_id,
                     FineTuning.status == "pending"
                 ).first()
-
                 if existing_fine_tuning:
                     api_key = db.query(ApiKey).filter(
                         ApiKey.user_id == dataset.project.user_id,
                         ApiKey.provider == existing_fine_tuning.provider
                     ).first()
-
                     if api_key:
-                        logger.info(f"Dataset {dataset_id} is ready. Triggering pending fine-tuning {existing_fine_tuning.id}")
-                        # Mettre à jour le statut et envoyer la tâche
+                        logger.info(f"Triggering pending fine-tuning {existing_fine_tuning.id}")
                         existing_fine_tuning.status = "queued"
                         db.commit()
                         celery_app.send_task("start_fine_tuning", args=[existing_fine_tuning.id], queue='fine_tuning')
                     else:
-                         logger.warning(f"Cannot start fine-tuning {existing_fine_tuning.id}: User {dataset.project.user_id} missing API key for provider {existing_fine_tuning.provider}")
-                         existing_fine_tuning.status = "error"
-                         existing_fine_tuning.error_message = f"User missing API key for provider {existing_fine_tuning.provider}"
-                         db.commit()
+                        logger.warning(f"Cannot start fine-tuning {existing_fine_tuning.id}: User missing API key...")
+                        existing_fine_tuning.status = "error"
+                        existing_fine_tuning.error_message = f"User missing API key for provider {existing_fine_tuning.provider}"
+                        db.commit()
                 else:
-                    logger.info(f"No pending fine-tuning found for dataset {dataset_id}. Skipping auto-start.")
-            
+                     logger.info(f"No pending fine-tuning found for dataset {dataset_id}.")
             except Exception as e:
-                logger.error(f"Error auto-creating fine-tuning for dataset {dataset_id}: {str(e)}")
-                logger.error(traceback.format_exc())
-                # Continue anyway as the dataset generation succeeded
-        
+                logger.error(f"Error auto-triggering fine-tuning for dataset {dataset_id}: {str(e)}", exc_info=True)
+
         return {"status": "success", "dataset_id": dataset_id, "pairs_count": total_pairs}
-    
-    except Exception as e:
-        logger.error(f"Error generating dataset {dataset_id}: {str(e)}")
-        logger.error(traceback.format_exc())
-        
-        # Update dataset status to error
+
+    except self.MaxRetriesExceededError as e:
+        logger.error(f"Dataset {dataset_id} generation failed after max retries due to pending content: {e}")
         dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
-        if dataset:
+        if dataset and dataset.status != 'error': # Ne pas écraser une erreur antérieure
             dataset.status = "error"
-            dataset.error_message = str(e)
+            dataset.error_message = "Timeout waiting for content processing after multiple retries."
             db.commit()
+        return {"status": "error", "message": "Timeout waiting for content processing"}
         
+    except Exception as e:
+        logger.error(f"Unhandled error generating dataset {dataset_id}: {str(e)}")
+        logger.error(traceback.format_exc())
+        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+        if dataset and dataset.status != 'error':
+            dataset.status = "error"
+            dataset.error_message = f"Internal error: {str(e)[:200]}"
+            db.commit()
         return {"status": "error", "message": str(e)}
     
     finally:
-        db.close() 
+        if 'db' in locals() and db: # S'assurer que db existe
+            db.close() 

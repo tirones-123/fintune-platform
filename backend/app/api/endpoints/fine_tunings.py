@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 from celery_app import celery_app
+from pydantic import BaseModel
+from app.services.ai_providers import ai_provider_service
+from app.models.api_key import ApiKey
 
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -15,6 +18,13 @@ from app.schemas.fine_tuning import (
 )
 
 router = APIRouter()
+
+# --- Schémas pour l'endpoint de test ---
+class TestFineTuningRequest(BaseModel):
+    prompt: str
+
+class TestFineTuningResponse(BaseModel):
+    response: str
 
 @router.get("", response_model=List[FineTuningResponse])
 def get_fine_tunings(
@@ -199,4 +209,83 @@ def cancel_fine_tuning(
     # TODO: Trigger async cancellation task
     # celery_app.send_task("app.tasks.fine_tuning.cancel_fine_tuning", args=[fine_tuning.id])
     
-    return fine_tuning 
+    return fine_tuning
+
+# --- Nouvel Endpoint pour tester le modèle --- 
+@router.post("/{fine_tuning_id}/test", response_model=TestFineTuningResponse)
+async def test_fine_tuning(
+    fine_tuning_id: int,
+    request_data: TestFineTuningRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Test a completed fine-tuned model with a prompt.
+    """
+    # 1. Récupérer le fine-tuning et vérifier l'appartenance et le statut
+    fine_tuning = db.query(FineTuning).join(Dataset).join(Project).filter(
+        FineTuning.id == fine_tuning_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not fine_tuning:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Fine-tuning not found or not authorized."
+        )
+    
+    if fine_tuning.status != "completed":
+         raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Fine-tuning is not completed (status: {fine_tuning.status})."
+        )
+        
+    if not fine_tuning.fine_tuned_model:
+         raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fine-tuned model ID is missing for this record."
+        )
+
+    # 2. Récupérer la clé API de l'utilisateur pour ce provider
+    api_key_record = db.query(ApiKey).filter(
+        ApiKey.user_id == current_user.id,
+        ApiKey.provider == fine_tuning.provider
+    ).first()
+    
+    if not api_key_record:
+         raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"API key for provider '{fine_tuning.provider}' not found."
+        )
+
+    # 3. Appeler le service pour obtenir la complétion
+    try:
+        completion = await ai_provider_service.get_completion(
+            provider=fine_tuning.provider,
+            api_key=api_key_record.key, 
+            model_id=fine_tuning.fine_tuned_model, # Utiliser l'ID du modèle fine-tuné
+            prompt=request_data.prompt,
+            # Ajouter d'autres paramètres si nécessaire (temperature, max_tokens, etc.)
+            # system_prompt=fine_tuning.dataset.system_content # Potentiellement passer le system prompt original
+        )
+        
+        if completion is None:
+             raise HTTPException(
+                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                 detail="Failed to get completion from the provider, received None."
+             )
+             
+        return TestFineTuningResponse(response=completion)
+        
+    except ValueError as ve:
+         # Erreurs spécifiques du service (ex: provider non supporté)
+         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+    except Exception as e:
+        # Gérer les erreurs potentielles de l'API du fournisseur
+        error_detail = f"Error communicating with {fine_tuning.provider} API: {str(e)}"
+        # Log l'erreur complète pour le débogage
+        # logger.error(error_detail, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=error_detail
+        ) 
