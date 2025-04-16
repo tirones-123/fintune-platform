@@ -403,8 +403,8 @@ async def stripe_webhook(request: Request):
     else:
         logger.info(f"Webhook: Événement non géré reçu: {event['type']}")
 
-    return {"status": "success"}
-
+        return {"status": "success"}
+    
 async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
     """
     Gère un paiement réussi pour un fine-tuning job spécifique.

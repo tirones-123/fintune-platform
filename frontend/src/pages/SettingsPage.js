@@ -254,23 +254,23 @@ const SettingsPage = () => {
 
   return (
     <PageTransition>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Paramètres
-        </Typography>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        Paramètres
+      </Typography>
 
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
             <Tab label="Profil" icon={<AccountCircleIcon />} iconPosition="start" id="tab-0" />
             <Tab label="Clés API" icon={<KeyIcon />} iconPosition="start" id="tab-1" />
             <Tab label="Utilisation & Facturation" icon={<NotificationsIcon />} iconPosition="start" id="tab-2" />
             <Tab label="Sécurité" icon={<SecurityIcon />} iconPosition="start" id="tab-3" />
-          </Tabs>
-        </Box>
+        </Tabs>
+      </Box>
 
         {/* Onglet Profil */}
         <Box role="tabpanel" hidden={tabValue !== 0}>
-          {tabValue === 0 && (
+      {tabValue === 0 && (
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>Informations du profil</Typography>
               <TextField
@@ -287,17 +287,17 @@ const SettingsPage = () => {
                 margin="normal"
                 disabled // Email non modifiable pour l'instant
               />
-              <Button 
-                variant="contained" 
+                      <Button
+                        variant="contained"
                 onClick={handleUpdateProfile} 
                 sx={{ mt: 2 }}
                 disabled={name === user?.name}
               >
                 Enregistrer les modifications
-              </Button>
+                      </Button>
             </Paper>
-          )}
-        </Box>
+                      )}
+                    </Box>
 
         {/* Onglet Clés API */}
         <Box role="tabpanel" hidden={tabValue !== 1}>
@@ -306,8 +306,8 @@ const SettingsPage = () => {
               <Typography variant="h6" gutterBottom>Gestion des Clés API</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Ajoutez les clés API des fournisseurs IA que vous souhaitez utiliser pour le fine-tuning.
-              </Typography>
-              
+                    </Typography>
+                    
               <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'flex-start' }}>
                  <FormControl sx={{ minWidth: 150 }}>
                     <InputLabel id="provider-select-label">Fournisseur</InputLabel>
@@ -332,23 +332,23 @@ const SettingsPage = () => {
                   sx={{ flexGrow: 1 }}
                   placeholder={newProvider === 'openai' ? 'sk-...' : ''}
                 />
-                <Button 
+                      <Button
                   variant="outlined" 
                   onClick={handleVerifyKey} 
                   disabled={!newApiKey || loadingVerification}
                   sx={{ ml: 1 }}
                 >
                    {loadingVerification ? <CircularProgress size={20}/> : 'Vérifier'}
-                 </Button>
-                <Button 
+                      </Button>
+                        <Button
                   variant="contained" 
                   onClick={handleAddApiKey}
                   disabled={!newApiKey}
                   sx={{ ml: 1 }}
                 >
                   Ajouter / Mettre à jour
-                </Button>
-              </Box>
+                        </Button>
+                    </Box>
               
               {/* Affichage du résultat de la vérification */}
               {verificationResult && (
@@ -463,14 +463,14 @@ const SettingsPage = () => {
                    error={!!passwordError}
                    helperText={passwordError}
                  />
-                 <Button 
-                   variant="contained" 
+                      <Button
+                        variant="contained"
                    onClick={handleChangePassword}
                    sx={{ mt: 2 }}
                    disabled={!currentPassword || !newPassword || !confirmPassword || changingPassword}
                  >
                    {changingPassword ? <CircularProgress size={24} /> : 'Changer le mot de passe'}
-                 </Button>
+                      </Button>
               </Box>
                {/* Section Email (Lecture seule pour l'instant) */}
               {/* <Box sx={{ mt: 4 }}>
@@ -490,18 +490,18 @@ const SettingsPage = () => {
                 <Typography variant="subtitle1" color="error" gutterBottom>
                   Zone Dangereuse
                 </Typography>
-                <Button 
+                        <Button
                   variant="contained" 
-                  color="error"
+                          color="error"
                   onClick={() => setDeleteAccountConfirmOpen(true)}
                   disabled={deletingAccount}
-                >
+                        >
                    {deletingAccount ? <CircularProgress size={24} color="inherit" /> : 'Supprimer mon compte'}
-                </Button>
+                        </Button>
                 <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
                   Attention : Cette action est irréversible et supprimera définitivement votre compte et toutes les données associées (projets, contenus, datasets, fine-tunings).
                 </Typography>
-              </Box>
+                    </Box>
             </Paper>
           )}
         </Box>
@@ -567,7 +567,7 @@ const SettingsPage = () => {
             </DialogActions>
         </Dialog>
 
-      </Container>
+    </Container>
     </PageTransition>
   );
 };
