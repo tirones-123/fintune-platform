@@ -28,7 +28,7 @@ import {
   DialogActions,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -38,10 +38,10 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import CountUp from 'react-countup';
-import { projectService, contentService, datasetService, fineTuningService, characterService } from '../../services/apiService';
-import CharacterCounter from '../../components/dashboard/CharacterCounter';
-import QualityAssessment from '../../components/dashboard/QualityAssessment';
-import PageTransition from '../../components/common/PageTransition';
+import { projectService, contentService, datasetService, fineTuningService, characterService } from '../services/apiService';
+import CharacterCounter from '../components/dashboard/CharacterCounter';
+import QualityAssessment from '../components/dashboard/QualityAssessment';
+import PageTransition from '../components/common/PageTransition';
 
 // Animation variants
 const containerVariants = {
