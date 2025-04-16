@@ -15,6 +15,7 @@ from app.models.project import Project
 from app.models.content import Content
 from app.models.dataset import Dataset, DatasetContent
 from app.models.fine_tuning import FineTuning
+from app.services.character_service import CharacterService
 from app.api.endpoints.fine_tuning_jobs import FineTuningJobConfig
 from app.tasks.content_processing import transcribe_youtube_video
 from celery_app import celery_app
@@ -208,59 +209,47 @@ async def create_onboarding_session(
         logger.info(f"Facturation de {billable_characters} caractères à ${amount_in_cents/100}")
         
         # Juste après le calcul de amount_in_cents
-        if amount_in_cents < 60:  # Si moins de 60 cents USD
-            logger.info(f"Montant trop faible pour Stripe (${amount_in_cents/100}), traitement gratuit")
-            # Utiliser le même code que pour les caractères gratuits
-            # Ajouter les caractères gratuitement
-            db_session = next(get_db())
-            try:
-                # Initialiser le service de caractères
-                character_service = CharacterService()
+        if amount_in_cents < 60:
+            # Si le montant est trop faible, traiter comme un onboard gratuit pour les tests ou promotions futures
+            logger.info(f"Montant trop faible ({amount_in_cents} centimes) pour l'utilisateur {current_user.id}, traitement comme gratuit.")
+            # Initialisation du service de caractères dans ce bloc aussi
+            character_service = CharacterService()
+            character_service.add_free_characters(current_user.id)
+            logger.info(f"Crédits gratuits ajoutés pour l'utilisateur {current_user.id}")
+            
+            # Si des transcriptions sont en attente, démarrer le traitement
+            if pending_transcriptions:
+                logger.info(f"Traitement de {len(pending_transcriptions)} transcriptions en attente")
                 
-                # Ajouter les caractères
-                success = character_service.add_character_credits(
-                    db=db_session,
-                    user_id=current_user.id,
-                    character_count=character_count,
-                    payment_id=None  # Pas de paiement associé
-                )
-                
-                if success and pending_transcriptions:
-                    logger.info(f"Traitement de {len(pending_transcriptions)} transcriptions en attente")
+                # Traiter chaque transcription
+                for content_id in pending_transcriptions:
+                    # Vérifier si content_id est un entier ou un dictionnaire
+                    if isinstance(content_id, dict) and "id" in content_id:
+                        content_id = content_id["id"]
                     
-                    # Traiter chaque transcription
-                    for content_id in pending_transcriptions:
-                        # Vérifier si content_id est un entier ou un dictionnaire
-                        if isinstance(content_id, dict) and "id" in content_id:
-                            content_id = content_id["id"]
+                    if content_id:
+                        # Récupérer le contenu
+                        from app.models.content import Content
+                        content = db_session.query(Content).filter(Content.id == content_id).first()
                         
-                        if content_id:
-                            # Récupérer le contenu
-                            from app.models.content import Content
-                            content = db_session.query(Content).filter(Content.id == content_id).first()
+                        if content and content.type == 'youtube' and content.url:
+                            # Mettre à jour le statut
+                            content.status = 'processing'
+                            db_session.commit()
                             
-                            if content and content.type == 'youtube' and content.url:
-                                # Mettre à jour le statut
-                                content.status = 'processing'
+                            # Lancer la tâche de transcription
+                            try:
+                                from celery_app import celery_app
+                                from app.tasks.content_processing import transcribe_youtube_video
+                                
+                                # Lancer la tâche avec content_id
+                                task = transcribe_youtube_video.delay(content_id)
+                                content.task_id = task.id
                                 db_session.commit()
                                 
-                                # Lancer la tâche de transcription
-                                try:
-                                    from celery_app import celery_app
-                                    from app.tasks.content_processing import transcribe_youtube_video
-                                    
-                                    # Lancer la tâche avec content_id
-                                    task = transcribe_youtube_video.delay(content_id)
-                                    content.task_id = task.id
-                                    db_session.commit()
-                                    
-                                    logger.info(f"Tâche de transcription lancée pour le contenu {content_id}, ID de tâche: {task.id}")
-                                except Exception as task_error:
-                                    logger.error(f"Erreur lors du lancement de la transcription: {str(task_error)}")
-                
-            except Exception as e:
-                logger.error(f"Erreur dans le traitement gratuit pour montant trop faible: {str(e)}")
-                db_session.rollback()
+                                logger.info(f"Tâche de transcription lancée pour le contenu {content_id}, ID de tâche: {task.id}")
+                            except Exception as task_error:
+                                logger.error(f"Erreur lors du lancement de la transcription: {str(task_error)}")
             
             # Renvoyer une réponse compatible avec le frontend, incluant le signal
             return {
