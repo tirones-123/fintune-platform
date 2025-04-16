@@ -42,6 +42,11 @@ import { projectService, contentService, datasetService, fineTuningService, char
 import CharacterCounter from '../components/dashboard/CharacterCounter';
 import QualityAssessment from '../components/dashboard/QualityAssessment';
 import PageTransition from '../components/common/PageTransition';
+import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
+import FolderIcon from '@mui/icons-material/Folder';
+import DescriptionIcon from '@mui/icons-material/Description';
+import BuildIcon from '@mui/icons-material/Build';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 // Animation variants
 const containerVariants = {
