@@ -260,6 +260,7 @@ def process_youtube_content(content_id: int):
         
         # Extraire la transcription et les métadonnées YouTube
         youtube_url = content.url
+        # Utiliser la fonction corrigée qui retourne le texte et la source
         transcript, metadata = content_processor.process_youtube_content(youtube_url)
         
         if transcript is None:
@@ -270,6 +271,10 @@ def process_youtube_content(content_id: int):
             db.commit()
             return {"status": "error", "message": error_msg}
         
+        # --- CORRECTION : Sauvegarder le texte extrait ici --- 
+        content.content_text = transcript
+        # --- FIN CORRECTION ---
+        
         # Compter les caractères
         character_count = len(transcript)
         logger.info(f"YouTube content {content_id} has {character_count} characters")
@@ -277,24 +282,19 @@ def process_youtube_content(content_id: int):
         # Mettre à jour les métadonnées
         if not content.content_metadata:
             content.content_metadata = {}
-        
-        # Ajouter le comptage de caractères aux métadonnées
         content.content_metadata["character_count"] = character_count
-        
-        # Ajouter les métadonnées de la vidéo
         if metadata:
-            # Fusionner les métadonnées avec les métadonnées existantes
             for key, value in metadata.items():
                 content.content_metadata[key] = value
-                
-            # Log des informations de durée
             if "duration_seconds" in metadata:
                 duration_min = metadata["duration_seconds"] / 60
                 estimated_chars = round(duration_min * 900)
                 logger.info(f"YouTube video duration: {duration_min:.1f} min, estimated chars at 900/min: {estimated_chars} vs actual: {character_count}")
-        
+
         # Update content status to completed
         content.status = "completed"
+        # Ajouter l'objet à la session avant commit
+        db.add(content)
         db.commit()
         
         logger.info(f"YouTube content {content_id} processed successfully")
@@ -449,33 +449,40 @@ def transcribe_youtube_video(self, content_id: int):
 
         # Enregistrer la transcription si obtenue
         if transcript_text:
-            content.content_text = transcript_text
+            # Sauvegarder le texte extrait
+            content.content_text = transcript_text 
+            # Mettre à jour le statut et la date
             content.status = "completed"
             content.processed_at = datetime.utcnow()
             
-            # Compter les caractères
+            # Compter et stocker les caractères
             character_count = len(transcript_text)
-            content.character_count = character_count
+            # Décommenter si vous avez un champ direct content.character_count
+            # content.character_count = character_count 
             
-            # Mettre à jour les métadonnées (la source est définie dans le bloc try/except)
+            # Mettre à jour les métadonnées
             if not content.content_metadata:
                 content.content_metadata = {}
             content.content_metadata["character_count"] = character_count
             content.content_metadata["is_exact_count"] = True 
             
+            # Ajouter à la session et commiter
+            db.add(content) 
             db.commit()
             logger.info(f"Transcription terminée et enregistrée pour le contenu {content_id} ({character_count} caractères)")
+            # Retourner le résultat
             return {
                 "status": "success", 
                 "content_id": content_id, 
                 "character_count": character_count,
-                "transcript": transcript_text,
+                "transcript": transcript_text, # Optionnel : renvoyer le texte
                 "source": content.content_metadata.get("transcription_source", "unknown")
             }
         else:
             # Ce bloc est atteint si une erreur non récupérable s'est produite
             # ou si la tâche a dépassé le nombre max de tentatives
-            if content.status != "error": # Éviter de réécrire si déjà marqué comme erreur
+            # ... (code existant pour gérer l'erreur de transcription vide) ...
+            if content.status != "error": 
                 content.status = "error"
                 content.error_message = "Transcription vide après tentative RapidAPI"
                 db.commit()
