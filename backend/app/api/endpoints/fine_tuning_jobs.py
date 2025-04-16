@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import logging
+import json
+from datetime import datetime
 
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -100,7 +102,7 @@ async def create_fine_tuning_job(
     # 3. Gérer le paiement / traitement gratuit
     cost_result = await character_service.handle_fine_tuning_cost(
         db=db,
-        user_id=current_user.id,
+        user=current_user,
         character_count=total_characters
     )
 
@@ -130,9 +132,38 @@ async def create_fine_tuning_job(
             raise HTTPException(status_code=500, detail="Erreur lors de la création de la session de paiement.")
     
     else:
-        logger.info("Traitement gratuit (crédits suffisants ou montant trop faible).")
-        # 4. Créer Dataset & FineTuning (logique similaire à l'onboarding mais ciblée)
+        # Vérifier la raison du traitement gratuit
+        if cost_result["reason"] == "first_free_quota" or cost_result["reason"] == "already_used_quota" or cost_result["reason"] == "low_amount":
+             logger.info(f"Traitement gratuit (Raison: {cost_result['reason']}). Lancement direct des tâches.")
+        else:
+             # Sécurité: si la raison est inconnue mais needs_payment est False
+             logger.warning(f"Traitement gratuit pour une raison inconnue: {cost_result.get('reason')}. Lancement des tâches par précaution.")
+
+        # 4. Créer Dataset & FineTuning
         try:
+            # Vérifier s'il faut appliquer les crédits gratuits (uniquement la première fois)
+            if cost_result.get("apply_free_credits", False):
+                 logger.info(f"Application des crédits gratuits pour l'utilisateur {current_user.id}")
+                 # Utiliser add_character_credits pour enregistrer la transaction gratuite
+                 credit_success = character_service.add_character_credits(
+                     db=db, 
+                     user_id=current_user.id, 
+                     character_count=total_characters, # Le montant total est "gratuit"
+                     payment_id=None, # Pas de paiement
+                     description=f"Utilisation du quota gratuit ({total_characters} caractères) pour Fine-Tuning Job"
+                 )
+                 if credit_success:
+                     current_user.has_received_free_credits = True
+                     db.add(current_user)
+                     db.commit()
+                     db.refresh(current_user)
+                     logger.info(f"Utilisateur {current_user.id} marqué comme ayant reçu les crédits gratuits.")
+                 else:
+                     # Logique d'erreur si l'ajout de crédits échoue
+                     logger.error(f"Échec de l'application des crédits gratuits pour l'utilisateur {current_user.id}")
+                     raise HTTPException(status_code=500, detail="Erreur interne lors de l'application des crédits gratuits.")
+            
+            # La création du Dataset et FineTuning se fait ensuite
             # Générer un nom de dataset par défaut si non fourni
             dataset_name = request.config.dataset_name or f"Dataset_{project.name.replace(' ','_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
             
@@ -143,7 +174,8 @@ async def create_fine_tuning_job(
                 description=f"Dataset pour fine-tuning job lancé le {datetime.now().strftime('%Y-%m-%d')}",
                 model=request.config.model,
                 status="pending",
-                system_content=request.config.system_prompt
+                system_content=request.config.system_prompt,
+                character_count=total_characters # Stocker le compte ici aussi
             )
             db.add(new_dataset)
             db.commit()
@@ -165,7 +197,7 @@ async def create_fine_tuning_job(
                 description=f"Job lancé via dashboard pour projet {project.id}",
                 model=request.config.model,
                 provider=request.config.provider,
-                status="pending", # La tâche generate_dataset le mettra à queued
+                status="pending", 
                 hyperparameters=request.config.hyperparameters
             )
             db.add(new_fine_tuning)
@@ -180,12 +212,11 @@ async def create_fine_tuning_job(
                 for content_id in pending_transcriptions:
                     try:
                         from app.tasks.content_processing import transcribe_youtube_video
-                        task = transcribe_youtube_video.delay(content_id)
-                        # Mettre à jour le task_id sur l'objet Content
+                        task = transcribe_youtube_video.delay(content_id=content_id)
                         content_obj = db.query(Content).get(content_id)
                         if content_obj: 
                              content_obj.task_id = task.id
-                             content_obj.status = 'processing' # S'assurer que le statut est processing
+                             content_obj.status = 'processing' 
                              db.commit()
                     except Exception as e:
                         logger.error(f"Erreur lancement transcription pour content {content_id}: {e}")
@@ -204,4 +235,6 @@ async def create_fine_tuning_job(
 
         except Exception as e:
             logger.error(f"Erreur lors de la création DB ou lancement tâches: {e}", exc_info=True)
+            # Rollback potentiel si l'ajout des crédits a réussi mais la suite échoue?
+            # C'est complexe, pour l'instant on lève juste l'erreur.
             raise HTTPException(status_code=500, detail="Erreur interne lors du lancement du processus.")

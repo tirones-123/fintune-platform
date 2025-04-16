@@ -15,6 +15,7 @@ from app.models.project import Project
 from app.models.content import Content
 from app.models.dataset import Dataset, DatasetContent
 from app.models.fine_tuning import FineTuning
+from app.models.api_key import ApiKey
 from app.services.character_service import CharacterService
 from app.api.endpoints.fine_tuning_jobs import FineTuningJobConfig
 from app.tasks.content_processing import transcribe_youtube_video
@@ -51,100 +52,84 @@ async def create_onboarding_session(
         
         logger.info(f"Demande de session pour l'onboarding avec {character_count} caractères et {len(pending_transcriptions)} transcriptions en attente")
         
-        # Vérifier si on est dans la limite gratuite
-        if character_count <= 10000:  # Les 10 000 premiers caractères sont gratuits
-            logger.info(f"Nombre de caractères ({character_count}) dans la limite gratuite")
-            
+        # Vérifier si l'utilisateur est éligible aux crédits gratuits
+        eligible_for_free_credits = (character_count <= 10000 and not current_user.has_received_free_credits)
+        already_received_free_credits = (character_count <= 10000 and current_user.has_received_free_credits)
+
+        # Cas 1: Éligible aux crédits gratuits (première fois <= 10k)
+        if eligible_for_free_credits:
+            logger.info(f"Utilisateur {current_user.id} éligible aux crédits gratuits ({character_count} caractères).")
             db_session = next(get_db())
             try:
-                # Initialiser le service de caractères
                 character_service = CharacterService()
-                
-                # Ajouter les caractères
                 success = character_service.add_character_credits(
                     db=db_session,
                     user_id=current_user.id,
                     character_count=character_count,
-                    payment_id=None  # Pas de paiement associé
+                    payment_id=None
                 )
                 
                 if success:
-                    logger.info(f"Ajout gratuit de {character_count} caractères réussi")
-                    
-                    # Si des transcriptions sont en attente, démarrer le traitement
-                    if pending_transcriptions:
-                        logger.info(f"Traitement de {len(pending_transcriptions)} transcriptions en attente")
-                        # Utiliser le Content importé
-                        for content_id_data in pending_transcriptions:
-                            content_id = None
-                            if isinstance(content_id_data, dict) and "id" in content_id_data:
-                                content_id = content_id_data["id"]
-                            elif isinstance(content_id_data, (int, str)): # Accepter aussi int ou str au cas où
-                                try:
-                                    content_id = int(content_id_data)
-                                except ValueError:
-                                    logger.warning(f"Impossible de convertir content_id '{content_id_data}' en entier.")
+                    logger.info(f"Ajout gratuit de {character_count} caractères réussi pour user {current_user.id}")
+                    # Marquer que l'utilisateur a reçu les crédits
+                    current_user.has_received_free_credits = True
+                    db_session.add(current_user) # Ajouter l'utilisateur à la session pour sauvegarder le changement
+                    db_session.commit()
+                    db_session.refresh(current_user)
 
-                            if content_id:
-                                # Récupérer le contenu
-                                content = db_session.query(Content).filter(Content.id == content_id).first()
-                                
-                                if content and content.type == 'youtube' and content.url:
-                                    content.status = 'processing'
-                                    db_session.commit()
-                                    try:
-                                        task = transcribe_youtube_video.delay(content_id=content_id)
-                                        content.task_id = task.id
-                                        db_session.commit()
-                                        logger.info(f"Tâche de transcription lancée pour contenu {content_id}, tâche ID: {task.id}")
-                                    except Exception as task_error:
-                                        logger.error(f"Erreur lancement transcription pour {content_id}: {task_error}")
-                                else:
-                                    logger.warning(f"Contenu YouTube {content_id} non trouvé ou invalide.")
-                            else:
-                                logger.warning(f"ID de contenu invalide reçu dans pending_transcriptions: {content_id_data}")
-                    
-                    # --- Logique de création Dataset/FineTuning --- 
-                    # Supprimer les imports locaux redondants ici
-                    # from app.models.project import Project
-                    # from app.models.content import Content <-- Suppression
-                    # from app.models.dataset import Dataset, DatasetContent
-                    # from app.models.fine_tuning import FineTuning
-                    # from app.models.api_key import ApiKey
-                    
-                    # Extraire les données supplémentaires de l'onboarding si disponibles
-                    # Utiliser les imports globaux (déjà faits en haut du fichier)
-                    dataset_name = request.dataset_name if hasattr(request, 'dataset_name') else "Dataset d'onboarding"
-                    system_content = request.system_content if hasattr(request, 'system_content') else "You are a helpful assistant."
-                    provider = request.provider if hasattr(request, 'provider') else "openai"
-                    model = request.model if hasattr(request, 'model') else "gpt-3.5-turbo"
-                    
-                    # Trouver le projet par défaut de l'utilisateur
+                    # Lancer les transcriptions et la création du dataset/FT (logique existante)
+                    if pending_transcriptions:
+                         logger.info(f"Traitement de {len(pending_transcriptions)} transcriptions en attente")
+                         for content_id_data in pending_transcriptions:
+                             content_id = None
+                             if isinstance(content_id_data, dict) and "id" in content_id_data:
+                                 content_id = content_id_data["id"]
+                             elif isinstance(content_id_data, (int, str)):
+                                 try:
+                                     item_id = int(content_id_data)
+                                 except ValueError:
+                                     pass
+                             if content_id:
+                                 content = db_session.query(Content).filter(Content.id == content_id).first()
+                                 if content and content.type == 'youtube' and content.url:
+                                     content.status = 'processing'
+                                     db_session.commit()
+                                     try:
+                                         task = transcribe_youtube_video.delay(content_id=content_id)
+                                         content.task_id = task.id
+                                         db_session.commit()
+                                         logger.info(f"Tâche de transcription lancée pour contenu {content_id}, tâche ID: {task.id}")
+                                     except Exception as task_error:
+                                         logger.error(f"Erreur lancement transcription pour {content_id}: {task_error}")
+                                 else:
+                                      logger.warning(f"Contenu YouTube {content_id} non trouvé ou invalide.")
+                             else:
+                                 logger.warning(f"ID de contenu invalide reçu dans pending_transcriptions: {content_id_data}")
+
+                    # Création Dataset/FineTuning (logique existante)
                     project = db_session.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
-                    
                     if project:
-                        # Récupérer tous les contenus de l'utilisateur pour ce projet (utilisant Content importé globalement)
                         contents = db_session.query(Content).filter(
                             Content.project_id == project.id,
                             Content.status.in_(["completed", "processing"]) # Statuts pertinents
                         ).all()
-                        
-                        # Filtrer pour n'inclure que les contenus *réellement* traités ou en cours (liés à cet onboarding)
-                        # Ceci est une simplification, idéalement on lierait le contenu à la session d'onboarding
                         content_ids_in_this_onboarding = []
                         for item in pending_transcriptions:
                              item_id = None
                              if isinstance(item, dict) and "id" in item:
                                  item_id = item["id"]
                              elif isinstance(item, (int, str)): 
-                                 try: item_id = int(item)
+                                 try:
+                                     item_id = int(item)
                                  except ValueError: pass
                              if item_id: content_ids_in_this_onboarding.append(item_id)
-
-                        relevant_contents = [c for c in contents if c.id in content_ids_in_this_onboarding or c.type != 'youtube'] # Inclure non-youtube aussi
-
+                        relevant_contents = [c for c in contents if c.id in content_ids_in_this_onboarding or c.type != 'youtube']
+                        
                         if relevant_contents:
-                            # Créer un nouveau dataset (utilisant Dataset importé globalement)
+                            dataset_name = request.dataset_name if hasattr(request, 'dataset_name') else "Dataset d'onboarding"
+                            system_content = request.system_content if hasattr(request, 'system_content') else "You are a helpful assistant."
+                            provider = request.provider if hasattr(request, 'provider') else "openai"
+                            model = request.model if hasattr(request, 'model') else "gpt-3.5-turbo"
                             new_dataset = Dataset(
                                 name=dataset_name,
                                 project_id=project.id,
@@ -156,36 +141,27 @@ async def create_onboarding_session(
                             db_session.add(new_dataset)
                             db_session.commit()
                             db_session.refresh(new_dataset)
-                            
-                            # Associer les contenus pertinents au dataset (utilisant DatasetContent importé globalement)
                             for content_item in relevant_contents:
-                                dataset_content = DatasetContent(
-                                    dataset_id=new_dataset.id,
-                                    content_id=content_item.id
-                                )
-                                db_session.add(dataset_content)
-                            
+                                 dataset_content = DatasetContent(
+                                     dataset_id=new_dataset.id,
+                                     content_id=content_item.id
+                                 )
+                                 db_session.add(dataset_content)
                             db_session.commit()
-                            
-                            # Lancer la tâche de génération du dataset
+
                             try:
-                                from celery_app import celery_app # Import local OK ici car spécifique à la tâche
+                                from celery_app import celery_app
                                 logger.info(f"Lancement de la tâche de génération pour le dataset {new_dataset.id}")
-                                
                                 celery_app.send_task(
                                     "generate_dataset", 
                                     args=[new_dataset.id], 
                                     queue='dataset_generation'
                                 )
-                                
-                                # Vérifier si l'utilisateur a une clé API (utilisant ApiKey importé globalement)
                                 api_key = db_session.query(ApiKey).filter(
                                     ApiKey.user_id == current_user.id,
                                     ApiKey.provider == provider
                                 ).first()
-                                
                                 if api_key:
-                                    # Créer le fine-tuning en attente (utilisant FineTuning importé globalement)
                                     fine_tuning = FineTuning(
                                         dataset_id=new_dataset.id,
                                         name=f"Fine-tuning de {dataset_name}",
@@ -197,35 +173,29 @@ async def create_onboarding_session(
                                     )
                                     db_session.add(fine_tuning)
                                     db_session.commit()
-                                    
                                     logger.info(f"Fine-tuning {fine_tuning.id} créé en attente pour le dataset {new_dataset.id}")
                                 else:
                                     logger.warning(f"L'utilisateur {current_user.id} n'a pas de clé API pour le provider {provider}, fine-tuning non créé.")
-                            
                             except Exception as task_error:
                                 logger.error(f"Erreur lors du lancement de la tâche de génération ou création fine-tuning: {str(task_error)}")
                         else:
                              logger.warning(f"Aucun contenu pertinent trouvé pour créer le dataset pour le projet {project.id} après onboarding gratuit.")
                     else:
-                        logger.warning(f"Aucun projet trouvé pour l'utilisateur {current_user.id} pour créer le dataset/fine-tuning post-onboarding.")
-                    # --- Fin Logique création ---                    
-                    
-                    # Retourner l'URL avec le signal
+                         logger.warning(f"Aucun projet trouvé pour l'utilisateur {current_user.id} pour créer le dataset/fine-tuning post-onboarding.")
+
                     return {
                         "status": "success",
                         "free_processing": True,
                         "redirect_url": f"{settings.FRONTEND_URL}/dashboard?onboarding_completed=true"
                     }
                 else:
-                    logger.error(f"Échec de l'ajout gratuit de {character_count} caractères")
-                    # Ne pas continuer vers la logique payante si l'ajout gratuit échoue
+                    logger.error(f"Échec de l'ajout gratuit de {character_count} caractères pour user {current_user.id}")
                     raise HTTPException(
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         detail="Erreur lors de l'attribution des crédits gratuits."
                     )
             except Exception as e:
-                # Log l'erreur spécifique qui a causé l'échec
-                logger.error(f"Erreur lors de l'ajout gratuit de caractères ou lancement transcription: {str(e)}", exc_info=True)
+                logger.error(f"Erreur lors de l'ajout gratuit de caractères ou lancement tâches: {str(e)}", exc_info=True)
                 db_session.rollback()
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -234,72 +204,196 @@ async def create_onboarding_session(
             finally:
                 db_session.close()
         
-        # Si on arrive ici, c'est que character_count > 10000
-        billable_characters = max(0, character_count - 10000)
-        amount_in_cents = max(60, round(billable_characters * 0.000365 * 100)) # Minimum Stripe 60 cents maintenant
-        
-        logger.info(f"Facturation de {billable_characters} caractères pour ${amount_in_cents/100:.2f}")
-        
-        # Métadonnées pour la session Stripe
-        metadata = {
-            "payment_type": "onboarding_characters", 
-            "user_id": str(current_user.id),
-            "character_count": str(character_count),
-            "free_characters": "10000",
-            "billable_characters": str(billable_characters)
-        }
-        
-        # Ajouter les IDs des transcriptions en attente
-        if pending_transcriptions:
-            transcription_ids = []
-            for item in pending_transcriptions:
-                item_id = None
-                if isinstance(item, dict) and "id" in item:
-                    item_id = item["id"]
-                elif isinstance(item, (int, str)):
-                    try:
-                        item_id = int(item)
-                    except ValueError:
-                        pass
-                if item_id:
-                    transcription_ids.append(str(item_id))
+        # Cas 2: <= 10k mais crédits gratuits déjà reçus
+        elif already_received_free_credits:
+            logger.warning(f"Utilisateur {current_user.id} a déjà reçu les crédits gratuits. Traitement standard en cours ({character_count} caractères).")
+            # Pas d'ajout de crédits, mais on lance quand même les tâches
+            db_session = next(get_db())
+            try:
+                if pending_transcriptions:
+                    logger.info(f"Traitement de {len(pending_transcriptions)} transcriptions en attente (crédits déjà reçus)")
+                    for content_id_data in pending_transcriptions:
+                        content_id = None
+                        if isinstance(content_id_data, dict) and "id" in content_id_data:
+                             content_id = content_id_data["id"]
+                        elif isinstance(content_id_data, (int, str)):
+                             try:
+                                 item_id = int(content_id_data)
+                             except ValueError:
+                                 pass
+                        if content_id:
+                             content = db_session.query(Content).filter(Content.id == content_id).first()
+                             if content and content.type == 'youtube' and content.url:
+                                 content.status = 'processing'
+                                 db_session.commit()
+                                 try:
+                                     task = transcribe_youtube_video.delay(content_id=content_id)
+                                     content.task_id = task.id
+                                     db_session.commit()
+                                     logger.info(f"Tâche de transcription lancée pour contenu {content_id}, tâche ID: {task.id}")
+                                 except Exception as task_error:
+                                     logger.error(f"Erreur lancement transcription pour {content_id}: {task_error}")
+                             else:
+                                  logger.warning(f"Contenu YouTube {content_id} non trouvé ou invalide.")
+                        else:
+                             logger.warning(f"ID de contenu invalide reçu dans pending_transcriptions: {content_id_data}")
+
+                project = db_session.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
+                if project:
+                    contents = db_session.query(Content).filter(
+                        Content.project_id == project.id,
+                        Content.status.in_(["completed", "processing"]) # Statuts pertinents
+                    ).all()
+                    content_ids_in_this_onboarding = []
+                    for item in pending_transcriptions:
+                         item_id = None
+                         if isinstance(item, dict) and "id" in item:
+                             item_id = item["id"]
+                         elif isinstance(item, (int, str)): 
+                             try:
+                                 item_id = int(item)
+                             except ValueError: pass
+                         if item_id: content_ids_in_this_onboarding.append(item_id)
+                    relevant_contents = [c for c in contents if c.id in content_ids_in_this_onboarding or c.type != 'youtube']
+
+                    if relevant_contents:
+                        dataset_name = request.dataset_name if hasattr(request, 'dataset_name') else "Dataset d'onboarding"
+                        system_content = request.system_content if hasattr(request, 'system_content') else "You are a helpful assistant."
+                        provider = request.provider if hasattr(request, 'provider') else "openai"
+                        model = request.model if hasattr(request, 'model') else "gpt-3.5-turbo"
+                        new_dataset = Dataset(
+                            name=dataset_name,
+                            project_id=project.id,
+                            description="Dataset généré lors de l'onboarding (crédits gratuits déjà utilisés)", # Description ajustée
+                            model=model,
+                            status="pending",
+                            system_content=system_content
+                        )
+                        db_session.add(new_dataset)
+                        db_session.commit()
+                        db_session.refresh(new_dataset)
+                        for content_item in relevant_contents:
+                             dataset_content = DatasetContent(
+                                 dataset_id=new_dataset.id,
+                                 content_id=content_item.id
+                             )
+                             db_session.add(dataset_content)
+                        db_session.commit()
+
+                        try:
+                            from celery_app import celery_app
+                            logger.info(f"Lancement de la tâche de génération pour le dataset {new_dataset.id}")
+                            celery_app.send_task(
+                                "generate_dataset", 
+                                args=[new_dataset.id], 
+                                queue='dataset_generation'
+                            )
+                            api_key = db_session.query(ApiKey).filter(
+                                ApiKey.user_id == current_user.id,
+                                ApiKey.provider == provider
+                            ).first()
+                            if api_key:
+                                fine_tuning = FineTuning(
+                                    dataset_id=new_dataset.id,
+                                    name=f"Fine-tuning de {dataset_name}",
+                                    description="Fine-tuning d'onboarding (crédits gratuits déjà utilisés)", # Description ajustée
+                                    model=model,
+                                    provider=provider,
+                                    status="pending",
+                                    hyperparameters={"n_epochs": 3}
+                                )
+                                db_session.add(fine_tuning)
+                                db_session.commit()
+                                logger.info(f"Fine-tuning {fine_tuning.id} créé en attente pour le dataset {new_dataset.id}")
+                            else:
+                                logger.warning(f"L'utilisateur {current_user.id} n'a pas de clé API pour le provider {provider}, fine-tuning non créé.")
+                        except Exception as task_error:
+                            logger.error(f"Erreur lors du lancement de la tâche de génération ou création fine-tuning: {str(task_error)}")
+                    else:
+                         logger.warning(f"Aucun contenu pertinent trouvé pour créer le dataset pour le projet {project.id} (crédits déjà reçus).")
+                else:
+                    logger.warning(f"Aucun projet trouvé pour l'utilisateur {current_user.id} (crédits déjà reçus).")
+                
+                # Retourner succès, mais sans indiquer free_processing
+                return {
+                    "status": "success",
+                    "free_processing": False, # Indiquer que ce n'est pas le traitement gratuit initial
+                    "redirect_url": f"{settings.FRONTEND_URL}/dashboard?onboarding_completed=true"
+                }
+
+            except Exception as e:
+                logger.error(f"Erreur lors du traitement standard (crédits déjà reçus): {str(e)}", exc_info=True)
+                db_session.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Erreur interne lors du traitement standard: {str(e)}"
+                )
+            finally:
+                db_session.close()
+
+        # Cas 3: > 10k caractères (payant)
+        else: # character_count > 10000
+            logger.info(f"Nombre de caractères ({character_count}) supérieur au quota gratuit. Redirection vers Stripe.")
+            billable_characters = max(0, character_count - 10000)
+            amount_in_cents = max(60, round(billable_characters * 0.000365 * 100))
+            logger.info(f"Facturation de {billable_characters} caractères pour ${amount_in_cents/100:.2f}")
+
+            # Logique Stripe (existante et correcte)
+            metadata = {
+                "payment_type": "onboarding_characters", 
+                "user_id": str(current_user.id),
+                "character_count": str(character_count),
+                "free_characters": "10000",
+                "billable_characters": str(billable_characters)
+            }
+            if pending_transcriptions:
+                transcription_ids = []
+                for item in pending_transcriptions:
+                    item_id = None
+                    if isinstance(item, dict) and "id" in item:
+                        item_id = item["id"]
+                    elif isinstance(item, (int, str)):
+                        try:
+                           item_id = int(item)
+                        except ValueError:
+                            pass
+                    if item_id:
+                        transcription_ids.append(str(item_id))
+                if transcription_ids:
+                    metadata["pending_transcription_ids"] = ",".join(transcription_ids)
+                    metadata["has_pending_transcriptions"] = "true"
+                    logger.info(f"Stockage des IDs {transcription_ids} pour traitement webhook")
             
-            if transcription_ids:
-                metadata["pending_transcription_ids"] = ",".join(transcription_ids)
-                metadata["has_pending_transcriptions"] = "true"
-                logger.info(f"Stockage des IDs {transcription_ids} pour traitement webhook")
-        
-        # Créer une session de paiement Stripe
-        try:
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=["card"],
-                line_items=[
-                    {
-                        "price_data": {
-                            "currency": "usd",
-                            "product_data": {
-                                "name": f"FinTune Onboarding - {character_count} caractères",
-                                "description": f"{billable_characters} caractères facturables (10k gratuits)"
+            try:
+                checkout_session = stripe.checkout.Session.create(
+                    payment_method_types=["card"],
+                    line_items=[
+                        {
+                            "price_data": {
+                                "currency": "usd",
+                                "product_data": {
+                                    "name": f"FinTune Onboarding - {character_count} caractères",
+                                    "description": f"{billable_characters} caractères facturables (10k gratuits)"
+                                },
+                                "unit_amount": amount_in_cents, 
                             },
-                            "unit_amount": amount_in_cents, 
+                            "quantity": 1,
                         },
-                        "quantity": 1,
-                    },
-                ],
-                mode="payment",
-                success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
-                cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true", # Retour à l'onboarding si annulé
-                client_reference_id=str(current_user.id),
-                metadata=metadata
-            )
-            return {"checkout_url": checkout_session.url}
-        except stripe.error.StripeError as e:
-            logger.error(f"Erreur Stripe lors de la création de la session: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Erreur de communication avec Stripe: {str(e)}"
-            )
-    
+                    ],
+                    mode="payment",
+                    success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
+                    cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true", 
+                    client_reference_id=str(current_user.id),
+                    metadata=metadata
+                )
+                return {"checkout_url": checkout_session.url}
+            except stripe.error.StripeError as e:
+                logger.error(f"Erreur Stripe lors de la création de la session: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Erreur de communication avec Stripe: {str(e)}"
+                )
+
     except Exception as e:
         logger.error(f"Erreur inattendue dans create_onboarding_session: {str(e)}", exc_info=True)
         raise HTTPException(

@@ -13,6 +13,7 @@ import {
   Divider,
   Badge,
   useTheme,
+  Stack,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -140,11 +141,15 @@ const Header = ({ onDrawerToggle }) => {
         {/* Espace vide à gauche */}
         <Box sx={{ flexGrow: 1 }} />
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Theme Toggle */}
-          <ThemeToggle />
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          {/* 
+          <Tooltip title="Changer de thème">
+            <IconButton onClick={toggleTheme} color="inherit">
+              {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Tooltip>
+          */}
 
-          {/* Notifications */}
           <NotificationsPopover
              notifications={notifications}
              totalUnread={totalUnread}
@@ -175,7 +180,7 @@ const Header = ({ onDrawerToggle }) => {
               </Avatar>
             </IconButton>
           </Tooltip>
-        </Box>
+        </Stack>
       </Toolbar>
 
       {/* User Menu */}

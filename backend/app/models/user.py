@@ -14,6 +14,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
     has_completed_onboarding = Column(Boolean, default=False)
+    # Nouveau champ pour suivre l'attribution des crédits gratuits
+    has_received_free_credits = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

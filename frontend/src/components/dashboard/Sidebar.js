@@ -56,10 +56,9 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   const theme = useTheme();
 
   const menuItems = [
-    { name: 'Projets', icon: FolderIcon, path: '/dashboard', description: 'Gérer vos projets' },
-    { name: 'Fine-Tunings', icon: <PsychologyIcon />, path: '/dashboard/fine-tuning', description: 'Gérer les fine-tunings' },
+    { name: 'Projets', icon: <FolderIcon />, path: '/dashboard', description: 'Gérer vos projets' },
     { name: 'Playground', icon: <ScienceOutlinedIcon />, path: '/dashboard/playground', description: 'Accéder au playground' },
-    { name: 'Analyses', icon: AnalyticsIcon, path: '/dashboard/analytics', description: 'Statistiques et métriques' },
+    { name: 'Analyses', icon: <AnalyticsIcon />, path: '/dashboard/analytics', description: 'Statistiques et métriques' },
     {
       name: 'Aide & Documentation',
       icon: <HelpOutlineIcon />,
