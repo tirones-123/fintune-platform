@@ -14,7 +14,10 @@ from app.models.dataset import Dataset, DatasetContent, DatasetPair
 from app.models.fine_tuning import FineTuning
 from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.api_key import ApiKeyResponse, ApiKeyCreate
+from app.services.ai_providers import get_ai_provider
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/me", response_model=UserResponse)
@@ -214,3 +217,54 @@ def delete_current_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur lors de la suppression du compte: {e}"
         ) 
+
+# --- Schémas pour la vérification de clé API ---
+class VerifyApiKeyRequest(BaseModel):
+    provider: str
+    key: str
+
+class VerifyApiKeyResponse(BaseModel):
+    valid: bool
+    message: Optional[str] = None
+    credits: Optional[float] = None # Ajouter si l'API peut retourner les crédits
+
+# --- Nouvel Endpoint pour vérifier une clé API ---
+@router.post("/verify-api-key", response_model=VerifyApiKeyResponse)
+async def verify_api_key_endpoint(
+    request_data: VerifyApiKeyRequest,
+    # Pas besoin de current_user ici, la clé est fournie
+    # current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify if an API key is valid for a given provider.
+    """
+    logger.info(f"Vérification de clé API demandée pour le provider: {request_data.provider}")
+    try:
+        # Obtenir l'instance du provider
+        # Note: La clé est passée directement, pas besoin de la chercher en DB ici
+        provider_instance = get_ai_provider(
+            provider_name=request_data.provider, 
+            api_key=request_data.key
+        )
+        
+        # Appeler la méthode de validation
+        # Nous supposons que validate_key est une méthode synchrone pour l'instant
+        # Si elle devient async, il faudra ajouter `await`
+        is_valid = provider_instance.validate_key()
+        
+        message = "Clé API valide." if is_valid else "Clé API invalide ou erreur de communication."
+        credits = None # TODO: Implémenter la récupération des crédits si possible
+        
+        logger.info(f"Résultat validation pour {request_data.provider}: {is_valid}")
+        
+        return VerifyApiKeyResponse(valid=is_valid, message=message, credits=credits)
+
+    except ValueError as ve:
+        # Provider non supporté
+        logger.warning(f"Tentative de validation pour provider non supporté: {request_data.provider}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+    except Exception as e:
+        # Autres erreurs (ex: erreur réseau lors de la validation)
+        logger.error(f"Erreur lors de la validation de la clé API pour {request_data.provider}: {e}", exc_info=True)
+        return VerifyApiKeyResponse(valid=False, message=f"Erreur interne lors de la validation: {str(e)}", credits=None) 
