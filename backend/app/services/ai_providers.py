@@ -45,7 +45,7 @@ class OpenAIProvider(AIProviderBase):
         """Validate the OpenAI API key."""
         try:
             # Make a low-cost API call to verify the key
-            self.client.models.list(limit=1)
+            self.client.models.list()
             return True
         except Exception as e:
             logger.error(f"Error validating OpenAI API key: {str(e)}")
