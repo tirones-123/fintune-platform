@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 from celery_app import celery_app
 from pydantic import BaseModel
-from app.services.ai_providers import ai_provider_service
+from app.services.ai_providers import get_ai_provider
 from app.models.api_key import ApiKey
 
 from app.core.security import get_current_user
@@ -258,15 +258,20 @@ async def test_fine_tuning(
             detail=f"API key for provider '{fine_tuning.provider}' not found."
         )
 
-    # 3. Appeler le service pour obtenir la complétion
+    # 3. Obtenir le provider et appeler sa méthode get_completion
     try:
-        completion = await ai_provider_service.get_completion(
-            provider=fine_tuning.provider,
-            api_key=api_key_record.key, 
-            model_id=fine_tuning.fine_tuned_model, # Utiliser l'ID du modèle fine-tuné
+        # Obtenir l'instance du provider via la factory
+        provider_instance = get_ai_provider(
+            provider_name=fine_tuning.provider, 
+            api_key=api_key_record.key
+        )
+        
+        # Appeler la méthode sur l'instance obtenue
+        completion = await provider_instance.generate_completion(
+            # Attention : la méthode s'appelle generate_completion, pas get_completion
+            model=fine_tuning.fine_tuned_model, 
             prompt=request_data.prompt,
-            # Ajouter d'autres paramètres si nécessaire (temperature, max_tokens, etc.)
-            # system_prompt=fine_tuning.dataset.system_content # Potentiellement passer le system prompt original
+            # system_prompt=fine_tuning.dataset.system_content # Décommenter si generate_completion l'accepte
         )
         
         if completion is None:

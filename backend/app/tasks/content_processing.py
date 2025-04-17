@@ -290,7 +290,7 @@ def process_youtube_content(content_id: int):
                 duration_min = metadata["duration_seconds"] / 60
                 estimated_chars = round(duration_min * 900)
                 logger.info(f"YouTube video duration: {duration_min:.1f} min, estimated chars at 900/min: {estimated_chars} vs actual: {character_count}")
-
+        
         # Update content status to completed
         content.status = "completed"
         # Ajouter l'objet à la session avant commit

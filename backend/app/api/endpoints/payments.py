@@ -334,7 +334,7 @@ async def create_onboarding_session(
         # Cas 3: > 10k caractères (payant)
         else: # character_count > 10000
             logger.info(f"Nombre de caractères ({character_count}) supérieur au quota gratuit. Redirection vers Stripe.")
-            billable_characters = max(0, character_count - 10000)
+        billable_characters = max(0, character_count - 10000)
             amount_in_cents = max(60, round(billable_characters * 0.000365 * 100))
             logger.info(f"Facturation de {billable_characters} caractères pour ${amount_in_cents/100:.2f}")
 
@@ -354,11 +354,11 @@ async def create_onboarding_session(
                 db_temp.close()
             
             # !!! Enrichir les metadata ici !!!
-            metadata = {
-                "payment_type": "onboarding_characters", 
-                "user_id": str(current_user.id),
-                "character_count": str(character_count),
-                "free_characters": "10000",
+        metadata = {
+            "payment_type": "onboarding_characters", 
+            "user_id": str(current_user.id),
+            "character_count": str(character_count),
+            "free_characters": "10000",
                 "billable_characters": str(billable_characters),
                 # Informations nécessaires pour le webhook:
                 "dataset_name": request.dataset_name, 
@@ -369,7 +369,7 @@ async def create_onboarding_session(
                 "project_id": str(project_id), 
                 "hyperparameters": json.dumps({"n_epochs": 3}) # Ou passer via request
             }
-            if pending_transcriptions:
+        if pending_transcriptions:
                 transcription_ids = []
                 for item in pending_transcriptions:
                     item_id = None
@@ -383,38 +383,38 @@ async def create_onboarding_session(
                     if item_id:
                         transcription_ids.append(str(item_id))
                 if transcription_ids:
-                    metadata["pending_transcription_ids"] = ",".join(transcription_ids)
-                    metadata["has_pending_transcriptions"] = "true"
+            metadata["pending_transcription_ids"] = ",".join(transcription_ids)
+            metadata["has_pending_transcriptions"] = "true"
                     logger.info(f"Stockage des IDs {transcription_ids} pour traitement webhook")
 
             # Créer la session Stripe avec les metadata enrichies
             try:
-                checkout_session = stripe.checkout.Session.create(
-                    payment_method_types=["card"],
-                    line_items=[
-                        {
-                            "price_data": {
-                                "currency": "usd",
-                                "product_data": {
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
                                     "name": f"FinTune Onboarding - {character_count} caractères",
                                     "description": f"{billable_characters} caractères facturables (10k gratuits)"
-                                },
-                                "unit_amount": amount_in_cents, 
-                            },
-                            "quantity": 1,
                         },
-                    ],
-                    mode="payment",
+                                "unit_amount": amount_in_cents, 
+                    },
+                    "quantity": 1,
+                },
+            ],
+            mode="payment",
                     success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
                     cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true", 
-                    client_reference_id=str(current_user.id),
-                    metadata=metadata
-                )
-                return {"checkout_url": checkout_session.url}
+            client_reference_id=str(current_user.id),
+            metadata=metadata
+        )
+        return {"checkout_url": checkout_session.url}
             except stripe.error.StripeError as e:
                 logger.error(f"Erreur Stripe lors de la création de la session: {str(e)}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Erreur de communication avec Stripe: {str(e)}"
                 )
     
@@ -625,7 +625,7 @@ async def _handle_onboarding_payment_success(db: Session, stripe_session: Dict[s
         else:
             logger.warning(f"Webhook onboarding: Aucun contenu trouvé pour les IDs {content_ids_to_process} pour user {user_id}.")
             db.rollback()
-
+    
     except Exception as e:
         logger.error(f"Webhook onboarding: Erreur générale traitement pour user {user_id}: {e}", exc_info=True)
         db.rollback()
