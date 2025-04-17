@@ -7,7 +7,7 @@ import logging
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.services.ai_providers import get_ai_provider, ai_provider_service
+from app.services.ai_providers import get_ai_provider
 from app.core.config import settings
 from app.models.api_key import ApiKey
 
@@ -187,18 +187,25 @@ async def generate_completion_endpoint(
     if not api_key_record:
         raise HTTPException(status_code=401, detail=f"Clé API pour {provider} non trouvée.")
 
-    # Appeler le service AI Provider
+    # Appeler le service AI Provider via la factory
     try:
-        completion = await ai_provider_service.get_completion(
-            provider=provider,
-            api_key=api_key_record.key,
-            model_id=model_to_use,
+        # Obtenir l'instance du provider
+        provider_instance = get_ai_provider(
+            provider_name=provider, 
+            api_key=api_key_record.key
+        )
+        
+        # Appeler la méthode sur l'instance
+        completion = await provider_instance.generate_completion(
+            # Assurez-vous que la méthode generate_completion dans le provider
+            # accepte bien ces arguments (model, prompt, system_prompt)
+            model=model_to_use, 
             prompt=request_data.prompt,
             system_prompt=request_data.system_message
         )
         
         if completion is None:
-            raise HTTPException(status_code=500, detail="Échec de l'obtention de la complétion depuis le fournisseur.")
+            raise HTTPException(status_code=500, detail="Échec de l'obtention de la complétion.")
             
         return CompletionResponse(response=completion)
 
