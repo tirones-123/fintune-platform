@@ -47,7 +47,7 @@ class FineTuningJobResponse(BaseModel):
 
 # --- Endpoint --- 
 
-@router.post("/fine-tuning-jobs", response_model=FineTuningJobResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=FineTuningJobResponse, status_code=status.HTTP_201_CREATED)
 async def create_fine_tuning_job(
     request: CreateFineTuningJobRequest,
     current_user: User = Depends(get_current_user),

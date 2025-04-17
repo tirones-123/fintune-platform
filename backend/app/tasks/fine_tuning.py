@@ -14,6 +14,7 @@ from app.services.ai_providers import get_ai_provider
 from app.services.storage import storage_service
 from app.core.config import settings
 from app.models.project import Project
+from app.models.notification import Notification
 from app.api.endpoints.notifications import create_notification
 
 @shared_task(name="start_fine_tuning")
@@ -239,19 +240,24 @@ def check_fine_tuning_status(fine_tuning_id: int):
         
         # --- CORRECTION: Récupérer la clé API de l'utilisateur associé ---
         user_api_key = None
+        user_id = None # Initialiser user_id
         if fine_tuning.dataset and fine_tuning.dataset.project and fine_tuning.dataset.project.user:
             user = fine_tuning.dataset.project.user
+            user_id = user.id # Récupérer l'ID de l'utilisateur
             for api_key in user.api_keys:
                 if api_key.provider.lower() == fine_tuning.provider.lower():
                     user_api_key = api_key.key
                     break
         
         if not user_api_key:
-            error_msg = f"Could not find API key for provider {fine_tuning.provider} for user {fine_tuning.dataset.project.user_id}"
+            error_msg = f"Could not find API key for provider {fine_tuning.provider} for user {user_id}"
             logger.error(error_msg)
             fine_tuning.status = "error"
             fine_tuning.error_message = error_msg
             db.commit()
+            # Notifier l'échec dû à la clé manquante
+            if user_id: 
+                create_notification(db=db, user_id=user_id, message=f"Échec du fine-tuning '{fine_tuning.name}': Clé API manquante.", type='error', related_id=fine_tuning_id, related_type='fine_tuning')
             return {"status": "error", "message": error_msg}
         # --- FIN CORRECTION ---
         
@@ -261,11 +267,17 @@ def check_fine_tuning_status(fine_tuning_id: int):
         # Get status from provider
         status_response = provider_service.get_fine_tuning_status(fine_tuning.external_id)
         
-        # Update fine-tuning status
-        fine_tuning.progress = status_response.get("progress", 0)
+        # Garder une trace du statut précédent pour la notification
+        previous_status = fine_tuning.status 
         provider_status = status_response.get("status", "")
-        
-        # Map provider status to our app status
+        fine_tuning.progress = status_response.get("progress", 0)
+
+        # Initialiser les variables pour la notification
+        notification_message = None
+        notification_type = None
+        should_notify = False
+
+        # Mettre à jour le statut basé sur la réponse du provider
         if provider_status in ["succeeded", "completed"]:
             fine_tuning.status = "completed"
             fine_tuning.progress = 100
@@ -273,52 +285,42 @@ def check_fine_tuning_status(fine_tuning_id: int):
             fine_tuning.metrics = status_response.get("details", {})
             fine_tuning.fine_tuned_model = status_response.get("fine_tuned_model", "")
             logger.info(f"Fine-tuning {fine_tuning_id} completed")
-            
+            if previous_status != "completed":
+                notification_message = f"Le fine-tuning '{fine_tuning.name}' est terminé avec succès ! Modèle prêt: {fine_tuning.fine_tuned_model}"
+                notification_type = 'success'
+                should_notify = True
+
         elif provider_status in ["failed", "error"]:
             fine_tuning.status = "error"
             fine_tuning.error_message = status_response.get("details", {}).get("error", "Unknown error")
             logger.error(f"Fine-tuning {fine_tuning_id} failed: {fine_tuning.error_message}")
+            if previous_status != "error":
+                notification_message = f"Échec du fine-tuning '{fine_tuning.name}'. Raison: {fine_tuning.error_message}"
+                notification_type = 'error'
+                should_notify = True
             
         elif provider_status in ["cancelled", "canceled"]:
             fine_tuning.status = "cancelled"
             fine_tuning.completed_at = datetime.now().isoformat()
             logger.info(f"Fine-tuning {fine_tuning_id} was cancelled")
+            if previous_status != "cancelled":
+                notification_message = f"Le fine-tuning '{fine_tuning.name}' a été annulé."
+                notification_type = 'warning'
+                should_notify = True
             
-        else:
-            # Still in progress, schedule next check
+        else: # Toujours en cours
             fine_tuning.status = "training"
-            check_delay = 300  # 5 minutes by default
-            
-            # Adjust check frequency based on progress
-            if fine_tuning.progress < 30:
-                check_delay = 180  # 3 minutes for early progress
-            elif fine_tuning.progress > 80:
-                check_delay = 120  # 2 minutes for almost done
-                
-            check_fine_tuning_status.apply_async(
-                args=[fine_tuning_id],
-                countdown=check_delay
-            )
-            logger.info(f"Fine-tuning {fine_tuning_id} in progress ({fine_tuning.progress}%), checking again in {check_delay} seconds")
+            check_delay = 300
+            if fine_tuning.progress < 30: check_delay = 180
+            elif fine_tuning.progress > 80: check_delay = 120
+            check_fine_tuning_status.apply_async(args=[fine_tuning_id], countdown=check_delay)
+            logger.info(f"Fine-tuning {fine_tuning_id} in progress ({fine_tuning.progress}%), check in {check_delay}s")
         
-        # --- Ajout Notifications si statut final atteint --- 
-        notification_message = None
-        notification_type = None
+        # Commiter les changements de statut/progression
+        db.commit()
 
-        previous_status = fine_tuning.status 
-        user_id = fine_tuning.dataset.project.user_id # Récupérer user_id tôt
-        
-        if fine_tuning.status == "completed" and previous_status != "completed":
-            notification_message = f"Le fine-tuning '{fine_tuning.name}' est terminé avec succès ! Modèle prêt: {fine_tuning.fine_tuned_model}"
-            notification_type = 'success'
-        elif fine_tuning.status == "error" and previous_status != "error":
-            notification_message = f"Échec du fine-tuning '{fine_tuning.name}'. Raison: {fine_tuning.error_message}"
-            notification_type = 'error'
-        elif fine_tuning.status == "cancelled" and previous_status != "cancelled":
-            notification_message = f"Le fine-tuning '{fine_tuning.name}' a été annulé."
-            notification_type = 'warning'
-        
-        if notification_message and notification_type:
+        # Créer la notification si nécessaire (après le commit du statut)
+        if should_notify and user_id:
              create_notification(
                  db=db,
                  user_id=user_id,
@@ -327,9 +329,6 @@ def check_fine_tuning_status(fine_tuning_id: int):
                  related_id=fine_tuning_id,
                  related_type='fine_tuning'
              )
-        # --- Fin Notifications ---
-        
-        db.commit()
         
         return {
             "status": "success",
@@ -339,7 +338,7 @@ def check_fine_tuning_status(fine_tuning_id: int):
         }
     
     except Exception as e:
-        logger.error(f"Error checking fine-tuning status {fine_tuning_id}: {str(e)}")
+        logger.error(f"Error checking fine-tuning status {fine_tuning_id}: {str(e)}", exc_info=True)
         # --- Ajout Notification --- 
         try: # Essayer de notifier même si le check échoue
             user_id = fine_tuning.dataset.project.user_id

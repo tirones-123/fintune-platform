@@ -46,11 +46,32 @@ const Header = ({ onDrawerToggle }) => {
     // Ne pas mettre setLoading ici pour un polling silencieux
     try {
       const data = await notificationService.getNotifications(20); // Limite à 20
-      setNotifications(data || []);
-      setTotalUnread(data.filter(n => !n.is_read).length);
+      const newNotifications = data || [];
+      
+      // Vérifier s'il y a de nouvelles notifications non lues
+      const currentUnreadCount = newNotifications.filter(n => !n.is_read).length;
+      const previousUnreadCount = totalUnread; // Utiliser l'état précédent
+      
+      setNotifications(newNotifications);
+      setTotalUnread(currentUnreadCount);
+
+      // Déclencher l'événement si de nouvelles notifications de succès FT sont arrivées
+      if (currentUnreadCount > previousUnreadCount) {
+          const hasNewCompletedFT = newNotifications.some(n => 
+              !n.is_read && 
+              n.type === 'success' && 
+              n.related_type === 'fine_tuning' &&
+              n.message.includes('terminé avec succès') // Condition plus spécifique
+          );
+
+          if (hasNewCompletedFT) {
+              console.log("Notification de fine-tuning terminé détectée, déclenchement de l'événement.");
+              window.dispatchEvent(new CustomEvent('finetuningUpdate'));
+          }
+      }
+
     } catch (error) {
       console.error("Erreur chargement notifications:", error);
-      // Gérer l'erreur discrètement
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Typography,
@@ -49,37 +49,59 @@ function PlaygroundPage() {
   const [loadingResponse, setLoadingResponse] = useState(false);
   const [error, setError] = useState('');
 
-  // Charger les modèles fine-tunés complétés au montage
-  useEffect(() => {
-    const fetchFineTunedModels = async () => {
-      setLoadingModels(true);
-      setError('');
-      try {
-        const allFineTunings = await fineTuningService.getAll();
-        const completedFineTunings = allFineTunings
-          .filter(ft => ft.status === 'completed' && ft.fine_tuned_model)
-          .map(ft => ({ 
-              // Utiliser l'ID numérique pour les distinguer
-              id: ft.id, 
-              name: ft.name || `Fine-tune ${ft.id}`,
-              // Stocker l'ID externe pour l'appel API si nécessaire (pas utilisé par le nouvel endpoint helper)
-              externalId: ft.fine_tuned_model 
-          })); 
-        setFineTunedModels(completedFineTunings);
-        // Combiner les modèles standards et fine-tunés
-        setAllModels([...standardOpenAIModels, ...completedFineTunings]);
-        // Ne pas changer la sélection par défaut ici, garder le premier standard
-      } catch (err) {
-        console.error("Erreur chargement modèles fine-tunés:", err);
-        setError('Erreur chargement des modèles fine-tunés.');
-        setAllModels([...standardOpenAIModels]); // Garder au moins les standards
-      } finally {
-        setLoadingModels(false);
+  // Encapsuler fetchFineTunedModels dans useCallback
+  const fetchFineTunedModels = useCallback(async () => {
+    // Mettre setLoadingModels seulement si ce n'est pas un rafraîchissement silencieux ?
+    // Pour l'instant, on le met toujours pour indiquer l'activité.
+    setLoadingModels(true); 
+    // Ne pas réinitialiser l'erreur ici pour ne pas effacer une erreur précédente pendant le refresh
+    // setError(''); 
+    try {
+      const allFineTunings = await fineTuningService.getAll();
+      const completedFineTunings = allFineTunings
+        .filter(ft => ft.status === 'completed' && ft.fine_tuned_model)
+        .map(ft => ({ 
+            id: ft.id, 
+            name: ft.name || `Fine-tune ${ft.id}`,
+            externalId: ft.fine_tuned_model 
+        })); 
+      setFineTunedModels(completedFineTunings);
+      setAllModels([...standardOpenAIModels, ...completedFineTunings]);
+      // Conserver la sélection actuelle si elle existe toujours, sinon revenir au premier standard
+      setSelectedModel(prev => 
+         allModels.some(m => m.id === prev) ? prev : (standardOpenAIModels[0]?.id || '')
+      );
+    } catch (err) {
+      console.error("Erreur chargement modèles fine-tunés:", err);
+      // Afficher l'erreur seulement si ce n'est pas juste un refresh qui échoue
+      if (loadingModels) { // Si c'était le chargement initial
+          setError('Erreur chargement des modèles fine-tunés.');
       }
-    };
+      // Garder la liste actuelle des modèles en cas d'erreur de refresh
+    } finally {
+      setLoadingModels(false);
+    }
+  }, [loadingModels]);
 
+  // Charger les modèles au montage initial
+  useEffect(() => {
     fetchFineTunedModels();
-  }, []);
+  }, [fetchFineTunedModels]); // Utiliser fetchFineTunedModels comme dépendance
+
+  // Écouter l'événement pour rafraîchir la liste
+  useEffect(() => {
+    const handleUpdate = () => {
+      console.log('Événement finetuningUpdate reçu, rafraîchissement des modèles...');
+      fetchFineTunedModels(); 
+    };
+    
+    window.addEventListener('finetuningUpdate', handleUpdate);
+    
+    // Nettoyer l'écouteur
+    return () => {
+      window.removeEventListener('finetuningUpdate', handleUpdate);
+    };
+  }, [fetchFineTunedModels]); // Dépendance sur la fonction useCallback
 
   // Gérer l'envoi du prompt
   const handleSendPrompt = async () => {

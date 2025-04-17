@@ -36,3 +36,4 @@ beautifulsoup4==4.12.2
 lxml==4.9.3
 lxml_html_clean==0.4.2
 readability-lxml==0.8.1
+Authlib>=1.0.0

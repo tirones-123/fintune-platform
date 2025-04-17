@@ -90,7 +90,7 @@ const LoginForm = () => {
             '&:hover': { borderColor: 'primary.main' }
           }}
           startIcon={<GoogleIcon />}
-          disabled
+          onClick={() => window.location.href = '/api/auth/google/login'}
         >
           Continuer avec Google
         </Button>

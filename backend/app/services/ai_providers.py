@@ -156,16 +156,20 @@ class OpenAIProvider(AIProviderBase):
             logger.error(f"Error cancelling OpenAI fine-tuning: {str(e)}")
             raise e
     
-    def generate_completion(self, prompt: str, model: str = "gpt-4o-mini") -> str:
+    def generate_completion(self, prompt: str, model: str = "gpt-4o-mini", system_prompt: Optional[str] = None) -> str:
         """Generate a completion for a prompt using OpenAI."""
         try:
+            # Utiliser le system_prompt fourni ou un défaut
+            effective_system_prompt = system_prompt if system_prompt else "You are a helpful assistant."
+            
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": ""},
+                    {"role": "system", "content": effective_system_prompt},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7,
+                temperature=0.7, 
+                # max_tokens=1024 # Optionnel: Ajouter max_tokens ici si besoin
             )
             return response.choices[0].message.content
         except Exception as e:

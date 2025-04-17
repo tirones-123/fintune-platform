@@ -46,10 +46,6 @@ const RegisterForm = () => {
         .required('L\'email est requis'),
       password: Yup.string()
         .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
-        .matches(
-          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-          'Le mot de passe doit contenir au moins une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial'
-        )
         .required('Le mot de passe est requis'),
       terms: Yup.boolean()
         .oneOf([true], 'Vous devez accepter les conditions d\'utilisation')
@@ -110,7 +106,7 @@ const RegisterForm = () => {
             '&:hover': { borderColor: 'primary.main' }
           }}
           startIcon={<GoogleIcon />}
-          disabled
+          onClick={() => window.location.href = '/api/auth/google/login'}
         >
           S'inscrire avec Google
         </Button>
