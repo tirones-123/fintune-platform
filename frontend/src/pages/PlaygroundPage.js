@@ -12,48 +12,73 @@ import {
   CircularProgress,
   Paper,
   useTheme,
-  Alert
+  Alert,
+  Grid,
+  Stack,
+  Avatar,
+  ListSubheader
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import { fineTuningService } from '../services/apiService';
+import { fineTuningService, helperService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
+import ChatIcon from '@mui/icons-material/Chat';
+
+// Définir les modèles OpenAI standards ici
+const standardOpenAIModels = [
+  { id: 'gpt-4o', name: 'GPT-4o' },
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+  { id: 'gpt-3.5-turbo-0125', name: 'GPT-3.5 Turbo' },
+  // Ajouter d'autres si pertinent
+];
 
 function PlaygroundPage() {
   const theme = useTheme();
   const { user } = useAuth();
-  const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState('');
-  const [prompt, setPrompt] = useState('');
-  const [response, setResponse] = useState('');
+  
+  // États pour les modèles
+  const [fineTunedModels, setFineTunedModels] = useState([]);
+  const [allModels, setAllModels] = useState([...standardOpenAIModels]); // Commencer avec les standards
+  const [selectedModel, setSelectedModel] = useState(standardOpenAIModels[0]?.id || ''); // Sélectionner le premier standard par défaut
   const [loadingModels, setLoadingModels] = useState(true);
+
+  // États pour la configuration et l'interaction
+  const [systemMessage, setSystemMessage] = useState('You are a helpful assistant.');
+  const [prompt, setPrompt] = useState('');
+  const [conversation, setConversation] = useState([]); // [{ role: 'user' | 'assistant', content: '...' }]
   const [loadingResponse, setLoadingResponse] = useState(false);
   const [error, setError] = useState('');
 
-  // Charger les modèles fine-tunés complétés
+  // Charger les modèles fine-tunés complétés au montage
   useEffect(() => {
-    const fetchModels = async () => {
+    const fetchFineTunedModels = async () => {
       setLoadingModels(true);
       setError('');
       try {
         const allFineTunings = await fineTuningService.getAll();
-        // Filtrer pour ne garder que les modèles complétés
-        const completedModels = allFineTunings.filter(ft => ft.status === 'completed');
-        setModels(completedModels);
-        if (completedModels.length > 0) {
-          // Pré-sélectionner le premier modèle par défaut
-          setSelectedModel(completedModels[0].id); 
-        }
+        const completedFineTunings = allFineTunings
+          .filter(ft => ft.status === 'completed' && ft.fine_tuned_model)
+          .map(ft => ({ 
+              // Utiliser l'ID numérique pour les distinguer
+              id: ft.id, 
+              name: ft.name || `Fine-tune ${ft.id}`,
+              // Stocker l'ID externe pour l'appel API si nécessaire (pas utilisé par le nouvel endpoint helper)
+              externalId: ft.fine_tuned_model 
+          })); 
+        setFineTunedModels(completedFineTunings);
+        // Combiner les modèles standards et fine-tunés
+        setAllModels([...standardOpenAIModels, ...completedFineTunings]);
+        // Ne pas changer la sélection par défaut ici, garder le premier standard
       } catch (err) {
-        console.error("Erreur lors de la récupération des modèles fine-tunés:", err);
-        setError('Impossible de charger les modèles fine-tunés.');
-        setModels([]);
+        console.error("Erreur chargement modèles fine-tunés:", err);
+        setError('Erreur chargement des modèles fine-tunés.');
+        setAllModels([...standardOpenAIModels]); // Garder au moins les standards
       } finally {
         setLoadingModels(false);
       }
     };
 
-    fetchModels();
+    fetchFineTunedModels();
   }, []);
 
   // Gérer l'envoi du prompt
@@ -63,101 +88,171 @@ function PlaygroundPage() {
       return;
     }
     setLoadingResponse(true);
-    setResponse('');
     setError('');
+    
+    // Ajouter le message utilisateur à la conversation
+    const newUserMessage = { role: 'user', content: prompt };
+    setConversation(prev => [...prev, newUserMessage]);
+    
+    // Préparer l'appel API
+    const currentPrompt = prompt;
+    const currentSystemMessage = systemMessage;
+    const currentModelId = selectedModel;
+    
+    // Vider le champ de prompt après envoi
+    setPrompt('');
+
     try {
-      const result = await fineTuningService.testModel(selectedModel, prompt);
-      // Assumer que la réponse est dans result.response ou un champ similaire
-      setResponse(result?.response || JSON.stringify(result, null, 2)); 
+      let apiResponse;
+      // Utiliser le nouvel endpoint générique pour tous les modèles
+      // Il gère la distinction standard/fine-tuné côté backend
+      apiResponse = await helperService.generateCompletion(
+          currentModelId.toString(), // Envoyer l'ID (numérique ou string)
+          currentPrompt,
+          currentSystemMessage
+      );
+      
+      // Ajouter la réponse de l'assistant à la conversation
+      const newAssistantMessage = { role: 'assistant', content: apiResponse.response };
+      setConversation(prev => [...prev, newAssistantMessage]);
+
     } catch (err) {
-      console.error("Erreur lors du test du modèle:", err);
+      console.error("Erreur lors de la génération de la complétion:", err);
       setError(err.message || 'Une erreur est survenue lors de la communication avec le modèle.');
-      setResponse('');
+      // Optionnel: Ajouter un message d'erreur à la conversation
+      // const errorMessage = { role: 'assistant', content: `Erreur: ${err.message}` };
+      // setConversation(prev => [...prev, errorMessage]);
     } finally {
       setLoadingResponse(false);
     }
   };
 
+  // Rendu du composant
   return (
     <PageTransition>
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+        <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
           Playground IA
         </Typography>
 
-        {loadingModels ? (
-          <CircularProgress />
-        ) : error && models.length === 0 ? (
-           <Alert severity="error">{error}</Alert>
-        ) : models.length === 0 ? (
-           <Alert severity="info">Vous n'avez aucun modèle fine-tuné complété à tester pour le moment.</Alert>
-        ) : (
-          <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel id="model-select-label">Choisir un modèle fine-tuné</InputLabel>
-              <Select
-                labelId="model-select-label"
-                id="model-select"
-                value={selectedModel}
-                label="Choisir un modèle fine-tuné"
-                onChange={(e) => setSelectedModel(e.target.value)}
-              >
-                {models.map((model) => (
-                  <MenuItem key={model.id} value={model.id}>
-                    {model.name} ({model.provider}/{model.model}) - ID: {model.external_id || 'N/A'}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <TextField
-              fullWidth
-              multiline
-              rows={6}
-              variant="outlined"
-              label="Votre Prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              sx={{ mb: 2 }}
-              placeholder="Entrez votre texte ici pour interagir avec le modèle sélectionné..."
-            />
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-              <Button
-                variant="contained"
-                endIcon={loadingResponse ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
-                onClick={handleSendPrompt}
-                disabled={loadingResponse || !selectedModel || !prompt.trim()}
-              >
-                Envoyer
-              </Button>
-            </Box>
-
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-            )}
-
-            {response && (
-              <Box>
-                <Typography variant="h6" gutterBottom>Réponse du modèle :</Typography>
-                <Paper 
-                  variant="outlined" 
-                  sx={{ 
-                    p: 2, 
-                    backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100],
-                    borderRadius: 1,
-                    whiteSpace: 'pre-wrap', // Conserve les sauts de ligne et espaces
-                    wordWrap: 'break-word', // Coupe les mots longs
-                    maxHeight: '400px', // Limite la hauteur
-                    overflowY: 'auto' // Ajoute une scrollbar si nécessaire
-                  }}
+        <Grid container spacing={3} sx={{ flexGrow: 1, overflow: 'hidden' }}>
+          {/* Colonne de gauche: Configuration */}
+          <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Paper elevation={2} sx={{ p: 2.5, borderRadius: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Configuration</Typography>
+              
+              <FormControl fullWidth sx={{ mb: 2.5 }}>
+                <InputLabel id="model-select-label">Modèle</InputLabel>
+                <Select
+                  labelId="model-select-label"
+                  value={selectedModel}
+                  label="Modèle"
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  disabled={loadingModels}
+                  MenuProps={{ PaperProps: { sx: { maxHeight: 400 } } }}
                 >
-                  {response}
-                </Paper>
-              </Box>
-            )}
-          </Paper>
-        )}
+                  <ListSubheader>Modèles Standards (OpenAI)</ListSubheader>
+                  {standardOpenAIModels.map((model) => (
+                    <MenuItem key={model.id} value={model.id}>
+                      {model.name}
+                    </MenuItem>
+                  ))}
+                  {fineTunedModels.length > 0 && <ListSubheader>Vos Modèles Fine-Tunés</ListSubheader>}
+                  {fineTunedModels.map((model) => (
+                    <MenuItem key={model.id} value={model.id}>
+                      {model.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                variant="outlined"
+                label="System Message"
+                value={systemMessage}
+                onChange={(e) => setSystemMessage(e.target.value)}
+                placeholder="Décrivez le comportement souhaité..."
+                sx={{ mb: 2.5 }}
+              />
+              
+              {/* Espace pour futurs paramètres (temp, tokens...) */}
+              {/* <Divider sx={{ my: 2 }} /> */}
+              {/* <Typography variant="subtitle2" sx={{ mb: 1 }}>Paramètres</Typography> */}
+              {/* ... Sliders ou inputs pour temp, max_tokens ... */}
+              
+              <Box sx={{ flexGrow: 1 }} /> {/* Pousse le reste en bas si nécessaire */}
+            </Paper>
+          </Grid>
+
+          {/* Colonne de droite: Chat */}
+          <Grid item xs={12} md={8} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+             <Paper elevation={2} sx={{ p: 2, borderRadius: 2, flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                {/* Zone d'affichage de la conversation */} 
+                <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2, pr: 1 }}>
+                  {conversation.length === 0 && (
+                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary' }}>
+                       <Avatar sx={{ width: 60, height: 60, mb: 2, bgcolor: 'primary.light' }}>
+                         <ChatIcon fontSize="large" />
+                       </Avatar>
+                       <Typography variant="h6">La conversation apparaîtra ici</Typography>
+                     </Box>
+                  )}
+                  {conversation.map((msg, index) => (
+                    <Box 
+                      key={index} 
+                      sx={{
+                        mb: 1.5, 
+                        p: 1.5,
+                        borderRadius: 2,
+                        bgcolor: msg.role === 'user' ? 'primary.light' : 'background.paper',
+                        border: msg.role === 'assistant' ? `1px solid ${theme.palette.divider}` : 'none',
+                        ml: msg.role === 'assistant' ? 0 : 'auto', // Aligner user à droite
+                        mr: msg.role === 'user' ? 0 : 'auto', // Aligner assistant à gauche
+                        maxWidth: '85%',
+                        wordWrap: 'break-word'
+                      }}
+                    >
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          whiteSpace: 'pre-wrap', // Conserver les sauts de ligne
+                          color: msg.role === 'user' ? 'primary.contrastText' : 'text.primary'
+                        }}
+                       >
+                         {msg.content}
+                      </Typography>
+                    </Box>
+                  ))}
+                   {loadingResponse && <CircularProgress size={24} sx={{ alignSelf: 'center' }} />}
+                   {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
+                </Box>
+
+                {/* Zone de saisie */}
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                   <TextField
+                     fullWidth
+                     variant="outlined"
+                     placeholder="Discutez avec votre modèle..."
+                     value={prompt}
+                     onChange={(e) => setPrompt(e.target.value)}
+                     onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { handleSendPrompt(); e.preventDefault(); } }}
+                     sx={{ mr: 1 }}
+                   />
+                   <Button 
+                     variant="contained" 
+                     onClick={handleSendPrompt} 
+                     disabled={loadingResponse || !prompt.trim() || !selectedModel}
+                     sx={{ height: '56px' }} // Aligner hauteur avec TextField
+                   >
+                     <SendIcon />
+                   </Button>
+                </Box>
+             </Paper>
+          </Grid>
+        </Grid>
       </Container>
     </PageTransition>
   );

@@ -828,6 +828,33 @@ export const checkoutService = {
   }
 };
 
+// Service pour les helpers (peut être regroupé ou séparé)
+export const helperService = {
+  generateSystemContent: async (purpose) => {
+      try {
+        const response = await api.post('/api/helpers/generate-system-content', { purpose });
+        return response.data;
+      } catch (error) {
+         throw new Error(error.response?.data?.detail || 'Erreur génération system content');
+      }
+  },
+  // Nouvelle fonction pour la complétion générique
+  generateCompletion: async (modelId, prompt, systemMessage) => {
+    try {
+      const payload = { 
+          model_id: modelId,
+          prompt: prompt,
+          system_message: systemMessage 
+      };
+      const response = await api.post('/api/helpers/generate-completion', payload);
+      return response.data; // Devrait contenir { response: "..." }
+    } catch (error) {
+       console.error("Erreur lors de la génération de la complétion:", error);
+       throw new Error(error.response?.data?.detail || 'Erreur lors de la génération de la complétion');
+    }
+  }
+};
+
 // Exportation des services
 export { api };
 export default api; 
