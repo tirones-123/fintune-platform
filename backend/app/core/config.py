@@ -93,5 +93,10 @@ class Settings(BaseSettings):
     # Frontend configuration
     FRONTEND_URL: str = Field(default="https://finetuner.io")
 
+    # Google OAuth configuration
+    GOOGLE_CLIENT_ID: str = Field(default="")
+    GOOGLE_CLIENT_SECRET: str = Field(default="")
+    GOOGLE_DISCOVERY_URL: str = Field(default="https://accounts.google.com/.well-known/openid-configuration")
+
 
 settings = Settings() 
