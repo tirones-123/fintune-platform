@@ -19,7 +19,6 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN python -m pip install --upgrade pip setuptools wheel
 RUN python -m pip install --no-cache-dir --use-pep517 -r requirements.txt
-RUN python -c "from starlette.middleware.session import SessionMiddleware; print('SessionMiddleware imported successfully')"
 
 # Copy the rest of the application
 COPY . .
