@@ -161,8 +161,8 @@ class OpenAIProvider(AIProviderBase):
         try:
             effective_system_prompt = system_prompt if system_prompt else "You are a helpful assistant."
             
-            # Utiliser await pour l'appel asynchrone
-            response = await self.client.chat.completions.create(
+            # Supprimer `await` car self.client.chat.completions.create est synchrone
+            response = self.client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": effective_system_prompt},
