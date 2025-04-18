@@ -302,20 +302,40 @@ const ProjectDetailPage = () => {
     handleFineTuningMenuClose();
   };
 
-  const handleDownloadDataset = (datasetId) => {
+  // Modifier handleDownloadDataset pour utiliser le service
+  const handleDownloadDataset = async (datasetId) => {
+    if (!datasetId) return;
+    
+    handleDatasetMenuClose(); // Fermer le menu
+    handleFineTuningMenuClose(); // Fermer aussi l'autre menu si ouvert
+    enqueueSnackbar("Préparation du téléchargement...", { variant: 'info' });
+
     try {
-      // Construire l'URL pour télécharger le dataset
-      const downloadUrl = `${process.env.REACT_APP_API_URL}/api/datasets/${datasetId}/export`;
+      // Appeler le service pour obtenir le blob et le nom de fichier
+      const { blob, filename } = await datasetService.downloadDataset(datasetId, 'openai'); // ou provider dynamique
+
+      // Créer une URL objet pour le blob
+      const url = window.URL.createObjectURL(blob);
       
-      // Ouvrir l'URL dans un nouvel onglet
-      window.open(downloadUrl, '_blank');
+      // Créer un lien temporaire
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
       
-      enqueueSnackbar('Téléchargement du dataset commencé', { variant: 'success' });
+      // Ajouter au DOM, cliquer, puis supprimer
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      
+      // Libérer l'URL objet
+      window.URL.revokeObjectURL(url);
+      
+      // Ne pas afficher de notif succès ici, le navigateur gère le téléchargement
+
     } catch (error) {
       console.error('Erreur lors du téléchargement du dataset:', error);
-      enqueueSnackbar('Erreur lors du téléchargement du dataset', { variant: 'error' });
+      enqueueSnackbar(`Erreur téléchargement: ${error.message}`, { variant: 'error' });
     }
-    handleFineTuningMenuClose();
   };
 
   // Formatage de la date

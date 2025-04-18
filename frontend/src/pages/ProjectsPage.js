@@ -57,45 +57,50 @@ const ProjectsPage = () => {
       const [contents, datasets, fineTunings] = await Promise.all([
         contentService.getByProjectId(projectId),
         datasetService.getByProjectId(projectId),
-        fineTuningService.getByProjectId(projectId)
+        fineTuningService.getByProjectId(projectId) 
       ]);
 
-      // Déterminer le statut agrégé
-      let status = 'idle';
+      // Déterminer le statut agrégé avec la bonne priorité
+      let status = 'idle'; // Statut par défaut
       let progress = null;
 
-      // 1. Vérifier les fine-tunings en cours
+      // 1. Priorité aux fine-tunings actifs
       const activeFineTuning = fineTunings.find(ft => ['queued', 'preparing', 'training'].includes(ft.status));
       if (activeFineTuning) {
         status = activeFineTuning.status === 'training' ? 'training_finetune' : 'preparing_finetune';
         progress = activeFineTuning.progress;
-      } else {
-        // 2. Vérifier les datasets en cours de génération
-        const processingDataset = datasets.find(d => d.status === 'processing');
-        if (processingDataset) {
-          status = 'generating_dataset';
-        } else {
-          // 3. Vérifier les contenus en cours de traitement (ex: transcription)
-          const processingContent = contents.find(c => c.status === 'processing');
-          if (processingContent) {
-            status = 'transcribing'; 
-          }
-        }
+        return { status, progress }; // Statut prioritaire trouvé, on arrête là
       }
-      
-      // 4. Vérifier les erreurs
+
+      // 2. Sinon, vérifier les datasets en cours de génération
+      const processingDataset = datasets.find(d => d.status === 'processing');
+      if (processingDataset) {
+        status = 'generating_dataset';
+        return { status, progress }; // Statut trouvé
+      }
+
+      // 3. Sinon, vérifier les contenus en cours de traitement
+      const processingContent = contents.find(c => c.status === 'processing');
+      if (processingContent) {
+        status = 'transcribing'; 
+        return { status, progress }; // Statut trouvé
+      }
+
+      // 4. Seulement si rien n'est actif, vérifier les erreurs
       const errorFineTuning = fineTunings.find(ft => ft.status === 'error');
       const errorDataset = datasets.find(d => d.status === 'error');
       const errorContent = contents.find(c => c.status === 'error');
       if (errorFineTuning || errorDataset || errorContent) {
          status = 'error';
+         return { status, progress }; // Statut trouvé
       }
-
-      return { status, progress };
+      
+      // 5. Si rien d'actif et pas d'erreur, le statut est 'idle' (sera affiché comme Actif/Succès)
+      return { status, progress }; 
 
     } catch (err) {
       console.error(`Error fetching details for project ${projectId}:`, err);
-      return { status: 'error', progress: null };
+      return { status: 'error', progress: null }; 
     }
   }, []);
 

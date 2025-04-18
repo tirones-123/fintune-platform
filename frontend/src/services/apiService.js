@@ -424,10 +424,47 @@ export const datasetService = {
   // Exporter un dataset au format JSONL pour le fine-tuning
   exportDataset: async (id, provider = 'openai') => {
     try {
-      // Cette fonction retourne l'URL pour télécharger le fichier JSONL
-      return `${API_URL}/api/datasets/${id}/export?provider=${provider}`;
+      // Retourner l'URL pour le bouton/lien standard
+      // return `${API_URL}/api/datasets/${id}/export?provider=${provider}`; 
+      
+      // NOUVELLE LOGIQUE: Ne plus retourner l'URL directement
+      // Le téléchargement sera géré via un appel API authentifié
+      // La fonction exportDataset n'est plus utile telle quelle pour le téléchargement direct
+      // On pourrait la supprimer ou la laisser si elle sert ailleurs, mais on ajoute downloadDataset.
+      console.warn("exportDataset function is deprecated for direct download, use downloadDataset instead.");
+      return null; // Ou lever une erreur
+      
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Erreur lors de l\'export du dataset');
+      throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération de l\'URL d\'export');
+    }
+  },
+
+  // NOUVELLE FONCTION pour télécharger le dataset via appel API authentifié
+  downloadDataset: async (id, provider = 'openai') => {
+    try {
+        const response = await api.get(`/api/datasets/${id}/export`, {
+            params: { provider },
+            responseType: 'blob' // Important: Indiquer qu'on attend des données binaires
+        });
+        
+        // Récupérer le nom de fichier depuis les headers si possible
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = `dataset_${id}.jsonl`; // Nom par défaut
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename=["']?([^"';]+)["']?/);
+            if (filenameMatch && filenameMatch[1]) {
+                filename = filenameMatch[1];
+            }
+        }
+
+        return { blob: response.data, filename };
+        
+    } catch (error) {
+        console.error("Erreur API téléchargement dataset:", error);
+        const errorDetail = error.response?.data ? 
+                             (await error.response.data.text ? await error.response.data.text() : error.message) 
+                             : error.message;
+        throw new Error(errorDetail || 'Erreur lors du téléchargement du dataset');
     }
   }
 };

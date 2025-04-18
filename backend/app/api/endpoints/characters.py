@@ -19,7 +19,7 @@ from app.services.stripe_service import stripe_service
 router = APIRouter()
 
 @router.get("/usage-stats", response_model=CharacterUsageStats)
-def get_character_usage_stats(
+async def get_character_usage_stats(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
