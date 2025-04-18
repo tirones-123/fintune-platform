@@ -597,11 +597,20 @@ const OnboardingPage = () => {
       const selectedModel = providerModels[provider].find(m => m.id === model);
       const apiModelId = selectedModel?.apiId || model;
       
+      // Rassembler TOUS les IDs de contenu
+      const allContentIds = [
+        ...uploadedFiles.map(file => file.id),
+        ...uploadedUrls.map(url => url.id),
+        ...youtubeVideosRef.current.map(video => video.id), // Utiliser la ref
+        ...webSitesRef.current.map(site => site.id)        // Utiliser la ref
+      ].filter(id => id != null); // Filtrer les IDs potentiellement null
+
+      console.log("Envoi des IDs de contenu à createOnboardingSession:", allContentIds);
+
       // Création de la session de paiement Stripe
       const response = await checkoutService.createOnboardingSession({
         character_count: actualCharacterCount,
-        pending_transcriptions: uploadedYouTube.map(video => video.id),
-        pending_web_extractions: uploadedWeb.map(site => site.id),
+        content_ids: allContentIds, // <--- NOUVELLE LIGNE: Utiliser la liste complète
         dataset_name: datasetName,
         provider: provider,
         model: apiModelId,
