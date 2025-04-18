@@ -313,7 +313,8 @@ const ProjectsPage = () => {
                 </CardContent>
               </Card>
             </Grid>
-          ))}
+            );
+          })}
         </Grid>
       )}
 
