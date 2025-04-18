@@ -164,7 +164,9 @@ function PlaygroundPage() {
               <Typography variant="h6" sx={{ mb: 2 }}>Configuration</Typography>
               
               <FormControl fullWidth sx={{ mb: 2.5 }}>
-                <InputLabel id="model-select-label">Modèle</InputLabel>
+                <InputLabel id="model-select-label">
+                  Modèle {loadingModels && <CircularProgress size={14} sx={{ ml: 1 }} />}
+                </InputLabel>
                 <Select
                   labelId="model-select-label"
                   value={selectedModel}

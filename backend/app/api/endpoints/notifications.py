@@ -10,7 +10,7 @@ from app.schemas.notification import NotificationResponse, NotificationUpdate
 
 router = APIRouter()
 
-@router.get("/notifications", response_model=List[NotificationResponse])
+@router.get("", response_model=List[NotificationResponse])
 def get_user_notifications(
     skip: int = 0,
     limit: int = 20, # Limiter le nombre de notifications retournées par défaut

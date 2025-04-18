@@ -269,7 +269,6 @@ const OnboardingPage = () => {
       const response = await projectService.create(projectData);
       
       setCreatedProject(response);
-      enqueueSnackbar('Projet créé automatiquement', { variant: 'success' });
       return true;
     } catch (error) {
       console.error('Erreur lors de la création du projet:', error);
@@ -328,7 +327,6 @@ const OnboardingPage = () => {
       }
       setUseCase(mappedUseCase);
       
-      enqueueSnackbar('System content généré avec succès', { variant: 'success' });
       return true;
     } catch (error) {
       console.error('Erreur lors de la génération du system content:', error);
@@ -391,7 +389,6 @@ const OnboardingPage = () => {
       await apiKeyService.addKey(provider, apiKey);
       
       setApiKeySaved(true);
-      enqueueSnackbar('Clé API validée avec succès', { variant: 'success' });
       return true;
     } catch (error) {
       console.error('Erreur lors de la validation de la clé API:', error);
@@ -440,13 +437,12 @@ const OnboardingPage = () => {
       const response = await datasetService.create(datasetData);
       
       setCreatedDataset(response);
-      enqueueSnackbar('Dataset créé avec succès', { variant: 'success' });
+      return true;
       
       // Commencer à vérifier si le dataset est prêt
       setDatasetLoading(true);
       setTimeout(() => checkDatasetStatus(response.id), 2000);
       
-      return true;
     } catch (error) {
       console.error('Erreur lors de la création du dataset:', error);
       setDatasetError(error.message || "Erreur lors de la création du dataset");
@@ -530,7 +526,6 @@ const OnboardingPage = () => {
       const response = await fineTuningService.create(fineTuningData);
       
       setCreatedFineTuning(response);
-      enqueueSnackbar('Fine-tuning lancé avec succès', { variant: 'success' });
       return true;
     } catch (error) {
       console.error('Erreur lors de la création du fine-tuning:', error);
@@ -544,6 +539,7 @@ const OnboardingPage = () => {
 
   // Fonction pour traiter l'étape suivante
   const handleNext = async () => {
+    window.scrollTo(0, 0); // Scroll vers le haut
     // Vérifier s'il y a des actions à effectuer selon l'étape
     switch (activeStep) {
       case 0: // Après étape définition de l'assistant
@@ -557,7 +553,7 @@ const OnboardingPage = () => {
       case 1: // Après étape import de contenu
         // Vérifier s'il y a du contenu
         if (uploadedFiles.length === 0 && uploadedUrls.length === 0 && uploadedYouTube.length === 0 && uploadedWeb.length === 0) {
-          setUploadError("Veuillez ajouter au moins un fichier, une vidéo YouTube ou une URL web");
+          enqueueSnackbar("Veuillez ajouter au moins un contenu.", { variant: 'warning' }); // Garder avertissement
           return;
         }
         break;
@@ -579,6 +575,7 @@ const OnboardingPage = () => {
 
   // Fonction pour revenir à l'étape précédente
   const handleBack = () => {
+    window.scrollTo(0, 0); // Scroll vers le haut
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
@@ -642,8 +639,8 @@ const OnboardingPage = () => {
         
         // Rediriger vers le dashboard après un court délai pour que la notification soit visible
         setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 1500);
+          window.location.href = '/dashboard?onboarding_completed=true';
+        }, 500); // Délai réduit
         return;
       }
       
@@ -1097,8 +1094,6 @@ const OnboardingPage = () => {
         characCount: totalCharCountRef.current
       });
       
-      enqueueSnackbar(`URL YouTube ajoutée: "${videoTitle}" (~${estimatedCharacters} caractères basés sur ${durationMinutes} min)`, { variant: 'success' });
-      
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
       // Fallback à l'estimation fixe en cas d'erreur avec RapidAPI
@@ -1151,8 +1146,6 @@ const OnboardingPage = () => {
           totalYouTube: youtubeVideosRef.current.length,
           characCount: totalCharCountRef.current
         });
-        
-        enqueueSnackbar(`URL YouTube ajoutée avec durée estimée (~${estimatedCharacters} caractères)`, { variant: 'success' });
         
       } catch (fallbackError) {
         console.error('Erreur lors du fallback:', fallbackError);
@@ -1225,8 +1218,6 @@ const OnboardingPage = () => {
         totalSites: webSitesRef.current.length,
         characCount: totalCharCountRef.current
       });
-      
-      enqueueSnackbar(`URL Web ajoutée (${characterCount} caractères)`, { variant: 'success' });
       
     } catch (error) {
       console.error('Erreur lors du scraping de l\'URL Web:', error);

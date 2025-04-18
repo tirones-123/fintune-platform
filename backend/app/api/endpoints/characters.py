@@ -28,7 +28,7 @@ def get_character_usage_stats(
     """
     # Calculer le total des caractères achetés (somme des transactions positives)
     total_purchased = db.query(
-        db.func.sum(CharacterTransaction.amount)
+        func.sum(CharacterTransaction.amount)
     ).filter(
         CharacterTransaction.user_id == current_user.id,
         CharacterTransaction.amount > 0
