@@ -421,6 +421,7 @@ const ProjectDetailPage = () => {
   };
 
   // Fonction pour supprimer le projet
+  // Fonction pour supprimer le projet
   const handleDeleteProject = async () => {
     try {
       // Supprimer le projet via l'API
