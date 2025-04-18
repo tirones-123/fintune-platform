@@ -196,7 +196,7 @@ async def generate_completion_endpoint(
         )
         
         # Appeler la méthode sur l'instance
-        completion = await provider_instance.generate_completion(
+        completion = provider_instance.generate_completion(
             # Assurez-vous que la méthode generate_completion dans le provider
             # accepte bien ces arguments (model, prompt, system_prompt)
             model=model_to_use, 
