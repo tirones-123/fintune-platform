@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.session import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
 import logging
 import os
@@ -33,6 +34,10 @@ app = FastAPI(
     docs_url="/api/docs",
     redoc_url="/api/redoc",
 )
+
+# === Ajouter SessionMiddleware AVANT les autres middlewares/routes si possible ===
+# Utiliser la SECRET_KEY déjà définie dans settings
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # Configure CORS
 app.add_middleware(
