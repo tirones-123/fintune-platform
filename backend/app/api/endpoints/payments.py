@@ -328,82 +328,86 @@ async def create_onboarding_session(
                 )
 
         # Cas 3: > 10k caractères (payant)
-        else: 
+        else:
             logger.info(f"Nombre de caractères ({character_count}) supérieur au quota gratuit. Redirection vers Stripe.")
-        billable_characters = max(0, character_count - 10000)
+            billable_characters = max(0, character_count - 10000)
             amount_in_cents = max(60, round(billable_characters * 0.000365 * 100))
             logger.info(f"Facturation de {billable_characters} caractères pour ${amount_in_cents/100:.2f}")
 
-            # Récupérer project_id (bloc indenté)
+            # Récupérer project_id
             db_temp = next(get_db())
             try:
                 project = db_temp.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
                 if not project:
-                     project = Project(name="Projet Onboarding", user_id=current_user.id)
-                     db_temp.add(project)
-                     db_temp.commit()
-                     db_temp.refresh(project)
-                     logger.info(f"Projet Onboarding créé (ID: {project.id}) pour user {current_user.id}")
+                    project = Project(name="Projet Onboarding", user_id=current_user.id)
+                    db_temp.add(project)
+                    db_temp.commit()
+                    db_temp.refresh(project)
+                    logger.info(f"Projet Onboarding créé (ID: {project.id}) pour user {current_user.id}")
                 project_id = project.id
             finally:
-                 db_temp.close()
-            
-            # Préparer metadata (indenté)
-        metadata = {
-            "payment_type": "onboarding_characters", 
-            "user_id": str(current_user.id),
-            "character_count": str(character_count),
-            "free_characters": "10000",
+                db_temp.close()
+
+            # Préparer metadata
+            metadata = {
+                "payment_type": "onboarding_characters",
+                "user_id": str(current_user.id),
+                "character_count": str(character_count),
+                "free_characters": "10000",
                 "billable_characters": str(billable_characters),
-                "dataset_name": request.dataset_name, 
+                "dataset_name": request.dataset_name,
                 "system_content": request.system_content,
                 "provider": request.provider,
                 "model": request.model,
-                "project_id": str(project_id), 
+                "project_id": str(project_id),
                 "hyperparameters": json.dumps({"n_epochs": 3})
             }
-        if pending_transcriptions:
+            if pending_transcriptions:
                 transcription_ids = []
                 for item in pending_transcriptions:
                     item_id = None
-                    if isinstance(item, dict) and "id" in item: item_id = item["id"]
-                    elif isinstance(item, (int, str)): 
-                        try: item_id = int(item)
-                        except ValueError: pass
-                    if item_id: transcription_ids.append(str(item_id))
+                    if isinstance(item, dict) and "id" in item:
+                        item_id = item["id"]
+                    elif isinstance(item, (int, str)):
+                        try:
+                            item_id = int(item)
+                        except ValueError:
+                            pass
+                    if item_id:
+                        transcription_ids.append(str(item_id))
                 if transcription_ids:
-            metadata["pending_transcription_ids"] = ",".join(transcription_ids)
-            metadata["has_pending_transcriptions"] = "true"
+                    metadata["pending_transcription_ids"] = ",".join(transcription_ids)
+                    metadata["has_pending_transcriptions"] = "true"
                     logger.info(f"Stockage IDs {transcription_ids} pour webhook")
-            
-            # Créer session Stripe (bloc try/except indenté)
+
+            # Créer session Stripe
             try:
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[
-                {
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {
+                checkout_session = stripe.checkout.Session.create(
+                    payment_method_types=["card"],
+                    line_items=[
+                        {
+                            "price_data": {
+                                "currency": "usd",
+                                "product_data": {
                                     "name": f"FinTune Onboarding - {character_count} caractères",
                                     "description": f"{billable_characters} caractères facturables (10k gratuits)"
+                                },
+                                "unit_amount": amount_in_cents,
+                            },
+                            "quantity": 1,
                         },
-                                "unit_amount": amount_in_cents, 
-                    },
-                    "quantity": 1,
-                },
-            ],
-            mode="payment",
+                    ],
+                    mode="payment",
                     success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
-                    cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true", 
-            client_reference_id=str(current_user.id),
-            metadata=metadata
-        )
-        return {"checkout_url": checkout_session.url}
+                    cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true",
+                    client_reference_id=str(current_user.id),
+                    metadata=metadata
+                )
+                return {"checkout_url": checkout_session.url}
             except stripe.error.StripeError as e:
                 logger.error(f"Erreur Stripe: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Erreur communication Stripe: {str(e)}"
                 )
     
