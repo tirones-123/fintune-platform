@@ -18,6 +18,7 @@ import {
   Stack,
   LinearProgress,
   useTheme,
+  alpha,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
@@ -312,7 +313,7 @@ const ProjectsPage = () => {
                 </CardContent>
               </Card>
             </Grid>
-          ))};
+          ))}
         </Grid>
       )}
 
