@@ -312,7 +312,7 @@ const ProjectsPage = () => {
                 </CardContent>
               </Card>
             </Grid>
-          ))};
+           ))}; // <--- Ajouter le point-virgule ici
         </Grid>
       )}
 
