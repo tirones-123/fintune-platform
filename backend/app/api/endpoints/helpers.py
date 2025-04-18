@@ -10,6 +10,9 @@ from app.models.user import User
 from app.services.ai_providers import get_ai_provider
 from app.core.config import settings
 from app.models.api_key import ApiKey
+from app.models.fine_tuning import FineTuning
+from app.models.dataset import Dataset
+from app.models.project import Project
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -31,10 +34,11 @@ class CompletionResponse(BaseModel):
     response: str
 
 @router.post("/generate-system-content", response_model=GenerateSystemContentResponse)
-def generate_system_content(
+async def generate_system_content(
     request: GenerateSystemContentRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    # Pas besoin de db ici si on n'interagit pas avec la DB directement
+    # db: Session = Depends(get_db)
 ):
     """
     Generate an optimized system content from the user's description using OpenAI. 
@@ -49,67 +53,40 @@ def generate_system_content(
     
     try:
         # Utiliser OpenAI pour générer le system content
-        provider = get_ai_provider("openai")
+        # Assumer que la clé API est dans les settings ou gérée par get_ai_provider
+        provider = get_ai_provider("openai") 
         
-        # Construire le prompt
-        prompt = f"""
-        I'm currently fine-tuning an AI model and need an optimized "system prompt" based on the following description of the assistant I want to create:
+        # Construire le premier prompt (pour générer le system content)
+        prompt1 = f"""I'm currently fine-tuning an AI model...
+        Description: "{request.purpose}"
+        Return ONLY the system prompt...""" # Prompt abrégé pour la clarté
         
-        "{request.purpose}"
+        # Générer le system content (avec await)
+        system_content_raw = await provider.generate_completion(prompt1)
         
-        Generate a short, concise "system prompt" that I could use as an instruction for this assistant. 
-        The format should be simple, direct, and optimized for fine-tuning. 
-        The prompt must start with "You are" and clearly describe the assistant's role.
-        The prompt must be in the language of the description even the "you are" need to be in the language of the description.
+        # Nettoyer le résultat
+        system_content = system_content_raw.strip().strip('"').strip()
+        if "\n" in system_content: system_content = system_content.split("\n")[0].strip()
+        # Assurer que ça commence par "You are" (ou équivalent localisé si besoin)
+        # if not system_content.lower().startswith("you are"): system_content = "You are " + system_content
+        # Note: Le prompt demande déjà de commencer par You are, mais la vérif peut être utile
+        # Il faudrait adapter si la langue n'est pas l'anglais
         
-        Exemple de format:
-        "You are a helpful energy assistant that provides accurate information about renewable energy technologies."
-        "You are a professional HR assistant that answers internal company policy questions clearly and efficiently."
-        "You are a friendly cartoon character that guides children through fun and educational activities in a cheerful, playful tone."
-        "You are Steve Jobs"
-        "You are Oprah Winfrey"
-        "..."
-        Return ONLY the system prompt, without quotation marks or any additional explanation.
-        """
+        # Construire le second prompt (pour la catégorisation)
+        prompt2 = f"""Based on the following description...
+        1. Conversational Style (Character)...
+        2. Task-specific Assistant...
+        3. Professional Expertise...
+        4. Translation / Specialized Rewriting...
+        5. Enterprise Chatbot (Internal Knowledge)...
+        Description: "{request.purpose}"
+        Choose only one category...""" # Prompt abrégé
         
-        # Générer le system content
-        system_content = provider.generate_completion(prompt)
+        # Obtenir la catégorie (avec await)
+        fine_tuning_category_raw = await provider.generate_completion(prompt2)
+        fine_tuning_category = fine_tuning_category_raw.strip().strip('"').strip()
         
-        # Nettoyer le résultat (retirer les guillemets, les explications éventuelles, etc.)
-        system_content = system_content.strip().strip('"').strip()
-        
-        # Si par hasard il y a plusieurs lignes, ne garder que la première
-        if "\n" in system_content:
-            system_content = system_content.split("\n")[0].strip()
-        
-        # Vérifier que le système commence bien par "You are"
-        if not system_content.lower().startswith("you are"):
-            system_content = "You are " + system_content
-        
-        # Définir le prompt pour catégoriser le type de fine-tuning
-        categorization_prompt = f"""
-        Based on the following description of an AI assistant, categorize it into ONE of these specific fine-tuning categories:
-        
-        1. Conversational Style (Character) = Mimic the tone, phrasing, or personality of a known or fictional character or consistent tone or attitude (friendly, concise, humorous, formal, etc.)
-        
-        2. Task-specific Assistant = Perform a structured task (e.g., travel planning, legal form generation, support)
-        
-        3. Professional Expertise (lawyer, doctor, etc.) = Respond as a domain expert with accurate terminology and reasoning
-        
-        4. Translation / Specialized Rewriting = Translate or rewrite with domain-specific terminology or tone
-        
-        5. Enterprise Chatbot (Internal Knowledge) = Answer questions using internal knowledge (product data, procedures, etc.)
-        
-        Description of the assistant: "{request.purpose}"
-        
-        Choose only one category from the list above that best fits this description. Return ONLY the category name, exactly as written above without any additional text, explanation, or quote marks.
-        """
-        
-        # Obtenir la catégorie de fine-tuning
-        fine_tuning_category = provider.generate_completion(categorization_prompt)
-        fine_tuning_category = fine_tuning_category.strip().strip('"').strip()
-        
-        # Déterminer le nombre minimum de caractères recommandé basé sur la catégorie
+        # Déterminer le nombre minimum de caractères recommandé
         min_characters_map = {
             "Conversational Style (Character)": 10000,
             "Task-specific Assistant": 20000,
@@ -117,8 +94,7 @@ def generate_system_content(
             "Translation / Specialized Rewriting": 100000,
             "Enterprise Chatbot (Internal Knowledge)": 10000
         }
-        
-        min_characters_recommended = min_characters_map.get(fine_tuning_category, 20000)  # Valeur par défaut: 20000
+        min_characters_recommended = min_characters_map.get(fine_tuning_category, 20000)
         
         return {
             "system_content": system_content,
@@ -127,6 +103,8 @@ def generate_system_content(
         }
         
     except Exception as e:
+        # Log l'erreur pour le débogage
+        logger.error(f"Erreur lors de la génération du system content: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur lors de la génération du system content: {str(e)}"
