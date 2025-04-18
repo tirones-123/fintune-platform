@@ -32,12 +32,18 @@ const getProjectAggregateStatus = (projectId, projectStatuses) => {
   if (!statusInfo) return { text: 'Actif', color: 'default', progress: null };
 
   switch (statusInfo.status) {
-    case 'transcribing': return { text: 'Transcription en cours...', color: 'info', progress: null };
-    case 'generating_dataset': return { text: 'Génération Dataset...', color: 'info', progress: null };
-    case 'preparing_finetune': return { text: 'Préparation Fine-tune...', color: 'warning', progress: null };
-    case 'training_finetune': return { text: `Entraînement (${statusInfo.progress?.toFixed(0) ?? 0}%)`, color: 'warning', progress: statusInfo.progress };
-    case 'error': return { text: 'Erreur', color: 'error', progress: null };
-    default: return { text: 'Actif', color: 'success', progress: null };
+    case 'training':
+      return { text: `Entraînement (${statusInfo.progress?.toFixed(0) ?? 0}%)`, color: 'warning', progress: statusInfo.progress };
+    case 'preparing':
+      return { text: 'Préparation Fine-tune...', color: 'warning', progress: null };
+    case 'queued':
+      return { text: 'En attente de fine-tuning', color: 'info', progress: null };
+    case 'completed':
+      return { text: 'Fine-tuning terminé', color: 'success', progress: null };
+    case 'error':
+      return { text: 'Erreur', color: 'error', progress: null };
+    default:
+      return { text: 'Actif', color: 'success', progress: null };
   }
 };
 
@@ -54,53 +60,24 @@ const ProjectsPage = () => {
   // Fonction pour récupérer les statuts détaillés d'un projet
   const fetchProjectDetails = useCallback(async (projectId) => {
     try {
-      const [contents, datasets, fineTunings] = await Promise.all([
-        contentService.getByProjectId(projectId),
-        datasetService.getByProjectId(projectId),
-        fineTuningService.getByProjectId(projectId) 
-      ]);
-
-      // Déterminer le statut agrégé avec la bonne priorité
-      let status = 'idle'; // Statut par défaut
-      let progress = null;
-
-      // 1. Priorité aux fine-tunings actifs
-      const activeFineTuning = fineTunings.find(ft => ['queued', 'preparing', 'training'].includes(ft.status));
-      if (activeFineTuning) {
-        status = activeFineTuning.status === 'training' ? 'training_finetune' : 'preparing_finetune';
-        progress = activeFineTuning.progress;
-        return { status, progress }; // Statut prioritaire trouvé, on arrête là
+      // Récupérer la liste des fine-tunings du projet
+      const fineTunings = await fineTuningService.getByProjectId(projectId);
+      if (fineTunings && fineTunings.length > 0) {
+        // Prendre le fine-tuning en cours (training, preparing, queued) ou le plus récent
+        let selectedFT = fineTunings.find(ft => ['training', 'preparing', 'queued'].includes(ft.status));
+        if (!selectedFT) {
+          // Sinon, prendre le plus récent (par date de création)
+          selectedFT = fineTunings.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+        }
+        // Récupérer le statut réel via getById
+        const ftDetail = await fineTuningService.getById(selectedFT.id);
+        return { status: ftDetail.status, progress: ftDetail.progress };
       }
-
-      // 2. Sinon, vérifier les datasets en cours de génération
-      const processingDataset = datasets.find(d => d.status === 'processing');
-      if (processingDataset) {
-        status = 'generating_dataset';
-        return { status, progress }; // Statut trouvé
-      }
-
-      // 3. Sinon, vérifier les contenus en cours de traitement
-      const processingContent = contents.find(c => c.status === 'processing');
-      if (processingContent) {
-        status = 'transcribing'; 
-        return { status, progress }; // Statut trouvé
-      }
-
-      // 4. Seulement si rien n'est actif, vérifier les erreurs
-      const errorFineTuning = fineTunings.find(ft => ft.status === 'error');
-      const errorDataset = datasets.find(d => d.status === 'error');
-      const errorContent = contents.find(c => c.status === 'error');
-      if (errorFineTuning || errorDataset || errorContent) {
-         status = 'error';
-         return { status, progress }; // Statut trouvé
-      }
-      
-      // 5. Si rien d'actif et pas d'erreur, le statut est 'idle' (sera affiché comme Actif/Succès)
-      return { status, progress }; 
-
+      // Si pas de fine-tuning, statut par défaut
+      return { status: 'idle', progress: null };
     } catch (err) {
-      console.error(`Error fetching details for project ${projectId}:`, err);
-      return { status: 'error', progress: null }; 
+      console.error(`Error fetching fine-tuning status for project ${projectId}:`, err);
+      return { status: 'error', progress: null };
     }
   }, []);
 
@@ -331,12 +308,6 @@ const ProjectsPage = () => {
       >
         <MenuItem onClick={() => selectedProject && handleViewProject(selectedProject.id)}>
           Voir les détails
-        </MenuItem>
-        <MenuItem onClick={() => selectedProject && handleAddContent(selectedProject.id)}>
-          Ajouter du contenu
-        </MenuItem>
-        <MenuItem onClick={() => selectedProject && handleCreateDataset(selectedProject.id)}>
-          Créer un dataset
         </MenuItem>
         <Divider />
         <MenuItem 

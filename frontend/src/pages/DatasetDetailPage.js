@@ -64,18 +64,23 @@ const DatasetDetailPage = () => {
   };
 
   // Fonction pour exporter le dataset
-  const handleExportDataset = (provider) => {
+  const handleExportDataset = async (provider) => {
     try {
-      // Construire l'URL pour télécharger le dataset
-      const exportUrl = `${process.env.REACT_APP_API_URL}/api/datasets/${datasetId}/export?provider=${provider}`;
-      
-      // Ouvrir l'URL dans un nouvel onglet
-      window.open(exportUrl, '_blank');
-      
+      // Utiliser la méthode sécurisée pour télécharger le dataset
+      const { blob, filename } = await datasetService.downloadDataset(datasetId, provider);
+      // Créer un lien de téléchargement temporaire
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
       enqueueSnackbar(`Export pour ${provider} démarré`, { variant: 'success' });
     } catch (error) {
       console.error('Error exporting dataset:', error);
-      enqueueSnackbar(`Erreur lors de l'export pour ${provider}`, { variant: 'error' });
+      enqueueSnackbar(`Erreur lors de l'export pour ${provider}: ${error.message || error}`, { variant: 'error' });
     } finally {
       handleCloseExportMenu();
     }
@@ -247,6 +252,8 @@ const DatasetDetailPage = () => {
                     variant="outlined"
                     startIcon={<DownloadIcon />}
                     onClick={handleOpenExportMenu}
+                    disabled={dataset.status !== 'ready'}
+                    title={dataset.status !== 'ready' ? "Le dataset doit être prêt pour être exporté." : undefined}
                   >
                     Exporter
                   </Button>
@@ -255,13 +262,18 @@ const DatasetDetailPage = () => {
                     open={Boolean(exportMenuAnchor)}
                     onClose={handleCloseExportMenu}
                   >
-                    <MenuItem onClick={() => handleExportDataset('openai')}>
+                    <MenuItem onClick={() => handleExportDataset('openai')} disabled={dataset.status !== 'ready'}>
                       Exporter pour OpenAI
                     </MenuItem>
-                    <MenuItem onClick={() => handleExportDataset('anthropic')}>
+                    <MenuItem onClick={() => handleExportDataset('anthropic')} disabled={dataset.status !== 'ready'}>
                       Exporter pour Anthropic
                     </MenuItem>
                   </Menu>
+                  {dataset.status !== 'ready' && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Le dataset doit être prêt pour être exporté.
+                    </Typography>
+                  )}
                 </>
               )}
             </Box>
