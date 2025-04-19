@@ -95,7 +95,7 @@ const ChatPage = () => {
       // Ajouter la réponse du modèle à la conversation
       const assistantMessage = {
         role: 'assistant', 
-        content: response.completion, 
+        content: response.response,
         timestamp: new Date().toISOString()
       };
       setMessages(prevMessages => [...prevMessages, assistantMessage]);

@@ -171,20 +171,6 @@ export const authService = {
     }
   },
 
-  // Récupérer l'abonnement de l'utilisateur
-  getSubscription: async () => {
-    try {
-      const response = await api.get('/api/users/me/subscription');
-      return response.data;
-    } catch (error) {
-      // Si l'erreur est 404, cela signifie qu'il n'y a pas d'abonnement, ce qui est normal pour un nouvel utilisateur
-      if (error.response?.status === 404) {
-        return null; // Retourner null au lieu de lancer une erreur
-      }
-      throw new Error(error.response?.data?.detail || 'Erreur lors de la récupération de l\'abonnement');
-    }
-  },
-
   // Vérifier si l'utilisateur est authentifié
   isAuthenticated: () => {
     return !!localStorage.getItem(`${STORAGE_PREFIX}accessToken`);

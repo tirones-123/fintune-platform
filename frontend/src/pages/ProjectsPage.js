@@ -51,57 +51,62 @@ const ProjectsPage = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectStatuses, setProjectStatuses] = useState({});
 
-  // Fonction pour récupérer les statuts détaillés d'un projet (Correction récupération FT)
+  // Fonction pour récupérer les statuts détaillés d'un projet
   const fetchProjectDetails = useCallback(async (projectId) => {
     try {
-      // 1. Récupérer les datasets et contenus du projet (moins prioritaire pour le statut mais peut servir)
+      // 1. Récupérer les datasets et contenus du projet
       const [contents, datasets] = await Promise.all([
         contentService.getByProjectId(projectId),
         datasetService.getByProjectId(projectId)
       ]);
-      
+
       // 2. Récupérer TOUS les fine-tunings et filtrer ceux de ce projet
-      // C'est moins optimal que d'avoir un endpoint dédié, mais fonctionnel
       const allFineTunings = await fineTuningService.getAll();
       const projectFineTunings = allFineTunings.filter(ft => 
           datasets.some(ds => ds.id === ft.dataset_id)
       );
 
-      // 3. Si aucun fine-tuning pour ce projet
-      if (!projectFineTunings || projectFineTunings.length === 0) {
-         // Vérifier si un dataset ou contenu est en cours (logique de l'erreur précédente)
-         const processingDataset = datasets.find(d => d.status === 'processing');
-         if (processingDataset) return { status: 'generating_dataset', progress: null };
-         const processingContent = contents.find(c => c.status === 'processing');
-         if (processingContent) return { status: 'transcribing', progress: null }; 
-         // Vérifier les erreurs dataset/contenu si rien n'est en cours
-         if (datasets.some(d => d.status === 'error') || contents.some(c => c.status === 'error')) {
-             return { status: 'error', progress: null };
-         }
-         return { status: 'idle', progress: null }; 
+      // 3. Appliquer la même logique exacte que FineTuningDetailPage :
+      // Vérifier d'abord si un dataset est en cours de génération (PLUS HAUTE PRIORITÉ)
+      const processingDataset = datasets.find(d => d.status === 'processing');
+      if (processingDataset) {
+        return { status: 'generating_dataset', progress: null };
       }
 
-      // 4. Trier les fine-tunings du projet et déterminer le statut basé sur le plus récent
-      const sortedFineTunings = projectFineTunings.sort((a, b) => 
-          new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      // Vérifier ensuite si un contenu est en cours de traitement
+      const processingContent = contents.find(c => c.status === 'processing');
+      if (processingContent) {
+        return { status: 'transcribing', progress: null };
+      }
+
+      // Vérifier ensuite si un fine-tuning est en cours de training
+      const trainingFineTuning = projectFineTunings.find(ft => ft.status === 'training');
+      if (trainingFineTuning) {
+        return { 
+          status: 'training_finetune', 
+          progress: trainingFineTuning.progress || 0
+        };
+      }
+
+      // Vérifier ensuite si un fine-tuning est en préparation
+      const preparingFineTuning = projectFineTunings.find(
+        ft => ft.status === 'preparing' || ft.status === 'queued' || ft.status === 'pending'
       );
-      const latestFineTuning = sortedFineTunings[0];
-      const latestStatus = latestFineTuning.status;
-      let displayStatus = 'idle';
-      let displayProgress = null;
+      if (preparingFineTuning) {
+        return { status: 'preparing_finetune', progress: null };
+      }
 
-      if (latestStatus === 'training') {
-          displayStatus = 'training_finetune';
-          // Idéalement, refetcher les détails pour la progression, mais on peut prendre celle de la liste pour l'instant
-          displayProgress = latestFineTuning.progress;
-      } else if (latestStatus === 'preparing' || latestStatus === 'queued') {
-          displayStatus = 'preparing_finetune';
-      } else if (latestStatus === 'error') {
-          displayStatus = 'error';
-      } 
-      // completed ou cancelled -> idle (Actif)
+      // Vérifier ensuite les erreurs
+      if (
+        projectFineTunings.some(ft => ft.status === 'error') ||
+        datasets.some(d => d.status === 'error') ||
+        contents.some(c => c.status === 'error')
+      ) {
+        return { status: 'error', progress: null };
+      }
 
-      return { status: displayStatus, progress: displayProgress };
+      // Par défaut, projet actif
+      return { status: 'idle', progress: null };
 
     } catch (err) {
       console.error(`Error fetching details/status for project ${projectId}:`, err);

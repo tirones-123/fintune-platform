@@ -121,40 +121,45 @@ async def generate_completion_endpoint(
     """
     logger.info(f"Requête de complétion reçue pour modèle: {request_data.model_id} par user {current_user.id}")
     
-    # Déterminer le fournisseur (pour l'instant, on suppose OpenAI si ce n'est pas un ID de fine-tuning numérique)
-    # Une logique plus robuste pourrait être nécessaire si on ajoute d'autres providers
-    provider = "openai" # Par défaut
-    fine_tuning_record = None
+    # Déterminer le fournisseur et le modèle à utiliser
+    provider = "openai"  # Par défaut
     model_to_use = request_data.model_id
+    fine_tuning_record = None
     
-    # Essayer de voir si model_id est un ID numérique de fine-tuning
-    try:
-        ft_id = int(request_data.model_id)
-        # Si c'est un entier, récupérer le fine-tuning pour obtenir le provider et le vrai model_id
-        fine_tuning_record = db.query(FineTuning).join(Dataset).join(Project).filter(
-            FineTuning.id == ft_id,
-            Project.user_id == current_user.id
-        ).first()
-        
-        if fine_tuning_record:
-            if fine_tuning_record.status != 'completed':
-                 raise HTTPException(status_code=400, detail="Le modèle fine-tuné sélectionné n'est pas encore complété.")
-            if not fine_tuning_record.fine_tuned_model:
-                 raise HTTPException(status_code=400, detail="L'ID du modèle fine-tuné (externe) est manquant.")
+    # Vérifier si c'est un ID externe de modèle fine-tuné (commence par "ft:")
+    if isinstance(request_data.model_id, str) and request_data.model_id.startswith("ft:"):
+        # C'est un ID externe d'OpenAI, on l'utilise directement
+        provider = "openai"  # Pour l'instant c'est uniquement OpenAI qui a ce format
+        model_to_use = request_data.model_id
+        logger.info(f"Utilisation du modèle fine-tuné OpenAI externe: {model_to_use}")
+    else:
+        # Essayer de voir si model_id est un ID numérique de fine-tuning interne
+        try:
+            ft_id = int(request_data.model_id)
+            # Si c'est un entier, récupérer le fine-tuning pour obtenir le provider et le vrai model_id
+            fine_tuning_record = db.query(FineTuning).join(Dataset).join(Project).filter(
+                FineTuning.id == ft_id,
+                Project.user_id == current_user.id
+            ).first()
+            
+            if fine_tuning_record:
+                if fine_tuning_record.status != 'completed':
+                     raise HTTPException(status_code=400, detail="Le modèle fine-tuné sélectionné n'est pas encore complété.")
+                if not fine_tuning_record.fine_tuned_model:
+                     raise HTTPException(status_code=400, detail="L'ID du modèle fine-tuné (externe) est manquant.")
+                     
+                provider = fine_tuning_record.provider
+                model_to_use = fine_tuning_record.fine_tuned_model  # Utiliser l'ID externe du modèle FT
+                logger.info(f"Utilisation du modèle fine-tuné interne: {model_to_use} (Provider: {provider})")
+            else:
+                # Si l'ID est numérique mais ne correspond à aucun FT de l'utilisateur, c'est une erreur
+                 raise HTTPException(status_code=404, detail=f"Modèle fine-tuné avec ID {ft_id} non trouvé.")
                  
-            provider = fine_tuning_record.provider
-            model_to_use = fine_tuning_record.fine_tuned_model # Utiliser l'ID externe du modèle FT
-            logger.info(f"Utilisation du modèle fine-tuné: {model_to_use} (Provider: {provider})")
-        else:
-            # Si l'ID est numérique mais ne correspond à aucun FT de l'utilisateur, c'est une erreur
-             raise HTTPException(status_code=404, detail=f"Modèle fine-tuné avec ID {ft_id} non trouvé.")
-             
-    except ValueError:
-        # Si ce n'est pas un entier, on suppose que c'est un ID de modèle standard (ex: 'gpt-4o')
-        # Ici, on assume OpenAI par défaut. Pourrait être amélioré.
-        provider = "openai"
-        model_to_use = request_data.model_id 
-        logger.info(f"Utilisation du modèle standard: {model_to_use} (Provider: {provider})")
+        except ValueError:
+            # Si ce n'est pas un entier ni un "ft:", c'est un ID de modèle standard (ex: 'gpt-4o')
+            provider = "openai"  # Assume OpenAI par défaut pour les modèles standards
+            model_to_use = request_data.model_id 
+            logger.info(f"Utilisation du modèle standard: {model_to_use} (Provider: {provider})")
 
     # Récupérer la clé API pour le provider déterminé
     api_key_record = db.query(ApiKey).filter(
@@ -175,8 +180,6 @@ async def generate_completion_endpoint(
         
         # Appeler la méthode sur l'instance
         completion = await provider_instance.generate_completion(
-            # Assurez-vous que la méthode generate_completion dans le provider
-            # accepte bien ces arguments (model, prompt, system_prompt)
             model=model_to_use, 
             prompt=request_data.prompt,
             system_prompt=request_data.system_message

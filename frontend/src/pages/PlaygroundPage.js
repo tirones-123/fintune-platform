@@ -57,9 +57,10 @@ function PlaygroundPage() {
       const completedFineTunings = allFineTunings
         .filter(ft => ft.status === 'completed' && ft.fine_tuned_model)
         .map(ft => ({ 
-            id: ft.id, 
+            id: ft.fine_tuned_model,
             name: ft.name || `Fine-tune ${ft.id}`,
-            externalId: ft.fine_tuned_model 
+            internalId: ft.id,
+            isFineTuned: true
         })); 
       setFineTunedModels(completedFineTunings);
       // Mettre à jour allModels ici après avoir les nouvelles données
@@ -120,9 +121,9 @@ function PlaygroundPage() {
     try {
       let apiResponse;
       // Utiliser le nouvel endpoint générique pour tous les modèles
-      // Il gère la distinction standard/fine-tuné côté backend
+      // L'ID OpenAI est déjà stocké directement dans selectedModel
       apiResponse = await helperService.generateCompletion(
-          currentModelId.toString(), // Envoyer l'ID (numérique ou string)
+          currentModelId,
           currentPrompt,
           currentSystemMessage
       );

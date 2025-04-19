@@ -48,15 +48,39 @@ function HelpPage() {
             <ListItem>
               <ListItemText primary="5. Test & Intégration :" secondary="Testez votre modèle personnalisé dans le Playground et intégrez-le à vos applications." />
             </ListItem>
-            <ListItem sx={{ mt: 1 }}>
-               <ListItemIcon sx={{ minWidth: 30 }}><YouTubeIcon color="error" fontSize="small" /></ListItemIcon>
-               <ListItemText 
-                 primary="Voir le tutoriel vidéo :" 
-                 secondary={<Link href="https://www.youtube.com/watch?v=VIDEO_ID_PLACEHOLDER" target="_blank" rel="noopener noreferrer">Comment utiliser FinTune Platform (Tutoriel)</Link>}
-               />
-            </ListItem>
           </List>
-          <Typography paragraph sx={{ mt: 2 }}>
+          
+          <Box sx={{ mt: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+              <YouTubeIcon color="error" fontSize="small" sx={{ mr: 1 }} /> Tutoriel vidéo :
+            </Typography>
+            <Box sx={{ 
+              position: 'relative',
+              width: '100%',
+              paddingTop: '56.25%', /* Ratio 16:9 pour le conteneur */
+              backgroundColor: '#f5f5f5',
+              borderRadius: 1,
+              overflow: 'hidden',
+              mb: 2
+            }}>
+              <iframe
+                style={{ 
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 'none'
+                }}
+                src="https://www.youtube.com/embed/VIDEO_ID_PLACEHOLDER"
+                title="Tutoriel FinTune Platform"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </Box>
+          </Box>
+          
+          <Typography paragraph>
             Le fine-tuning adapte le modèle à votre style, terminologie et base de connaissances spécifiques, le rendant beaucoup plus performant pour vos cas d'usage.
           </Typography>
         </Paper>
