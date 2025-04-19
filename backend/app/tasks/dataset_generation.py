@@ -47,17 +47,40 @@ def generate_dataset(self: Task, dataset_id: int):
         from app.models.fine_tuning import FineTuning
         from app.models.api_key import ApiKey
         
-        try:
-            dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
-            if not dataset:
-                logger.warning(f"Dataset {dataset_id} not found yet, possibly due to replication delay. Retrying...")
-                raise self.retry(countdown=10)
-        except self.MaxRetriesExceededError:
-            logger.error(f"Dataset {dataset_id} not found after multiple retries. Aborting task.")
-            return {"status": "error", "message": "Dataset not found after retries"}
-        except Exception as e:
-            logger.error(f"Error fetching dataset {dataset_id} initially: {e}")
-            raise self.retry(exc=e)
+        # --- CORRECTED: Retry mechanism for dataset visibility ---
+        for attempt in range(self.max_retries + 1):
+            try:
+                dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+                if dataset:
+                    logger.info(f"Dataset {dataset_id} found on attempt {attempt + 1}.")
+                    break # Dataset found, exit the loop
+                
+                # Dataset not found yet
+                if attempt < self.max_retries:
+                    wait_time = 10 # Wait 10 seconds before next attempt
+                    logger.warning(f"Dataset {dataset_id} not found on attempt {attempt + 1}/{self.max_retries + 1}. Retrying in {wait_time}s...")
+                    time.sleep(wait_time) # Use time.sleep for a simple delay
+                else:
+                    # Max retries exceeded
+                    logger.error(f"Dataset {dataset_id} not found after {self.max_retries + 1} attempts. Aborting task.")
+                    return {"status": "error", "message": "Dataset not found after retries"}
+            except Exception as e:
+                # Catch potential DB connection errors during the fetch attempt
+                logger.error(f"DB error fetching dataset {dataset_id} on attempt {attempt + 1}: {e}")
+                if attempt < self.max_retries:
+                    wait_time = 10
+                    logger.warning(f"Retrying fetch in {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"DB error fetching dataset {dataset_id} persisted after retries. Aborting.")
+                    # You might want to re-raise the exception or return an error
+                    raise e # Re-raise the last DB error to fail the task
+        # --- END CORRECTED RETRY MECHANISM ---
+        
+        # If we exit the loop because dataset is still None (shouldn't happen with the logic above, but as safety)
+        if not dataset:
+            logger.error(f"Critical error: Dataset object is None after retry loop for dataset {dataset_id}.")
+            return {"status": "error", "message": "Failed to retrieve dataset object after retries."}
 
         # Vérifier si les contenus sont prêts
         dataset_contents_assoc = db.query(DatasetContent).filter(DatasetContent.dataset_id == dataset_id).all()
