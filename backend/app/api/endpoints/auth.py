@@ -125,20 +125,11 @@ def logout(response: Response):
 @router.get("/google/login")
 async def login_via_google(request: Request):
     """Redirects the user to Google for authentication."""
-    # Force l'URL de callback en HTTPS et avec le bon domaine API
-    # Ne plus se fier à request.base_url
-    # Note: request.url_for génère le chemin relatif, ex: /api/auth/google/callback
-    callback_path = request.url_for('auth_google_callback')
+    # Force l'URL de callback complète et correcte
+    # TODO: Mettre cette URL dans settings.py (ex: settings.GOOGLE_REDIRECT_URI)
+    redirect_uri = "https://api.finetuner.io/api/auth/google/callback"
     
-    # Construire l'URL absolue correcte pour la production
-    # S'assurer que settings.FRONTEND_URL est bien l'URL de base où l'API est accessible
-    # Si l'API est sur api.finetuner.io, il faut une variable dédiée
-    # Pour l'instant, on hardcode pour api.finetuner.io
-    # TODO: Utiliser une variable de config settings.API_BASE_URL si possible
-    api_base_url = "https://api.finetuner.io" # A METTRE EN CONFIG IDEALEMENT
-    redirect_uri = f"{api_base_url}{callback_path}"
-    
-    print(f"Redirect URI sent to Google: {redirect_uri}") # Pour le debug
+    print(f"Forcing Redirect URI sent to Google: {redirect_uri}") # Pour le debug
 
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
