@@ -31,6 +31,9 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import NewFineTuningFlowPage from './pages/NewFineTuningFlowPage';
 import PlaygroundPage from './pages/PlaygroundPage';
 import HelpPage from './pages/HelpPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+import SitemapPage from './pages/SitemapPage';
 
 // Layouts
 import DashboardLayout from './components/dashboard/DashboardLayout';
@@ -85,6 +88,10 @@ const AppRoutes = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+        <Route path="/sitemap" element={<SitemapPage />} />
+        <Route path="/help" element={<HelpPage />} />
 
         {/* Route d'onboarding */}
         <Route
