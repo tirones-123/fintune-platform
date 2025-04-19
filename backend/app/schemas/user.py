@@ -36,9 +36,8 @@ class Token(BaseModel):
     token_type: str
     user: UserResponse
 
-# Ajouter le schéma manquant pour la requête de refresh token
+# Schéma pour la requête de refresh token
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
-class UserCreate(UserBase):
-    password: str 
+# La définition correcte (ligne ~13) qui hérite de UserBase est conservée. 
