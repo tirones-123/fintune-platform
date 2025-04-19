@@ -5,6 +5,7 @@ from datetime import timedelta
 from authlib.integrations.starlette_client import OAuth, OAuthError
 import uuid
 import logging
+import urllib.parse  # Ajout pour l'encodage d'URL
 
 from app.core.security import create_access_token, create_refresh_token, get_password_hash, verify_password, get_current_user, validate_refresh_token
 from app.core.config import settings
@@ -189,37 +190,40 @@ async def auth_google_callback(request: Request, db: Session = Depends(get_db)):
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        # Potentiellement, lancer le projet par défaut ici aussi?
-        # Ou laisser l'utilisateur arriver sur une page post-inscription?
 
     # Générer les tokens JWT pour notre application
     access_token = create_access_token(data={"sub": db_user.email})
     refresh_token = create_refresh_token(data={"sub": db_user.email})
 
-    # Rediriger vers le frontend avec les tokens (via cookies HttpOnly recommandés)
-    # Pour l'instant, redirection simple vers le dashboard
-    # Le frontend devra gérer la récupération des infos utilisateur si nécessaire
-    redirect_url = f"{settings.FRONTEND_URL}/dashboard" 
+    # CHANGEMENT : Au lieu de stocker les tokens dans des cookies HttpOnly,
+    # on les passe en paramètres d'URL pour que le frontend les récupère et les mette dans localStorage
+    # Ne pas mettre directement les tokens dans l'URL (risques de sécurité)
+    # Utiliser un état temporaire côté frontend qui sera supprimé après utilisation
+    
+    # Créer un ID unique pour cet état de connexion
+    auth_state_id = str(uuid.uuid4())
+    
+    # Paramètres pour la redirection
+    params = {
+        'auth_success': 'true',
+        'state_id': auth_state_id,
+        'user_email': db_user.email,
+        'user_name': db_user.name,
+        'access_token': access_token,
+        'refresh_token': refresh_token
+    }
+    
+    # Destination de redirection (dashboard ou onboarding selon l'état de l'utilisateur)
+    destination = "/dashboard" if db_user.has_completed_onboarding else "/onboarding"
+    
+    # Construire l'URL avec les paramètres
+    query_string = urllib.parse.urlencode(params)
+    redirect_url = f"{settings.FRONTEND_URL}{destination}?{query_string}"
+    
+    # Rediriger l'utilisateur
+    logger.info(f"Redirecting after Google auth to: {settings.FRONTEND_URL}{destination} (with auth params)")
     response = Response(status_code=307) # Temporary Redirect
     response.headers['Location'] = redirect_url
-    
-    # Ajouter les tokens dans des cookies HttpOnly sécurisés
-    response.set_cookie(
-        key="access_token", 
-        value=access_token, 
-        httponly=True, 
-        secure= not settings.DEBUG, # True en production (HTTPS)
-        samesite="lax", # ou 'strict'
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
-    )
-    response.set_cookie(
-        key="refresh_token", 
-        value=refresh_token, 
-        httponly=True, 
-        secure= not settings.DEBUG,
-        samesite="lax",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
-    )
     
     return response
 

@@ -33,7 +33,6 @@ import PlaygroundPage from './pages/PlaygroundPage';
 import HelpPage from './pages/HelpPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
-
 // Layouts
 import DashboardLayout from './components/dashboard/DashboardLayout';
 
@@ -75,6 +74,45 @@ const OnboardingCheck = ({ children }) => {
 // Composant principal avec les routes
 const AppRoutes = () => {
   const { isInitialized } = useAuth();
+  
+  // Vérifier les paramètres d'authentification dans l'URL (après redirection OAuth Google)
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authSuccess = params.get('auth_success');
+    
+    if (authSuccess === 'true') {
+      // Récupérer les tokens
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const userEmail = params.get('user_email');
+      const userName = params.get('user_name');
+      
+      // Stocker les informations dans localStorage
+      const storagePrefix = process.env.REACT_APP_STORAGE_PREFIX || 'fintune_';
+      
+      if (accessToken && refreshToken) {
+        localStorage.setItem(`${storagePrefix}accessToken`, accessToken);
+        localStorage.setItem(`${storagePrefix}refreshToken`, refreshToken);
+        
+        // Stocker les infos utilisateur
+        if (userEmail && userName) {
+          const user = {
+            email: userEmail,
+            name: userName,
+          };
+          localStorage.setItem(`${storagePrefix}user`, JSON.stringify(user));
+        }
+        
+        // Nettoyer l'URL (retirer les paramètres sensibles)
+        const destination = params.get('state_id') ? 
+          window.location.pathname : // Garder le chemin actuel
+          '/dashboard'; // Ou rediriger vers dashboard par défaut
+          
+        // Rediriger sans les paramètres d'auth dans l'URL
+        window.location.href = destination;
+      }
+    }
+  }, []);
 
   if (!isInitialized) {
     return <LoadingScreen />;
