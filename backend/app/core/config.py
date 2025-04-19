@@ -50,7 +50,8 @@ class Settings(BaseSettings):
     # Security configuration
     SECRET_KEY: str = Field(default="your_secret_key_here")
     ALGORITHM: str = Field(default="HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=240)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7)
     
     # Database configuration
     POSTGRES_HOST: str = Field(default="localhost")

@@ -43,8 +43,8 @@ def create_refresh_token(data: dict) -> str:
     """Create a new refresh token."""
     to_encode = data.copy()
     
-    # Refresh tokens are valid for 7 days
-    expire = datetime.utcnow() + timedelta(days=7)
+    # Utiliser la nouvelle variable de config pour l'expiration
+    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

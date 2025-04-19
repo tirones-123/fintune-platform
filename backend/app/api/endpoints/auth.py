@@ -5,7 +5,7 @@ from datetime import timedelta
 from authlib.integrations.starlette_client import OAuth
 import uuid
 
-from app.core.security import create_access_token, create_refresh_token, get_password_hash, verify_password, get_current_user
+from app.core.security import create_access_token, create_refresh_token, get_password_hash, verify_password, get_current_user, validate_refresh_token
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
@@ -90,7 +90,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     }
 
 @router.post("/refresh-token", response_model=Token)
-def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+def refresh_access_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
     """
     Refresh access token.
     """
