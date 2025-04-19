@@ -710,7 +710,7 @@ const OnboardingPage = () => {
         totalEstimate += parseInt(video.estimated_characters);
       } else {
         // Si pas d'estimation disponible, utiliser une valeur par défaut
-        totalEstimate += 1500; // ~10 minutes estimées
+        totalEstimate += 4000; // ~10 minutes estimées
       }
     });
     
@@ -821,7 +821,7 @@ const OnboardingPage = () => {
         actualCount += ytChars;
       } else if (video.status === 'awaiting_transcription') {
         // Estimation par défaut pour les vidéos en attente sans estimation
-        const defaultEstimate = 1500; // ~10 minutes par défaut
+        const defaultEstimate = 4000; // ~10 minutes par défaut
         console.log(`  → Pas d'estimation, utilisation de la valeur par défaut: ${defaultEstimate}`);
         actualCount += defaultEstimate;
         hasAllCounts = false;
@@ -986,7 +986,7 @@ const OnboardingPage = () => {
       if (video.estimated_characters) {
         totalCount += parseInt(video.estimated_characters);
       } else {
-        totalCount += 1500; // Valeur par défaut pour 10 minutes
+        totalCount += 4000; // Valeur par défaut pour 10 minutes
       }
     });
     
@@ -1055,8 +1055,8 @@ const OnboardingPage = () => {
       const durationSeconds = parseInt(videoInfo.lengthSeconds) || parseInt(videoInfo.length_seconds) || 600; // Fallback à 10 minutes si non disponible
       const durationMinutes = Math.round(durationSeconds / 60);
       
-      // Calculer le nombre de caractères (150 caractères par minute)
-      const estimatedCharacters = Math.round((durationSeconds / 60) * 150);
+      // Calculer le nombre de caractères (400 caractères par minute)
+      const estimatedCharacters = Math.round((durationSeconds / 60) * 400);
       console.log('Calculated duration:', durationSeconds, 'seconds; Estimated characters:', estimatedCharacters);
       
       // Créer l'objet au format attendu par le backend
@@ -1110,7 +1110,7 @@ const OnboardingPage = () => {
         // Si RapidAPI a échoué, on utilise une estimation fixe comme solution de secours
         const estimatedDuration = 600; // 10 minutes par défaut
         const durationMinutes = Math.round(estimatedDuration / 60);
-        const estimatedCharacters = Math.round((estimatedDuration / 60) * 150);
+        const estimatedCharacters = Math.round((estimatedDuration / 60) * 400);
         
         console.log("Utilisation d'une estimation fixe car RapidAPI a échoué");
         
@@ -1243,7 +1243,7 @@ const OnboardingPage = () => {
     if (videoIndex === -1) return;
     
     const video = youtubeVideosRef.current[videoIndex];
-    const charactersToRemove = video.estimated_characters || 1500;
+    const charactersToRemove = video.estimated_characters || 4000;
     
     // Supprimer d'abord de l'API
     contentService.delete(videoId)
@@ -1719,7 +1719,7 @@ const OnboardingPage = () => {
                         {video.status === 'awaiting_transcription' ? (
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="caption" color="text.secondary">
-                              ~{video.estimated_characters?.toLocaleString() || '1500'} caractères estimés (transcription après paiement)
+                              ~{video.estimated_characters?.toLocaleString() || '4000'} caractères estimés (transcription après paiement)
                             </Typography>
                           </Box>
                         ) : (
@@ -1896,9 +1896,6 @@ const OnboardingPage = () => {
             {apiKeySaved && (
               <Alert severity="success" sx={{ mt: 2, mb: 3 }}>
                 <AlertTitle>Clé API validée</AlertTitle>
-                <Typography variant="body2">
-                  Votre clé API a été validée avec succès. Cliquez sur "Suivant" pour continuer.
-                </Typography>
               </Alert>
             )}
             
