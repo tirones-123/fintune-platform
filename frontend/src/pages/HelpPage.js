@@ -14,6 +14,7 @@ import {
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import ApiIcon from '@mui/icons-material/Api';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
+import YouTubeIcon from '@mui/icons-material/YouTube';
 import PageTransition from '../components/common/PageTransition';
 
 function HelpPage() {
@@ -46,6 +47,13 @@ function HelpPage() {
             </ListItem>
             <ListItem>
               <ListItemText primary="5. Test & Intégration :" secondary="Testez votre modèle personnalisé dans le Playground et intégrez-le à vos applications." />
+            </ListItem>
+            <ListItem sx={{ mt: 1 }}>
+               <ListItemIcon sx={{ minWidth: 30 }}><YouTubeIcon color="error" fontSize="small" /></ListItemIcon>
+               <ListItemText 
+                 primary="Voir le tutoriel vidéo :" 
+                 secondary={<Link href="https://www.youtube.com/watch?v=VIDEO_ID_PLACEHOLDER" target="_blank" rel="noopener noreferrer">Comment utiliser FinTune Platform (Tutoriel)</Link>}
+               />
             </ListItem>
           </List>
           <Typography paragraph sx={{ mt: 2 }}>

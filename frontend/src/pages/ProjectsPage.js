@@ -51,63 +51,60 @@ const ProjectsPage = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectStatuses, setProjectStatuses] = useState({});
 
-  // Fonction pour récupérer les statuts détaillés d'un projet (Logique Priorisée Affinée)
+  // Fonction pour récupérer les statuts détaillés d'un projet (Correction récupération FT)
   const fetchProjectDetails = useCallback(async (projectId) => {
     try {
-      const [contents, datasets, fineTunings] = await Promise.all([
+      // 1. Récupérer les datasets et contenus du projet (moins prioritaire pour le statut mais peut servir)
+      const [contents, datasets] = await Promise.all([
         contentService.getByProjectId(projectId),
-        datasetService.getByProjectId(projectId),
-        fineTuningService.getByProjectId(projectId) 
+        datasetService.getByProjectId(projectId)
       ]);
-
-      // 1. Vérifier les fine-tunings actifs (priorité la plus haute)
-      const trainingFT = fineTunings.find(ft => ft.status === 'training');
-      if (trainingFT) {
-          // Refetcher pour progression à jour
-           let progress = null;
-           try {
-               const ftDetail = await fineTuningService.getById(trainingFT.id);
-               progress = ftDetail.progress;
-           } catch { progress = trainingFT.progress; }
-           return { status: 'training_finetune', progress: progress };
-      }
-      const preparingFT = fineTunings.find(ft => ft.status === 'preparing');
-      if (preparingFT) return { status: 'preparing_finetune', progress: null };
-      const queuedFT = fineTunings.find(ft => ft.status === 'queued');
-      if (queuedFT) return { status: 'preparing_finetune', progress: null }; // Afficher comme préparation aussi
-
-      // 2. Sinon, vérifier les datasets en cours de génération
-      const processingDataset = datasets.find(d => d.status === 'processing');
-      if (processingDataset) {
-        return { status: 'generating_dataset', progress: null };
-      }
-
-      // 3. Sinon, vérifier les contenus en cours de traitement
-      const processingContent = contents.find(c => c.status === 'processing');
-      if (processingContent) {
-        return { status: 'transcribing', progress: null }; 
-      }
-
-      // 4. Si rien n'est actif, vérifier l'erreur la plus récente (FT > Dataset)
-      const sortedFineTunings = fineTunings.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-      const sortedDatasets = datasets.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       
-      if (sortedFineTunings.length > 0 && sortedFineTunings[0].status === 'error') {
-           return { status: 'error', progress: null };
-      } 
-      // Vérifier l'erreur dataset seulement s'il n'y a pas de FT ou si le dernier dataset est plus récent que le dernier FT
-      if (sortedDatasets.length > 0 && sortedDatasets[0].status === 'error') {
-           if (sortedFineTunings.length === 0 || new Date(sortedDatasets[0].created_at) > new Date(sortedFineTunings[0].created_at || 0)) {
-               return { status: 'error', progress: null };
-           }
-      }
-      // On pourrait ajouter la vérif d'erreur contenu ici si jugé pertinent
+      // 2. Récupérer TOUS les fine-tunings et filtrer ceux de ce projet
+      // C'est moins optimal que d'avoir un endpoint dédié, mais fonctionnel
+      const allFineTunings = await fineTuningService.getAll();
+      const projectFineTunings = allFineTunings.filter(ft => 
+          datasets.some(ds => ds.id === ft.dataset_id)
+      );
 
-      // 5. Si rien d'autre, le projet est considéré comme Actif (idle)
-      return { status: 'idle', progress: null }; 
+      // 3. Si aucun fine-tuning pour ce projet
+      if (!projectFineTunings || projectFineTunings.length === 0) {
+         // Vérifier si un dataset ou contenu est en cours (logique de l'erreur précédente)
+         const processingDataset = datasets.find(d => d.status === 'processing');
+         if (processingDataset) return { status: 'generating_dataset', progress: null };
+         const processingContent = contents.find(c => c.status === 'processing');
+         if (processingContent) return { status: 'transcribing', progress: null }; 
+         // Vérifier les erreurs dataset/contenu si rien n'est en cours
+         if (datasets.some(d => d.status === 'error') || contents.some(c => c.status === 'error')) {
+             return { status: 'error', progress: null };
+         }
+         return { status: 'idle', progress: null }; 
+      }
+
+      // 4. Trier les fine-tunings du projet et déterminer le statut basé sur le plus récent
+      const sortedFineTunings = projectFineTunings.sort((a, b) => 
+          new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      );
+      const latestFineTuning = sortedFineTunings[0];
+      const latestStatus = latestFineTuning.status;
+      let displayStatus = 'idle';
+      let displayProgress = null;
+
+      if (latestStatus === 'training') {
+          displayStatus = 'training_finetune';
+          // Idéalement, refetcher les détails pour la progression, mais on peut prendre celle de la liste pour l'instant
+          displayProgress = latestFineTuning.progress;
+      } else if (latestStatus === 'preparing' || latestStatus === 'queued') {
+          displayStatus = 'preparing_finetune';
+      } else if (latestStatus === 'error') {
+          displayStatus = 'error';
+      } 
+      // completed ou cancelled -> idle (Actif)
+
+      return { status: displayStatus, progress: displayProgress };
 
     } catch (err) {
-      console.error(`Error fetching details for project ${projectId}:`, err);
+      console.error(`Error fetching details/status for project ${projectId}:`, err);
       return { status: 'error', progress: null }; 
     }
   }, []);
