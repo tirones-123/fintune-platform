@@ -304,54 +304,54 @@ async def create_onboarding_session(
                 project_id = project.id
             finally:
                 db_temp.close()
-            
-            # Préparer metadata
+
+        # Préparer metadata
         metadata = {
             "payment_type": "onboarding_characters", 
             "user_id": str(current_user.id),
             "character_count": str(character_count),
             "free_characters": "10000",
-                "billable_characters": str(billable_characters),
-                "dataset_name": request.dataset_name, 
-                "system_content": request.system_content,
-                "provider": request.provider,
-                "model": request.model,
-                "project_id": str(project_id), 
-                "hyperparameters": json.dumps({"n_epochs": 3}),
-                "content_ids": json.dumps(content_ids)
-            }
+            "billable_characters": str(billable_characters),
+            "dataset_name": request.dataset_name, 
+            "system_content": request.system_content,
+            "provider": request.provider,
+            "model": request.model,
+            "project_id": str(project_id), 
+            "hyperparameters": json.dumps({"n_epochs": 3}),
+            "content_ids": json.dumps(content_ids)
+        }
 
-            # Créer session Stripe
-            try:
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[
-                {
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {
-                                    "name": f"FinTune Onboarding - {character_count} caractères",
-                                    "description": f"{billable_characters} caractères facturables (10k gratuits)"
+        # Créer session Stripe
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=["card"],
+                line_items=[
+                    {
+                        "price_data": {
+                            "currency": "usd",
+                            "product_data": {
+                                "name": f"FinTune Onboarding - {character_count} caractères",
+                                "description": f"{billable_characters} caractères facturables (10k gratuits)"
+                            },
+                            "unit_amount": amount_in_cents, 
                         },
-                                "unit_amount": amount_in_cents, 
+                        "quantity": 1,
                     },
-                    "quantity": 1,
-                },
-            ],
-            mode="payment",
-                    success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
-                    cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true", 
-            client_reference_id=str(current_user.id),
-                    metadata=metadata,
-                    customer_email=current_user.email,
-                )
-        return {"checkout_url": checkout_session.url}
-            except stripe.error.StripeError as e:
-                logger.error(f"Erreur Stripe: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Erreur communication Stripe: {str(e)}"
-                )
+                ],
+                mode="payment",
+                success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
+                cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true", 
+                client_reference_id=str(current_user.id),
+                metadata=metadata,
+                customer_email=current_user.email,
+            )
+            return {"checkout_url": checkout_session.url}
+        except stripe.error.StripeError as e:
+            logger.error(f"Erreur Stripe: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erreur communication Stripe: {str(e)}"
+            )
     
     except Exception as e:
         logger.error(f"Erreur inattendue endpoint: {str(e)}", exc_info=True)

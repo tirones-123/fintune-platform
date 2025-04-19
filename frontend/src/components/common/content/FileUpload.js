@@ -159,7 +159,7 @@ const FileUpload = ({
                 primary={fileWrapper.name}
                 secondary={
                   fileWrapper.status === 'uploading' ? 
-                  <Typography variant="caption" color="text.secondary">En cours d'upload</Typography> : 
+                  null : 
                   fileWrapper.status === 'error' ? 
                   <Typography variant="caption" color="error">{fileWrapper.error || 'Échec'}</Typography> : 
                   <Typography variant="caption" color="success">Upload terminé</Typography>
