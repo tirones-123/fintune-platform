@@ -89,7 +89,7 @@ async def create_fine_tuning_job(
         if content.type == 'youtube' and content.status != 'completed':
             # Pour YouTube non traité, utiliser une estimation ou valeur par défaut
             # Ici, on suppose que l'estimation a été faite côté frontend ou est dans metadata
-            estimated_chars = content.content_metadata.get('estimated_characters', 1500) # Fallback à ~10min
+            estimated_chars = content.content_metadata.get('estimated_characters', 4000) # Fallback à ~10min
             total_characters += estimated_chars
             pending_transcriptions.append(content.id)
         elif content.content_metadata and content.content_metadata.get('character_count'):
