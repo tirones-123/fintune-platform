@@ -260,18 +260,23 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
     };
 
   // Créer une liste unifiée en évitant les doublons
-  const allContent = [
-    // D'abord les contenus existants qui N'ONT PAS été ajoutés dans ce flux
-    ...projectContents.filter(pc => 
-      !newlyAddedFiles.some(naf => naf.id === pc.id) &&
-      !newlyAddedYouTube.some(nay => nay.id === pc.id) &&
-      !newlyAddedWebsites.some(naw => naw.id === pc.id)
-    ),
-    // Ensuite les contenus ajoutés dans ce flux
-    ...newlyAddedFiles,
-    ...newlyAddedYouTube,
-    ...newlyAddedWebsites
-  ];
+  // Utiliser un Map pour s'assurer qu'il n'y a pas de doublons basés sur l'ID
+  const contentMap = new Map();
+  
+  // D'abord ajouter tous les contenus ajoutés dans ce flux car ils sont plus à jour
+  [...newlyAddedFiles, ...newlyAddedYouTube, ...newlyAddedWebsites].forEach(content => {
+    contentMap.set(content.id, content);
+  });
+  
+  // Ensuite ajouter les contenus existants seulement s'ils n'ont pas déjà été ajoutés 
+  projectContents.forEach(content => {
+    if (!contentMap.has(content.id)) {
+      contentMap.set(content.id, content);
+    }
+  });
+  
+  // Convertir le Map en array pour l'affichage
+  const allContent = Array.from(contentMap.values());
 
   return (
     <Box>

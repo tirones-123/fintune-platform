@@ -42,7 +42,6 @@ import { contentService } from '../../../services/apiService';
 const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
-  const [urls, setUrls] = useState(['']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -121,7 +120,7 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
   // Fonction pour télécharger les fichiers
   const handleUploadFiles = async () => {
     if (files.length === 0) {
-      setError('Veuillez sélectionner au moins un fichier ou ajouter une URL');
+      setError('Veuillez sélectionner au moins un fichier');
       return;
     }
 
@@ -157,95 +156,6 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
     }
   };
 
-  // Fonction pour gérer l'ajout de toutes les URLs
-  const handleAddUrls = async () => {
-    // Cette fonction n'est plus utilisée car on ajoute les URLs une par une
-    // Cependant, on la garde pour compatibilité avec le bouton principal
-    const validUrls = urls.filter(url => url.trim() !== '');
-    
-    if (validUrls.length === 0) {
-      return;
-    }
-    
-    for (let i = 0; i < validUrls.length; i++) {
-      if (urls[i].trim() !== '') {
-        await handleUrlSubmit(i);
-      }
-    }
-  };
-
-  // Fonction pour gérer le changement d'URL
-  const handleUrlChange = (index, value) => {
-    const newUrls = [...urls];
-    newUrls[index] = value;
-    setUrls(newUrls);
-  };
-  
-  // Fonction pour traiter une URL immédiatement
-  const handleUrlSubmit = async (index) => {
-    const url = urls[index].trim();
-    
-    if (!url) {
-      return;
-    }
-    
-    setUploading(true);
-    setError(null);
-    
-    try {
-      const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-      
-      const response = await contentService.addUrl({
-        project_id: projectId,
-        name: `Contenu depuis ${isYouTube ? 'YouTube' : 'URL'}`,
-        url: url,
-        type: isYouTube ? 'youtube' : 'website'
-      });
-      
-      // Ajouter l'URL à la liste des contenus
-      setUploadedContents(prev => [response, ...prev]);
-      
-      // Appeler le callback onSuccess si fourni
-      if (onSuccess) {
-        onSuccess(response);
-      }
-      
-      enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
-      
-      // Réinitialiser uniquement l'URL qui vient d'être soumise
-      const newUrls = [...urls];
-      newUrls[index] = '';
-      setUrls(newUrls);
-    } catch (err) {
-      console.error('Error adding URL:', err);
-      setError(err.message || 'Erreur lors de l\'ajout de l\'URL');
-    } finally {
-      setUploading(false);
-    }
-  };
-  
-  // Traitement de l'URL lorsqu'on appuie sur Enter
-  const handleUrlKeyDown = (index, e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleUrlSubmit(index);
-    }
-  };
-
-  // Fonction pour ajouter un nouveau champ d'URL
-  const handleAddUrlField = () => {
-    setUrls([...urls, '']);
-  };
-
-  // Fonction pour supprimer un champ d'URL
-  const handleRemoveUrlField = (index) => {
-    if (urls.length > 1) {
-      const newUrls = [...urls];
-      newUrls.splice(index, 1);
-      setUrls(newUrls);
-    }
-  };
-
   // Fonction pour gérer l'envoi du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -253,17 +163,8 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
     // Si des fichiers sont sélectionnés, les télécharger
     if (files.length > 0) {
       await handleUploadFiles();
-    }
-    
-    // Si des URLs sont entrées, les ajouter
-    const validUrls = urls.filter(url => url.trim() !== '');
-    if (validUrls.length > 0 && !hideUrlInput) {
-      await handleAddUrls();
-    }
-    
-    // Si aucun fichier ni URL n'est fourni, afficher une erreur
-    if (files.length === 0 && urls.every(url => url.trim() === '')) {
-      setError('Veuillez sélectionner au moins un fichier ou ajouter une URL');
+    } else {
+      setError('Veuillez sélectionner au moins un fichier');
     }
   };
 
@@ -286,7 +187,6 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
 
   // Fonction pour formater le nombre de caractères
   const formatCharCount = (content) => {
-    // Vérifier explicitement le status et le comptage
     if (content.status === 'completed' && content.content_metadata && content.content_metadata.character_count) {
       // Si le contenu est traité et que le comptage existe, afficher le nombre exact
       const count = parseInt(content.content_metadata.character_count);
@@ -299,7 +199,7 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
     } else if (content.status === 'error') {
       return 'Erreur';
     } else {
-      return 'En cours...';
+      return '...';
     }
   };
 
@@ -417,51 +317,6 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
                 />
               ))}
             </Stack>
-          )}
-          
-          {/* Affichage des champs d'URL uniquement si hideUrlInput est false */}
-          {!hideUrlInput && (
-            <>
-              <Divider sx={{ my: 3 }} />
-              
-              {urls.map((url, index) => (
-                <Box key={index} sx={{ display: 'flex', mb: 2 }}>
-                  <TextField
-                    fullWidth
-                    value={url}
-                    onChange={(e) => handleUrlChange(index, e.target.value)}
-                    onKeyDown={(e) => handleUrlKeyDown(index, e)}
-                    placeholder="https://..."
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => handleRemoveUrlField(index)}
-                            edge="end"
-                            size="small"
-                          >
-                            <CloseIcon />
-                          </IconButton>
-                          <IconButton
-                            onClick={() => handleUrlSubmit(index)}
-                            edge="end"
-                            size="small"
-                            disabled={!url.trim()}
-                            color="primary"
-                          >
-                            <AddIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
-              ))}
-              
-              <FormHelperText>
-                Ajoutez des liens vers des sites web ou des vidéos YouTube. Les transcriptions seront automatiquement extraites.
-              </FormHelperText>
-            </>
           )}
           
           {error && (

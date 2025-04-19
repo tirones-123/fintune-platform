@@ -7,7 +7,6 @@ const initialState = {
   isAuthenticated: false,
   isInitialized: false,
   user: null,
-  subscription: null,
 };
 
 // Actions
@@ -17,7 +16,6 @@ const ActionType = {
   LOGOUT: 'LOGOUT',
   REGISTER: 'REGISTER',
   UPDATE_USER: 'UPDATE_USER',
-  UPDATE_SUBSCRIPTION: 'UPDATE_SUBSCRIPTION',
 };
 
 // Reducer
@@ -29,7 +27,6 @@ const reducer = (state, action) => {
         isAuthenticated: action.payload.isAuthenticated,
         isInitialized: true,
         user: action.payload.user,
-        subscription: action.payload.subscription,
       };
     case ActionType.LOGIN:
       return {
@@ -42,7 +39,6 @@ const reducer = (state, action) => {
         ...state,
         isAuthenticated: false,
         user: null,
-        subscription: null,
       };
     case ActionType.REGISTER:
       return {
@@ -54,11 +50,6 @@ const reducer = (state, action) => {
       return {
         ...state,
         user: action.payload.user,
-      };
-    case ActionType.UPDATE_SUBSCRIPTION:
-      return {
-        ...state,
-        subscription: action.payload.subscription,
       };
     default:
       return state;
@@ -112,20 +103,11 @@ export const AuthProvider = ({ children }) => {
               }
             }
             
-            // Récupérer l'abonnement de l'utilisateur
-            let subscription = null;
-            try {
-              subscription = await authService.getSubscription();
-            } catch (subscriptionError) {
-              console.error('Error fetching subscription:', subscriptionError);
-            }
-
             dispatch({
               type: ActionType.INITIALIZE,
               payload: {
                 isAuthenticated: true,
                 user, // Utiliser l'objet user potentiellement modifié
-                subscription,
               },
             });
           } catch (error) {
@@ -137,7 +119,6 @@ export const AuthProvider = ({ children }) => {
               payload: {
                 isAuthenticated: false,
                 user: null,
-                subscription: null,
               },
             });
           }
@@ -147,7 +128,6 @@ export const AuthProvider = ({ children }) => {
             payload: {
               isAuthenticated: false,
               user: null,
-              subscription: null,
             },
           });
         }
@@ -158,7 +138,6 @@ export const AuthProvider = ({ children }) => {
           payload: {
             isAuthenticated: false,
             user: null,
-            subscription: null,
           },
         });
       }
@@ -227,32 +206,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Mise à jour de l'abonnement
-  const updateSubscription = async () => {
-    try {
-      const subscription = await authService.getSubscription();
-      
-      dispatch({
-        type: ActionType.UPDATE_SUBSCRIPTION,
-        payload: {
-          subscription, // Peut être null si pas d'abonnement
-        },
-      });
-      
-      return subscription;
-    } catch (error) {
-      console.error('Update subscription error:', error);
-      // Ne pas propager l'erreur, simplement retourner null
-      dispatch({
-        type: ActionType.UPDATE_SUBSCRIPTION,
-        payload: {
-          subscription: null,
-        },
-      });
-      return null;
-    }
-  };
-
   // Déconnexion
   const logout = async () => {
     try {
@@ -275,7 +228,6 @@ export const AuthProvider = ({ children }) => {
         logout,
         register,
         updateUser,
-        updateSubscription,
       }}
     >
       {children}
