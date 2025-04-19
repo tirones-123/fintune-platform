@@ -1894,7 +1894,7 @@ const OnboardingPage = () => {
             </Box>
             
             {apiKeySaved && (
-              <Alert severity="success" sx={{ mt: 2, mb: 3 }}>
+              <Alert severity="success" sx={{ mt: 2, mb: 2 }}>
                 <AlertTitle>Clé API validée</AlertTitle>
               </Alert>
             )}
