@@ -1,6 +1,6 @@
-# FinTune Platform
+# FinTuner
 
-FinTune est une plateforme SaaS qui permet aux utilisateurs de créer facilement des assistants IA personnalisés en utilisant leurs propres données. La plateforme permet d'importer des contenus, de créer des datasets, et de fine-tuner des modèles de langage sans avoir besoin de compétences techniques avancées.
+FinTuner est une plateforme SaaS qui permet aux utilisateurs de créer facilement des assistants IA personnalisés en utilisant leurs propres données. La plateforme permet d'importer des contenus, de créer des datasets, et de fine-tuner des modèles de langage sans avoir besoin de compétences techniques avancées.
 
 ## Architecture
 
@@ -165,6 +165,8 @@ fintune-platform/
 │   ├── main.py             # Point d'entrée de l'application
 │   ├── celery_app.py       # Configuration Celery
 │   └── requirements.txt    # Dépendances Python
+│   ├── API_DOCUMENTATION.md # Documentation API
+│   └── ...                 # Autres fichiers (tests, config...)
 ├── frontend/               # Application React
 │   ├── public/             # Fichiers statiques
 │   ├── src/                # Code source
@@ -175,10 +177,13 @@ fintune-platform/
 │   │   └── theme/          # Thème Material-UI
 │   ├── nginx.conf          # Configuration Nginx
 │   ├── package.json        # Dépendances Node.js
-│   └── Dockerfile          # Configuration Docker
-├── deploy_to_production.sh # Script de déploiement en production
+│   ├── Dockerfile          # Configuration Docker
+│   └── ...                 # Autres fichiers (config, certs...)
+├── docs/                   # Documentation générale
 ├── docker-compose.yml      # Configuration Docker Compose
-└── .env.example            # Modèle pour le fichier .env principal
+├── .env.example            # Modèle pour le fichier .env principal
+├── .gitignore              # Fichiers ignorés par Git
+└── README.md               # Ce fichier
 ```
 
 ## Développement
@@ -213,29 +218,15 @@ fintune-platform/
 
 ## Déploiement en production
 
-Pour déployer les modifications en production, utilisez le script `deploy_to_production.sh` :
+Pour déployer les modifications en production, suivez ce processus :
 
 ```bash
-./deploy_to_production.sh
-```
-
-Ce script effectue les opérations suivantes :
-1. Commit et push des modifications vers le dépôt Git
-2. Connexion au serveur de production
-3. Mise à jour du code source (git pull)
-4. Arrêt des conteneurs Docker
-5. Reconstruction des images Docker
-6. Démarrage des services
-
-Alternativement, vous pouvez suivre ce processus manuellement :
-
-```bash
-# 1. Push des modifications
+# 1. Push Git
 git add .
 git commit -m "mise à jour"
 git push origin main
 
-# 2. Sur le serveur
+# 2. Sur le serveur de production
 cd /fintune-platform
 git pull origin main
 docker-compose down
@@ -263,18 +254,6 @@ Pour garantir la sécurité de votre application et éviter de pousser des infor
   - URLs des services externes
   - Paramètres de sécurité
 
-- `backend/.env` : Variables d'environnement spécifiques au backend
-  - Configuration des bases de données
-  - Paramètres Celery
-  - Chemins des fichiers
-
-- `frontend/.env` : Variables d'environnement de base pour le frontend
-- `frontend/.env.development` : Variables pour l'environnement de développement frontend
-- `frontend/.env.production` : Variables pour l'environnement de production frontend
-  - URL de l'API
-  - Configuration des services tiers
-  - Paramètres de build
-
 ### Bonnes pratiques
 
 1. **Ne jamais commiter les fichiers `.env`** : Tous les fichiers `.env` sont ignorés par Git grâce au `.gitignore`.
@@ -284,3 +263,4 @@ Pour garantir la sécurité de votre application et éviter de pousser des infor
 ## Licence
 
 Ce projet est sous licence propriétaire. Tous droits réservés.
+
