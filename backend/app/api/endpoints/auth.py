@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from authlib.integrations.starlette_client import OAuth
+from authlib.integrations.starlette_client import OAuth, OAuthError
 import uuid
+import logging
 
 from app.core.security import create_access_token, create_refresh_token, get_password_hash, verify_password, get_current_user, validate_refresh_token
 from app.core.config import settings
@@ -24,6 +25,8 @@ oauth.register(
         'scope': 'openid email profile'
     }
 )
+
+logger = logging.getLogger(__name__)
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
@@ -138,10 +141,18 @@ async def auth_google_callback(request: Request, db: Session = Depends(get_db)):
     """Handles the callback from Google after user authorization."""
     try:
         token = await oauth.google.authorize_access_token(request)
+    except OAuthError as error:
+        logger.error(f"OAuthError during Google token authorization: {error.error} - {error.description}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not validate credentials from Google: {error.description}"
+        )
     except Exception as e:
-        # Log l'erreur et rediriger vers une page d'erreur ou de connexion
-        # logger.error(f"Error authorizing Google access token: {e}")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials from Google")
+        logger.error(f"Generic error during Google token authorization: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during Google authentication."
+        )
 
     user_info = token.get('userinfo')
     if not user_info:
