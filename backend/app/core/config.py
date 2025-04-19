@@ -1,7 +1,7 @@
 import os
 import json
 from typing import List, Optional, Dict, Any
-from pydantic import Field, computed_field, validator
+from pydantic import Field, computed_field, validator, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -82,6 +82,9 @@ class Settings(BaseSettings):
     
     # Redis configuration
     REDIS_URL: str = Field(default="redis://redis:6379/0")
+
+    # Debug mode
+    DEBUG: bool = Field(default=False)
 
     # IA settings 
     OPENAI_API_KEY: str = Field(default="")
