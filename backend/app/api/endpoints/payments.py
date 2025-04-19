@@ -75,7 +75,7 @@ async def create_onboarding_session(
                     character_count=character_count,
                     payment_id=None
                 )
-
+                
                 if success:
                     logger.info(f"Ajout gratuit de {character_count} caractères réussi pour user {current_user.id}")
                     # Marquer que l'utilisateur a reçu les crédits
@@ -306,11 +306,11 @@ async def create_onboarding_session(
                 db_temp.close()
 
             # Préparer metadata
-            metadata = {
-                "payment_type": "onboarding_characters",
-                "user_id": str(current_user.id),
-                "character_count": str(character_count),
-                "free_characters": "10000",
+        metadata = {
+            "payment_type": "onboarding_characters", 
+            "user_id": str(current_user.id),
+            "character_count": str(character_count),
+            "free_characters": "10000",
                 "billable_characters": str(billable_characters),
                 "dataset_name": request.dataset_name,
                 "system_content": request.system_content,
@@ -323,36 +323,36 @@ async def create_onboarding_session(
 
             # Créer session Stripe
             try:
-                checkout_session = stripe.checkout.Session.create(
-                    payment_method_types=["card"],
-                    line_items=[
-                        {
-                            "price_data": {
-                                "currency": "usd",
-                                "product_data": {
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
                                     "name": f"FinTune Onboarding - {character_count} caractères",
                                     "description": f"{billable_characters} caractères facturables (10k gratuits)"
-                                },
-                                "unit_amount": amount_in_cents,
-                            },
-                            "quantity": 1,
                         },
-                    ],
-                    mode="payment",
+                                "unit_amount": amount_in_cents,
+                    },
+                    "quantity": 1,
+                },
+            ],
+            mode="payment",
                     success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
                     cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true",
-                    client_reference_id=str(current_user.id),
+            client_reference_id=str(current_user.id),
                     metadata=metadata,
                     customer_email=current_user.email,
                 )
-                return {"checkout_url": checkout_session.url}
+        return {"checkout_url": checkout_session.url}
             except stripe.error.StripeError as e:
                 logger.error(f"Erreur Stripe: {str(e)}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Erreur communication Stripe: {str(e)}"
                 )
-
+    
     except Exception as e:
         logger.error(f"Erreur inattendue endpoint: {str(e)}", exc_info=True)
         raise HTTPException(

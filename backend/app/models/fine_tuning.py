@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Float, JSON
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Float, JSON, JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -14,14 +14,16 @@ class FineTuning(Base):
     model = Column(String, nullable=False)  # Base model (e.g., gpt-3.5-turbo)
     provider = Column(String, nullable=False)  # AI provider (e.g., openai, anthropic)
     progress = Column(Float, nullable=True)  # Progress percentage (0-100)
-    hyperparameters = Column(JSON, nullable=True)  # Training hyperparameters
-    metrics = Column(JSON, nullable=True)  # Training metrics
+    hyperparameters = Column(JSONB, nullable=True)  # Training hyperparameters
+    metrics = Column(JSONB, nullable=True)  # Training metrics
     error_message = Column(Text, nullable=True)
-    external_id = Column(String, nullable=True)  # ID from the provider
+    external_id = Column(String, nullable=True, index=True)  # ID from the provider
     dataset_id = Column(Integer, ForeignKey("datasets.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    file_id = Column(String, nullable=True) # ID du fichier d'entraînement chez le provider
+    fine_tuned_model = Column(String, nullable=True, index=True) # Ex: ft:gpt-3.5-turbo:org:...
     
     # Relationships
     dataset = relationship("Dataset", back_populates="fine_tunings") 
