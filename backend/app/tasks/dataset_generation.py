@@ -1,4 +1,4 @@
-from celery import shared_task
+from celery import shared_task, Task
 from loguru import logger
 from sqlalchemy.orm import Session
 import os
@@ -31,7 +31,7 @@ def split_text_into_chunks(text, chunk_size=CHUNK_SIZE):
     return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 @shared_task(name="generate_dataset", bind=True, max_retries=5, default_retry_delay=60)
-def generate_dataset(self, dataset_id: int):
+def generate_dataset(self: Task, dataset_id: int):
     """
     Generate a dataset from selected contents.
     Aggregates text from all completed contents, chunks the combined text,
@@ -39,17 +39,25 @@ def generate_dataset(self, dataset_id: int):
     """
     logger.info(f"Generating dataset {dataset_id}")
     db = SessionLocal()
-    
+    dataset = None
+
     try:
         from app.models.dataset import Dataset, DatasetContent, DatasetPair
         from app.models.content import Content
         from app.models.fine_tuning import FineTuning
         from app.models.api_key import ApiKey
         
-        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
-        if not dataset:
-            logger.error(f"Dataset {dataset_id} not found")
-            return {"status": "error", "message": "Dataset not found"}
+        try:
+            dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+            if not dataset:
+                logger.warning(f"Dataset {dataset_id} not found yet, possibly due to replication delay. Retrying...")
+                raise self.retry(countdown=10)
+        except self.MaxRetriesExceededError:
+            logger.error(f"Dataset {dataset_id} not found after multiple retries. Aborting task.")
+            return {"status": "error", "message": "Dataset not found after retries"}
+        except Exception as e:
+            logger.error(f"Error fetching dataset {dataset_id} initially: {e}")
+            raise self.retry(exc=e)
 
         # Vérifier si les contenus sont prêts
         dataset_contents_assoc = db.query(DatasetContent).filter(DatasetContent.dataset_id == dataset_id).all()
@@ -64,18 +72,26 @@ def generate_dataset(self, dataset_id: int):
         # Mettre à jour le statut
         if dataset.status != "processing":
             dataset.status = "processing"
-            dataset.started_at = datetime.now().isoformat()
             db.commit()
 
         # Récupérer provider et clé API
         provider_name = getattr(dataset, "provider", "openai")
-        # Utiliser la clé API de l'utilisateur associé au projet du dataset
+        if not dataset.project or not dataset.project.user_id:
+             logger.error(f"Dataset {dataset_id} is not associated with a project or user.")
+             raise ValueError(f"Dataset {dataset_id} has no valid project/user association.")
+
         api_key_record = db.query(ApiKey).filter(
             ApiKey.user_id == dataset.project.user_id,
             ApiKey.provider == provider_name
         ).first()
         if not api_key_record:
-             raise ValueError(f"API Key for provider {provider_name} not found for user {dataset.project.user_id}")
+             error_msg = f"API Key for provider {provider_name} not found for user {dataset.project.user_id}"
+             logger.error(error_msg)
+             dataset.status = "error"
+             dataset.error_message = error_msg
+             db.commit()
+             return {"status": "error", "message": error_msg}
+
         provider = get_ai_provider(provider_name, api_key_record.key)
         model = dataset.model or DEFAULT_MODEL
 
