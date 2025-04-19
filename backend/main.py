@@ -44,8 +44,7 @@ app.add_middleware(
     session_cookie="session", # Nom du cookie (optionnel, mais bon à savoir)
     max_age=14 * 24 * 60 * 60, # Durée de vie (ex: 14 jours, optionnel)
     same_site='lax', # 'lax' est souvent un bon compromis. Si ça échoue encore, tenter 'none' mais REQUIERT https_only=True.
-    https_only=not settings.DEBUG, # Important: True en production (HTTPS)
-    domain=".finetuner.io" # **IMPORTANT pour les sous-domaines** (note le point initial)
+    https_only=not settings.DEBUG # Important: True en production (HTTPS)
 )
 
 # Configure CORS
