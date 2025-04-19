@@ -166,7 +166,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
       const videoTitle = videoInfo.title || `Vidéo YouTube - ${Date.now()}`;
       const durationSeconds = parseInt(videoInfo.lengthSeconds) || 600;
       const durationMinutes = Math.round(durationSeconds / 60);
-      const estimatedCharacters = Math.round((durationSeconds / 60) * 150);
+      const estimatedCharacters = Math.round((durationSeconds / 60) * 400);
 
       const urlContent = {
         project_id: projectId,

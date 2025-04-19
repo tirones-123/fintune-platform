@@ -98,7 +98,7 @@ import PageTransition from '../components/common/PageTransition';
 - Différentes méthodes selon le type de contenu:
   - Fichiers: Basé sur la taille ou les métadonnées (lignes ~720-730)
   - URLs: Comptage fixe ou contenu extrait (lignes ~730-740)
-  - Vidéos YouTube: Estimation basée sur la durée (~150 caractères/minute) (lignes ~880-890)
+  - Vidéos YouTube: Estimation basée sur la durée (~4000 caractères/minute) (lignes ~880-890)
   - Sites web: Comptage du contenu extrait (lignes ~970-980)
 
 ### Évaluation de la qualité
