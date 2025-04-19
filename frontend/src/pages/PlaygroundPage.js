@@ -51,11 +51,7 @@ function PlaygroundPage() {
 
   // Encapsuler fetchFineTunedModels dans useCallback
   const fetchFineTunedModels = useCallback(async () => {
-    // Mettre setLoadingModels seulement si ce n'est pas un rafraîchissement silencieux ?
-    // Pour l'instant, on le met toujours pour indiquer l'activité.
     setLoadingModels(true); 
-    // Ne pas réinitialiser l'erreur ici pour ne pas effacer une erreur précédente pendant le refresh
-    // setError(''); 
     try {
       const allFineTunings = await fineTuningService.getAll();
       const completedFineTunings = allFineTunings
@@ -66,27 +62,27 @@ function PlaygroundPage() {
             externalId: ft.fine_tuned_model 
         })); 
       setFineTunedModels(completedFineTunings);
-      setAllModels([...standardOpenAIModels, ...completedFineTunings]);
-      // Conserver la sélection actuelle si elle existe toujours, sinon revenir au premier standard
+      // Mettre à jour allModels ici après avoir les nouvelles données
+      const updatedAllModels = [...standardOpenAIModels, ...completedFineTunings];
+      setAllModels(updatedAllModels);
+      
+      // Conserver la sélection actuelle si elle existe toujours dans la nouvelle liste
       setSelectedModel(prev => 
-         allModels.some(m => m.id === prev) ? prev : (standardOpenAIModels[0]?.id || '')
+         updatedAllModels.some(m => m.id === prev) ? prev : (standardOpenAIModels[0]?.id || '')
       );
     } catch (err) {
       console.error("Erreur chargement modèles fine-tunés:", err);
-      // Afficher l'erreur seulement si ce n'est pas juste un refresh qui échoue
-      if (loadingModels) { // Si c'était le chargement initial
-          setError('Erreur chargement des modèles fine-tunés.');
-      }
-      // Garder la liste actuelle des modèles en cas d'erreur de refresh
+      // Ne pas écraser l'erreur précédente si c'est juste un refresh qui échoue
+      // setError('Erreur chargement des modèles fine-tunés.'); 
     } finally {
       setLoadingModels(false);
     }
-  }, [loadingModels]);
+  }, []);
 
   // Charger les modèles au montage initial
   useEffect(() => {
     fetchFineTunedModels();
-  }, [fetchFineTunedModels]); // Utiliser fetchFineTunedModels comme dépendance
+  }, [fetchFineTunedModels]);
 
   // Écouter l'événement pour rafraîchir la liste
   useEffect(() => {
@@ -94,14 +90,11 @@ function PlaygroundPage() {
       console.log('Événement finetuningUpdate reçu, rafraîchissement des modèles...');
       fetchFineTunedModels(); 
     };
-    
     window.addEventListener('finetuningUpdate', handleUpdate);
-    
-    // Nettoyer l'écouteur
     return () => {
       window.removeEventListener('finetuningUpdate', handleUpdate);
     };
-  }, [fetchFineTunedModels]); // Dépendance sur la fonction useCallback
+  }, [fetchFineTunedModels]);
 
   // Gérer l'envoi du prompt
   const handleSendPrompt = async () => {

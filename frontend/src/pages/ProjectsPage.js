@@ -32,8 +32,10 @@ const getProjectAggregateStatus = (projectId, projectStatuses) => {
   if (!statusInfo) return { text: 'Actif', color: 'default', progress: null };
 
   switch (statusInfo.status) {
+    case 'transcribing': return { text: 'Transcription Contenu...', color: 'info', progress: null };
+    case 'generating_dataset': return { text: 'Génération Dataset...', color: 'info', progress: null };
+    case 'preparing_finetune': return { text: 'Préparation Fine-tune...', color: 'warning', progress: null };
     case 'training_finetune': return { text: `Entraînement (${statusInfo.progress?.toFixed(0) ?? 0}%)`, color: 'warning', progress: statusInfo.progress };
-    case 'preparing_finetune': return { text: 'Préparation...', color: 'warning', progress: null };
     case 'error': return { text: 'Erreur', color: 'error', progress: null };
     default: return { text: 'Actif', color: 'success', progress: null };
   }
@@ -49,58 +51,65 @@ const ProjectsPage = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectStatuses, setProjectStatuses] = useState({});
 
-  // Fonction pour récupérer les statuts détaillés d'un projet (Logique Modifiée)
+  // Fonction pour récupérer les statuts détaillés d'un projet (Logique Priorisée)
   const fetchProjectDetails = useCallback(async (projectId) => {
     try {
-      // Récupérer UNIQUEMENT les fine-tunings associés au projet
-      const fineTunings = await fineTuningService.getByProjectId(projectId);
+      // Récupérer tous les éléments liés au projet
+      const [contents, datasets, fineTunings] = await Promise.all([
+        contentService.getByProjectId(projectId),
+        datasetService.getByProjectId(projectId),
+        fineTuningService.getByProjectId(projectId) 
+      ]);
 
-      // S'il n'y a pas de fine-tuning pour ce projet
-      if (!fineTunings || fineTunings.length === 0) {
-        return { status: 'idle', progress: null }; // Statut Actif par défaut
+      // 1. Vérifier les fine-tunings actifs (priorité haute)
+      const activeFineTuning = fineTunings.find(ft => ['queued', 'preparing', 'training'].includes(ft.status));
+      if (activeFineTuning) {
+        const status = activeFineTuning.status === 'training' ? 'training_finetune' : 'preparing_finetune';
+        let progress = null;
+        if (status === 'training_finetune') {
+           // Refetcher pour progression à jour
+           try {
+               const ftDetail = await fineTuningService.getById(activeFineTuning.id);
+               progress = ftDetail.progress;
+           } catch { progress = activeFineTuning.progress; /* fallback */ }
+        }
+        return { status, progress };
       }
 
-      // Trier les fine-tunings par date de création (plus récent en premier)
-      const sortedFineTunings = fineTunings.sort((a, b) => 
-          new Date(b.created_at || 0) - new Date(a.created_at || 0)
-      );
+      // 2. Vérifier les datasets en cours de génération
+      const processingDataset = datasets.find(d => d.status === 'processing');
+      if (processingDataset) {
+        return { status: 'generating_dataset', progress: null };
+      }
+
+      // 3. Vérifier les contenus en cours de traitement
+      const processingContent = contents.find(c => c.status === 'processing');
+      if (processingContent) {
+        return { status: 'transcribing', progress: null }; 
+      }
+
+      // 4. Vérifier les erreurs sur les éléments *les plus récents*
+      const sortedFineTunings = fineTunings.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      const sortedDatasets = datasets.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      // (On pourrait aussi trier les contenus si une erreur de contenu devait bloquer)
       
-      // Prendre le statut du fine-tuning le plus récent
-      const latestFineTuning = sortedFineTunings[0];
-      const latestStatus = latestFineTuning.status;
-      let displayStatus = 'idle';
-      let displayProgress = null;
-
-      if (['queued', 'preparing', 'training'].includes(latestStatus)) {
-        displayStatus = latestStatus === 'training' ? 'training_finetune' : 'preparing_finetune';
-        // Utiliser la progression du dernier job s'il est en training
-        if(latestStatus === 'training'){
-             // Refetcher les détails pour avoir la progression à jour
-             try {
-                 const ftDetail = await fineTuningService.getById(latestFineTuning.id);
-                 displayProgress = ftDetail.progress;
-             } catch (detailError) {
-                 console.error(`Error fetching details for latest FT ${latestFineTuning.id}:`, detailError);
-                 // Garder la progression précédente si l'appel échoue
-                 displayProgress = latestFineTuning.progress; 
-             }
-        }
-      } else if (latestStatus === 'error') {
-        displayStatus = 'error';
-      } else if (latestStatus === 'completed') {
-         // Si le dernier est complété, on considère le projet comme Actif/Idle pour cette vue
-         displayStatus = 'idle'; 
-      } else if (latestStatus === 'cancelled'){
-         // Si le dernier est annulé, on considère aussi comme Actif/Idle
-         displayStatus = 'idle';
+      if (sortedFineTunings.length > 0 && sortedFineTunings[0].status === 'error') {
+           return { status: 'error', progress: null };
       } 
-      // Les autres statuts (processing dataset/content) sont ignorés ici pour le statut global projet
+      if (sortedDatasets.length > 0 && sortedDatasets[0].status === 'error') {
+           // Ne montrer l'erreur dataset que s'il n'y a pas de FT plus récent (même complété)
+           if (sortedFineTunings.length === 0 || new Date(sortedDatasets[0].created_at) > new Date(sortedFineTunings[0].created_at || 0)) {
+               return { status: 'error', progress: null };
+           }
+      }
+      // Ajouter ici la vérification d'erreur sur le contenu le plus récent si pertinent
 
-      return { status: displayStatus, progress: displayProgress };
+      // 5. Si aucune tâche active ou erreur récente, statut idle/actif
+      return { status: 'idle', progress: null }; 
 
     } catch (err) {
-      console.error(`Error fetching fine-tuning status for project ${projectId}:`, err);
-      return { status: 'error', progress: null }; // Erreur de récupération
+      console.error(`Error fetching details for project ${projectId}:`, err);
+      return { status: 'error', progress: null }; 
     }
   }, []);
 
@@ -137,9 +146,9 @@ const ProjectsPage = () => {
   useEffect(() => {
     fetchProjects();
     const intervalId = setInterval(() => {
-        setProjects(currentProjectsList => { 
-             updateAllProjectStatuses(currentProjectsList);
-             return currentProjectsList;
+        setProjects(currentProjects => {
+             updateAllProjectStatuses(currentProjects);
+             return currentProjects;
         });
     }, 15000);
 

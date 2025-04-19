@@ -69,18 +69,21 @@ const ChatPage = () => {
   }, [messages]);
 
   // Fonction pour envoyer un message
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (event) => {
+    event.preventDefault();
+    
     if (!input.trim()) return;
     
     const userMessage = input.trim();
     setInput('');
     
     // Ajouter le message de l'utilisateur à la conversation
-    const newMessages = [
-      ...messages,
-      { role: 'user', content: userMessage },
-    ];
-    setMessages(newMessages);
+    const newUserMessage = {
+      role: 'user', 
+      content: userMessage,
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prevMessages => [...prevMessages, newUserMessage]);
     
     // Indiquer que le modèle est en train de répondre
     setResponding(true);
@@ -90,13 +93,23 @@ const ChatPage = () => {
       const response = await fineTuningService.testModel(fineTuningId, userMessage);
       
       // Ajouter la réponse du modèle à la conversation
-      setMessages([
-        ...newMessages,
-        { role: 'assistant', content: response.completion },
-      ]);
+      const assistantMessage = {
+        role: 'assistant', 
+        content: response.completion, 
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prevMessages => [...prevMessages, assistantMessage]);
+      
     } catch (err) {
       console.error('Error getting model response:', err);
       enqueueSnackbar('Erreur lors de la récupération de la réponse du modèle', { variant: 'error' });
+      // Optionnel: Ajouter un message d'erreur à la conversation
+      const errorMessage = {
+        role: 'assistant',
+        content: `Désolé, une erreur s'est produite: ${err.message}`,
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
       setResponding(false);
     }
@@ -207,18 +220,20 @@ const ChatPage = () => {
                   <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
                     {message.content}
                   </Typography>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      position: 'absolute',
-                      bottom: 4,
-                      right: message.role === 'user' ? 'auto' : 8,
-                      left: message.role === 'user' ? 8 : 'auto',
-                      color: message.role === 'user' ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                    }}
-                  >
-                    {formatTime(message.timestamp)}
-                  </Typography>
+                  {message.timestamp && (
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        position: 'absolute',
+                        bottom: 4,
+                        right: message.role === 'user' ? 'auto' : 8,
+                        left: message.role === 'user' ? 8 : 'auto',
+                        color: message.role === 'user' ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                      }}
+                    >
+                      {formatTime(message.timestamp)}
+                    </Typography>
+                  )}
                 </Box>
               </Box>
             ))
@@ -256,7 +271,7 @@ const ChatPage = () => {
               />
               <IconButton 
                 color="primary" 
-                type="submit" 
+                type="submit"
                 disabled={!input.trim() || loading || responding}
                 sx={{ 
                   bgcolor: 'primary.main', 

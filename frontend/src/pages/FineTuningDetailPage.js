@@ -48,10 +48,6 @@ const FineTuningDetailPage = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [testPrompt, setTestPrompt] = useState('');
-  const [testResponse, setTestResponse] = useState('');
-  const [testError, setTestError] = useState(null);
-  const [testing, setTesting] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
   // Fonction pour récupérer les données du fine-tuning
@@ -186,28 +182,6 @@ const FineTuningDetailPage = () => {
     } catch (err) {
       console.error('Error canceling fine-tuning:', err);
       enqueueSnackbar('Erreur lors de l\'annulation du fine-tuning', { variant: 'error' });
-    }
-  };
-
-  // Fonction pour tester le modèle
-  const handleTestModel = async () => {
-    if (!testPrompt.trim()) {
-      setTestError('Veuillez entrer un prompt de test');
-      return;
-    }
-    
-    setTesting(true);
-    setTestError(null);
-    
-    try {
-      // Tester le modèle via l'API
-      const response = await fineTuningService.testModel(fineTuningId, testPrompt);
-      setTestResponse(response.completion);
-    } catch (err) {
-      console.error('Error testing model:', err);
-      setTestError(err.message || 'Erreur lors du test du modèle');
-    } finally {
-      setTesting(false);
     }
   };
 
@@ -358,13 +332,23 @@ const FineTuningDetailPage = () => {
                     <ListItemText 
                       primary="Statut" 
                       secondary={
-                        <Chip 
-                          label={getStatusLabel(fineTuning.status)} 
-                          color={getStatusColor(fineTuning.status)}
-                          size="small"
-                          icon={getStatusIcon(fineTuning.status)}
-                          sx={{ mt: 1 }}
-                        />
+                        fineTuning.status === 'pending' && dataset?.status === 'processing' ? (
+                          <Chip 
+                            label="Génération Dataset..." 
+                            color="info"
+                            size="small"
+                            icon={<DatasetIcon fontSize="inherit" sx={{ mr: 0.5}}/>}
+                            sx={{ mt: 1 }}
+                          />
+                        ) : (
+                          <Chip 
+                            label={getStatusLabel(fineTuning.status)} 
+                            color={getStatusColor(fineTuning.status)}
+                            size="small"
+                            icon={getStatusIcon(fineTuning.status)}
+                            sx={{ mt: 1 }}
+                          />
+                        )
                       }
                     />
                   </ListItem>
@@ -454,51 +438,6 @@ const FineTuningDetailPage = () => {
               </Paper>
             </Grid>
           </Grid>
-
-          {/* Section de test du modèle */}
-          {fineTuning.status === 'completed' && (
-            <Card sx={{ mt: 4 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Tester le modèle
-                </Typography>
-                
-                <TextField
-                  fullWidth
-                  label="Prompt de test"
-                  value={testPrompt}
-                  onChange={(e) => setTestPrompt(e.target.value)}
-                  multiline
-                  rows={3}
-                  variant="outlined"
-                  sx={{ mb: 2 }}
-                  error={!!testError}
-                  helperText={testError}
-                />
-                
-                <Button
-                  variant="contained"
-                  onClick={handleTestModel}
-                  disabled={testing || !testPrompt.trim()}
-                  startIcon={testing ? <CircularProgress size={20} /> : <PlayArrowIcon />}
-                  sx={{ mb: 2 }}
-                >
-                  {testing ? 'Test en cours...' : 'Tester'}
-                </Button>
-                
-                {testResponse && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Réponse du modèle:
-                    </Typography>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {testResponse}
-                    </Typography>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
           {/* Actions supplémentaires */}
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
