@@ -831,7 +831,11 @@ const OnboardingPage = () => {
                          // Mise à jour de l'état approprié 
                          if (updatedContent.file_path) {
                             console.log(`      Mise à jour de uploadedFiles pour ID ${content.id}`);
-                            setUploadedFiles(prev => prev.map(f => f.id === updatedContent.id ? updatedContent : f));
+                            setUploadedFiles(prev => {
+                                const newState = prev.map(f => f.id === updatedContent.id ? updatedContent : f);
+                                console.log(`      ÉTAT uploadedFiles APRÈS MISE À JOUR pour ID ${updatedContent.id}:`, JSON.stringify(newState, null, 2)); // <-- Log de l'état mis à jour
+                                return newState;
+                            });
                          } else if (updatedContent.url && updatedContent.type === 'youtube') {
                             console.log(`      Mise à jour de uploadedYouTube pour ID ${content.id}`);
                             setUploadedYouTube(prev => prev.map(v => v.id === updatedContent.id ? {...v, ...updatedContent} : v)); 
