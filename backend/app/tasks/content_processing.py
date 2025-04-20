@@ -156,39 +156,13 @@ def process_text_content(content_id: int):
         content.content_metadata["character_count"] = character_count
         content.content_metadata["is_exact_count"] = True  # Indiquer que ce comptage est exact
         
-        # --- MODIFICATION : Appeler l'API pour mettre à jour au lieu de commiter directement ---
-        # content.status = "completed"
-        # db.commit()
-        # logger.info(f"Text content {content_id} status updated to 'completed'")
+        # --- RETABLISSEMENT : Commiter directement depuis le worker ---
+        content.status = "completed"
+        db.commit()
+        logger.info(f"Text content {content_id} status updated to 'completed'")
+        # --- FIN RETABLISSEMENT ---
         
-        # Préparer les données pour l'API
-        update_payload = {
-            "status": "completed",
-            "content_metadata": content.content_metadata
-        }
-        
-        # Construire l'URL de l'API (ajuster si nécessaire selon la config réseau interne)
-        # Note: Utiliser le nom du service API tel que défini dans Docker Compose ou K8s
-        api_url = f"http://api:8000/api/contents/{content_id}/metadata" 
-        
-        try:
-            # Faire l'appel API interne (omettant l'auth pour l'instant)
-            # TODO: Ajouter l'authentification pour l'appel interne
-            import requests
-            response = requests.put(api_url, json=update_payload)
-            response.raise_for_status() # Lève une exception pour les codes d'erreur HTTP
-            logger.info(f"Mise à jour du contenu {content_id} via API réussie (status: completed)")
-        except requests.exceptions.RequestException as api_error:
-            logger.error(f"Erreur lors de l'appel API pour mettre à jour le contenu {content_id}: {api_error}")
-            # Marquer comme erreur dans la DB locale du worker en fallback?
-            content.status = "error"
-            content.error_message = f"API update failed: {api_error}"
-            db.commit() # Commit l'erreur locale
-            raise api_error # Faire échouer la tâche Celery
-            
-        # --- FIN MODIFICATION ---
-        
-        # Les logs suivants ne sont plus pertinents ici car la mise à jour est faite par l'API
+        # Vérifier que le statut a bien été mis à jour (optionnel mais utile pour debug)
         # updated_content = db.query(Content).filter(Content.id == content_id).first()
         # logger.info(f"Text content {content_id} final status: {updated_content.status}")
         logger.info(f"Text content {content_id} processed successfully with {character_count} characters")
