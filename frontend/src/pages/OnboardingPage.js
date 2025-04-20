@@ -827,6 +827,7 @@ const OnboardingPage = () => {
                 contentService.getById(content.id)
                     .then(updatedContent => {
                          console.log(`   -> Données reçues pour ${content.id}:`, updatedContent);
+                         console.log("STRUCTURE DE updatedContent :", JSON.stringify(updatedContent, null, 2)); // <-- AJOUT DU LOG
                          // Mise à jour de l'état approprié 
                          if (updatedContent.file_path) {
                             console.log(`      Mise à jour de uploadedFiles pour ID ${content.id}`);
