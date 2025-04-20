@@ -1639,19 +1639,17 @@ const OnboardingPage = () => {
                   <FileUpload 
                     projectId={createdProject.id} 
                     hideUrlInput={true} 
-                    onSuccess={(uploadedContent) => {
+                    onSuccess={(uploadedContent, actionInfo) => { // Ajouter actionInfo
                       if (uploadedContent) {
                         console.log("Nouveau contenu uploadé:", uploadedContent);
                         
                         // Si c'est un fichier
                         if (uploadedContent.file_path) {
                           setUploadedFiles(prev => {
-                            // Vérifier si le fichier existe déjà (mise à jour)
                             const exists = prev.find(f => f.id === uploadedContent.id);
                             if (exists) {
                               return prev.map(f => f.id === uploadedContent.id ? uploadedContent : f);
                             }
-                            // Sinon ajouter le nouveau fichier
                             return [...prev, uploadedContent];
                           });
                           enqueueSnackbar(`Fichier "${uploadedContent.name}" uploadé avec succès`, { variant: 'success' });
@@ -1659,22 +1657,21 @@ const OnboardingPage = () => {
                         // Si c'est une URL
                         else if (uploadedContent.url) {
                           setUploadedUrls(prev => {
-                            // Vérifier si l'URL existe déjà (mise à jour)
                             const exists = prev.find(u => u.id === uploadedContent.id);
                             if (exists) {
                               return prev.map(u => u.id === uploadedContent.id ? uploadedContent : u);
                             }
-                            // Sinon ajouter la nouvelle URL
                             return [...prev, uploadedContent];
                           });
                           enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
                         }
                         
-                        // Forcer la récupération des métadonnées après un délai pour laisser le temps au traitement
+                        // Forcer la récupération des métadonnées après un délai
                         setTimeout(() => {
                           contentService.getById(uploadedContent.id)
                             .then(updatedContent => {
                               console.log("Contenu mis à jour après délai:", updatedContent);
+                              console.log("STRUCTURE DE updatedContent (onSuccess) :", JSON.stringify(updatedContent, null, 2)); // Log ajouté ici aussi
                               
                               if (updatedContent.file_path) {
                                 setUploadedFiles(prev => 
@@ -1686,12 +1683,19 @@ const OnboardingPage = () => {
                                 );
                               }
                               
-                              // Recalculer le comptage de caractères
-                              calculateActualCharacterCount();
+                              // Pas besoin de recalculer ici, le useEffect s'en charge
                             })
                             .catch(err => console.error("Erreur lors de la mise à jour du contenu:", err));
-                        }, 5000); // Attendre 5 secondes pour le traitement initial
+                        }, 3000); // Réduit délai à 3s
+                      } 
+                      // --- AJOUT : Gérer le cas de la suppression ---
+                      else if (actionInfo && actionInfo.action === 'delete') {
+                           console.log(`Suppression détectée pour ID ${actionInfo.id} via onSuccess`);
+                           // Mettre à jour l'état uploadedFiles en retirant l'élément supprimé
+                           setUploadedFiles(prev => prev.filter(f => f.id !== actionInfo.id));
+                           // Le useEffect dépendant de [uploadedFiles] déclenchera calculateActualCharacterCount
                       }
+                      // --- FIN AJOUT ---
                     }}
                   />
                 </Box>

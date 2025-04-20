@@ -215,9 +215,9 @@ def get_content(
             detail="Content not found"
         )
     
-    db.refresh(content)
+    refreshed_content = db.query(Content).filter(Content.id == content_id).first()
     
-    return content
+    return refreshed_content
 
 @router.put("/{content_id}", response_model=ContentResponse)
 def update_content(
@@ -252,12 +252,13 @@ def update_content(
 @router.put("/{content_id}/metadata", response_model=ContentResponse)
 def update_content_metadata(
     content_id: int,
-    metadata: Dict[str, Any] = Body(...),
+    update_data: Dict[str, Any] = Body(..., description="Dictionnaire contenant les champs à mettre à jour, ex: {'content_metadata': {...}, 'status': 'completed'}"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Update a content's metadata, particularly the character count
+    Met à jour les métadonnées et/ou le statut d'un contenu.
+    Permet au worker de notifier la fin du traitement.
     """
     content = db.query(Content).join(Project).filter(
         Content.id == content_id,
@@ -270,13 +271,17 @@ def update_content_metadata(
             detail="Content not found"
         )
     
-    # Si le contenu n'a pas encore de métadonnées, initialiser un dictionnaire vide
-    if not content.content_metadata:
-        content.content_metadata = {}
-    
-    # Mettre à jour les métadonnées existantes avec les nouvelles
-    content.content_metadata.update(metadata)
-    
+    # Mettre à jour les champs spécifiés dans update_data
+    if 'content_metadata' in update_data:
+        if not content.content_metadata:
+            content.content_metadata = {}
+        content.content_metadata.update(update_data['content_metadata'])
+        
+    if 'status' in update_data:
+        content.status = update_data['status']
+        
+    # Ajouter d'autres champs si nécessaire
+
     db.commit()
     db.refresh(content)
     
