@@ -242,6 +242,7 @@ const OnboardingPage = () => {
 
   // Ajouter un état pour gérer la popup d'aide
   const [apiHelpOpen, setApiHelpOpen] = useState(false);
+  const [isContentProcessing, setIsContentProcessing] = useState(false); // Nouvel état
 
   // Créer automatiquement un projet au chargement de la page
   useEffect(() => {
@@ -540,10 +541,8 @@ const OnboardingPage = () => {
   // Fonction pour traiter l'étape suivante
   const handleNext = async () => {
     window.scrollTo(0, 0); // Scroll vers le haut
-    // Vérifier s'il y a des actions à effectuer selon l'étape
     switch (activeStep) {
       case 0: // Après étape définition de l'assistant
-        // Générer le system content si ce n'est pas déjà fait
         if (!systemContent) {
           const success = await generateSystemContent();
           if (!success) return;
@@ -551,25 +550,24 @@ const OnboardingPage = () => {
         break;
       
       case 1: // Après étape import de contenu
-        // Vérifier s'il y a du contenu
-        if (uploadedFiles.length === 0 && uploadedUrls.length === 0 && uploadedYouTube.length === 0 && uploadedWeb.length === 0) {
-          enqueueSnackbar("Veuillez ajouter au moins un contenu.", { variant: 'warning' }); // Garder avertissement
+        const hasAnyContent = uploadedFiles.length > 0 || uploadedUrls.length > 0 || uploadedYouTube.length > 0 || uploadedWeb.length > 0;
+        if (!hasAnyContent) {
+          enqueueSnackbar("Veuillez ajouter au moins un contenu.", { variant: 'warning' });
           return;
+        }
+        // *** NOUVELLE VÉRIFICATION ***
+        if (isContentProcessing) { 
+            enqueueSnackbar("Veuillez attendre la fin du traitement des contenus.", { variant: 'warning' });
+            return;
         }
         break;
       
       case 2: // Après étape fine-tuning
-        // Vérifier d'abord la clé API
         const apiKeySuccess = await saveApiKey();
         if (!apiKeySuccess) return;
-        
-        // Lancer completeOnboarding pour rediriger vers Stripe
         await completeOnboarding();
-        // Ne pas continuer après completeOnboarding car l'utilisateur est redirigé vers Stripe
         return;
     }
-    
-    // Si tout s'est bien passé, avancer à l'étape suivante
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
@@ -868,19 +866,41 @@ const OnboardingPage = () => {
     // Recalcul forcé à chaque changement des tableaux uploadedYouTube et uploadedWeb
     calculateActualCharacterCount();
     
-    // Vérifier s'il y a des fichiers ou URLs en cours de traitement
-    const hasProcessingContent = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(
-      content => content.status !== 'completed' && content.status !== 'error' && content.status !== 'awaiting_transcription'
+    const allCurrentContent = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb];
+    const hasProcessingContent = allCurrentContent.some(
+      content => content.status !== 'completed' && content.status !== 'error'
     );
+
+    // Mettre à jour l'état de traitement
+    setIsContentProcessing(hasProcessingContent);
     
     if (hasProcessingContent) {
       const intervalId = setInterval(() => {
-        calculateActualCharacterCount();
+        // Rafraîchir seulement les contenus en traitement
+        allCurrentContent.forEach(content => {
+            if (content.status !== 'completed' && content.status !== 'error' && content.id) {
+                contentService.getById(content.id)
+                    .then(updatedContent => {
+                         // Mise à jour de l'état approprié
+                         if (updatedContent.file_path) {
+                            setUploadedFiles(prev => prev.map(f => f.id === updatedContent.id ? updatedContent : f));
+                         } else if (updatedContent.url && updatedContent.type === 'youtube') {
+                            setUploadedYouTube(prev => prev.map(v => v.id === updatedContent.id ? {...v, ...updatedContent} : v)); // Fusionner pour garder les estimations
+                         } else if (updatedContent.url && updatedContent.type === 'website') {
+                            setUploadedWeb(prev => prev.map(w => w.id === updatedContent.id ? {...w, ...updatedContent} : w));
+                         } else if (updatedContent.url) {
+                            setUploadedUrls(prev => prev.map(u => u.id === updatedContent.id ? updatedContent : u));
+                         }
+                         // Le recalcul se fera via la dépendance sur les états
+                    })
+                    .catch(err => console.error(`Erreur lors du rafraîchissement du contenu ${content.id}:`, err));
+            }
+        });
       }, 5000);  // Rafraîchir toutes les 5 secondes
       
       return () => clearInterval(intervalId);
     }
-  }, [uploadedFiles, uploadedUrls, uploadedYouTube, uploadedWeb]);  // Dépendance explicite sur tous les tableaux
+  }, [uploadedFiles, uploadedUrls, uploadedYouTube, uploadedWeb]); // Dépendance explicite sur tous les tableaux
 
   // Calculer le niveau de qualité basé sur le nombre de caractères et le type d'usage
   const getQualityLevel = (characterCount, usageType = 'other') => {
@@ -2019,7 +2039,7 @@ const OnboardingPage = () => {
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
                   sx={{ borderRadius: 3 }}
-                  disabled={activeStep === 0 || uploading || creatingProject || savingApiKey || isCompleting}
+                  disabled={activeStep === 0 || uploading || creatingProject || savingApiKey || isCompleting || isContentProcessing} // Ajouter isContentProcessing ici aussi
                 >
                   Retour
                 </Button>
@@ -2035,8 +2055,14 @@ const OnboardingPage = () => {
                     endIcon={activeStep === steps.length - 2 ? null : <ArrowForwardIcon />}
                     startIcon={activeStep === steps.length - 2 && isCompleting ? <CircularProgress size={20} color="inherit" /> : null}
                   sx={{ borderRadius: 3 }}
-                    disabled={uploading || creatingProject || savingApiKey || isCompleting || 
-                      (activeStep === 2 && !apiKeySaved)} // Désactiver si l'API key n'est pas validée
+                    disabled={ // Mettre à jour conditions disabled
+                      uploading || 
+                      creatingProject || 
+                      savingApiKey || 
+                      isCompleting || 
+                      (activeStep === 1 && isContentProcessing) || // Bloquer à l'étape 1 si traitement en cours
+                      (activeStep === 2 && !apiKeySaved)
+                    }
                 >
                     {activeStep === steps.length - 2 ? (isCompleting ? 'Traitement en cours...' : 'Terminer') : 'Suivant'}
                 </Button>

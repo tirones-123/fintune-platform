@@ -88,14 +88,27 @@ async def create_fine_tuning_job(
     for content in contents:
         if content.type == 'youtube' and content.status != 'completed':
             # Pour YouTube non traité, utiliser une estimation ou valeur par défaut
-            # Ici, on suppose que l'estimation a été faite côté frontend ou est dans metadata
             estimated_chars = content.content_metadata.get('estimated_characters', 4000) # Fallback à ~10min
             total_characters += estimated_chars
             pending_transcriptions.append(content.id)
-        elif content.content_metadata and content.content_metadata.get('character_count'):
+        elif content.status == 'completed' and content.content_metadata and content.content_metadata.get('character_count'):
+            # Cas idéal : Contenu traité avec comptage exact
             total_characters += content.content_metadata['character_count']
-        else:
-             logger.warning(f"Contenu {content.id} (type: {content.type}) sans character_count dans metadata. Estimation à 0.")
+        elif content.status == 'completed':
+            # Cas où le contenu est marqué comme traité, mais le comptage manque (erreur de traitement?)
+            # Utiliser l'estimation fallback pour robustesse
+            logger.warning(f"Contenu {content.id} (type: {content.type}) est 'completed' mais sans character_count.")
+            if content.size and content.size > 0:
+                estimated_chars = int(content.size * 0.5)
+                total_characters += estimated_chars
+                logger.warning(f" -> Estimation basée sur taille: {estimated_chars} caractères.")
+            else:
+                fallback_chars = 5000
+                total_characters += fallback_chars
+                logger.warning(f" -> Estimation par défaut: {fallback_chars} caractères.")
+        # Ignorer les contenus en erreur ou non-YouTube non traités (déjà filtrés avant)
+        # else:
+            # logger.info(f"Contenu {content.id} (type: {content.type}, status: {content.status}) ignoré pour le comptage.")
 
     logger.info(f"Calcul du coût pour {total_characters} caractères et {len(pending_transcriptions)} transcriptions YouTube.")
 

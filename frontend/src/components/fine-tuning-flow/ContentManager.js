@@ -15,7 +15,8 @@ import {
   Tooltip,
   Checkbox,
   FormControlLabel,
-  Grid
+  Grid,
+  Chip
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import YouTubeIcon from '@mui/icons-material/YouTube';
@@ -58,7 +59,7 @@ const getContentIcon = (type) => {
   };
 
 
-const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) => {
+const ContentManager = ({ projectId, onContentChange, initialContentIds = [], onProcessingStatusChange }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [projectContents, setProjectContents] = useState([]); // Contenus existants du projet
   const [newlyAddedFiles, setNewlyAddedFiles] = useState([]); // Fichiers uploadés dans ce flux
@@ -74,6 +75,8 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [scrapeLoading, setScrapeLoading] = useState(false);
   const [scrapeError, setScrapeError] = useState(null);
+
+  const [isProcessing, setIsProcessing] = useState(false); // Nouvel état
 
   // Refs pour éviter les problèmes de re-rendu avec les estimations
   const newlyAddedYouTubeRef = useRef([]);
@@ -103,10 +106,38 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
     loadProjectContents();
   }, [projectId, enqueueSnackbar]);
 
-  // Mettre à jour le parent chaque fois que la sélection change
+  // Mettre à jour le parent chaque fois que la sélection OU le statut de traitement changent
   useEffect(() => {
+    // Créer la liste unifiée pour la vérification
+    const allCurrentContent = [
+      ...projectContents.filter(pc => 
+        !newlyAddedFiles.some(naf => naf.id === pc.id) &&
+        !newlyAddedYouTube.some(nay => nay.id === pc.id) &&
+        !newlyAddedWebsites.some(naw => naw.id === pc.id)
+      ),
+      ...newlyAddedFiles,
+      ...newlyAddedYouTube,
+      ...newlyAddedWebsites
+    ];
+
+    // Vérifier si un contenu SELECTIONNE est en cours de traitement
+    const isAnySelectedContentProcessing = allCurrentContent.some(content => 
+      selectedContentIds.has(content.id) && 
+      content.status !== 'completed' && 
+      content.status !== 'error'
+    );
+    
+    setIsProcessing(isAnySelectedContentProcessing);
+    
+    // Informer le parent de l'état de traitement
+    if (onProcessingStatusChange) {
+      onProcessingStatusChange(isAnySelectedContentProcessing);
+    }
+
+    // Informer le parent des IDs sélectionnés
     onContentChange(Array.from(selectedContentIds));
-  }, [selectedContentIds, onContentChange]);
+
+  }, [selectedContentIds, projectContents, newlyAddedFiles, newlyAddedYouTube, newlyAddedWebsites, onContentChange, onProcessingStatusChange]);
 
   const handleSelectionChange = (event, contentId) => {
     setSelectedContentIds(prev => {
@@ -259,8 +290,42 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
       enqueueSnackbar("Site web retiré", { variant: 'info' });
     };
 
+  // --- Fonction de rafraîchissement pour les contenus --- 
+  const refreshContentStatus = useCallback(async (contentId) => {
+    try {
+      const updatedContent = await contentService.getById(contentId);
+      // Mettre à jour l'état approprié
+      setProjectContents(prev => prev.map(c => c.id === contentId ? updatedContent : c));
+      setNewlyAddedFiles(prev => prev.map(c => c.id === contentId ? updatedContent : c));
+      setNewlyAddedYouTube(prev => prev.map(c => c.id === contentId ? updatedContent : c));
+      setNewlyAddedWebsites(prev => prev.map(c => c.id === contentId ? updatedContent : c));
+    } catch (error) {
+      console.error(`Erreur rafraîchissement contenu ${contentId}:`, error);
+    }
+  }, []);
+
+  // Effet pour vérifier périodiquement le statut des contenus en traitement
+  useEffect(() => {
+    const allCurrentContent = [
+        ...projectContents, 
+        ...newlyAddedFiles, 
+        ...newlyAddedYouTube, 
+        ...newlyAddedWebsites
+    ];
+    const processingIds = allCurrentContent
+      .filter(c => c.status !== 'completed' && c.status !== 'error')
+      .map(c => c.id);
+
+    if (processingIds.length > 0) {
+      const intervalId = setInterval(() => {
+        processingIds.forEach(id => refreshContentStatus(id));
+      }, 5000); // Vérifier toutes les 5 secondes
+
+      return () => clearInterval(intervalId);
+    }
+  }, [projectContents, newlyAddedFiles, newlyAddedYouTube, newlyAddedWebsites, refreshContentStatus]);
+
   // Créer une liste unifiée en évitant les doublons
-  // Utiliser un Map pour s'assurer qu'il n'y a pas de doublons basés sur l'ID
   const contentMap = new Map();
   
   // D'abord ajouter tous les contenus ajoutés dans ce flux car ils sont plus à jour
@@ -289,9 +354,6 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
           <Paper sx={{ p: 2 }}>
             <Typography variant="subtitle1" gutterBottom>1. Ajouter des Fichiers</Typography>
             <FileUpload projectId={projectId} onSuccess={handleFileUploadSuccess} />
-             <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
-                Formats supportés : PDF, TXT, DOCX.
-            </Typography>
           </Paper>
         </Grid>
         
@@ -342,53 +404,80 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [] }) 
       </Grid>
 
       {/* Liste des contenus (existants + nouveaux) */}
-      <Typography variant="subtitle1" gutterBottom>Contenus disponibles pour ce Fine-tuning</Typography>
+      <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>Contenus disponibles pour ce Fine-tuning</Typography>
+      {isProcessing && ( // Afficher une alerte globale si quelque chose est en traitement
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Traitement de certains contenus en cours... Le bouton 'Suivant' sera activé lorsque tout sera prêt.
+        </Alert>
+      )}
       {loadingProjectContent ? (
         <CircularProgress />
       ) : allContent.length === 0 ? (
         <Typography>Aucun contenu disponible ou ajouté.</Typography>
       ) : (
         <List component={Paper} dense>
-          {allContent.map((content) => (
-            <ListItem key={content.id} divider>
-              <ListItemIcon sx={{ minWidth: 35 }}>
-                <Tooltip title={`Type: ${content.type}`}> 
-                 {getContentIcon(content.type)}
-                </Tooltip>
-              </ListItemIcon>
-              <ListItemText 
-                primary={content.name} 
-                secondary={`Caractères: ${content.content_metadata?.character_count?.toLocaleString() || content.estimated_characters?.toLocaleString() || 'N/A'} | Statut: ${content.status}`}
-              />
-              <ListItemSecondaryAction sx={{ display: 'flex', alignItems: 'center' }}>
-                 {/* Afficher le bouton de suppression uniquement pour les nouveaux contenus */}
-                 {(newlyAddedFiles.some(f => f.id === content.id) || 
-                   newlyAddedYouTube.some(v => v.id === content.id) || 
-                   newlyAddedWebsites.some(w => w.id === content.id)) && (
-                     <IconButton edge="end" onClick={() => {
-                         if (newlyAddedFiles.some(f => f.id === content.id)) handleDeleteNewlyAddedFile(content.id);
-                         if (newlyAddedYouTube.some(v => v.id === content.id)) handleDeleteNewlyAddedYouTube(content.id);
-                         if (newlyAddedWebsites.some(w => w.id === content.id)) handleDeleteNewlyAddedWebsite(content.id);
-                     }} size="small" title="Retirer">
-                         <DeleteIcon fontSize="small"/>
-                     </IconButton>
-                 )}
-                 <FormControlLabel
-                  control={
-                      <Checkbox
-                          edge="end"
-                          onChange={(e) => handleSelectionChange(e, content.id)}
-                          checked={selectedContentIds.has(content.id)}
-                          disabled={content.status === 'error' || content.status === 'processing'} // Désactiver si en erreur ou en traitement
-                      />
+          {allContent.map((content) => {
+            const isProcessingContent = content.status !== 'completed' && content.status !== 'error';
+            return (
+              <ListItem key={content.id} divider>
+                <ListItemIcon sx={{ minWidth: 35 }}>
+                  <Tooltip title={`Type: ${content.type}`}> 
+                   {getContentIcon(content.type)}
+                  </Tooltip>
+                </ListItemIcon>
+                <ListItemText 
+                  primary={content.name} 
+                  secondary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                       {isProcessingContent ? (
+                        <Chip 
+                          label={content.status || 'En attente'}
+                          size="small"
+                          color="warning"
+                          icon={<CircularProgress size={14} color="inherit" />} 
+                          sx={{ mr: 1 }}
+                        />
+                      ) : (
+                         <Typography variant="caption" sx={{ color: content.status === 'error' ? 'error.main' : 'text.secondary' }}>
+                           {`Statut: ${content.status}`}
+                         </Typography>
+                      )}
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                         {` | Caractères: ${content.content_metadata?.character_count?.toLocaleString() || content.estimated_characters?.toLocaleString() || (isProcessingContent ? 'Calcul...' : 'N/A')}`}
+                      </Typography>
+                    </Box>
                   }
-                  labelPlacement="start"
-                  label="Inclure"
-                  sx={{ mr: 0, '& .MuiFormControlLabel-label': { fontSize: '0.8rem' } }}
-                 />
-              </ListItemSecondaryAction>
-            </ListItem>
-          ))}
+                />
+                <ListItemSecondaryAction sx={{ display: 'flex', alignItems: 'center' }}>
+                   {/* Afficher le bouton de suppression uniquement pour les nouveaux contenus */}
+                   {(newlyAddedFiles.some(f => f.id === content.id) || 
+                     newlyAddedYouTube.some(v => v.id === content.id) || 
+                     newlyAddedWebsites.some(w => w.id === content.id)) && (
+                       <IconButton edge="end" onClick={() => {
+                           if (newlyAddedFiles.some(f => f.id === content.id)) handleDeleteNewlyAddedFile(content.id);
+                           if (newlyAddedYouTube.some(v => v.id === content.id)) handleDeleteNewlyAddedYouTube(content.id);
+                           if (newlyAddedWebsites.some(w => w.id === content.id)) handleDeleteNewlyAddedWebsite(content.id);
+                       }} size="small" title="Retirer">
+                           <DeleteIcon fontSize="small"/>
+                       </IconButton>
+                   )}
+                   <FormControlLabel
+                    control={
+                        <Checkbox
+                            edge="end"
+                            onChange={(e) => handleSelectionChange(e, content.id)}
+                            checked={selectedContentIds.has(content.id)}
+                            disabled={content.status === 'error' || content.status === 'processing'} // Désactiver si en erreur ou en traitement
+                        />
+                    }
+                    labelPlacement="start"
+                    label="Inclure"
+                    sx={{ mr: 0, '& .MuiFormControlLabel-label': { fontSize: '0.8rem' } }}
+                   />
+                </ListItemSecondaryAction>
+              </ListItem>
+            );
+          })}
         </List>
       )}
     </Box>
