@@ -1474,31 +1474,70 @@ const OnboardingPage = () => {
                 gap: 1
               }}
             >
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                {isEstimated ? "Estimation du nombre de caractères dans vos contenus" : "Comptage exact des caractères"}
-                {(uploadedFiles.length > 0 || uploadedUrls.length > 0 || uploadedYouTube.length > 0 || uploadedWeb.length > 0) ? 
-                  ` (${[...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].filter(c => c.status === 'completed' || c.status === 'awaiting_transcription').length}/${uploadedFiles.length + uploadedUrls.length + uploadedYouTube.length + uploadedWeb.length} fichiers traités)` 
-                  : ""}
-              </Typography>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    {isEstimated ? (
-                      <>Caractères estimés: <strong>{estimateCharacterCount().toLocaleString()}</strong> 
-                        {actualCharacterCount > 0 && <>(dont {actualCharacterCount.toLocaleString()} comptés)</>}
-                      </>
-                    ) : (
-                      <>Caractères comptés: <strong>{actualCharacterCount.toLocaleString()}</strong></>
-                    )}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Coût estimé: <strong>{(isEstimated ? estimateCharacterCount() : actualCharacterCount) <= FREE_CHARACTER_QUOTA ? 'Gratuit' : `$${getEstimatedCost(isEstimated ? estimateCharacterCount() : actualCharacterCount).toFixed(2)}`}</strong>
-                  </Typography>
-                </Box>
-              </Box>
+              {/* --- MODIFICATION : Logique d'affichage améliorée --- */}
+              {(() => {
+                const isProcessingAnyContent = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => c.status === 'processing');
+                const hasAnyContent = uploadedFiles.length > 0 || uploadedUrls.length > 0 || uploadedYouTube.length > 0 || uploadedWeb.length > 0;
+                const totalFiles = uploadedFiles.length + uploadedUrls.length + uploadedYouTube.length + uploadedWeb.length;
+                const completedFiles = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].filter(c => c.status === 'completed' || c.status === 'awaiting_transcription').length;
+
+                let titleText = "";
+                if (isProcessingAnyContent) {
+                  titleText = "Traitement des contenus en cours...";
+                } else if (!isEstimated && hasAnyContent) {
+                  titleText = "Comptage exact des caractères";
+                } else if (hasAnyContent) {
+                  titleText = "Estimation du nombre de caractères";
+                } else {
+                  titleText = "Aucun contenu ajouté";
+                }
+
+                let countText = "";
+                if (isProcessingAnyContent) {
+                  countText = <Box sx={{ display: 'flex', alignItems: 'center' }}><CircularProgress size={16} sx={{ mr: 1 }} />Calcul en cours...</Box>;
+                } else if (!isEstimated && actualCharacterCount > 0) {
+                  countText = <>Caractères comptés: <strong>{actualCharacterCount.toLocaleString()}</strong></>;
+                } else if (hasAnyContent && isEstimated) {
+                  countText = <>Caractères estimés: <strong>{estimateCharacterCount().toLocaleString()}</strong>{actualCharacterCount > 0 && ` (dont ${actualCharacterCount.toLocaleString()} comptés)`}</>;
+                } else {
+                  countText = <>Caractères estimés: <strong>0</strong></>;
+                }
+                
+                let costText = "";
+                if (isProcessingAnyContent) {
+                    costText = 'Calcul en cours...';
+                } else if (!isEstimated && actualCharacterCount <= FREE_CHARACTER_QUOTA) {
+                    costText = 'Gratuit';
+                } else if (!isEstimated && actualCharacterCount > FREE_CHARACTER_QUOTA) {
+                    costText = `$${getEstimatedCost(actualCharacterCount).toFixed(2)}`;
+                } else if (estimateCharacterCount() <= FREE_CHARACTER_QUOTA) {
+                    costText = 'Gratuit (estimation)';
+                } else {
+                    costText = `~$${getEstimatedCost(estimateCharacterCount()).toFixed(2)} (estimation)`;
+                }
+
+                return (
+                  <>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {titleText}
+                      {hasAnyContent && ` (${completedFiles}/${totalFiles} traités)`}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                          {countText}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Coût estimé: <strong>{costText}</strong>
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </>
+                );
+              })()}
+              {/* --- FIN MODIFICATION --- */}
               
               {/* Comparaison avec le minimum recommandé */}
               {minCharactersRecommended > 0 && (

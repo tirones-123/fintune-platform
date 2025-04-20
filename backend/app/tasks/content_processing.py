@@ -84,6 +84,11 @@ def process_pdf_content(content_id: int):
         
         # Update content status to processed
         content.status = "completed"
+        
+        # --- AJOUT : Marquer explicitement les métadonnées comme modifiées ---
+        flag_modified(content, "content_metadata")
+        # --- FIN AJOUT ---
+        
         db.commit()
         logger.info(f"PDF content {content_id} status updated to 'completed'")
         
@@ -236,6 +241,11 @@ def process_docx_content(content_id: int):
         content.content_metadata["character_count"] = character_count
         content.content_metadata["is_exact_count"] = True  # Indiquer que ce comptage est exact
         content.status = "completed"
+        
+        # --- AJOUT : Marquer explicitement les métadonnées comme modifiées ---
+        flag_modified(content, "content_metadata")
+        # --- FIN AJOUT ---
+        
         db.commit()
         logger.info(f"DOCX content {content_id} status updated to 'completed'")
         
