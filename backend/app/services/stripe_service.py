@@ -1,5 +1,5 @@
 import stripe
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 import logging
 
@@ -18,34 +18,51 @@ logger = logging.getLogger(__name__)
 class StripeService:
     """Service pour gérer les interactions avec l'API Stripe."""
     
-    async def create_checkout_session(self, amount: int, user_id: int, metadata: Dict[str, Any] = None):
+    async def create_checkout_session(
+        self, 
+        amount: int, 
+        user_id: int, 
+        metadata: Dict[str, Any] = None,
+        line_item_name: str = "Achat de Crédits", # Nom par défaut
+        line_item_description: Optional[str] = None # Description optionnelle
+    ):
         """
-        Créer une session de paiement pour l'achat de caractères.
+        Créer une session de paiement Stripe.
         
         Args:
             amount: Montant en cents (USD)
             user_id: ID de l'utilisateur
             metadata: Métadonnées supplémentaires pour la session
+            line_item_name: Nom de l'article affiché sur Stripe
+            line_item_description: Description de l'article affiché sur Stripe
         
         Returns:
             Le lien de la session de paiement
         """
         try:
             # Préparer les métadonnées
-            session_metadata = {"user_id": str(user_id), "payment_type": "character_credits"}
+            session_metadata = {"user_id": str(user_id)}
             if metadata:
                 session_metadata.update(metadata)
             
-            # Créer une session de paiement
+            # --- MODIFICATION : Utiliser price_data au lieu de price ID ---
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=["card"],
                 line_items=[
                     {
-                        "price": settings.STRIPE_PRICE_ID,
+                        "price_data": {
+                            "currency": "usd",
+                            "product_data": {
+                                "name": line_item_name, # Utiliser le nom passé en argument
+                                "description": line_item_description, # Utiliser la description passée
+                            },
+                            "unit_amount": amount, # Montant en cents
+                        },
                         "quantity": 1,
                     },
                 ],
-                mode="payment",  # Mode paiement unique (pas d'abonnement)
+                # --- FIN MODIFICATION ---
+                mode="payment",
                 success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true",
                 cancel_url=f"{settings.FRONTEND_URL}/dashboard?payment_cancel=true",
                 client_reference_id=str(user_id),

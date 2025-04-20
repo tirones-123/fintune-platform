@@ -135,13 +135,14 @@ async def create_fine_tuning_job(
             checkout_url = await stripe_service.create_checkout_session(
                 amount=cost_result['amount_cents'],
                 user_id=current_user.id,
-                description=f"Fine-tuning job pour projet {request.project_id}",
+                line_item_description=f"Fine-tuning job pour projet {request.project_id}",
+                line_item_name="Fine-Tuning Job",
                 metadata={
                     "payment_type": "fine_tuning_job",
                     "user_id": str(current_user.id),
                     "project_id": str(request.project_id),
-                    "content_ids": json.dumps(request.content_ids), # Sérialiser la liste
-                    "config": request.config.json() # Sérialiser la config
+                    "content_ids": json.dumps(request.content_ids),
+                    "config": request.config.json()
                 }
             )
             return FineTuningJobResponse(
