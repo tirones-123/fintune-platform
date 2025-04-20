@@ -6,6 +6,7 @@ from datetime import datetime
 import logging
 from pydantic import BaseModel
 import json
+import time
 
 from app.core.security import get_current_user
 from app.core.config import settings
@@ -143,6 +144,7 @@ async def create_onboarding_session(
                                     args=[new_dataset.id],
                                     queue='dataset_generation'
                                 )
+                                time.sleep(1) # Attendre 1 seconde avant de continuer
                                 api_key = db.query(ApiKey).filter(
                                     ApiKey.user_id == current_user.id,
                                     ApiKey.provider == provider
@@ -249,6 +251,7 @@ async def create_onboarding_session(
                                  args=[new_dataset.id],
                                  queue='dataset_generation'
                              )
+                             time.sleep(1) # Attendre 1 seconde avant de continuer
                              api_key = db.query(ApiKey).filter(
                                  ApiKey.user_id == current_user.id,
                                  ApiKey.provider == provider
@@ -712,10 +715,16 @@ async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
                 except Exception as e:
                     logger.error(f"Webhook FT Job: Erreur lancement transcription pour content {content_id}: {e}")
         
-        logger.info(f"Webhook FT Job: Lancement de la génération pour dataset {new_dataset.id}")
-        celery_app.send_task("generate_dataset", args=[new_dataset.id], queue='dataset_generation')
-        
         db.commit() # Commit final après toutes les opérations DB
+        
+        # --- AJOUT DELAI ---
+        time.sleep(1) # Attendre 1 seconde avant de lancer la tâche
+        # --- FIN AJOUT DELAI ---
+        
+        # Lancer la tâche après le délai
+        celery_app.send_task("generate_dataset", args=[new_dataset.id], queue='dataset_generation')
+        # --- FIN MODIFICATION ---
+        
         logger.info(f"Webhook FT Job: Traitement du paiement terminé avec succès pour user {user_id}, projet {project_id}.")
 
     except Exception as e:
