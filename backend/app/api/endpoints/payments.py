@@ -22,6 +22,7 @@ from app.api.endpoints.fine_tuning_jobs import FineTuningJobConfig
 from app.tasks.content_processing import transcribe_youtube_video
 from celery_app import celery_app
 from app.models.payment import Payment
+from app.services.stripe_service import StripeService
 
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -324,31 +325,18 @@ async def create_onboarding_session(
             "content_ids": json.dumps(content_ids)
         }
 
-        # Créer session Stripe
+        # --- MODIFICATION : Utiliser le service Stripe --- 
         try:
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=["card"],
-                line_items=[
-                    {
-                        "price_data": {
-                            "currency": "usd",
-                            "product_data": {
-                                    "name": f"FinTune Onboarding - {character_count} caractères",
-                                    "description": f"{billable_characters} caractères facturables (10k gratuits)"
-                            },
-                                "unit_amount": amount_in_cents, 
-                        },
-                        "quantity": 1,
-                    },
-                ],
-                mode="payment",
-                    success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
-                    cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true", 
-                client_reference_id=str(current_user.id),
-                metadata=metadata,
-                db=db
+            stripe_service = StripeService()
+            checkout_url = await stripe_service.create_checkout_session(
+                amount=amount_in_cents,
+                user_id=current_user.id,
+                db=db, # Passer la session db au service
+                line_item_name=f"FinTune Onboarding - {character_count} caractères",
+                line_item_description=f"{billable_characters} caractères facturables (10k gratuits)",
+                metadata=metadata
             )
-            return {"checkout_url": checkout_session.url}
+            return {"checkout_url": checkout_url}
         except stripe.error.StripeError as e:
             logger.error(f"Erreur Stripe: {str(e)}")
             raise HTTPException(
