@@ -215,6 +215,8 @@ def get_content(
             detail="Content not found"
         )
     
+    db.refresh(content)
+    
     return content
 
 @router.put("/{content_id}", response_model=ContentResponse)
