@@ -18,6 +18,7 @@ from bs4 import BeautifulSoup
 from readability import Document
 from celery import shared_task, Task
 from typing import Optional, List, Dict, Any, Union
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.db.session import SessionLocal
 from app.models.content import Content
@@ -158,6 +159,11 @@ def process_text_content(content_id: int):
         
         # --- RETABLISSEMENT : Commiter directement depuis le worker ---
         content.status = "completed"
+        
+        # --- AJOUT : Marquer explicitement les métadonnées comme modifiées ---
+        flag_modified(content, "content_metadata")
+        # --- FIN AJOUT ---
+        
         db.commit()
         logger.info(f"Text content {content_id} status updated to 'completed'")
         
