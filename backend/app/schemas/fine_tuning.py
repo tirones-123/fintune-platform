@@ -28,6 +28,7 @@ class FineTuningResponse(FineTuningBase):
     metrics: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
     external_id: Optional[str] = None
+    fine_tuned_model: Optional[str] = None
     dataset_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None

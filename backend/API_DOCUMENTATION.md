@@ -8,6 +8,7 @@ Cette documentation présente l'API RESTful du backend de FinTune Platform, une 
 
 ```
 http://localhost:8000/api
+# ou https://api.finetuner.io pour la production
 ```
 
 ## Authentification
@@ -57,12 +58,10 @@ POST /auth/login
 
 Authentifie un utilisateur et renvoie des jetons d'accès et de rafraîchissement.
 
-**Corps de la requête**
-```json
-{
-  "username": "user@example.com",
-  "password": "password123"
-}
+**Corps de la requête (form-data)**
+```
+username=user@example.com
+password=password123
 ```
 
 **Réponse**
@@ -168,7 +167,8 @@ Met à jour les informations du profil de l'utilisateur courant.
 ```json
 {
   "name": "John Updated",
-  "has_completed_onboarding": true
+  "company": "Updated Company",
+  "has_completed_onboarding": true // Peut être mis à jour ici
 }
 ```
 
@@ -179,40 +179,15 @@ Met à jour les informations du profil de l'utilisateur courant.
   "email": "user@example.com",
   "name": "John Updated",
   "is_active": true,
+  "company": "Updated Company",
   "has_completed_onboarding": true,
-  "created_at": "2023-03-10T12:00:00"
-}
-```
-
-### Abonnement
-
-#### Obtenir l'abonnement courant
-
-```
-GET /users/me/subscription
-```
-
-Récupère les informations de l'abonnement de l'utilisateur courant.
-
-**Réponse**
-```json
-{
-  "id": 1,
-  "user_id": 1,
-  "stripe_subscription_id": "sub_1234567890",
-  "plan": "Pro",
-  "status": "active",
-  "current_period_start": "2023-03-10T12:00:00",
-  "current_period_end": "2023-04-10T12:00:00",
-  "max_projects": 10,
-  "max_fine_tunings": 5,
   "created_at": "2023-03-10T12:00:00"
 }
 ```
 
 ### Clés API
 
-Les clés API sont nécessaires pour utiliser les services de fine-tuning. Elles sont stockées de manière sécurisée et associées au profil utilisateur.
+Les clés API sont nécessaires pour utiliser les services de fine-tuning des providers externes.
 
 #### Obtenir les clés API configurées
 
@@ -251,12 +226,34 @@ Ajoute une nouvelle clé API ou met à jour une clé existante pour un provider.
 }
 ```
 
-**Providers supportés**:
-- `openai`: Clés commençant par "sk-..."
-- `anthropic`: Clés commençant par "sk-ant-..."
-- `mistral`: Format spécifique à Mistral AI
+**Providers supportés**: `openai`, `anthropic`, `mistral`
 
 **Note**: La clé API est requise avant de pouvoir lancer un fine-tuning avec le provider correspondant.
+
+#### Vérifier une clé API
+
+```
+POST /users/verify-api-key
+```
+
+Vérifie la validité d'une clé API auprès du fournisseur.
+
+**Corps de la requête**
+```json
+{
+  "provider": "openai",
+  "key": "sk_xxxxxxxxxxxxxxxx"
+}
+```
+
+**Réponse**
+```json
+{
+  "valid": true,
+  "credits": 100, // Peut être null si non applicable
+  "message": "Clé API valide"
+}
+```
 
 #### Supprimer une clé API
 
@@ -401,7 +398,7 @@ Récupère tous les contenus de l'utilisateur courant.
 **Paramètres de requête**
 - `project_id` (optionnel): Filtrer par projet
 
-**Réponse**
+**Réponse** (Exemple)
 ```json
 [
   {
@@ -413,20 +410,33 @@ Récupère tous les contenus de l'utilisateur courant.
     "url": null,
     "file_path": "/uploads/user_1/doc.pdf",
     "size": 1024,
-    "status": "processed",
+    "status": "completed",
+    "content_metadata": {
+        "original_name": "doc.pdf",
+        "character_count": 15476,
+        "is_exact_count": true,
+        "page_count": 5
+    },
     "created_at": "2023-03-10T12:00:00",
     "updated_at": "2023-03-10T12:00:00"
   }
 ]
 ```
 
+**Notes sur `content_metadata`** :
+- Ce champ JSON contient des informations supplémentaires sur le contenu.
+- Pour les fichiers uploadés, il contiendra `original_name`.
+- Après traitement par les tâches Celery, il devrait contenir `character_count` (le nombre de caractères extraits) et `is_exact_count: true`.
+- Pour les PDF, il peut contenir `page_count`.
+- Pour YouTube, il peut contenir `duration_seconds`, `transcription_source`, etc.
+
 ### Créer un contenu (URL)
 
 ```
-POST /contents
+POST /contents/url
 ```
 
-Crée un nouveau contenu à partir d'une URL.
+Ajoute un contenu à partir d'une URL (ex: YouTube, page web).
 
 **Corps de la requête**
 ```json
@@ -439,6 +449,8 @@ Crée un nouveau contenu à partir d'une URL.
 }
 ```
 
+**Note pour le type `website`**: Le frontend doit scraper le contenu et l'envoyer dans le champ `description`.
+
 **Réponse**
 ```json
 {
@@ -450,7 +462,8 @@ Crée un nouveau contenu à partir d'une URL.
   "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   "file_path": null,
   "size": 0,
-  "status": "processing",
+  "status": "processing", // ou "completed" si type=website
+  "content_metadata": {"original_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
   "created_at": "2023-03-10T12:00:00",
   "updated_at": "2023-03-10T12:00:00"
 }
@@ -462,14 +475,14 @@ Crée un nouveau contenu à partir d'une URL.
 POST /contents/upload
 ```
 
-Télécharge un fichier et crée un nouveau contenu.
+Télécharge un fichier (PDF, TXT, DOCX) et crée un nouveau contenu.
 
 **Corps de la requête (multipart/form-data)**
 - `file`: Le fichier à télécharger
 - `project_id`: ID du projet
 - `name`: Nom du contenu
 - `description` (optionnel): Description du contenu
-- `file_type`: Type de fichier (pdf, text)
+- `file_type`: Type de fichier (ex: `pdf`, `text`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`)
 
 **Réponse**
 ```json
@@ -483,41 +496,7 @@ Télécharge un fichier et crée un nouveau contenu.
   "file_path": "/uploads/user_1/document.pdf",
   "size": 2048,
   "status": "processing",
-  "created_at": "2023-03-10T12:00:00",
-  "updated_at": "2023-03-10T12:00:00"
-}
-```
-
-### Ajouter un contenu par URL
-
-```
-POST /contents/url
-```
-
-Ajoute un contenu à partir d'une URL.
-
-**Corps de la requête**
-```json
-{
-  "project_id": 1,
-  "name": "Article de blog",
-  "url": "https://example.com/blog-post",
-  "type": "website"
-}
-```
-
-**Réponse**
-```json
-{
-  "id": 4,
-  "project_id": 1,
-  "name": "Article de blog",
-  "description": null,
-  "type": "website",
-  "url": "https://example.com/blog-post",
-  "file_path": null,
-  "size": 0,
-  "status": "processing",
+  "content_metadata": {"original_name": "document.pdf"},
   "created_at": "2023-03-10T12:00:00",
   "updated_at": "2023-03-10T12:00:00"
 }
@@ -529,7 +508,7 @@ Ajoute un contenu à partir d'une URL.
 GET /contents/{content_id}
 ```
 
-Récupère les détails d'un contenu spécifique.
+Récupère les détails d'un contenu spécifique. L'API s'assure de retourner les données les plus fraîches.
 
 **Réponse**
 ```json
@@ -542,7 +521,13 @@ Récupère les détails d'un contenu spécifique.
   "url": null,
   "file_path": "/uploads/user_1/doc.pdf",
   "size": 1024,
-  "status": "processed",
+  "status": "completed",
+  "content_metadata": {
+      "original_name": "doc.pdf",
+      "character_count": 15476,
+      "is_exact_count": true,
+      "page_count": 5
+  },
   "created_at": "2023-03-10T12:00:00",
   "updated_at": "2023-03-10T12:00:00"
 }
@@ -554,7 +539,7 @@ Récupère les détails d'un contenu spécifique.
 PUT /contents/{content_id}
 ```
 
-Met à jour un contenu existant.
+Met à jour les champs principaux d'un contenu existant.
 
 **Corps de la requête**
 ```json
@@ -575,11 +560,35 @@ Met à jour un contenu existant.
   "url": null,
   "file_path": "/uploads/user_1/doc.pdf",
   "size": 1024,
-  "status": "processed",
+  "status": "completed",
+  "content_metadata": {
+      "original_name": "doc.pdf",
+      "character_count": 15476,
+      "is_exact_count": true,
+      "page_count": 5
+  },
   "created_at": "2023-03-10T12:00:00",
   "updated_at": "2023-03-10T13:00:00"
 }
 ```
+
+### Mettre à jour les métadonnées d'un contenu
+
+```
+PUT /contents/{content_id}/metadata
+```
+
+Met à jour le champ `content_metadata` d'un contenu. Utile pour les workers Celery.
+
+**Corps de la requête**
+```json
+{
+  "character_count": 16000,
+  "is_exact_count": true
+}
+```
+
+**Réponse** : L'objet `ContentResponse` mis à jour.
 
 ### Supprimer un contenu
 
@@ -587,7 +596,7 @@ Met à jour un contenu existant.
 DELETE /contents/{content_id}
 ```
 
-Supprime un contenu existant.
+Supprime un contenu existant et son fichier associé (si applicable).
 
 **Réponse**
 ```
@@ -620,6 +629,7 @@ Récupère tous les datasets de l'utilisateur courant.
     "pairs_count": 100,
     "character_count": 25000,
     "size": 50000,
+    "system_content": "You are a helpful assistant.",
     "created_at": "2023-03-10T12:00:00",
     "updated_at": "2023-03-10T12:30:00"
   }
@@ -632,7 +642,7 @@ Récupère tous les datasets de l'utilisateur courant.
 POST /datasets
 ```
 
-Crée un nouveau dataset.
+Crée un nouveau dataset et lance la tâche de génération des paires Q/A.
 
 **Corps de la requête**
 ```json
@@ -641,7 +651,8 @@ Crée un nouveau dataset.
   "name": "Nouveau dataset",
   "description": "Description du nouveau dataset",
   "model": "gpt-3.5-turbo",
-  "content_ids": [1, 2]
+  "content_ids": [1, 2],
+  "system_content": "Tu es un assistant spécialisé dans..."
 }
 ```
 
@@ -653,9 +664,10 @@ Crée un nouveau dataset.
   "name": "Nouveau dataset",
   "description": "Description du nouveau dataset",
   "model": "gpt-3.5-turbo",
-  "status": "processing",
+  "status": "pending", // ou "processing" si la tâche démarre immédiatement
   "pairs_count": 0,
   "size": 0,
+  "system_content": "Tu es un assistant spécialisé dans...",
   "created_at": "2023-03-10T12:00:00",
   "updated_at": "2023-03-10T12:00:00"
 }
@@ -680,6 +692,7 @@ Récupère les détails d'un dataset spécifique.
   "status": "ready",
   "pairs_count": 100,
   "size": 50000,
+  "system_content": "You are a helpful assistant.",
   "created_at": "2023-03-10T12:00:00",
   "updated_at": "2023-03-10T12:30:00"
 }
@@ -693,7 +706,7 @@ GET /datasets/{dataset_id}/pairs
 
 Récupère un dataset avec ses paires question-réponse.
 
-**Réponse**
+**Réponse** (`DatasetWithPairs`)
 ```json
 {
   "id": 1,
@@ -704,6 +717,7 @@ Récupère un dataset avec ses paires question-réponse.
   "status": "ready",
   "pairs_count": 2,
   "size": 1000,
+  "system_content": "You are a helpful assistant.",
   "created_at": "2023-03-10T12:00:00",
   "updated_at": "2023-03-10T12:30:00",
   "pairs": [
@@ -712,7 +726,7 @@ Récupère un dataset avec ses paires question-réponse.
       "dataset_id": 1,
       "question": "Comment ça va?",
       "answer": "Je vais bien, merci de demander!",
-      "metadata": {"source": "content_1", "chunk_id": 3},
+      "pair_metadata": {"source": "content_1", "chunk_id": 3},
       "created_at": "2023-03-10T12:20:00"
     },
     {
@@ -720,7 +734,7 @@ Récupère un dataset avec ses paires question-réponse.
       "dataset_id": 1,
       "question": "Quel est votre produit?",
       "answer": "Notre produit est une plateforme de fine-tuning pour modèles de langage.",
-      "metadata": {"source": "content_1", "chunk_id": 5},
+      "pair_metadata": {"source": "content_1", "chunk_id": 5},
       "created_at": "2023-03-10T12:20:00"
     }
   ]
@@ -733,7 +747,7 @@ Récupère un dataset avec ses paires question-réponse.
 PUT /datasets/{dataset_id}
 ```
 
-Met à jour un dataset existant.
+Met à jour les champs principaux d'un dataset existant.
 
 **Corps de la requête**
 ```json
@@ -743,21 +757,24 @@ Met à jour un dataset existant.
 }
 ```
 
-**Réponse**
+**Réponse** (`DatasetResponse`)
+
+### Mettre à jour le System Content d'un dataset
+
+```
+PUT /datasets/{dataset_id}/system-content
+```
+
+Met à jour uniquement le `system_content` d'un dataset.
+
+**Corps de la requête**
 ```json
 {
-  "id": 1,
-  "project_id": 1,
-  "name": "Dataset renommé",
-  "description": "Description mise à jour",
-  "model": "gpt-3.5-turbo",
-  "status": "ready",
-  "pairs_count": 100,
-  "size": 50000,
-  "created_at": "2023-03-10T12:00:00",
-  "updated_at": "2023-03-10T13:00:00"
+  "system_content": "Nouveau prompt système..."
 }
 ```
+
+**Réponse** (`DatasetResponse`)
 
 ### Supprimer un dataset
 
@@ -765,7 +782,7 @@ Met à jour un dataset existant.
 DELETE /datasets/{dataset_id}
 ```
 
-Supprime un dataset existant.
+Supprime un dataset existant et ses paires associées.
 
 **Réponse**
 ```
@@ -785,21 +802,11 @@ Ajoute une nouvelle paire question-réponse à un dataset.
 {
   "question": "Qu'est-ce que le fine-tuning?",
   "answer": "Le fine-tuning est un processus qui permet d'adapter un modèle de langage pré-entraîné à des tâches spécifiques.",
-  "metadata": {"source": "manual"}
+  "pair_metadata": {"source": "manual"}
 }
 ```
 
-**Réponse**
-```json
-{
-  "id": 3,
-  "dataset_id": 1,
-  "question": "Qu'est-ce que le fine-tuning?",
-  "answer": "Le fine-tuning est un processus qui permet d'adapter un modèle de langage pré-entraîné à des tâches spécifiques.",
-  "metadata": {"source": "manual"},
-  "created_at": "2023-03-10T13:00:00"
-}
-```
+**Réponse** (`DatasetPairResponse`)
 
 ### Ajouter des paires en masse
 
@@ -816,32 +823,18 @@ Ajoute plusieurs paires question-réponse à un dataset en une seule requête.
     {
       "question": "Qu'est-ce que le fine-tuning?",
       "answer": "Le fine-tuning est un processus qui permet d'adapter un modèle de langage pré-entraîné à des tâches spécifiques.",
-      "metadata": {"source": "manual"}
+      "pair_metadata": {"source": "manual"}
     },
     {
       "question": "Comment fonctionne le fine-tuning?",
       "answer": "Le fine-tuning fonctionne en réentraînant un modèle pré-entraîné sur un dataset spécifique à votre cas d'usage.",
-      "metadata": {"source": "manual"}
+      "pair_metadata": {"source": "manual"}
     }
   ]
 }
 ```
 
-**Réponse**
-```json
-{
-  "id": 1,
-  "project_id": 1,
-  "name": "Dataset renommé",
-  "description": "Description mise à jour",
-  "model": "gpt-3.5-turbo",
-  "status": "ready",
-  "pairs_count": 102,
-  "size": 51000,
-  "created_at": "2023-03-10T12:00:00",
-  "updated_at": "2023-03-10T13:10:00"
-}
-```
+**Réponse** (`DatasetResponse` mis à jour avec le nouveau `pairs_count`)
 
 ### Supprimer une paire
 
@@ -901,7 +894,8 @@ Récupère tous les fine-tunings de l'utilisateur courant.
       "epochs": 3,
       "learning_rate": 0.0001
     },
-    "external_id": null,
+    "external_id": "ftjob-...",
+    "fine_tuned_model": null, // Sera rempli quand terminé
     "metrics": {
       "training_loss": 0.056,
       "validation_loss": 0.062,
@@ -918,22 +912,20 @@ Récupère tous les fine-tunings de l'utilisateur courant.
 
 **Champs de fine-tuning supplémentaires:**
 
+- `fine_tuned_model`: ID du modèle final retourné par le provider (ex: `ft:gpt-3.5-turbo:...`)
 - `progress`: Pourcentage de progression du fine-tuning (0-100)
-- `external_id`: Identifiant du job chez le fournisseur d'IA (OpenAI, Anthropic, Mistral)
-- `metrics`: Statistiques d'entraînement retournées par le fournisseur d'IA
-  - `training_loss`: Perte sur l'ensemble d'entraînement
-  - `validation_loss`: Perte sur l'ensemble de validation (si disponible)
-  - `step`: Étape d'entraînement actuelle
-  - `total_steps`: Nombre total d'étapes prévues
+- `external_id`: Identifiant du job chez le provider (OpenAI, Anthropic, Mistral)
+- `metrics`: Statistiques d'entraînement retournées par le provider
 - `completed_at`: Date de fin du fine-tuning (uniquement pour les statuts "completed", "cancelled" ou "error")
 
 **Statuts possibles:**
-- `queued`: Le job est en attente de démarrage
-- `preparing`: Le job est en préparation (traitement des données)
+- `pending`: Créé, mais pas encore lancé (en attente de génération du dataset ou de paiement)
+- `queued`: Prêt à être lancé ou en attente chez le provider
+- `preparing`: Traitement des données chez le provider
 - `training`: L'entraînement est en cours
 - `completed`: L'entraînement est terminé avec succès
-- `cancelled`: L'entraînement a été annulé par l'utilisateur
-- `error`: Une erreur s'est produite pendant l'entraînement
+- `cancelled`: L'entraînement a été annulé par l'utilisateur ou le système
+- `error`: Une erreur s'est produite
 
 ### Créer un nouveau fine-tuning
 
@@ -941,7 +933,8 @@ Récupère tous les fine-tunings de l'utilisateur courant.
 POST /fine-tunings
 ```
 
-Crée un nouveau job de fine-tuning.
+Crée un nouveau job de fine-tuning à partir d'un dataset existant.
+**Note**: Préférer l'endpoint `/fine-tuning-jobs` pour un workflow complet.
 
 **Corps de la requête**
 ```json
@@ -957,10 +950,6 @@ Crée un nouveau job de fine-tuning.
 }
 ```
 
-**Note importante**: Pour les fine-tunings OpenAI :
-- Seul le paramètre `n_epochs` est supporté dans l'objet `hyperparameters`
-- Les paramètres `learning_rate` et `batch_size` ne sont pas acceptés par l'API OpenAI
-
 **Réponse**
 ```json
 {
@@ -975,24 +964,12 @@ Crée un nouveau job de fine-tuning.
     "n_epochs": 3
   },
   "external_id": null,
+  "fine_tuned_model": null,
   "error_message": null,
   "created_at": "2023-03-10T13:00:00",
   "updated_at": "2023-03-10T13:00:00"
 }
 ```
-
-**Traitement asynchrone**
-
-Lorsqu'un fine-tuning est créé, le traitement est géré de manière asynchrone par des tâches Celery en arrière-plan:
-1. Une tâche `start_fine_tuning` est déclenchée immédiatement après la création
-2. Cette tâche communique avec l'API du provider (OpenAI, Anthropic, Mistral) 
-3. Le statut et la progression sont mis à jour périodiquement dans la base de données
-4. Des tâches périodiques vérifient l'état du fine-tuning auprès du provider
-
-**Codes d'erreur possibles**
-- `404 Not Found`: Dataset non trouvé ou n'appartenant pas à l'utilisateur
-- `400 Bad Request`: Dataset non prêt pour le fine-tuning ou paramètres invalides
-- `401 Unauthorized`: Clé API manquante pour le provider spécifié
 
 ### Récupérer un fine-tuning spécifique
 
@@ -1002,34 +979,7 @@ GET /fine-tunings/{fine_tuning_id}
 
 Récupère les détails d'un fine-tuning spécifique.
 
-**Réponse**
-```json
-{
-  "id": 1,
-  "dataset_id": 1,
-  "name": "Mon fine-tuning",
-  "description": "Description du fine-tuning",
-  "model": "gpt-3.5-turbo",
-  "provider": "openai",
-  "status": "training",
-  "progress": 45.5,
-  "hyperparameters": {
-    "epochs": 3,
-    "learning_rate": 0.0001
-  },
-  "external_id": null,
-  "metrics": {
-    "training_loss": 0.056,
-    "validation_loss": 0.062,
-    "step": 500,
-    "total_steps": 1000
-  },
-  "error_message": null,
-  "created_at": "2023-03-10T12:00:00",
-  "updated_at": "2023-03-10T12:30:00",
-  "completed_at": null
-}
-```
+**Réponse** (`FineTuningResponse`)
 
 ### Mettre à jour un fine-tuning
 
@@ -1037,7 +987,7 @@ Récupère les détails d'un fine-tuning spécifique.
 PUT /fine-tunings/{fine_tuning_id}
 ```
 
-Met à jour un fine-tuning existant.
+Met à jour les champs modifiables (name, description) d'un fine-tuning.
 
 **Corps de la requête**
 ```json
@@ -1047,34 +997,7 @@ Met à jour un fine-tuning existant.
 }
 ```
 
-**Réponse**
-```json
-{
-  "id": 1,
-  "dataset_id": 1,
-  "name": "Fine-tuning renommé",
-  "description": "Description mise à jour",
-  "model": "gpt-3.5-turbo",
-  "provider": "openai",
-  "status": "training",
-  "progress": 45.5,
-  "hyperparameters": {
-    "epochs": 3,
-    "learning_rate": 0.0001
-  },
-  "external_id": null,
-  "metrics": {
-    "training_loss": 0.056,
-    "validation_loss": 0.062,
-    "step": 500,
-    "total_steps": 1000
-  },
-  "error_message": null,
-  "created_at": "2023-03-10T12:00:00",
-  "updated_at": "2023-03-10T13:00:00",
-  "completed_at": null
-}
-```
+**Réponse** (`FineTuningResponse`)
 
 ### Supprimer un fine-tuning
 
@@ -1095,7 +1018,7 @@ Supprime un fine-tuning existant.
 POST /fine-tunings/{fine_tuning_id}/cancel
 ```
 
-Annule un job de fine-tuning en cours.
+Annule un job de fine-tuning en cours (si le provider le supporte).
 
 **Corps de la requête**
 ```json
@@ -1104,34 +1027,7 @@ Annule un job de fine-tuning en cours.
 }
 ```
 
-**Réponse**
-```json
-{
-  "id": 1,
-  "dataset_id": 1,
-  "name": "Mon fine-tuning",
-  "description": "Description du fine-tuning",
-  "model": "gpt-3.5-turbo",
-  "provider": "openai",
-  "status": "cancelled",
-  "progress": 45.5,
-  "hyperparameters": {
-    "epochs": 3,
-    "learning_rate": 0.0001
-  },
-  "external_id": null,
-  "metrics": {
-    "training_loss": 0.056,
-    "validation_loss": 0.062,
-    "step": 500,
-    "total_steps": 1000
-  },
-  "error_message": "Coût trop élevé",
-  "created_at": "2023-03-10T12:00:00",
-  "updated_at": "2023-03-10T13:00:00",
-  "completed_at": null
-}
-```
+**Réponse** (`FineTuningResponse` avec statut `cancelled`)
 
 ## Gestion des paiements
 
@@ -1147,7 +1043,7 @@ Crée une session de paiement Stripe ou lance le traitement gratuit pour finalis
 ```json
 {
   "character_count": 15000,
-  "pending_transcriptions": [{"id": 12}, {"id": 15}],
+  "content_ids": [12, 15],
   "dataset_name": "Mon Dataset Onboarding",
   "system_content": "Tu es un assistant utile.",
   "provider": "openai",
@@ -1156,15 +1052,10 @@ Crée une session de paiement Stripe ou lance le traitement gratuit pour finalis
 ```
 
 **Logique de traitement**
-1. Vérifie si `character_count <= 10000` ET si l'utilisateur (`current_user`) n'a pas encore reçu les crédits gratuits (`has_received_free_credits == False`).
-    * Si oui : Ajoute les crédits gratuits, marque l'utilisateur comme les ayant reçus (`has_received_free_credits = True`), lance les transcriptions et la création du dataset/fine-tuning en arrière-plan.
-2. Vérifie si `character_count <= 10000` MAIS l'utilisateur a déjà reçu les crédits gratuits.
-    * Si oui : Lance les transcriptions et la création du dataset/fine-tuning, mais n'ajoute pas de crédits.
-3. Si `character_count > 10000`:
-    * Calcule le nombre de caractères facturables (`billable_characters = character_count - 10000`).
-    * Calcule le montant en cents (`amount_cents`).
-    * Si `amount_cents` est inférieur au seuil Stripe (ex: 60 cents), traite comme le cas 2 (gratuit, sans ajout de crédits).
-    * Sinon, crée une session de paiement Stripe avec les informations nécessaires dans les `metadata` (user\_id, project\_id, dataset\_name, provider, model, content\_ids, etc.) pour que le webhook puisse lancer le traitement après paiement.
+- Gère le quota gratuit (10k caractères, une seule fois).
+- Calcule le coût si > 10k caractères.
+- Si coût > seuil Stripe, crée une session de paiement.
+- Si gratuit ou coût < seuil, lance directement les transcriptions/création dataset/fine-tuning.
 
 **Réponse (Traitement gratuit)**
 ```json
@@ -1193,12 +1084,13 @@ Gère les événements de webhook de Stripe (ex: `checkout.session.completed`).
 **Détails d'implémentation importants**
 - Vérifie le `payment_type` dans les `metadata` de la session Stripe.
 - Si `payment_type` est `"onboarding_characters"` ou `"fine_tuning_job"`, le webhook:
-    - Récupère les informations nécessaires (user\_id, project\_id, content\_ids, config, etc.) depuis les `metadata`.
-    - Marque l'utilisateur comme ayant reçu les crédits gratuits (si applicable et non déjà fait).
+    - Récupère les informations nécessaires depuis les `metadata`.
+    - Marque l'utilisateur comme ayant reçu les crédits gratuits (si applicable).
+    - **Met à jour `user.has_completed_onboarding = True` si `payment_type` est `"onboarding_characters"`.**
     - Crée les entrées `Dataset` et `FineTuning` dans la base de données.
     - Lance les tâches Celery nécessaires (transcription, génération de dataset).
 - Si `payment_type` est `"character_credits"`, ajoute les crédits achetés à l'utilisateur.
-- **IMPORTANT**: Le webhook doit toujours retourner un statut `200 OK` à Stripe (ex: `{"status": "success"}`) si la signature est valide, même si le traitement interne échoue, pour éviter les rejeux. Les erreurs de traitement doivent être gérées via les logs.
+- **IMPORTANT**: Le webhook doit toujours retourner un statut `200 OK` à Stripe.
 
 ## Gestion des caractères
 
@@ -1352,24 +1244,12 @@ POST /characters/quality-assessment
 Le processus de fine-tuning suit les étapes suivantes :
 
 1. **Configuration de la clé API**
-   - L'utilisateur doit d'abord configurer sa clé API pour le provider souhaité via l'endpoint `/users/me/api-keys`
-
 2. **Préparation des contenus**
-   - Upload/ajout via les endpoints `/contents/...`
+3. **Lancement du Fine-tuning Job** via `POST /fine-tuning-jobs` (gère coût/paiement/lancement tâches)
+4. **Suivi du Progrès** via `GET /fine-tunings/{fine_tuning_id}`
+5. **Test du modèle** via `POST /fine-tunings/{fine_tuning_id}/test`
 
-3. **Lancement du Fine-tuning Job**
-   - via l'endpoint **`/fine-tuning-jobs`** (voir ci-dessous)
-     * Le système calcule le coût basé sur les caractères des contenus sélectionnés
-     * Si le coût est nul (quota gratuit non utilisé ou montant trop faible), le système crée le `Dataset`, le `FineTuning` et lance les tâches (transcription, génération)
-     * Si un paiement est requis, l'API retourne une URL Stripe. Après paiement, le webhook Stripe déclenche la création du `Dataset`, du `FineTuning` et le lancement des tâches
-
-4. **Suivi du Progrès**
-   - via `GET /fine-tunings/{fine_tuning_id}` ou `GET /datasets/{dataset_id}`
-
-5. **Test du modèle**
-   - via l'endpoint `/fine-tunings/{fine_tuning_id}/test` (voir ci-dessous)
-
-## Nouvel Endpoint : Création de Fine-Tuning Job
+## Endpoint : Création de Fine-Tuning Job
 
 ```
 POST /fine-tuning-jobs
@@ -1392,17 +1272,6 @@ Crée et lance un nouveau job de fine-tuning complet (Dataset + FineTuning) à p
   }
 }
 ```
-
-**Logique de traitement**
-- Calcule le nombre total de caractères des `content_ids`
-- Appelle `character_service.handle_fine_tuning_cost` en passant l'utilisateur pour vérifier `has_received_free_credits`
-- **Si paiement requis** : Retourne une réponse avec `status: "pending_payment"` et `checkout_url`
-- **Si traitement gratuit** :
-    - Vérifie si les crédits gratuits doivent être appliqués (première fois)
-    - Si oui, ajoute les crédits via `CharacterService` et marque `user.has_received_free_credits = True`
-    - Crée le `Dataset` et le `FineTuning`
-    - Lance les tâches Celery (`transcribe_youtube_video` si besoin, `generate_dataset`)
-    - Retourne une réponse avec `status: "processing_started"`, `redirect_url`, `fine_tuning_id`, `dataset_id`
 
 **Réponse** (`FineTuningJobResponse`)
 ```json
@@ -1427,13 +1296,13 @@ Crée et lance un nouveau job de fine-tuning complet (Dataset + FineTuning) à p
 }
 ```
 
-## Nouvel Endpoint : Tester un Modèle Fine-tuné
+## Endpoint : Tester un Modèle Fine-tuné
 
 ```
 POST /fine-tunings/{fine_tuning_id}/test
 ```
 
-Permet d'envoyer un prompt à un modèle fine-tuné spécifique (qui doit avoir le statut "completed") et d'obtenir sa réponse. Utilisé par le Playground.
+Permet d'envoyer un prompt à un modèle fine-tuné spécifique (qui doit avoir le statut "completed" et un `fine_tuned_model` ID) et d'obtenir sa réponse.
 
 **Paramètres URL**
 - `fine_tuning_id` (int): ID du fine-tuning à tester
@@ -1454,7 +1323,84 @@ Permet d'envoyer un prompt à un modèle fine-tuné spécifique (qui doit avoir 
 
 **Codes d'erreur possibles**
 - `404 Not Found`: Fine-tuning non trouvé ou non autorisé
-- `400 Bad Request`: Modèle non complété ou erreur lors de l'appel à l'API du fournisseur
+- `400 Bad Request`: Modèle non complété, ID `fine_tuned_model` manquant, ou erreur lors de l'appel à l'API du fournisseur
+
+## Endpoints Helpers
+
+### Générer System Content
+
+```
+POST /helpers/generate-system-content
+```
+
+Génère un system prompt optimisé basé sur l'objectif de l'assistant.
+
+**Corps de la requête**
+```json
+{
+  "purpose": "Un assistant expert en droit du travail..."
+}
+```
+
+**Réponse**
+```json
+{
+  "system_content": "You are a helpful assistant specialized in labor law...",
+  "fine_tuning_category": "Professional Expertise",
+  "min_characters_recommended": 50000
+}
+```
+
+### Générer Complétion
+
+```
+POST /helpers/generate-completion
+```
+
+Génère une réponse à partir d'un modèle (standard ou fine-tuné) et d'un prompt.
+Utilisé par le Playground.
+
+**Corps de la requête**
+```json
+{
+  "model_id": "ft:gpt-3.5-turbo:...", // ID du modèle OpenAI
+  "prompt": "Quel est le processus?",
+  "system_message": "Tu es un assistant..."
+}
+```
+
+**Réponse**
+```json
+{
+  "response": "Le processus est le suivant..."
+}
+```
+
+### Scraper une URL Web
+
+```
+POST /helpers/scrape-web
+```
+
+Extrait le contenu textuel principal d'une page web.
+
+**Corps de la requête**
+```json
+{
+  "url": "https://example.com/article"
+}
+```
+
+**Réponse**
+```json
+{
+  "title": "Titre de l'article",
+  "paragraphs": [
+    "Paragraphe 1...",
+    "Paragraphe 2..."
+  ]
+}
+```
 
 ### Transcription de vidéos YouTube
 
@@ -1462,44 +1408,88 @@ Permet d'envoyer un prompt à un modèle fine-tuné spécifique (qui doit avoir 
 POST /helpers/video-transcript
 ```
 
-Extrait la transcription d'une vidéo YouTube en utilisant soit les sous-titres intégrés, soit en transcrivant l'audio avec Whisper.
+Extrait la transcription d'une vidéo YouTube.
+**Note**: Le traitement asynchrone est préférable et géré via les tâches Celery internes.
 
 **Corps de la requête**
 ```json
 {
-  "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-  "async_process": false,
-  "content_id": null
+  "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 }
 ```
 
-**Paramètres:**
-- `video_url`: URL de la vidéo YouTube (obligatoire)
-- `async_process`: Booléen indiquant si le traitement doit être asynchrone (facultatif, par défaut: false)
-- `content_id`: ID du contenu dans la base de données (obligatoire si async_process=true)
-
-**Réponse (mode synchrone)**
+**Réponse (synchrone)**
 ```json
 {
   "transcript": "Texte de la transcription...",
-  "source": "youtube_transcript_api"
+  "source": "youtube_transcript_api" // ou autre source
 }
 ```
 
-**Réponse (mode asynchrone)**
+## Notifications
+
+### Récupérer les notifications
+
+```
+GET /notifications
+```
+
+Récupère les notifications pour l'utilisateur courant.
+
+**Paramètres de requête**
+- `limit` (int): Nombre max (défaut: 20)
+- `offset` (int): Pour pagination (défaut: 0)
+- `unread_only` (bool): Filtrer non lues (défaut: false)
+
+**Réponse**
+```json
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "message": "Fine-tuning 'Mon Job' terminé avec succès.",
+    "type": "success",
+    "is_read": false,
+    "created_at": "2023-03-11T10:00:00",
+    "related_id": 5,
+    "related_type": "fine_tuning"
+  }
+]
+```
+
+### Marquer comme lues
+
+```
+POST /notifications/mark-read
+```
+
+Marque des notifications spécifiques comme lues.
+
+**Corps de la requête**
 ```json
 {
-  "task_id": "a1b2c3d4e5f6",
-  "status": "processing",
-  "message": "La transcription a été lancée en arrière-plan",
-  "check_endpoint": "/api/helpers/transcript-status/a1b2c3d4e5f6"
+  "notification_ids": [1, 3]
 }
 ```
 
-**Notes:**
-1. En mode synchrone, la réponse est immédiate mais peut être plus lente pour les longues vidéos
-2. En mode asynchrone, la transcription est traitée en arrière-plan, et il faut vérifier l'état avec l'endpoint `/helpers/transcript-status/{task_id}`
-3. Le mode asynchrone nécessite maintenant un `content_id` valide, qui fait référence à un contenu existant dans la base de données
-4. **Important**: Les tâches Celery internes (`transcribe_youtube_video`) sont maintenant appelées avec `content_id` comme argument principal pour récupérer l'URL et mettre à jour le bon objet `Content`.
+**Réponse**
+```json
+{
+  "message": "Notifications marked as read"
+}
+```
 
-# ... (Reste du fichier inchangé) ... 
+### Marquer tout comme lu
+
+```
+POST /notifications/mark-all-read
+```
+
+Marque toutes les notifications de l'utilisateur comme lues.
+
+**Réponse**
+```json
+{
+  "message": "All notifications marked as read"
+}
+``` 
