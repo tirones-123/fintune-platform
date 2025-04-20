@@ -865,7 +865,7 @@ const OnboardingPage = () => {
     );
 
     // Mettre à jour l'état de traitement
-    setIsContentProcessing(hasProcessingContent);
+    // setIsContentProcessing(hasProcessingContent);
     
     if (hasProcessingContent) {
       const intervalId = setInterval(() => {
