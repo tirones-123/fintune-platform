@@ -268,10 +268,9 @@ async def test_fine_tuning(
         
         # Appeler la méthode sur l'instance obtenue
         completion = await provider_instance.generate_completion(
-            # Attention : la méthode s'appelle generate_completion, pas get_completion
-            model=fine_tuning.fine_tuned_model, 
+            # fine_tuned_model=fine_tuning.fine_tuned_model, # Ne devrait pas être nécessaire ici
             prompt=request_data.prompt,
-            # system_prompt=fine_tuning.dataset.system_content # Décommenter si generate_completion l'accepte
+            system_prompt=fine_tuning.dataset.system_content # <-- PASSER LE SYSTEM PROMPT DU DATASET
         )
         
         if completion is None:

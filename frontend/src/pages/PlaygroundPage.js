@@ -19,7 +19,7 @@ import {
   ListSubheader
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import { fineTuningService, helperService } from '../services/apiService';
+import { fineTuningService, helperService, datasetService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
 import ChatIcon from '@mui/icons-material/Chat';
@@ -99,6 +99,53 @@ function PlaygroundPage() {
       window.removeEventListener('finetuningUpdate', handleUpdate);
     };
   }, [fetchFineTunedModels]);
+
+  // --- MODIFICATION : Charger le system prompt via API pour les modèles FT ---
+  useEffect(() => {
+    const loadSystemPrompt = async () => {
+      setConversation([]); // Vider conversation/prompt/erreur à chaque changement
+      setPrompt(''); 
+      setError('');
+
+      if (!selectedModel) {
+        setSystemMessage('You are a helpful assistant.'); // Défaut si rien n'est sélectionné
+        return;
+      }
+
+      const modelDetails = allModels.find(m => m.id === selectedModel);
+
+      if (modelDetails?.isFineTuned && modelDetails.internalId) {
+        console.log(`Modèle fine-tuné ${selectedModel} (ID interne: ${modelDetails.internalId}) sélectionné. Recherche du dataset...`);
+        try {
+          // 1. Récupérer les détails du fine-tuning pour obtenir dataset_id
+          const ftDetails = await fineTuningService.getById(modelDetails.internalId);
+          if (ftDetails && ftDetails.dataset_id) {
+            console.log(`Dataset ID trouvé: ${ftDetails.dataset_id}. Récupération du dataset...`);
+            // 2. Récupérer les détails du dataset
+            const dsDetails = await datasetService.getById(ftDetails.dataset_id);
+            const prompt = dsDetails.system_content || 'You are a helpful assistant.';
+            setSystemMessage(prompt);
+            console.log(`System prompt chargé pour ${selectedModel}:`, prompt);
+          } else {
+            logger.warning(`Impossible de récupérer le dataset_id pour le fine-tuning ${modelDetails.internalId}`);
+            setSystemMessage('You are a helpful assistant.'); // Fallback
+          }
+        } catch (err) {
+          console.error("Erreur lors de la récupération du system prompt:", err);
+          setError("Erreur chargement du system prompt.");
+          setSystemMessage('You are a helpful assistant.'); // Fallback en cas d'erreur
+        }
+      } else {
+        // Modèle standard
+        setSystemMessage('You are a helpful assistant.');
+        console.log(`System prompt réinitialisé pour modèle standard: ${selectedModel}`);
+      }
+    };
+
+    loadSystemPrompt();
+
+  }, [selectedModel, allModels]); // Dépendances correctes
+  // --- FIN MODIFICATION ---
 
   // Gérer l'envoi du prompt
   const handleSendPrompt = async () => {
