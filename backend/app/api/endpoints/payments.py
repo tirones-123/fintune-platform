@@ -487,6 +487,13 @@ async def _handle_onboarding_payment_success(db: Session, stripe_session: Dict[s
         if user and not user.has_received_free_credits:
             user.has_received_free_credits = True
             db.add(user)
+            
+        # --- AJOUT : Marquer aussi l'onboarding comme terminé --- 
+        if user:
+             user.has_completed_onboarding = True
+             db.add(user)
+             logger.info(f"Webhook onboarding: Utilisateur {user.id} marqué comme ayant terminé l'onboarding.")
+        # --- FIN AJOUT ---
 
         # 2. Créer Dataset et FineTuning
         project = db.query(Project).filter(Project.id == project_id, Project.user_id == user_id).first()

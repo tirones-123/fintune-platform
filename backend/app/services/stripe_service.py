@@ -74,7 +74,7 @@ class StripeService:
                     },
                 ],
                 mode="payment",
-                success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true",
+                success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
                 cancel_url=f"{settings.FRONTEND_URL}/dashboard?payment_cancel=true",
                 client_reference_id=str(user_id),
                 customer_email=user.email,
