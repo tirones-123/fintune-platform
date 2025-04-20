@@ -283,7 +283,11 @@ def check_fine_tuning_status(fine_tuning_id: int):
             fine_tuning.progress = 100
             fine_tuning.completed_at = datetime.now().isoformat()
             fine_tuning.metrics = status_response.get("details", {})
-            fine_tuning.fine_tuned_model = status_response.get("fine_tuned_model", "")
+            # --- LOG VALEUR RÉCUPÉRÉE ---
+            retrieved_model_id = status_response.get("fine_tuned_model", "")
+            logger.info(f"Fine-tuning {fine_tuning_id}: OpenAI status succeeded. Retrieved fine_tuned_model ID: '{retrieved_model_id}'")
+            # --- FIN LOG ---
+            fine_tuning.fine_tuned_model = retrieved_model_id # Utiliser la variable logguée
             logger.info(f"Fine-tuning {fine_tuning_id} completed")
             if previous_status != "completed":
                 notification_message = f"Le fine-tuning '{fine_tuning.name}' est terminé avec succès ! Modèle prêt: {fine_tuning.fine_tuned_model}"
