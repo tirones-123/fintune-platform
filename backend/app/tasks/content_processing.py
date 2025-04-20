@@ -160,11 +160,23 @@ def process_text_content(content_id: int):
         content.status = "completed"
         db.commit()
         logger.info(f"Text content {content_id} status updated to 'completed'")
-        # --- FIN RETABLISSEMENT ---
+        
+        # --- AJOUT LOG DEBUG : Vérifier les métadonnées juste après commit ---
+        try:
+            # Créer une nouvelle session pour éviter les problèmes de cache de session
+            with SessionLocal() as post_commit_db:
+                content_after_commit = post_commit_db.query(Content).filter(Content.id == content_id).first()
+                if content_after_commit:
+                     logger.info(f"WORKER - Content {content_id} metadata APRES commit: {content_after_commit.content_metadata}")
+                else:
+                    logger.warning(f"WORKER - Impossible de relire le contenu {content_id} après commit.")
+        except Exception as log_err:
+            logger.error(f"WORKER - Erreur lors de la relecture post-commit pour {content_id}: {log_err}")
+        # --- FIN AJOUT LOG DEBUG ---
         
         # Vérifier que le statut a bien été mis à jour (optionnel mais utile pour debug)
-        # updated_content = db.query(Content).filter(Content.id == content_id).first()
-        # logger.info(f"Text content {content_id} final status: {updated_content.status}")
+        updated_content = db.query(Content).filter(Content.id == content_id).first()
+        logger.info(f"Text content {content_id} final status: {updated_content.status}")
         logger.info(f"Text content {content_id} processed successfully with {character_count} characters")
         return {"status": "success", "content_id": content_id, "character_count": character_count}
     

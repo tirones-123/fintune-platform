@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any
 import os
 import shutil
 from pathlib import Path
+import logging
 
 from app.core.security import get_current_user
 from app.core.config import settings
@@ -15,6 +16,8 @@ from app.schemas.content import ContentCreate, ContentResponse, ContentUpdate, U
 from app.tasks.content_processing import process_content
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 @router.get("", response_model=List[ContentResponse])
 def get_contents(
@@ -216,6 +219,10 @@ def get_content(
         )
     
     refreshed_content = db.query(Content).filter(Content.id == content_id).first()
+    
+    # --- AJOUT LOG DEBUG : Vérifier les métadonnées avant retour API ---
+    logger.info(f"API GET - Content {content_id} metadata avant retour: {refreshed_content.content_metadata}")
+    # --- FIN AJOUT LOG DEBUG ---
     
     return refreshed_content
 
