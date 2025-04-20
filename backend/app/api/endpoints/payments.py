@@ -345,9 +345,9 @@ async def create_onboarding_session(
                     success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true&onboarding_completed=true",
                     cancel_url=f"{settings.FRONTEND_URL}/onboarding?payment_cancel=true", 
                 client_reference_id=str(current_user.id),
-                    metadata=metadata,
-                    customer_email=current_user.email,
-                )
+                metadata=metadata,
+                db=db
+            )
             return {"checkout_url": checkout_session.url}
         except stripe.error.StripeError as e:
             logger.error(f"Erreur Stripe: {str(e)}")

@@ -2,6 +2,8 @@ import stripe
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 import logging
+import json
+import time
 
 from app.core.config import settings
 from app.db.session import SessionLocal  # Importer SessionLocal au lieu de get_db
@@ -9,6 +11,8 @@ from app.models.user import User
 from app.models.payment import Payment, CharacterTransaction
 from app.services.character_service import CharacterService
 from app.models.content import Content  # Ajouter l'import pour le modèle Content
+from app.core.security import get_current_user
+from app.models.project import Project
 
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -22,9 +26,10 @@ class StripeService:
         self, 
         amount: int, 
         user_id: int, 
+        db: Session,
         metadata: Dict[str, Any] = None,
-        line_item_name: str = "Achat de Crédits", # Nom par défaut
-        line_item_description: Optional[str] = None # Description optionnelle
+        line_item_name: str = "Achat de Crédits",
+        line_item_description: Optional[str] = None
     ):
         """
         Créer une session de paiement Stripe.
@@ -32,6 +37,7 @@ class StripeService:
         Args:
             amount: Montant en cents (USD)
             user_id: ID de l'utilisateur
+            db: Session de base de données
             metadata: Métadonnées supplémentaires pour la session
             line_item_name: Nom de l'article affiché sur Stripe
             line_item_description: Description de l'article affiché sur Stripe
@@ -40,12 +46,18 @@ class StripeService:
             Le lien de la session de paiement
         """
         try:
+            # --- AJOUT : Récupérer l'email de l'utilisateur ---
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                logger.error(f"Utilisateur {user_id} non trouvé lors de la création de la session Stripe.")
+                raise ValueError("User not found")
+            # --- FIN AJOUT ---
+            
             # Préparer les métadonnées
             session_metadata = {"user_id": str(user_id)}
             if metadata:
                 session_metadata.update(metadata)
             
-            # --- MODIFICATION : Utiliser price_data au lieu de price ID ---
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=["card"],
                 line_items=[
@@ -53,19 +65,19 @@ class StripeService:
                         "price_data": {
                             "currency": "usd",
                             "product_data": {
-                                "name": line_item_name, # Utiliser le nom passé en argument
-                                "description": line_item_description, # Utiliser la description passée
+                                "name": line_item_name,
+                                "description": line_item_description,
                             },
-                            "unit_amount": amount, # Montant en cents
+                            "unit_amount": amount,
                         },
                         "quantity": 1,
                     },
                 ],
-                # --- FIN MODIFICATION ---
                 mode="payment",
                 success_url=f"{settings.FRONTEND_URL}/dashboard?payment_success=true",
                 cancel_url=f"{settings.FRONTEND_URL}/dashboard?payment_cancel=true",
                 client_reference_id=str(user_id),
+                customer_email=user.email,
                 metadata=session_metadata,
             )
             

@@ -135,8 +135,9 @@ async def create_fine_tuning_job(
             checkout_url = await stripe_service.create_checkout_session(
                 amount=cost_result['amount_cents'],
                 user_id=current_user.id,
-                line_item_description=f"Fine-tuning job pour projet {request.project_id}",
+                db=db,
                 line_item_name="Fine-Tuning Job",
+                line_item_description=f"Fine-tuning job pour projet {request.project_id}",
                 metadata={
                     "payment_type": "fine_tuning_job",
                     "user_id": str(current_user.id),
