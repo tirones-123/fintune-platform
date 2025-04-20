@@ -364,14 +364,27 @@ def process_content(content_id: int):
         
         # Route to the appropriate processing function based on content type
         content_type = content.type.lower()
+        file_extension = os.path.splitext(content.file_path)[1].lower() if content.file_path else None
+        
+        logger.info(f"Routing content type: '{content_type}', extension: '{file_extension}'")
         
         # Traitement standard basé sur le type de contenu
         if content_type == 'pdf':
             return process_pdf_content(content_id)
-        elif content_type in ['doc', 'docx']:
+        elif content_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' or file_extension == '.docx':
             return process_docx_content(content_id)
+        # --- AJOUT : Rejeter explicitement .doc --- 
+        elif content_type == 'application/msword' or file_extension == '.doc':
+            error_msg = "Le format .doc n'est pas supporté. Veuillez convertir en .docx ou .pdf."
+            logger.error(f"Contenu {content_id}: {error_msg}")
+            content.status = "error"
+            content.error_message = error_msg
+            db.commit()
+            return {"status": "error", "message": error_msg}
+        # --- FIN AJOUT ---
         elif content_type in ['text', 'txt', 'md', 'markdown']:
-            if content.file_path and content.file_path.lower().endswith('.docx'):
+            # Vérifier à nouveau .docx au cas où le type serait incorrect
+            if file_extension == '.docx':
                 return process_docx_content(content_id)
             else:
                 return process_text_content(content_id)

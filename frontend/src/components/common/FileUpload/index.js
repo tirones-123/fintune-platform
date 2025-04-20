@@ -55,7 +55,6 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
     'application/pdf': ['.pdf'],
     'text/markdown': ['.md'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-    'application/msword': ['.doc'],
   };
 
   // Configuration du dropzone

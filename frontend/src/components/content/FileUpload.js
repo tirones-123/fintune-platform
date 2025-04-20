@@ -48,7 +48,6 @@ const FileUpload = ({ projectId, onSuccess }) => {
     'application/pdf': ['.pdf'],
     'text/markdown': ['.md'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-    'application/msword': ['.doc'],
   };
 
   // Configuration du dropzone
@@ -171,7 +170,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
               ou cliquez pour sélectionner des fichiers
             </Typography>
             <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-              Formats acceptés: TXT, PDF, DOC, DOCX, MD (max 10MB)
+              Formats acceptés: TXT, PDF, DOCX (max 100MD)
             </Typography>
           </Paper>
 
