@@ -59,6 +59,8 @@ async def create_fine_tuning_job(
     Gère le calcul des coûts, le paiement si nécessaire, et le lancement des tâches.
     """
     logger.info(f"Requête de création de Fine-Tuning Job pour projet {request.project_id} par utilisateur {current_user.id}")
+    logger.debug(f"Contenu IDs demandés: {request.content_ids}")
+    logger.debug(f"Configuration demandée: {request.config}")
     
     # 1. Vérifier le projet et les contenus
     project = db.query(Project).filter(
@@ -111,6 +113,10 @@ async def create_fine_tuning_job(
             # logger.info(f"Contenu {content.id} (type: {content.type}, status: {content.status}) ignoré pour le comptage.")
 
     logger.info(f"Calcul du coût pour {total_characters} caractères et {len(pending_transcriptions)} transcriptions YouTube.")
+    
+    # --- LOG AVANT APPEL SERVICE COÛT ---
+    logger.debug("Appel à character_service.handle_fine_tuning_cost...")
+    # --- FIN LOG ---
 
     # 3. Gérer le paiement / traitement gratuit
     cost_result = await character_service.handle_fine_tuning_cost(
@@ -121,6 +127,9 @@ async def create_fine_tuning_job(
 
     if cost_result["needs_payment"]:
         logger.info(f"Paiement requis: ${cost_result['amount_usd']:.2f}")
+        # --- LOG AVANT APPEL STRIPE ---
+        logger.debug("Appel à stripe_service.create_checkout_session...")
+        # --- FIN LOG ---
         # Créer la session Stripe
         try:
             checkout_url = await stripe_service.create_checkout_session(
@@ -142,9 +151,15 @@ async def create_fine_tuning_job(
             )
         except Exception as e:
             logger.error(f"Erreur création session Stripe: {e}")
+            # --- LOG ERREUR STRIPE ---
+            logger.exception("Traceback complet de l'erreur Stripe:") 
+            # --- FIN LOG ---
             raise HTTPException(status_code=500, detail="Erreur lors de la création de la session de paiement.")
     
     else:
+        # --- LOG TRAITEMENT GRATUIT --- 
+        logger.debug(f"Traitement gratuit détecté. Raison: {cost_result.get('reason')}")
+        # --- FIN LOG ---
         # Vérifier la raison du traitement gratuit
         if cost_result["reason"] == "first_free_quota" or cost_result["reason"] == "already_used_quota" or cost_result["reason"] == "low_amount":
              logger.info(f"Traitement gratuit (Raison: {cost_result['reason']}). Lancement direct des tâches.")
