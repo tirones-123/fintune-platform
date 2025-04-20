@@ -242,7 +242,6 @@ const OnboardingPage = () => {
 
   // Ajouter un état pour gérer la popup d'aide
   const [apiHelpOpen, setApiHelpOpen] = useState(false);
-  const [isContentProcessing, setIsContentProcessing] = useState(false); // Nouvel état
 
   // Créer automatiquement un projet au chargement de la page
   useEffect(() => {
@@ -541,6 +540,13 @@ const OnboardingPage = () => {
   // Fonction pour traiter l'étape suivante
   const handleNext = async () => {
     window.scrollTo(0, 0); // Scroll vers le haut
+    
+    // Calculer l'état de traitement directement ici si nécessaire
+    const allCurrentContentForCheck = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb];
+    const isProcessingCheck = allCurrentContentForCheck.some(
+        content => content.status !== 'completed' && content.status !== 'error'
+    );
+
     switch (activeStep) {
       case 0: // Après étape définition de l'assistant
         if (!systemContent) {
@@ -555,8 +561,8 @@ const OnboardingPage = () => {
           enqueueSnackbar("Veuillez ajouter au moins un contenu.", { variant: 'warning' });
           return;
         }
-        // *** NOUVELLE VÉRIFICATION ***
-        if (isContentProcessing) { 
+        // Vérification directe
+        if (isProcessingCheck) { 
             enqueueSnackbar("Veuillez attendre la fin du traitement des contenus.", { variant: 'warning' });
             return;
         }
@@ -727,123 +733,72 @@ const OnboardingPage = () => {
     let actualCount = 0;
     let hasAllCounts = true;
     
-    console.log("Calcul du nombre réel de caractères...");
-    console.log("Fichiers:", uploadedFiles);
-    console.log("URLs:", uploadedUrls);
-    console.log("YouTube Ref:", youtubeVideosRef.current);
-    console.log("Web Ref:", webSitesRef.current);
+    console.log("CALCUL DU COMPTE RÉEL DE CARACTÈRES...");
+    console.log("- Fichiers:", uploadedFiles);
+    console.log("- URLs:", uploadedUrls);
+    console.log("- YouTube Ref:", youtubeVideosRef.current);
+    console.log("- Web Ref:", webSitesRef.current);
     
     // Compter les caractères des fichiers dont les métadonnées sont disponibles
     uploadedFiles.forEach(file => {
-      console.log(`Fichier ${file.id} (${file.name}) - status: ${file.status}, métadonnées:`, file.content_metadata);
+      console.log(`  -> Fichier ID: ${file.id}, Nom: ${file.name}, Statut: ${file.status}`);
       if (file.content_metadata && file.content_metadata.character_count) {
         const fileChars = parseInt(file.content_metadata.character_count);
-        console.log(`  → Caractères exacts: ${fileChars}`);
+        console.log(`     Compte exact trouvé: ${fileChars}`);
         actualCount += fileChars;
       } else if (file.status === 'completed') {
-        // Si le fichier est marqué comme traité mais n'a pas de métadonnées de comptage, c'est anormal
-        console.log(`  → ANOMALIE: Statut completed mais pas de métadonnées de caractères`);
+        console.log(`     ANOMALIE: Statut completed mais pas de character_count !`);
         hasAllCounts = false;
       } else {
-        console.log(`  → Statut: ${file.status}, pas de comptage disponible`);
-        // Forcer un rafraîchissement du fichier pour tenter d'obtenir les données à jour
-        if (file.status !== 'error') {
-          setTimeout(() => {
-            contentService.getById(file.id)
-              .then(updatedFile => {
-                console.log(`Rafraîchissement des données pour ${file.id}:`, updatedFile);
-                setUploadedFiles(prev => 
-                  prev.map(f => f.id === updatedFile.id ? updatedFile : f)
-                );
-                // Recalculer après mise à jour
-                setTimeout(() => calculateActualCharacterCount(), 500);
-              })
-              .catch(err => console.error(`Erreur lors du rafraîchissement du fichier ${file.id}:`, err));
-          }, 1000);
-        }
+        console.log(`     Statut: ${file.status}, pas de compte exact disponible.`);
         hasAllCounts = false;
       }
     });
     
     // De même pour les URLs
     uploadedUrls.forEach(url => {
-      console.log(`URL ${url.id} (${url.name}) - status: ${url.status}, métadonnées:`, url.content_metadata);
-      
-      // Cas 1: Si les métadonnées contiennent directement le nombre de caractères
-      if (url.content_metadata && url.content_metadata.character_count) {
-        const urlChars = parseInt(url.content_metadata.character_count);
-        console.log(`  → Caractères exacts: ${urlChars}`);
-        actualCount += urlChars;
-      } 
-      // Cas 2: Pour les vidéos YouTube avec durée connue mais sans comptage direct
-      else if ((url.type === 'youtube' || url.url?.includes('youtube.com') || url.url?.includes('youtu.be'))) {
-        // Calcul basé sur 900 caractères par minute
-        const durationMinutes = parseInt(url.content_metadata?.duration_seconds || 0) / 60;
-        const youtubeChars = Math.round(durationMinutes * 900);
-        console.log(`  → YouTube complété: ${durationMinutes.toFixed(1)} minutes = ${youtubeChars} caractères (900 car/min)`);
-        actualCount += youtubeChars;
-      }
-      // Cas 3: Contenu "completed" mais sans métadonnées
-      else if (url.status === 'completed') {
-        console.log(`  → ANOMALIE: Statut completed mais pas de métadonnées de caractères`);
-        hasAllCounts = false;
-      } 
-      // Cas 4: Contenu en cours de traitement ou en erreur
-      else {
-        console.log(`  → Statut: ${url.status}, pas de comptage disponible`);
-        // Forcer un rafraîchissement de l'URL pour tenter d'obtenir les données à jour
-        if (url.status !== 'error') {
-          setTimeout(() => {
-            contentService.getById(url.id)
-              .then(updatedUrl => {
-                console.log(`Rafraîchissement des données pour ${url.id}:`, updatedUrl);
-                setUploadedUrls(prev => 
-                  prev.map(u => u.id === updatedUrl.id ? updatedUrl : u)
-                );
-                // Recalculer après mise à jour
-                setTimeout(() => calculateActualCharacterCount(), 500);
-              })
-              .catch(err => console.error(`Erreur lors du rafraîchissement de l'URL ${url.id}:`, err));
-          }, 1000);
+        console.log(`  -> URL ID: ${url.id}, Nom: ${url.name}, Statut: ${url.status}`);
+        if (url.content_metadata && url.content_metadata.character_count) {
+            const urlChars = parseInt(url.content_metadata.character_count);
+            console.log(`     Compte exact trouvé: ${urlChars}`);
+            actualCount += urlChars;
+        } else if (url.status === 'completed') {
+            console.log(`     ANOMALIE: Statut completed mais pas de character_count !`);
+            hasAllCounts = false;
+        } else {
+            console.log(`     Statut: ${url.status}, pas de compte exact disponible.`);
+            hasAllCounts = false;
         }
-        hasAllCounts = false;
-      }
     });
     
-    // Process YouTube videos - utiliser la référence directe plutôt que l'état
+    // Process YouTube videos
     youtubeVideosRef.current.forEach(video => {
-      console.log(`Vidéo YouTube ${video.id} (${video.name}) - status: ${video.status}, caractères estimés:`, video.estimated_characters);
-      if (video.estimated_characters) {
-        const ytChars = parseInt(video.estimated_characters);
-        console.log(`  → Caractères estimés YouTube: ${ytChars}`);
-        actualCount += ytChars;
-      } else if (video.status === 'awaiting_transcription') {
-        // Estimation par défaut pour les vidéos en attente sans estimation
-        const defaultEstimate = 4000; // ~10 minutes par défaut
-        console.log(`  → Pas d'estimation, utilisation de la valeur par défaut: ${defaultEstimate}`);
-        actualCount += defaultEstimate;
-        hasAllCounts = false;
-      } else {
-        console.log(`  → Statut: ${video.status}, pas de comptage disponible`);
-        hasAllCounts = false;
-      }
+        console.log(`  -> YouTube ID: ${video.id}, Nom: ${video.name}, Statut: ${video.status}`);
+        if (video.estimated_characters) {
+            const ytChars = parseInt(video.estimated_characters);
+            console.log(`     Caractères estimés: ${ytChars}`);
+            actualCount += ytChars;
+        } else {
+            console.log(`     Pas d'estimation disponible.`);
+            hasAllCounts = false;
+        }
     });
     
-    // Process scraped websites - utiliser la référence directe plutôt que l'état
+    // Process scraped websites
     webSitesRef.current.forEach(site => {
-      console.log(`Site web ${site.id} (${site.name}) - status: ${site.status}, métadonnées:`, site);
-      if (site.character_count) {
-        const webChars = parseInt(site.character_count);
-        console.log(`  → Caractères exacts site web: ${webChars}`);
-        actualCount += webChars;
-      } else {
-        console.log(`  → Statut: ${site.status}, pas de comptage disponible`);
-        hasAllCounts = false;
-      }
+        console.log(`  -> Site Web ID: ${site.id}, Nom: ${site.name}, Statut: ${site.status}`);
+        if (site.character_count) {
+            const webChars = parseInt(site.character_count);
+            console.log(`     Compte exact trouvé: ${webChars}`);
+            actualCount += webChars;
+        } else {
+            console.log(`     Pas de compte exact disponible.`);
+            hasAllCounts = false;
+        }
     });
     
-    console.log(`Total de caractères: ${actualCount}`);
-    console.log(`Est estimé: ${!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0 && youtubeVideosRef.current.length === 0 && webSitesRef.current.length === 0)}`);
+    console.log(`TOTAL FINAL CALCULÉ: ${actualCount}`);
+    console.log(`EST-CE ESTIMÉ ? ${!hasAllCounts || (uploadedFiles.length === 0 && uploadedUrls.length === 0 && youtubeVideosRef.current.length === 0 && webSitesRef.current.length === 0)}`);
     
     // Mettre à jour l'état et la référence
     setActualCharacterCount(actualCount);
@@ -853,10 +808,48 @@ const OnboardingPage = () => {
     return actualCount;
   };
   
-  // Mettre à jour le comptage réel chaque fois que les fichiers ou URLs changent
+  // Effet pour vérifier périodiquement le statut (garder pour màj visuelle)
   useEffect(() => {
-    calculateActualCharacterCount();
-  }, []);  // On le fait seulement au chargement initial, puis les rafraîchissements sont gérés dans la fonction
+    console.log("Effet déclenché - Vérification statut uploads");
+    
+    calculateActualCharacterCount(); // Recalcul initial ou après ajout/suppression
+    
+    const allCurrentContent = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb];
+    const processingItems = allCurrentContent.filter(
+      content => content.status !== 'completed' && content.status !== 'error'
+    );
+    
+    if (processingItems.length > 0) {
+      const intervalId = setInterval(() => {
+        processingItems.forEach(content => {
+            if (content.id) { 
+                console.log(`POLLING: Vérification du statut pour contenu ID ${content.id}`);
+                contentService.getById(content.id)
+                    .then(updatedContent => {
+                         console.log(`   -> Données reçues pour ${content.id}:`, updatedContent);
+                         // Mise à jour de l'état approprié 
+                         if (updatedContent.file_path) {
+                            console.log(`      Mise à jour de uploadedFiles pour ID ${content.id}`);
+                            setUploadedFiles(prev => prev.map(f => f.id === updatedContent.id ? updatedContent : f));
+                         } else if (updatedContent.url && updatedContent.type === 'youtube') {
+                            console.log(`      Mise à jour de uploadedYouTube pour ID ${content.id}`);
+                            setUploadedYouTube(prev => prev.map(v => v.id === updatedContent.id ? {...v, ...updatedContent} : v)); 
+                         } else if (updatedContent.url && updatedContent.type === 'website') {
+                            console.log(`      Mise à jour de uploadedWeb pour ID ${content.id}`);
+                            setUploadedWeb(prev => prev.map(w => w.id === updatedContent.id ? {...w, ...updatedContent} : w));
+                         } else if (updatedContent.url) {
+                            console.log(`      Mise à jour de uploadedUrls pour ID ${content.id}`);
+                            setUploadedUrls(prev => prev.map(u => u.id === updatedContent.id ? updatedContent : u));
+                         }
+                    })
+                    .catch(err => console.error(`POLLING: Erreur lors du rafraîchissement du contenu ${content.id}:`, err));
+            }
+        });
+      }, 5000); 
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [uploadedFiles, uploadedUrls, uploadedYouTube, uploadedWeb]); 
 
   // Rafraîchir régulièrement le comptage des caractères et ajouter une dépendance explicite
   // pour les objets uploadedYouTube et uploadedWeb
@@ -1340,6 +1333,11 @@ const OnboardingPage = () => {
 
   // Contenu des étapes
   const getStepContent = (step) => {
+    // Calculer l'état de traitement pour l'affichage de l'alerte
+    const isCurrentlyProcessing = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(
+        content => content.status !== 'completed' && content.status !== 'error'
+    );
+    
     switch (step) {
       case 0: // Définition de l'assistant
         return (
@@ -2039,7 +2037,8 @@ const OnboardingPage = () => {
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
                   sx={{ borderRadius: 3 }}
-                  disabled={activeStep === 0 || uploading || creatingProject || savingApiKey || isCompleting || isContentProcessing} // Ajouter isContentProcessing ici aussi
+                  disabled={activeStep === 0 || uploading || creatingProject || savingApiKey || isCompleting || 
+                            ([...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => c.status !== 'completed' && c.status !== 'error'))}
                 >
                   Retour
                 </Button>
@@ -2055,12 +2054,12 @@ const OnboardingPage = () => {
                     endIcon={activeStep === steps.length - 2 ? null : <ArrowForwardIcon />}
                     startIcon={activeStep === steps.length - 2 && isCompleting ? <CircularProgress size={20} color="inherit" /> : null}
                   sx={{ borderRadius: 3 }}
-                    disabled={ // Mettre à jour conditions disabled
+                    disabled={ 
                       uploading || 
                       creatingProject || 
                       savingApiKey || 
                       isCompleting || 
-                      (activeStep === 1 && isContentProcessing) || // Bloquer à l'étape 1 si traitement en cours
+                      (activeStep === 1 && [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => c.status !== 'completed' && c.status !== 'error')) || 
                       (activeStep === 2 && !apiKeySaved)
                     }
                 >
