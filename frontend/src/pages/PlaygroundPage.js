@@ -65,6 +65,9 @@ function PlaygroundPage() {
       setFineTunedModels(completedFineTunings);
       // Mettre à jour allModels ici après avoir les nouvelles données
       const updatedAllModels = [...standardOpenAIModels, ...completedFineTunings];
+      console.log('Raw fine-tunings from API:', allFineTunings);
+      console.log('Filtered & Mapped FineTunings:', completedFineTunings);
+      console.log('Combined All Models for Dropdown:', updatedAllModels);
       setAllModels(updatedAllModels);
       
       // Conserver la sélection actuelle si elle existe toujours dans la nouvelle liste
