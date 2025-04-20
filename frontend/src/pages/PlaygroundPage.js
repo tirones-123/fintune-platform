@@ -127,7 +127,7 @@ function PlaygroundPage() {
             setSystemMessage(prompt);
             console.log(`System prompt chargé pour ${selectedModel}:`, prompt);
           } else {
-            logger.warning(`Impossible de récupérer le dataset_id pour le fine-tuning ${modelDetails.internalId}`);
+            console.warn(`Impossible de récupérer le dataset_id pour le fine-tuning ${modelDetails.internalId}`);
             setSystemMessage('You are a helpful assistant.'); // Fallback
           }
         } catch (err) {
