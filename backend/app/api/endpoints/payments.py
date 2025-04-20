@@ -548,9 +548,14 @@ async def _handle_onboarding_payment_success(db: Session, stripe_session: Dict[s
             else:
                  logger.warning(f"Webhook onboarding: Pas de clé API {provider} pour user {user_id}, FT non créé.")
             
-            # 3. Lancer les tâches
-            logger.info(f"Webhook onboarding: Lancement génération dataset {new_dataset.id} pour user {user_id}.")
+            # Log avant commit Dataset/Associations
+            logger.info(f"Webhook onboarding: Prêt à commiter Dataset {new_dataset.id} et associations.")
+            db.commit() # Commit dataset and associations
+            logger.info(f"Webhook onboarding: Commit Dataset/Associations terminé.")
+
             try:
+                from celery_app import celery_app
+                logger.info(f"Webhook onboarding: Lancement génération dataset {new_dataset.id} pour user {user_id}.")
                 celery_app.send_task("generate_dataset", args=[new_dataset.id], queue='dataset_generation')
             except Exception as task_error:
                  logger.error(f"Webhook onboarding: Erreur lancement tâche generate_dataset pour dataset {new_dataset.id}: {task_error}")
@@ -715,7 +720,10 @@ async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
                 except Exception as e:
                     logger.error(f"Webhook FT Job: Erreur lancement transcription pour content {content_id}: {e}")
         
+        # Log avant commit final FT Job
+        logger.info(f"Webhook FT Job: Prêt à commiter Dataset {new_dataset.id}, FineTuning {new_fine_tuning.id} et associations.")
         db.commit() # Commit final après toutes les opérations DB
+        logger.info(f"Webhook FT Job: Commit final terminé.")
         
         # --- AJOUT DELAI ---
         time.sleep(1) # Attendre 1 seconde avant de lancer la tâche

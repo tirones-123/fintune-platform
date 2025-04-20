@@ -6,6 +6,7 @@ import time
 import traceback
 import json
 from datetime import datetime
+from typing import Optional
 
 from app.db.session import SessionLocal
 from app.models.dataset import Dataset, DatasetPair, DatasetContent
@@ -37,67 +38,62 @@ def generate_dataset(self: Task, dataset_id: int):
     Aggregates text from all completed contents, chunks the combined text,
     and generates QA pairs from those chunks.
     """
-    logger.info(f"Generating dataset {dataset_id}")
-    db = SessionLocal()
-    dataset = None
+    logger.info(f"Tâche generate_dataset reçue pour dataset ID: {dataset_id}")
+    db: Optional[Session] = None # Initialiser à None
+    dataset: Optional[Dataset] = None
 
     try:
-        from app.models.dataset import Dataset, DatasetContent, DatasetPair
-        from app.models.content import Content
-        from app.models.fine_tuning import FineTuning
-        from app.models.api_key import ApiKey
-        
-        # --- CORRECTED: Retry mechanism for dataset visibility ---
-        for attempt in range(self.max_retries + 1):
-            try:
-                dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
-                if dataset:
-                    logger.info(f"Dataset {dataset_id} found on attempt {attempt + 1}.")
-                    break # Dataset found, exit the loop
-                
-                # Dataset not found yet
-                if attempt < self.max_retries:
-                    wait_time = 10 # Wait 10 seconds before next attempt
-                    logger.warning(f"Dataset {dataset_id} not found on attempt {attempt + 1}/{self.max_retries + 1}. Retrying in {wait_time}s...")
-                    time.sleep(wait_time) # Use time.sleep for a simple delay
-                else:
-                    # Max retries exceeded
-                    logger.error(f"Dataset {dataset_id} not found after {self.max_retries + 1} attempts. Aborting task.")
-                    return {"status": "error", "message": "Dataset not found after retries"}
-            except Exception as e:
-                # Catch potential DB connection errors during the fetch attempt
-                logger.error(f"DB error fetching dataset {dataset_id} on attempt {attempt + 1}: {e}")
-                if attempt < self.max_retries:
-                    wait_time = 10
-                    logger.warning(f"Retrying fetch in {wait_time}s...")
-                    time.sleep(wait_time)
-                else:
-                    logger.error(f"DB error fetching dataset {dataset_id} persisted after retries. Aborting.")
-                    # You might want to re-raise the exception or return an error
-                    raise e # Re-raise the last DB error to fail the task
+        # --- CORRECTED RETRY MECHANISM WITH NEW SESSION PER TRY ---
+        try:
+            db = SessionLocal() # Nouvelle session pour cette tentative
+            dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+            if not dataset:
+                logger.warning(f"Dataset {dataset_id} not found, will retry...")
+                # Lever une exception spécifique ou une exception générique pour déclencher le retry
+                raise ValueError("Dataset not found yet, retry") 
+            logger.info(f"Dataset {dataset_id} found.")
+        except Exception as e:
+            if db: # Fermer la session si elle a été ouverte
+                db.close()
+            logger.error(f"Error fetching dataset {dataset_id} or dataset not found, retrying task (attempt {self.request.retries + 1}/{self.max_retries}): {e}")
+            # Utiliser le mécanisme de retry de Celery avec backoff exponentiel
+            # countdown = 2 ** self.request.retries # Exponential backoff (2s, 4s, 8s...)
+            countdown = 30 # Ou un délai fixe plus long (ex: 30 secondes)
+            raise self.retry(exc=e, countdown=countdown, max_retries=5) # Retry 5 fois max
         # --- END CORRECTED RETRY MECHANISM ---
         
-        # If we exit the loop because dataset is still None (shouldn't happen with the logic above, but as safety)
-        if not dataset:
-            logger.error(f"Critical error: Dataset object is None after retry loop for dataset {dataset_id}.")
-            return {"status": "error", "message": "Failed to retrieve dataset object after retries."}
+        # Si on arrive ici, dataset est trouvé et db est ouvert
+        # (La session db reste ouverte depuis la tentative réussie)
 
-        # Vérifier si les contenus sont prêts
+        # --- Vérifier si les contenus sont prêts ---
+        # (Vérification importante AVANT de changer le statut du dataset)
         dataset_contents_assoc = db.query(DatasetContent).filter(DatasetContent.dataset_id == dataset_id).all()
         content_ids = [dc.content_id for dc in dataset_contents_assoc]
+        if not content_ids:
+            logger.error(f"No contents associated with dataset {dataset_id}. Aborting.")
+            dataset.status = "error"
+            dataset.error_message = "No contents linked to this dataset."
+            db.commit()
+            return {"status": "error", "message": "No contents linked to dataset"}
+            
         contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
         pending_contents = [c for c in contents if c.status not in ['completed', 'error']]
         if pending_contents:
             pending_ids = [c.id for c in pending_contents]
-            logger.warning(f"Dataset {dataset_id}: Contents {pending_ids} not ready. Retrying...")
-            raise self.retry(countdown=self.default_retry_delay)
+            logger.warning(f"Dataset {dataset_id}: Contents {pending_ids} still processing. Retrying task...")
+            # Il faut aussi un retry ici si les contenus ne sont pas prêts
+            raise self.retry(countdown=30, max_retries=10) # Retry plus longtemps pour le traitement du contenu
 
-        # Mettre à jour le statut
+        logger.info(f"All contents for dataset {dataset_id} are ready.")
+        # --- Fin Vérification Contenus ---
+
+        # Mettre à jour le statut du dataset à processing SEULEMENT si tout est prêt
         if dataset.status != "processing":
             dataset.status = "processing"
-            db.commit()
+            db.commit() # Commit status change
+            db.refresh(dataset) # Refresh pour avoir le nouveau statut
 
-        # Récupérer provider et clé API
+        # Récupérer provider et clé API (reste inchangé)
         provider_name = getattr(dataset, "provider", "openai")
         if not dataset.project or not dataset.project.user_id:
              logger.error(f"Dataset {dataset_id} is not associated with a project or user.")
@@ -118,7 +114,7 @@ def generate_dataset(self: Task, dataset_id: int):
         provider = get_ai_provider(provider_name, api_key_record.key)
         model = dataset.model or DEFAULT_MODEL
 
-        # --- NOUVELLE LOGIQUE : Agréger tout le texte --- 
+        # --- Logique d'agrégation, chunking, génération QA (reste inchangée) ---
         aggregated_text = ""
         processed_content_ids = []
         for content in contents:
@@ -128,7 +124,6 @@ def generate_dataset(self: Task, dataset_id: int):
             
             text = content.content_text
             if text:
-                # Ajouter un séparateur clair entre les contenus
                 aggregated_text += f"\n\n--- Contenu {content.id}: {content.name} ---\n\n" + text 
                 processed_content_ids.append(content.id)
             else:
@@ -142,20 +137,16 @@ def generate_dataset(self: Task, dataset_id: int):
             return {"status": "error", "message": "No text found in contents"}
 
         logger.info(f"Aggregated text from {len(processed_content_ids)} contents for dataset {dataset_id}. Total length: {len(aggregated_text)}")
-
-        # --- Découper le texte agrégé en chunks --- 
         chunks = split_text_into_chunks(aggregated_text)
         logger.info(f"Split aggregated text into {len(chunks)} chunks for dataset {dataset_id}")
 
-        # --- Traiter les chunks agrégés --- 
         total_pairs = 0
-        all_pairs = [] # Stocker temporairement les paires
+        all_pairs = []
         for i, chunk in enumerate(chunks):
             logger.info(f"Processing aggregated chunk {i+1}/{len(chunks)} for dataset {dataset_id}")
             try:
                 qa_pairs = provider.generate_qa_pairs(chunk, model)
                 if qa_pairs:
-                    # Valider et stocker les paires valides
                     valid_pairs_in_chunk = []
                     for pair in qa_pairs:
                          if isinstance(pair, dict) and "question" in pair and "answer" in pair:
@@ -171,16 +162,11 @@ def generate_dataset(self: Task, dataset_id: int):
                         logger.warning(f"No valid QA pairs generated for chunk {i+1}.")
                 else:
                      logger.warning(f"No QA pairs generated for chunk {i+1}.")
-                
-                # Délai pour éviter rate limit
                 time.sleep(1)
-
             except Exception as e:
                 logger.error(f"Error processing aggregated chunk {i+1}: {str(e)}")
                 logger.error(traceback.format_exc())
-                # Continuer avec le chunk suivant en cas d'erreur sur un chunk
-
-        # Vérifier si des paires ont été générées au total
+        
         if total_pairs == 0:
             dataset.status = "error"
             dataset.error_message = "No QA pairs could be generated from the aggregated content."
@@ -188,40 +174,34 @@ def generate_dataset(self: Task, dataset_id: int):
             logger.error(f"No pairs generated for dataset {dataset_id} from aggregated chunks.")
             return {"status": "error", "message": "No pairs could be generated"}
 
-        # Ajouter toutes les paires valides à la base de données en une fois (ou par lots plus petits si nécessaire)
         logger.info(f"Adding {total_pairs} generated pairs to dataset {dataset_id}...")
         for idx, pair_data in enumerate(all_pairs):
              db_pair = DatasetPair(
                  question=pair_data["question"],
                  answer=pair_data["answer"],
                  dataset_id=dataset_id,
-                 # Metadata simplifiée: juste l'index du chunk agrégé
                  metadata={"aggregated_chunk_index": idx // (len(qa_pairs)/len(chunks)) if len(chunks)>0 and len(qa_pairs)>0 else 0} 
-                 # Alternative: metadata={"info": f"From aggregated chunk {idx}"} 
              )
              db.add(db_pair)
-        # Commit après avoir ajouté toutes les paires
         db.commit()
         logger.info(f"Successfully added {total_pairs} pairs to the database.")
 
-        # Calculer le compte total de caractères (comme avant)
         total_characters = 0
         for pair in db.query(DatasetPair).filter(DatasetPair.dataset_id == dataset_id).all():
             total_characters += len(pair.question) + len(pair.answer)
         system_content = dataset.system_content or ""
-        total_characters += len(system_content) * total_pairs # Utiliser total_pairs calculé
+        total_characters += len(system_content) * total_pairs
         logger.info(f"Dataset {dataset_id} final character count: {total_characters}")
 
-        # Mettre à jour le dataset final
         dataset.status = "ready"
         dataset.pairs_count = total_pairs
         dataset.character_count = total_characters
-        dataset.size = total_pairs * 1024 # Approximation
+        dataset.size = total_pairs * 1024
         dataset.completed_at = datetime.now().isoformat()
         db.commit()
         logger.info(f"Dataset {dataset_id} generation completed successfully.")
-
-        # Déclencher le Fine-Tuning (logique inchangée)
+        
+        # --- Déclenchement Fine-Tuning (reste inchangé) ---
         if dataset.status == "ready":
             try:
                 from celery_app import celery_app
@@ -252,24 +232,34 @@ def generate_dataset(self: Task, dataset_id: int):
         return {"status": "success", "dataset_id": dataset_id, "pairs_count": total_pairs}
 
     except self.MaxRetriesExceededError as e:
-        logger.error(f"Dataset {dataset_id} generation failed after max retries due to pending content: {e}")
-        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
-        if dataset and dataset.status != 'error': # Ne pas écraser une erreur antérieure
-            dataset.status = "error"
-            dataset.error_message = "Timeout waiting for content processing after multiple retries."
-            db.commit()
-        return {"status": "error", "message": "Timeout waiting for content processing"}
+        logger.error(f"Dataset {dataset_id} generation failed after max retries: {e}")
+        # Marquer le dataset comme échoué DANS UNE NOUVELLE SESSION
+        try:
+            with SessionLocal() as error_db:
+                 dataset_to_fail = error_db.query(Dataset).filter(Dataset.id == dataset_id).first()
+                 if dataset_to_fail and dataset_to_fail.status != 'error':
+                     dataset_to_fail.status = "error"
+                     dataset_to_fail.error_message = f"Task failed after max retries: {str(e)[:200]}"
+                     error_db.commit()
+        except Exception as db_err:
+            logger.error(f"Failed to mark dataset {dataset_id} as error after retries: {db_err}")
+        return {"status": "error", "message": f"Task failed after max retries: {e}"}
         
     except Exception as e:
         logger.error(f"Unhandled error generating dataset {dataset_id}: {str(e)}")
         logger.error(traceback.format_exc())
-        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
-        if dataset and dataset.status != 'error':
-            dataset.status = "error"
-            dataset.error_message = f"Internal error: {str(e)[:200]}"
-            db.commit()
+        # Marquer le dataset comme échoué DANS UNE NOUVELLE SESSION
+        try:
+            with SessionLocal() as error_db:
+                 dataset_to_fail = error_db.query(Dataset).filter(Dataset.id == dataset_id).first()
+                 if dataset_to_fail and dataset_to_fail.status != 'error':
+                     dataset_to_fail.status = "error"
+                     dataset_to_fail.error_message = f"Internal error: {str(e)[:200]}"
+                     error_db.commit()
+        except Exception as db_err:
+            logger.error(f"Failed to mark dataset {dataset_id} as error after unhandled exception: {db_err}")
         return {"status": "error", "message": str(e)}
     
     finally:
-        if 'db' in locals() and db: # S'assurer que db existe
+        if db: # Fermer la session si elle a été ouverte et assignée
             db.close() 
