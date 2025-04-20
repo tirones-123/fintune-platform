@@ -1656,7 +1656,7 @@ const OnboardingPage = () => {
                           Excellent! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.
                         </>
                       ) : (
-                        <>Plus vous ajoutez de contenu (jusqu'à {minCharactersRecommended ? (minCharactersRecommended * 4).toLocaleString() : '0'} caractères), meilleure sera la qualité du fine-tuning.</>
+                        <>Plus vous ajoutez de contenu, meilleure sera la qualité du fine-tuning.</>
                       )}
                     </Typography>
                   )}
@@ -1785,7 +1785,7 @@ const OnboardingPage = () => {
                         {video.status === 'awaiting_transcription' ? (
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="caption" color="text.secondary">
-                              ~{video.estimated_characters?.toLocaleString() || '4000'} caractères estimés (transcription après paiement)
+                              ~{video.estimated_characters?.toLocaleString() || '4000'} caractères estimés (transcription en cours...)
                             </Typography>
                           </Box>
                         ) : (
@@ -1960,7 +1960,7 @@ const OnboardingPage = () => {
             </Box>
             
             {apiKeySaved && (
-              <Alert severity="success" sx={{ mt: 2, mb: 2 }}>
+              <Alert severity="success" sx={{ mt: 2, mb: 3 }}>
                 <AlertTitle>Clé API validée</AlertTitle>
               </Alert>
             )}
