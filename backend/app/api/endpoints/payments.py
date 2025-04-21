@@ -498,75 +498,82 @@ async def _handle_onboarding_payment_success(db: Session, stripe_session: Dict[s
         # 2. Créer Dataset et FineTuning
         project = db.query(Project).filter(Project.id == project_id, Project.user_id == user_id).first()
         if not project:
-            logger.error(f"Webhook onboarding: Projet {project_id} non trouvé pour user {user_id}")
+            logger.error(f"Webhook onboarding: Projet {project_id} non trouvé pour user {user_id}.")
             return
 
-        # Récupérer les contenus en utilisant la liste complète d'IDs
-        if not content_ids_to_process:
-             logger.warning(f"Webhook onboarding: La liste content_ids_to_process est vide après parsing pour user {user_id}.")
-             return
+        new_dataset = Dataset(
+            name=dataset_name,
+            project_id=project.id,
+            description="Dataset généré automatiquement après l'onboarding",
+            model=model,
+            status="pending",
+            system_content=system_content
+        )
+        db.add(new_dataset)
+        db.flush() # Obtenir l'ID
+        logger.info(f"Webhook onboarding: Dataset {new_dataset.id} créé pour user {user_id}.")
 
-        contents = db.query(Content).filter(Content.id.in_(content_ids_to_process)).all()
-
-        if contents:
-            new_dataset = Dataset(
-                name=dataset_name,
-                project_id=project.id,
-                description="Dataset généré automatiquement après paiement onboarding",
-                model=model,
-                status="pending",
-                system_content=system_content,
-                character_count=character_count # Stocker le compte total
+        # Associer les contenus au dataset
+        contents_to_associate = db.query(Content).filter(Content.id.in_(content_ids_to_process)).all()
+        if len(contents_to_associate) != len(content_ids_to_process):
+             logger.warning(f"Webhook onboarding: Certains content IDs {content_ids_to_process} n'ont pas été trouvés.")
+        
+        for content_item in contents_to_associate:
+            dataset_content = DatasetContent(
+                dataset_id=new_dataset.id,
+                content_id=content_item.id
             )
-            db.add(new_dataset)
-            db.flush()
-            logger.info(f"Webhook onboarding: Dataset {new_dataset.id} créé pour user {user_id}.")
+            db.add(dataset_content)
+        
+        # Créer l'enregistrement FineTuning
+        new_fine_tuning = FineTuning(
+            dataset_id=new_dataset.id,
+            name=f"Fine-tuning de {dataset_name}",
+            description="Fine-tuning généré automatiquement après l'onboarding",
+            model=model,
+            provider=provider,
+            status="pending",
+            hyperparameters=hyperparameters
+        )
+        db.add(new_fine_tuning)
+        db.commit() # Commit de tout (User, Dataset, Associations, FineTuning)
+        db.refresh(new_dataset)
+        db.refresh(new_fine_tuning)
+        logger.info(f"Webhook onboarding: FineTuning {new_fine_tuning.id} créé pour user {user_id}.")
 
-            for content_item in contents:
-                 dataset_content = DatasetContent(dataset_id=new_dataset.id, content_id=content_item.id)
-                 db.add(dataset_content)
-            
-            api_key = db.query(ApiKey).filter(ApiKey.user_id == user_id, ApiKey.provider == provider).first()
-            if api_key:
-                 fine_tuning = FineTuning(
-                     dataset_id=new_dataset.id,
-                     name=f"Fine-tuning payé de {dataset_name}",
-                     description="Fine-tuning généré après paiement onboarding",
-                     model=model,
-                     provider=provider,
-                     status="pending",
-                     hyperparameters=hyperparameters
-                 )
-                 db.add(fine_tuning)
-                 db.flush() # Obtenir l'ID pour le log
-                 logger.info(f"Webhook onboarding: FineTuning {fine_tuning.id} créé pour user {user_id}.")
-            else:
-                 logger.warning(f"Webhook onboarding: Pas de clé API {provider} pour user {user_id}, FT non créé.")
-            
-            # Log avant commit Dataset/Associations
-            logger.info(f"Webhook onboarding: Prêt à commiter Dataset {new_dataset.id} et associations.")
-            db.commit() # Commit dataset and associations
-            logger.info(f"Webhook onboarding: Commit Dataset/Associations terminé.")
+        # 3. Lancer les tâches Celery de traitement de contenu
+        logger.info(f"Webhook onboarding: Lancement du traitement pour {len(contents_to_associate)} contenus...")
+        for content in contents_to_associate:
+             if content.type == 'youtube' and content.status == 'awaiting_transcription':
+                 logger.info(f" -> Lancement transcription YouTube pour content {content.id}")
+                 try:
+                     from app.tasks.content_processing import transcribe_youtube_video
+                     task = transcribe_youtube_video.delay(content_id=content.id)
+                     content.task_id = task.id
+                     content.status = 'processing' # Mettre à jour le statut
+                     db.commit() # Commiter le changement de statut
+                 except Exception as e:
+                     logger.error(f" -> Erreur lancement transcription YouTube pour content {content.id}: {e}")
+             elif content.status not in ['error', 'completed']:
+                 logger.info(f" -> Lancement process_content pour content {content.id} (type: {content.type}, status: {content.status}) ")
+                 try:
+                     from app.tasks.content_processing import process_content
+                     task = process_content.delay(content_id=content.id)
+                     if content.status not in ['processing', 'completed']:
+                         content.status = 'processing'
+                         db.commit()
+                 except Exception as e:
+                     logger.error(f" -> Erreur lancement process_content pour content {content.id}: {e}")
+        
+        # 4. Lancer la génération du dataset (qui dépendra de la fin des tâches précédentes)
+        logger.info(f"Webhook onboarding: Lancement de la génération pour dataset {new_dataset.id}.")
+        celery_app.send_task("generate_dataset", args=[new_dataset.id], queue='dataset_generation')
 
-            try:
-                from celery_app import celery_app
-                logger.info(f"Webhook onboarding: Lancement génération dataset {new_dataset.id} pour user {user_id}.")
-                celery_app.send_task("generate_dataset", args=[new_dataset.id], queue='dataset_generation')
-            except Exception as task_error:
-                 logger.error(f"Webhook onboarding: Erreur lancement tâche generate_dataset pour dataset {new_dataset.id}: {task_error}")
-                 # Mark dataset as error?
-                 new_dataset.status = 'error'
-                 new_dataset.error_message = f"Failed to queue generation task: {task_error}"
-                 db.commit()
+        logger.info(f"Webhook onboarding: Traitement terminé avec succès pour user {user_id}.")
 
-            logger.info(f"Webhook onboarding: Traitement réussi pour user {user_id}.")
-        else:
-            logger.warning(f"Webhook onboarding: Aucun contenu trouvé pour les IDs {content_ids_to_process} pour user {user_id}.")
-            db.rollback()
-    
     except Exception as e:
-        logger.error(f"Webhook onboarding: Erreur générale traitement pour user {user_id}: {e}", exc_info=True)
-        db.rollback()
+        logger.error(f"Webhook onboarding: Erreur BDD ou Celery: {e}", exc_info=True)
+        db.rollback() # Annuler les changements en cas d'erreur ici
 
 async def _handle_character_purchase_success(db: Session, stripe_session: Dict[str, Any]):
     """Logique à exécuter après un achat de crédits réussi."""

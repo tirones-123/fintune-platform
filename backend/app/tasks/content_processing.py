@@ -324,6 +324,11 @@ def process_youtube_content(content_id: int):
         content.status = "completed"
         # Ajouter l'objet à la session avant commit
         db.add(content)
+        
+        # --- AJOUT : Marquer explicitement les métadonnées comme modifiées ---
+        flag_modified(content, "content_metadata")
+        # --- FIN AJOUT ---
+        
         db.commit()
         
         logger.info(f"YouTube content {content_id} processed successfully")

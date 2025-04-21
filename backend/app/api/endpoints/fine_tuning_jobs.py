@@ -236,23 +236,42 @@ async def create_fine_tuning_job(
             logger.info(f"FineTuning {new_fine_tuning.id} créé.")
 
             # 5. Lancer les tâches asynchrones
-            # Transcriptions YouTube
-            if pending_transcriptions:
-                logger.info(f"Lancement de {len(pending_transcriptions)} transcriptions YouTube.")
-                for content_id in pending_transcriptions:
-                    try:
-                        from app.tasks.content_processing import transcribe_youtube_video
-                        task = transcribe_youtube_video.delay(content_id=content_id)
-                        content_obj = db.query(Content).get(content_id)
-                        if content_obj: 
-                             content_obj.task_id = task.id
-                             content_obj.status = 'processing' 
-                             db.commit()
-                    except Exception as e:
-                        logger.error(f"Erreur lancement transcription pour content {content_id}: {e}")
+            logger.info(f"Lancement du traitement pour {len(request.content_ids)} contenus sélectionnés...")
+            processed_content_ids = set() # Pour éviter de lancer deux fois
+
+            for content_id in request.content_ids:
+                content_obj = db.query(Content).get(content_id)
+                if content_obj:
+                    if content_obj.type == 'youtube' and content_obj.status == 'awaiting_transcription':
+                        # Lancer la transcription spécifique pour YouTube en attente
+                        logger.info(f" -> Lancement transcription YouTube pour content {content_id}")
+                        try:
+                            from app.tasks.content_processing import transcribe_youtube_video
+                            task = transcribe_youtube_video.delay(content_id=content_id)
+                            content_obj.task_id = task.id
+                            content_obj.status = 'processing' # Mettre à jour le statut
+                            db.commit()
+                            processed_content_ids.add(content_id)
+                        except Exception as e:
+                            logger.error(f" -> Erreur lancement transcription YouTube pour content {content_id}: {e}")
+                    elif content_obj.status != 'error': # Lancer process_content pour les autres (ou ceux déjà completed comme sécurité)
+                        logger.info(f" -> Lancement process_content pour content {content_id} (type: {content_obj.type}, status: {content_obj.status})")
+                        try:
+                             from app.tasks.content_processing import process_content
+                             task = process_content.delay(content_id=content_id)
+                             # On pourrait aussi mettre à jour task_id ici si nécessaire
+                             # Mettre à jour le statut si ce n'était pas déjà 'processing' ou 'completed'
+                             if content_obj.status not in ['processing', 'completed']:
+                                 content_obj.status = 'processing' 
+                                 db.commit()
+                             processed_content_ids.add(content_id)
+                        except Exception as e:
+                            logger.error(f" -> Erreur lancement process_content pour content {content_id}: {e}")
+                else:
+                    logger.warning(f"Contenu ID {content_id} non trouvé lors du lancement des tâches.")
             
-            # Génération du Dataset (qui déclenchera le fine-tuning)
-            logger.info(f"Lancement de la génération pour dataset {new_dataset.id}")
+            # Génération du Dataset (qui attendra la fin des process_content)
+            logger.info(f"Lancement de la génération pour dataset {new_dataset.id} (attendra {len(processed_content_ids)} tâches de contenu)")
             celery_app.send_task("generate_dataset", args=[new_dataset.id], queue='dataset_generation')
 
             return FineTuningJobResponse(

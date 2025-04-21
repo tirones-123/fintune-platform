@@ -178,23 +178,21 @@ def add_url_content(
         content_metadata={"original_url": content_in.url}
     )
     
+    # Mettre un statut spécifique pour YouTube pour indiquer que la transcription est différée
+    if content_in.type == 'youtube':
+        db_content.status = "awaiting_transcription"
+    
     # Special handling for website type: text is already scraped by frontend
     if content_in.type == 'website':
         db_content.content_text = content_in.description # Store scraped text here
-        db_content.status = "completed" # Mark as completed immediately
-        # Calculate character count
-        character_count = len(content_in.description or "")
-        if not db_content.content_metadata:
-             db_content.content_metadata = {}
-        db_content.content_metadata["character_count"] = character_count
-        db_content.content_metadata["is_exact_count"] = True
     
     db.add(db_content)
     db.commit()
     db.refresh(db_content)
     
     # Trigger processing only if not already completed (i.e., not website type)
-    if db_content.status != "completed":
+    # ET SI CE N'EST PAS YOUTUBE (la transcription YouTube sera déclenchée plus tard)
+    if db_content.status not in ["completed", "awaiting_transcription"]:
         process_content.delay(db_content.id)
     
     return db_content
