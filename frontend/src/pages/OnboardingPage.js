@@ -1110,13 +1110,17 @@ const OnboardingPage = () => {
       });
       
     } catch (error) {
-      console.error('Erreur lors de l'ajout de l'URL YouTube:', error);
-      // Gérer les erreurs de l'API RapidAPI ou de notre backend
+      // Simplifions l'appel console.error pour tester
+      console.error('Erreur ajout URL YouTube:', error.message); 
+      let errorMessage = "Impossible d'ajouter la vidéo"; // Message par défaut
       if (error.response) {
-         setYoutubeUploadError(`Erreur API: ${error.response.data?.message || error.response.data?.detail || error.message}`);
-      } else {
-         setYoutubeUploadError(`Erreur: ${error.message || "Impossible d'ajouter la vidéo"}`);
+         // Essayer de récupérer le message d'erreur le plus précis de la réponse API
+         errorMessage = `Erreur API: ${error.response.data?.detail || error.response.data?.message || error.message}`;
+      } else if (error.message) {
+         // Sinon, utiliser le message de l'objet Error JS
+         errorMessage = `Erreur: ${error.message}`;
       }
+      setYoutubeUploadError(errorMessage); // Mettre à jour l'état une seule fois
     } finally {
       setYoutubeUploading(false);
     }
