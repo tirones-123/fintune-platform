@@ -1036,7 +1036,7 @@ const OnboardingPage = () => {
     setYoutubeUploading(true);
     setYoutubeUploadError(null);
     
-    // Extraire l'ID de la vidéo YouTube (déplacé en dehors du try/catch)
+    // Extraire l'ID de la vidéo YouTube
     const youtubeLinkRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
     const match = youtubeUrl.match(youtubeLinkRegex);
     const videoId = match && match[1];
@@ -1048,135 +1048,74 @@ const OnboardingPage = () => {
     }
     
     try {
-      // Récupérer les informations réelles de la vidéo via RapidAPI
+      // --- NOUVELLE LOGIQUE : Étape 1 - Obtenir les détails (durée) --- 
       console.log("Récupération des détails de la vidéo via RapidAPI pour", videoId);
-      
       const options = {
         method: 'GET',
         url: 'https://youtube-media-downloader.p.rapidapi.com/v2/video/details',
-        params: {
-          videoId: videoId
-        },
+        params: { videoId: videoId },
         headers: {
-          // Clé RapidAPI mise à jour avec une nouvelle clé (optionnel)
-          'X-RapidAPI-Key': '9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8',
+          'X-RapidAPI-Key': '9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8', // Votre clé RapidAPI
           'X-RapidAPI-Host': 'youtube-media-downloader.p.rapidapi.com'
         }
       };
-      
       const rapidApiResponse = await axios.request(options);
-      console.log("Réponse RapidAPI:", rapidApiResponse.data);
+      console.log("Réponse RapidAPI (Détails):", rapidApiResponse.data);
       
-      // Extraire les informations utiles
       const videoInfo = rapidApiResponse.data;
       const videoTitle = videoInfo.title || `Vidéo YouTube - ${new Date().toLocaleString()}`;
-      const durationSeconds = parseInt(videoInfo.lengthSeconds) || parseInt(videoInfo.length_seconds) || 600; // Fallback à 10 minutes si non disponible
+      // Obtenir la durée en secondes, avec fallback
+      const durationSeconds = parseInt(videoInfo.lengthSeconds || videoInfo.length_seconds || '600'); 
       const durationMinutes = Math.round(durationSeconds / 60);
       
-      // Calculer le nombre de caractères (400 caractères par minute)
+      // Calculer l'estimation des caractères
       const estimatedCharacters = Math.round((durationSeconds / 60) * 400);
-      console.log('Calculated duration:', durationSeconds, 'seconds; Estimated characters:', estimatedCharacters);
+      console.log('Durée calculée:', durationSeconds, 'secondes; Caractères estimés:', estimatedCharacters);
       
-      // Créer l'objet au format attendu par le backend
-      const urlContent = {
+      // --- Étape 2 - Créer l'enregistrement Content côté backend --- 
+      const urlContentPayload = {
         project_id: createdProject.id,
         url: youtubeUrl,
         name: videoTitle,
         type: 'youtube',
-        description: `Vidéo YouTube en attente de transcription. Durée: ${durationMinutes} minutes.`
+        // La description peut indiquer l'attente de transcription
+        description: `Vidéo YouTube en attente de transcription. Durée: ${durationMinutes} min (estimation).` 
       };
       
-      // Ajouter l'URL avec le format attendu par le backend
-      const response = await contentService.addUrl(urlContent);
+      // Ajouter l'URL via notre API backend
+      const backendResponse = await contentService.addUrl(urlContentPayload);
+      console.log("Réponse Backend (Création Contenu):", backendResponse);
       
-      // Créer le nouvel objet de vidéo YouTube
+      // --- Étape 3 - Mettre à jour l'état frontend avec l'estimation --- 
       const newYouTubeVideo = {
-        ...response,
+        ...backendResponse, // Inclut l'ID et le statut initial du backend
         url: youtubeUrl,
-        source: `Durée réelle: ${durationMinutes} min`,
-        estimated_characters: estimatedCharacters,
-        status: 'awaiting_transcription'
+        source: `Durée: ${durationMinutes} min (estimation)`, // Indiquer que c'est une estimation
+        estimated_characters: estimatedCharacters, // Stocker l'estimation
+        status: backendResponse.status || 'processing' // Utiliser le statut du backend
       };
       
-      // MÉTHODE FIABLE : Mettre à jour à la fois l'état React et la référence
-      // 1. Ajouter à la référence (synchrône, toujours fiable)
+      // Mise à jour fiable via ref + état
       youtubeVideosRef.current.push(newYouTubeVideo);
-      
-      // 2. Mettre à jour l'état React (peut être asynchrone, moins fiable)
       setUploadedYouTube([...youtubeVideosRef.current]);
-      
-      // 3. Mettre à jour directement le compteur de référence
       totalCharCountRef.current += estimatedCharacters;
-      
-      // 4. Mettre à jour l'état visible du compteur
       setActualCharacterCount(totalCharCountRef.current);
+      setIsEstimated(true); // Marquer comme estimé
       
-      // Réinitialiser le champ
       setYoutubeUrl('');
-      
-      // Log détaillé pour le débogage
-      console.log("AJOUT VIDÉO YOUTUBE - ÉTAT ACTUEL:", {
+      console.log("AJOUT VIDÉO YOUTUBE (ESTIMATION) - ÉTAT ACTUEL:", {
         nouvelleVideo: newYouTubeVideo,
         totalYouTube: youtubeVideosRef.current.length,
         characCount: totalCharCountRef.current
       });
       
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de l\'URL YouTube:', error);
-      // Fallback à l'estimation fixe en cas d'erreur avec RapidAPI
-      try {
-        // Si RapidAPI a échoué, on utilise une estimation fixe comme solution de secours
-        const estimatedDuration = 600; // 10 minutes par défaut
-        const durationMinutes = Math.round(estimatedDuration / 60);
-        const estimatedCharacters = Math.round((estimatedDuration / 60) * 400);
-        
-        console.log("Utilisation d'une estimation fixe car RapidAPI a échoué");
-        
-        const urlContent = {
-          project_id: createdProject.id,
-          url: youtubeUrl,
-          name: `Vidéo YouTube - ${new Date().toLocaleString()}`,
-          type: 'youtube',
-          description: `Vidéo YouTube en attente de transcription. Durée estimée: ${durationMinutes} minutes.`
-        };
-        
-        const response = await contentService.addUrl(urlContent);
-        
-        // Créer le nouvel objet de vidéo YouTube
-        const newYouTubeVideo = {
-          ...response,
-          url: youtubeUrl,
-          source: `Durée estimée: ${durationMinutes} min`,
-          estimated_characters: estimatedCharacters,
-          status: 'awaiting_transcription'
-        };
-        
-        // MÉTHODE FIABLE : Mettre à jour à la fois l'état React et la référence
-        // 1. Ajouter à la référence (synchrône, toujours fiable)
-        youtubeVideosRef.current.push(newYouTubeVideo);
-        
-        // 2. Mettre à jour l'état React (peut être asynchrone, moins fiable)
-        setUploadedYouTube([...youtubeVideosRef.current]);
-        
-        // 3. Mettre à jour directement le compteur de référence
-        totalCharCountRef.current += estimatedCharacters;
-        
-        // 4. Mettre à jour l'état visible du compteur
-        setActualCharacterCount(totalCharCountRef.current);
-        
-        // Réinitialiser le champ
-        setYoutubeUrl('');
-        
-        // Log détaillé pour le débogage
-        console.log("AJOUT VIDÉO YOUTUBE (FALLBACK) - ÉTAT ACTUEL:", {
-          nouvelleVideo: newYouTubeVideo,
-          totalYouTube: youtubeVideosRef.current.length,
-          characCount: totalCharCountRef.current
-        });
-        
-      } catch (fallbackError) {
-        console.error('Erreur lors du fallback:', fallbackError);
-        setYoutubeUploadError("Erreur lors de l'ajout de l'URL YouTube, même avec estimation par défaut");
+      console.error('Erreur lors de l'ajout de l'URL YouTube:', error);
+      // Gérer les erreurs de l'API RapidAPI ou de notre backend
+      if (error.response) {
+         setYoutubeUploadError(`Erreur API: ${error.response.data?.message || error.response.data?.detail || error.message}`);
+      } else {
+         setYoutubeUploadError(`Erreur: ${error.message || "Impossible d'ajouter la vidéo"}`);
       }
     } finally {
       setYoutubeUploading(false);

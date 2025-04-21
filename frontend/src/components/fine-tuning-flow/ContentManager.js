@@ -183,48 +183,68 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
     }
 
     try {
+      // --- NOUVELLE LOGIQUE : Étape 1 - Obtenir les détails (durée) --- 
+      console.log("Récupération des détails de la vidéo via RapidAPI pour", videoId);
       const options = {
         method: 'GET',
         url: 'https://youtube-media-downloader.p.rapidapi.com/v2/video/details',
         params: { videoId: videoId },
         headers: {
-          'X-RapidAPI-Key': '9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8', // Utiliser une variable d'env !
+          'X-RapidAPI-Key': '9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8', // Votre clé RapidAPI
           'X-RapidAPI-Host': 'youtube-media-downloader.p.rapidapi.com'
         }
       };
       const rapidApiResponse = await axios.request(options);
+      console.log("Réponse RapidAPI (Détails):", rapidApiResponse.data);
+      
       const videoInfo = rapidApiResponse.data;
       const videoTitle = videoInfo.title || `Vidéo YouTube - ${Date.now()}`;
-      const durationSeconds = parseInt(videoInfo.lengthSeconds) || 600;
+      // Obtenir la durée en secondes, avec fallback
+      const durationSeconds = parseInt(videoInfo.lengthSeconds || videoInfo.length_seconds || '600'); 
       const durationMinutes = Math.round(durationSeconds / 60);
+      
+      // Calculer l'estimation des caractères
       const estimatedCharacters = Math.round((durationSeconds / 60) * 400);
-
-      const urlContent = {
+      console.log('Durée calculée:', durationSeconds, 'secondes; Caractères estimés:', estimatedCharacters);
+      
+      // --- Étape 2 - Créer l'enregistrement Content côté backend --- 
+      const urlContentPayload = {
         project_id: projectId,
         url: youtubeUrl,
         name: videoTitle,
         type: 'youtube',
-        description: `Vidéo en attente. Durée: ${durationMinutes} min.`,
-        // Ajouter l'estimation aux métadonnées pour le calcul du coût
-        content_metadata: { estimated_characters: estimatedCharacters }
+        // La description peut indiquer l'attente de transcription
+        description: `Vidéo en attente de transcription. Durée: ${durationMinutes} min (estimation).` 
       };
-
-      const response = await contentService.addUrl(urlContent);
+      
+      // Ajouter l'URL via notre API backend
+      const backendResponse = await contentService.addUrl(urlContentPayload);
+      console.log("Réponse Backend (Création Contenu):", backendResponse);
+      
+      // --- Étape 3 - Mettre à jour l'état frontend avec l'estimation --- 
       const newYouTubeVideo = {
-        ...response,
-        estimated_characters: estimatedCharacters,
-        status: 'awaiting_transcription' // Statut spécifique
+        ...backendResponse, // Inclut l'ID et le statut initial du backend
+        url: youtubeUrl,
+        estimated_characters: estimatedCharacters, // Stocker l'estimation
+        // Affichage source pour l'utilisateur
+        source: `Durée: ${durationMinutes} min (estimation)`, 
+        status: backendResponse.status || 'processing' // Utiliser le statut du backend
       };
 
       newlyAddedYouTubeRef.current.push(newYouTubeVideo);
       setNewlyAddedYouTube([...newlyAddedYouTubeRef.current]);
       setSelectedContentIds(prev => new Set(prev).add(newYouTubeVideo.id)); // Sélectionner auto
       setYoutubeUrl('');
-      enqueueSnackbar(`Vidéo YouTube ajoutée (${estimatedCharacters} car. estimés)`, { variant: 'success' });
+      enqueueSnackbar(`Vidéo YouTube ajoutée (${estimatedCharacters.toLocaleString()} car. estimés)`, { variant: 'success' });
 
     } catch (error) {
       console.error('Erreur ajout URL YouTube:', error);
-      setYoutubeUploadError("Erreur lors de la récupération des détails de la vidéo.");
+      // Gérer les erreurs de l'API RapidAPI ou de notre backend
+      if (error.response) {
+         setYoutubeUploadError(`Erreur API: ${error.response.data?.message || error.response.data?.detail || error.message}`);
+      } else {
+         setYoutubeUploadError(`Erreur: ${error.message || "Impossible d'ajouter la vidéo"}`);
+      }
     } finally {
       setYoutubeUploading(false);
     }
