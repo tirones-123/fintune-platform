@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Container,
   Typography,
@@ -49,6 +49,9 @@ function PlaygroundPage() {
   const [conversation, setConversation] = useState([]); // [{ role: 'user' | 'assistant', content: '...' }]
   const [loadingResponse, setLoadingResponse] = useState(false);
   const [error, setError] = useState('');
+
+  // Ref pour suivre le modèle sélectionné précédemment
+  const prevSelectedModelRef = useRef();
 
   // Encapsuler fetchFineTunedModels dans useCallback
   const fetchFineTunedModels = useCallback(async () => {
@@ -105,9 +108,21 @@ function PlaygroundPage() {
   useEffect(() => {
     const loadSystemPrompt = async () => {
       console.log(`>>> PlaygroundPage: useEffect for system prompt running. Selected Model: ${selectedModel}`, new Date().toLocaleTimeString());
-      setConversation([]); // Vider conversation/prompt/erreur à chaque changement
-      setPrompt(''); 
-      setError('');
+      
+      // Vérifier si le modèle a réellement changé
+      const modelChanged = prevSelectedModelRef.current !== selectedModel;
+
+      if (modelChanged) {
+        console.log(`>>> Model changed from ${prevSelectedModelRef.current} to ${selectedModel}. Clearing conversation.`);
+        setConversation([]); // Vider conversation/prompt/erreur SEULEMENT si le modèle a changé
+        setPrompt(''); 
+        setError('');
+      } else {
+        console.log(`>>> Model (${selectedModel}) did not change. Preserving conversation.`);
+      }
+      
+      // Mettre à jour la référence pour la prochaine exécution
+      prevSelectedModelRef.current = selectedModel;
 
       if (!selectedModel) {
         setSystemMessage('You are a helpful assistant.'); // Défaut si rien n'est sélectionné
@@ -139,6 +154,7 @@ function PlaygroundPage() {
         }
       } else {
         // Modèle standard
+        // Mettre à jour le system prompt même si le modèle standard n'a pas changé (ex: retour depuis un FT)
         setSystemMessage('You are a helpful assistant.');
         console.log(`System prompt réinitialisé pour modèle standard: ${selectedModel}`);
       }
@@ -146,7 +162,7 @@ function PlaygroundPage() {
 
     loadSystemPrompt();
 
-  }, [selectedModel, allModels]); // Dépendances correctes
+  }, [selectedModel, allModels]); // Les dépendances restent les mêmes
   // --- FIN MODIFICATION ---
 
   // Gérer l'envoi du prompt

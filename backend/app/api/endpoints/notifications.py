@@ -26,7 +26,7 @@ def get_user_notifications(
     notifications = query.order_by(Notification.created_at.desc()).offset(skip).limit(limit).all()
     return notifications
 
-@router.put("/notifications/{notification_id}/read", response_model=NotificationResponse)
+@router.put("/{notification_id}/read", response_model=NotificationResponse)
 def mark_notification_as_read(
     notification_id: int,
     current_user: User = Depends(get_current_user),
@@ -46,7 +46,7 @@ def mark_notification_as_read(
     db.refresh(notification)
     return notification
 
-@router.put("/notifications/read-all", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/read-all", status_code=status.HTTP_204_NO_CONTENT)
 def mark_all_notifications_as_read(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

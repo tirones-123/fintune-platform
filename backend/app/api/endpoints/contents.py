@@ -5,6 +5,7 @@ import os
 import shutil
 from pathlib import Path
 import logging
+from fastapi.responses import FileResponse
 
 from app.core.security import get_current_user
 from app.core.config import settings
@@ -317,4 +318,44 @@ def delete_content(
     db.delete(content)
     db.commit()
     
-    return None 
+    return None
+
+@router.get("/{content_id}/download")
+async def download_content_file(
+    content_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Downloads the file associated with a specific content ID.
+    """
+    content = db.query(Content).join(Project).filter(
+        Content.id == content_id,
+        Project.user_id == current_user.id
+    ).first()
+
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Content not found or not authorized."
+        )
+
+    if not content.file_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This content does not have an associated file (e.g., URL-based content)."
+        )
+
+    file_path = Path(content.file_path)
+    if not file_path.is_file():
+        logger.error(f"File not found for content {content_id} at path: {file_path}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"File associated with content {content_id} not found on server."
+        )
+
+    # Utiliser le nom original si disponible, sinon le nom de fichier sur le disque
+    original_name = content.content_metadata.get("original_name") if content.content_metadata else None
+    download_filename = original_name or file_path.name
+
+    return FileResponse(path=file_path, filename=download_filename, media_type='application/octet-stream') 

@@ -603,6 +603,22 @@ Supprime un contenu existant et son fichier associé (si applicable).
 204 No Content
 ```
 
+### Télécharger le fichier d'un contenu
+
+```
+GET /contents/{content_id}/download
+```
+
+Télécharge le fichier physique associé à un contenu (si celui-ci est basé sur un fichier).
+
+**Paramètres URL**
+- `content_id` (int): ID du contenu dont on veut télécharger le fichier.
+
+**Réponse**
+- `200 OK`: Renvoie le fichier (`FileResponse`). Le navigateur déclenche le téléchargement.
+- `400 Bad Request`: Le contenu n'a pas de fichier associé (ex: type URL).
+- `404 Not Found`: Contenu non trouvé, ou fichier physique non trouvé sur le serveur.
+
 ## Gestion des datasets
 
 ### Récupérer tous les datasets
@@ -1470,10 +1486,36 @@ Récupère les notifications pour l'utilisateur courant.
 ### Marquer comme lues
 
 ```
-POST /notifications/mark-read
+PUT /notifications/{notification_id}/read
 ```
 
-Marque des notifications spécifiques comme lues.
+Marque une notification spécifique comme lue.
 
-**Corps de la requête**
+**Paramètres URL**
+- `notification_id` (int): ID de la notification à marquer.
+
+**Réponse**
+- `200 OK`: Notification mise à jour (`NotificationResponse`).
+- `404 Not Found`: Notification non trouvée pour cet utilisateur.
+
+```json
+{
+  "message": "Notifications marked as read"
+}
+```
+
+### Marquer tout comme lu
+
+```
+PUT /notifications/read-all
+```
+
+Marque toutes les notifications de l'utilisateur comme lues.
+
+**Réponse**
+- `204 No Content`: Succès.
+```json
+{
+  "message": "All notifications marked as read"
+}
 ```
