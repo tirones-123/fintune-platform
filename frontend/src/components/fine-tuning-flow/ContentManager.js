@@ -123,6 +123,8 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
     // Vérifier si un contenu SELECTIONNE est en cours de traitement
     const isAnySelectedContentProcessing = allCurrentContent.some(content => 
       selectedContentIds.has(content.id) && 
+      // Pour YouTube, on considère "awaiting_transcription" comme prêt (pas en traitement)
+      !(content.type === 'youtube' && content.status === 'awaiting_transcription') &&
       content.status !== 'completed' && 
       content.status !== 'error'
     );
@@ -451,10 +453,14 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                        {isProcessingContent ? (
                         <Chip 
-                          label={content.status || 'En attente'}
+                          label={content.type === 'youtube' && content.status === 'awaiting_transcription' 
+                                ? 'Prêt (transcription différée)' 
+                                : content.status || 'En attente'}
                           size="small"
-                          color="warning"
-                          icon={<CircularProgress size={14} color="inherit" />} 
+                          color={content.type === 'youtube' && content.status === 'awaiting_transcription' ? "success" : "warning"}
+                          icon={content.type === 'youtube' && content.status === 'awaiting_transcription' 
+                                ? null 
+                                : <CircularProgress size={14} color="inherit" />} 
                           sx={{ mr: 1 }}
                         />
                       ) : (
@@ -487,7 +493,10 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                             edge="end"
                             onChange={(e) => handleSelectionChange(e, content.id)}
                             checked={selectedContentIds.has(content.id)}
-                            disabled={content.status === 'error' || content.status === 'processing'} // Désactiver si en erreur ou en traitement
+                            disabled={content.status === 'error' || 
+                                    (content.status === 'processing' && 
+                                     // Ne pas désactiver pour YouTube en attente de transcription
+                                     !(content.type === 'youtube' && content.status === 'awaiting_transcription'))} 
                         />
                     }
                     labelPlacement="start"
