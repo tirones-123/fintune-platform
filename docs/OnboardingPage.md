@@ -15,6 +15,7 @@ const steps = [
 ];
 ```
 
+
 ### États et hooks principaux
 - `activeStep`: Gère la progression à travers les étapes.
 - `useAuth()`: Fournit les données utilisateur et fonctions de mise à jour.
