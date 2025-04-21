@@ -23,6 +23,7 @@ import { fineTuningService, helperService, datasetService } from '../services/ap
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
 import ChatIcon from '@mui/icons-material/Chat';
+import PersonIcon from '@mui/icons-material/Person';
 
 // Définir les modèles OpenAI standards ici
 const standardOpenAIModels = [
@@ -91,8 +92,8 @@ function PlaygroundPage() {
   // Écouter l'événement pour rafraîchir la liste
   useEffect(() => {
     const handleUpdate = () => {
-      console.log('Événement finetuningUpdate reçu, rafraîchissement des modèles...');
-      fetchFineTunedModels(); 
+      console.log('>>> PlaygroundPage: finetuningUpdate event received!', new Date().toLocaleTimeString());
+      fetchFineTunedModels();
     };
     window.addEventListener('finetuningUpdate', handleUpdate);
     return () => {
@@ -103,6 +104,7 @@ function PlaygroundPage() {
   // --- MODIFICATION : Charger le system prompt via API pour les modèles FT ---
   useEffect(() => {
     const loadSystemPrompt = async () => {
+      console.log(`>>> PlaygroundPage: useEffect for system prompt running. Selected Model: ${selectedModel}`, new Date().toLocaleTimeString());
       setConversation([]); // Vider conversation/prompt/erreur à chaque changement
       setPrompt(''); 
       setError('');
@@ -272,29 +274,54 @@ function PlaygroundPage() {
                     <Box 
                       key={index} 
                       sx={{
-                        mb: 1.5, 
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: msg.role === 'user' ? 'primary.light' : 'background.paper',
-                        border: msg.role === 'assistant' ? `1px solid ${theme.palette.divider}` : 'none',
+                        display: 'flex', // Ajout pour aligner avatar et bulle
+                        flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                        alignItems: 'flex-start', // Aligner avatar en haut
+                        gap: 1.5, // Espace entre avatar et bulle
+                        mb: 2, 
                         ml: msg.role === 'assistant' ? 0 : 'auto', // Aligner user à droite
                         mr: msg.role === 'user' ? 0 : 'auto', // Aligner assistant à gauche
                         maxWidth: '85%',
-                        wordWrap: 'break-word'
                       }}
                     >
-                      <Typography 
-                        variant="body1" 
-                        sx={{ 
-                          whiteSpace: 'pre-wrap', // Conserver les sauts de ligne
-                          color: msg.role === 'user' ? 'primary.contrastText' : 'text.primary'
-                        }}
+                       {/* Avatar */} 
+                       <Avatar
+                         sx={{
+                            bgcolor: msg.role === 'user' ? 'primary.main' : 'secondary.main',
+                            width: 32,
+                            height: 32,
+                         }}
                        >
-                         {msg.content}
-                      </Typography>
+                         {msg.role === 'user' ? <PersonIcon fontSize="small"/> : <ChatIcon fontSize="small"/>}
+                       </Avatar>
+                       {/* Bulle de message */} 
+                       <Box
+                         sx={{
+                           p: 1.5,
+                           borderRadius: msg.role === 'user' 
+                             ? '16px 16px 4px 16px' 
+                             : '16px 16px 16px 4px',
+                           bgcolor: msg.role === 'user' ? 'primary.main' : 'grey.100',
+                           color: msg.role === 'user' ? 'primary.contrastText' : 'text.primary',
+                           wordWrap: 'break-word'
+                         }}
+                       >
+                         <Typography 
+                           variant="body1" 
+                           sx={{ 
+                             whiteSpace: 'pre-wrap',
+                           }}
+                         >
+                           {msg.content}
+                         </Typography>
+                       </Box>
                     </Box>
                   ))}
-                   {loadingResponse && <CircularProgress size={24} sx={{ alignSelf: 'center' }} />}
+                   {loadingResponse && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', my: 2}}>
+                        <CircularProgress size={24} />
+                    </Box>
+                   )}
                    {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
                 </Box>
 
@@ -308,14 +335,28 @@ function PlaygroundPage() {
                      onChange={(e) => setPrompt(e.target.value)}
                      onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { handleSendPrompt(); e.preventDefault(); } }}
                      sx={{ mr: 1 }}
+                     InputProps={{
+                       sx: { borderRadius: '20px', bgcolor: 'background.paper' } 
+                     }}
                    />
                    <Button 
                      variant="contained" 
                      onClick={handleSendPrompt} 
                      disabled={loadingResponse || !prompt.trim() || !selectedModel}
-                     sx={{ height: '56px' }} // Aligner hauteur avec TextField
+                     sx={{ 
+                       borderRadius: '50%', // Bouton rond
+                       minWidth: '56px',
+                       width: '56px',
+                       height: '56px',
+                       p: 0,
+                       boxShadow: 3,
+                       '&.Mui-disabled': {
+                         bgcolor: 'action.disabledBackground',
+                         boxShadow: 'none',
+                       }
+                     }}
                    >
-                     <SendIcon />
+                    {loadingResponse ? <CircularProgress size={24} color="inherit" /> : <SendIcon />}
                    </Button>
                 </Box>
              </Paper>

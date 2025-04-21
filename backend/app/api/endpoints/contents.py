@@ -218,13 +218,14 @@ def get_content(
             detail="Content not found"
         )
     
-    refreshed_content = db.query(Content).filter(Content.id == content_id).first()
+    # Rafraîchir l'objet depuis la base de données pour obtenir l'état le plus récent
+    db.refresh(content)
     
     # --- AJOUT LOG DEBUG : Vérifier les métadonnées avant retour API ---
-    logger.info(f"API GET - Content {content_id} metadata avant retour: {refreshed_content.content_metadata}")
+    logger.info(f"API GET - Content {content_id} metadata avant retour: {content.content_metadata}")
     # --- FIN AJOUT LOG DEBUG ---
     
-    return refreshed_content
+    return content
 
 @router.put("/{content_id}", response_model=ContentResponse)
 def update_content(

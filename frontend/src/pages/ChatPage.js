@@ -196,45 +196,51 @@ const ChatPage = () => {
                 sx={{
                   display: 'flex',
                   flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
-                  alignItems: 'flex-start',
+                  alignItems: 'flex-end',
                   gap: 1,
+                  mb: 2,
                 }}
               >
                 <Avatar
                   sx={{
                     bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main',
+                    width: 32,
+                    height: 32,
+                    mb: 1,
                   }}
                 >
-                  {message.role === 'user' ? <PersonIcon /> : <SmartToyIcon />}
+                  {message.role === 'user' ? <PersonIcon fontSize="small"/> : <SmartToyIcon fontSize="small"/>}
                 </Avatar>
-                <Box
-                  sx={{
-                    maxWidth: '70%',
-                    p: 2,
-                    borderRadius: 2,
-                    bgcolor: message.role === 'user' ? 'primary.light' : 'grey.100',
-                    color: message.role === 'user' ? 'white' : 'text.primary',
-                    position: 'relative',
-                  }}
-                >
-                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                    {message.content}
-                  </Typography>
+                <Box sx={{ maxWidth: '75%' }}> 
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: message.role === 'user' 
+                        ? '16px 16px 4px 16px' 
+                        : '16px 16px 16px 4px',
+                      bgcolor: message.role === 'user' ? 'primary.main' : 'grey.100',
+                      color: message.role === 'user' ? 'primary.contrastText' : 'text.primary',
+                    }}
+                  >
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {message.content}
+                    </Typography>
+                  </Box>
                   {message.timestamp && (
                     <Typography 
                       variant="caption" 
                       sx={{ 
-                        position: 'absolute',
-                        bottom: 4,
-                        right: message.role === 'user' ? 'auto' : 8,
-                        left: message.role === 'user' ? 8 : 'auto',
-                        color: message.role === 'user' ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                        display: 'block',
+                        textAlign: message.role === 'user' ? 'right' : 'left',
+                        mt: 0.5,
+                        px: 0.5,
+                        color: 'text.secondary',
                       }}
                     >
                       {formatTime(message.timestamp)}
                     </Typography>
                   )}
-                </Box>
+                 </Box> 
               </Box>
             ))
           )}
@@ -265,28 +271,30 @@ const ChatPage = () => {
                 disabled={loading || responding}
                 sx={{ 
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 4,
+                    borderRadius: '20px',
+                    bgcolor: 'background.paper',
                   }
                 }}
               />
-              <IconButton 
-                color="primary" 
+              <Button 
+                variant="contained"
                 type="submit"
                 disabled={!input.trim() || loading || responding}
-                sx={{ 
-                  bgcolor: 'primary.main', 
-                  color: 'white',
-                  '&:hover': {
-                    bgcolor: 'primary.dark',
-                  },
+                sx={{
+                  borderRadius: '50%',
+                  minWidth: '56px',
+                  width: '56px',
+                  height: '56px',
+                  p: 0,
+                  boxShadow: 3,
                   '&.Mui-disabled': {
                     bgcolor: 'action.disabledBackground',
-                    color: 'action.disabled',
+                    boxShadow: 'none',
                   }
                 }}
               >
                 {responding ? <CircularProgress size={24} color="inherit" /> : <SendIcon />}
-              </IconButton>
+              </Button>
             </Box>
           </form>
         </Box>

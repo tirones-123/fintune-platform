@@ -1314,6 +1314,16 @@ Permet d'envoyer un prompt à un modèle fine-tuné spécifique (qui doit avoir 
 }
 ```
 
+**Logique interne**
+- L'endpoint récupère les détails du `FineTuning`.
+- Il vérifie que le statut est `completed` et que `fine_tuned_model` existe.
+- Il récupère le `system_content` associé au `Dataset` lié.
+- Il récupère la clé API de l'utilisateur pour le `provider` concerné.
+- Il appelle la méthode `generate_completion` du provider en lui passant :
+  - `model=fine_tuning.fine_tuned_model` (l'ID du modèle FT)
+  - `prompt=request_data.prompt`
+  - `system_prompt=dataset.system_content`
+
 **Réponse**
 ```json
 {
@@ -1466,30 +1476,4 @@ POST /notifications/mark-read
 Marque des notifications spécifiques comme lues.
 
 **Corps de la requête**
-```json
-{
-  "notification_ids": [1, 3]
-}
 ```
-
-**Réponse**
-```json
-{
-  "message": "Notifications marked as read"
-}
-```
-
-### Marquer tout comme lu
-
-```
-POST /notifications/mark-all-read
-```
-
-Marque toutes les notifications de l'utilisateur comme lues.
-
-**Réponse**
-```json
-{
-  "message": "All notifications marked as read"
-}
-``` 

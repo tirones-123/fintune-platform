@@ -267,10 +267,11 @@ async def test_fine_tuning(
         )
         
         # Appeler la méthode sur l'instance obtenue
+        # On passe explicitement le modèle fine-tuné
         completion = await provider_instance.generate_completion(
-            # fine_tuned_model=fine_tuning.fine_tuned_model, # Ne devrait pas être nécessaire ici
+            model=fine_tuning.fine_tuned_model, # <-- Utiliser le modèle FT spécifique
             prompt=request_data.prompt,
-            system_prompt=fine_tuning.dataset.system_content # <-- PASSER LE SYSTEM PROMPT DU DATASET
+            system_prompt=fine_tuning.dataset.system_content # <-- Passer le system prompt du dataset
         )
         
         if completion is None:
