@@ -176,7 +176,7 @@ class OpenAIProvider(AIProviderBase):
             logger.error(f"Error generating completion with OpenAI: {str(e)}")
             raise e
     
-    def generate_qa_pairs(self, chunk_text: str, model: str = "gpt-4o-mini") -> List[Dict]:
+    def generate_qa_pairs(self, chunk_text: str, model: str = "gpt-4o-mini", system_content: Optional[str] = None) -> List[Dict]:
         """Generate question-answer pairs from a text chunk using OpenAI."""
         try:
             system_prompt = """You are a training data creation assistant. 
@@ -191,8 +191,9 @@ Important rules:
 6. If the text uses casual or "incorrect" grammar, keep it. If it uses comedic or childish language, keep it.
 7. Return the result strictly as valid JSONl (an array of objects, each with "question" and "answer").
 8. Include no extra commentary, explanation, or text outside the JSON.
-9. You must produce between 2 and 15 Q&A pairs, no fewer and no more.
-10. Use the language of the text to generate the Q&A pairs.
+9. You must produce between 2 and 20 Q&A pairs, no fewer and no more.
+10. All the informations from text need to be in the Q&A pairs.
+11. Use the language of the text to generate the Q&A pairs.
 
 Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
@@ -205,11 +206,14 @@ EXAMPLE Q&A:
 
 Notice how we kept the casual/familiar language exactly as is, with no corrections."""
             
+            effective_system_content = system_content or "No specific training goal provided."
+
             user_prompt = f"""Please read the following text chunk:
 
 {chunk_text}
 
-Based on this text, generate between 2 and 15 question-answer pairs. 
+This text was provided in order to train an AI on this goal: "{effective_system_content}"
+Based on this text, generate between 2 and 20 question-answer pairs. 
 Each pair should appear as an object with "question" and "answer" fields. 
 Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
 Do not add any information not found in the text. 
@@ -506,7 +510,7 @@ class AnthropicProvider(AIProviderBase):
             logger.error(f"Error generating completion with Anthropic: {str(e)}")
             raise e
     
-    def generate_qa_pairs(self, chunk_text: str, model: str = "claude-3-sonnet-20240229") -> List[Dict]:
+    def generate_qa_pairs(self, chunk_text: str, model: str = "claude-3-sonnet-20240229", system_content: Optional[str] = None) -> List[Dict]:
         """
         Generates question-answer pairs from a text chunk using Anthropic.
         """
@@ -537,10 +541,13 @@ EXAMPLE Q&A:
 
 Notice how we kept the casual/familiar language exactly as is, with no corrections."""
             
+            effective_system_content = system_content or "No specific training goal provided."
+
             user_prompt = f"""Please read the following text chunk:
 
 {chunk_text}
 
+This text was provided in order to train an AI on this goal: "{effective_system_content}"
 Based on this text, generate between 2 and 15 question-answer pairs. 
 Each pair should appear as an object with "question" and "answer" fields. 
 Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
@@ -866,7 +873,7 @@ class MistralProvider(AIProviderBase):
             logger.error(f"Error generating completion with Mistral: {str(e)}")
             raise e
     
-    def generate_qa_pairs(self, chunk_text: str, model: str = "mistral-large-latest") -> List[Dict]:
+    def generate_qa_pairs(self, chunk_text: str, model: str = "mistral-large-latest", system_content: Optional[str] = None) -> List[Dict]:
         """
         Generates question-answer pairs from a text chunk using Mistral.
         """
@@ -897,10 +904,13 @@ EXAMPLE Q&A:
 
 Notice how we kept the casual/familiar language exactly as is, with no corrections."""
             
+            effective_system_content = system_content or "No specific training goal provided."
+
             user_prompt = f"""Please read the following text chunk:
 
 {chunk_text}
 
+This text was provided in order to train an AI on this goal: "{effective_system_content}"
 Based on this text, generate between 2 and 15 question-answer pairs. 
 Each pair should appear as an object with "question" and "answer" fields. 
 Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 

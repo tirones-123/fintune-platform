@@ -142,10 +142,14 @@ def generate_dataset(self: Task, dataset_id: int):
 
         total_pairs = 0
         all_pairs = []
+        dataset_system_content = dataset.system_content or "No specific training goal provided for the dataset." # Get system content
+
         for i, chunk in enumerate(chunks):
             logger.info(f"Processing aggregated chunk {i+1}/{len(chunks)} for dataset {dataset_id}")
             try:
-                qa_pairs = provider.generate_qa_pairs(chunk, model)
+                # Pass system_content to generate_qa_pairs
+                qa_pairs = provider.generate_qa_pairs(chunk, model, system_content=dataset_system_content)
+                
                 if qa_pairs:
                     valid_pairs_in_chunk = []
                     for pair in qa_pairs:
