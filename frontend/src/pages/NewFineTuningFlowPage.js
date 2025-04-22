@@ -49,6 +49,7 @@ const NewFineTuningFlowPage = () => {
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [characterCount, setCharacterCount] = useState(0);
   const [isContentProcessing, setIsContentProcessing] = useState(false);
+  const [selectedContents, setSelectedContents] = useState([]);
   
   // Nouveaux états pour l'étape 0
   const [systemPrompt, setSystemPrompt] = useState('');
@@ -76,6 +77,7 @@ const NewFineTuningFlowPage = () => {
 
   // Callbacks pour remonter l'état
   const handleContentChange = useCallback((ids) => setSelectedContentIds(ids), []);
+  const handleSelectedContentObjectsChange = useCallback((objects) => setSelectedContents(objects), []);
   const handleConfigChange = useCallback((config) => {
       setFineTuningConfig(prev => ({ 
           ...prev, 
@@ -185,12 +187,14 @@ const NewFineTuningFlowPage = () => {
                     projectId={projectId} 
                     onContentChange={handleContentChange} 
                     onProcessingStatusChange={handleProcessingStatusChange}
+                    onSelectedContentObjectsChange={handleSelectedContentObjectsChange}
                 />
                  {selectedContentIds.length > 0 && (
                     <CharacterEstimator 
                         selectedContentIds={selectedContentIds} 
-                        onCharacterCountChange={handleCharacterCountChange}
+                        selectedContents={selectedContents}
                         minCharactersRecommended={minCharactersRecommended}
+                        onCharacterCountChange={handleCharacterCountChange}
                     />
                  )}
             </>
@@ -217,6 +221,7 @@ const NewFineTuningFlowPage = () => {
                 </Paper>
                  <CharacterEstimator 
                     selectedContentIds={selectedContentIds} 
+                    selectedContents={selectedContents}
                     minCharactersRecommended={minCharactersRecommended}
                  />
                 {launchError && <Alert severity="error" sx={{ mb: 2 }}>{launchError}</Alert>}

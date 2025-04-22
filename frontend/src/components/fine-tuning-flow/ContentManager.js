@@ -59,7 +59,7 @@ const getContentIcon = (type) => {
   };
 
 
-const ContentManager = ({ projectId, onContentChange, initialContentIds = [], onProcessingStatusChange }) => {
+const ContentManager = ({ projectId, onContentChange, initialContentIds = [], onProcessingStatusChange, onSelectedContentObjectsChange }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [projectContents, setProjectContents] = useState([]); // Contenus existants du projet
   const [newlyAddedFiles, setNewlyAddedFiles] = useState([]); // Fichiers uploadés dans ce flux
@@ -139,7 +139,13 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
     // Informer le parent des IDs sélectionnés
     onContentChange(Array.from(selectedContentIds));
 
-  }, [selectedContentIds, projectContents, newlyAddedFiles, newlyAddedYouTube, newlyAddedWebsites, onContentChange, onProcessingStatusChange]);
+    // Informer le parent des objets complets sélectionnés (nouvelle fonctionnalité)
+    if (onSelectedContentObjectsChange) {
+      const selectedObjects = allCurrentContent.filter(c => selectedContentIds.has(c.id));
+      onSelectedContentObjectsChange(selectedObjects);
+    }
+
+  }, [selectedContentIds, projectContents, newlyAddedFiles, newlyAddedYouTube, newlyAddedWebsites, onContentChange, onProcessingStatusChange, onSelectedContentObjectsChange]);
 
   const handleSelectionChange = (event, contentId) => {
     setSelectedContentIds(prev => {

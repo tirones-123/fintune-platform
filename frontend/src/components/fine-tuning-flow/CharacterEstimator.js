@@ -44,16 +44,50 @@ const calculateProgressValue = (currentCount, minRecommended) => {
   };
 // --- Fin Constantes copiées --- 
 
-const CharacterEstimator = ({ selectedContentIds, onCharacterCountChange, minCharactersRecommended = 5000 }) => {
+const CharacterEstimator = ({ 
+  selectedContentIds = [], 
+  selectedContents = null, // Nouveau: tableau d'objets contenu complet (optionnel)
+  onCharacterCountChange, 
+  minCharactersRecommended = 5000 
+}) => {
   const [totalCharacters, setTotalCharacters] = useState(0);
   const [isEstimated, setIsEstimated] = useState(true);
   const [loading, setLoading] = useState(false);
   const minRecommended = minCharactersRecommended;
   const maxRecommended = minRecommended * 4;
   
+  // Fonction utilitaire locale pour obtenir le nombre de caractères d'un objet Content
+  const getCharCountFromContent = (content) => {
+    // 1. Comptage exact
+    if (content?.content_metadata?.character_count && content?.content_metadata?.is_exact_count) {
+      return { count: content.content_metadata.character_count, isExact: true };
+    }
+
+    // 2. Champ estimé (ajouté côté frontend pour YouTube)
+    if (content?.estimated_characters) {
+      return { count: content.estimated_characters, isExact: false };
+    }
+
+    // 3. Estimation basée sur durée (YouTube)
+    if (content?.type === 'youtube' && content?.content_metadata?.duration_seconds) {
+      const est = Math.round((content.content_metadata.duration_seconds / 60) * 400);
+      return { count: est, isExact: false };
+    }
+
+    // 4. Website ajouté dans le flux avec character_count direct
+    if (content?.type === 'website' && content?.character_count) {
+      return { count: content.character_count, isExact: true }; // scrapé, donc exact
+    }
+
+    // 5. Fallback
+    const fallback = content?.size ? content.size * 0.5 : 3000;
+    return { count: fallback, isExact: false };
+  };
+
   // Recalculer quand les contenus sélectionnés changent
   useEffect(() => {
     const calculateChars = async () => {
+      // Gestion du cas sans sélection
       if (selectedContentIds.length === 0) {
         setTotalCharacters(0);
         setIsEstimated(true);
@@ -62,47 +96,53 @@ const CharacterEstimator = ({ selectedContentIds, onCharacterCountChange, minCha
       }
 
       setLoading(true);
+
       let count = 0;
       let allCountsExact = true;
 
       try {
-        const contentDetails = await Promise.all(
-          selectedContentIds.map(id => contentService.getById(id))
-        );
+        // S'il y a un tableau d'objets contenus fourni et qu'il couvre tous les IDs, on l'utilise directement
+        let contentsToUse = null;
+        if (Array.isArray(selectedContents) && selectedContents.length === selectedContentIds.length) {
+          contentsToUse = selectedContents;
+        }
+
+        let contentDetails = [];
+
+        if (contentsToUse) {
+          contentDetails = contentsToUse;
+        } else {
+          // Fallback : utiliser les appels API existants (comportement d'origine)
+          contentDetails = await Promise.all(
+            selectedContentIds.map(id => contentService.getById(id))
+          );
+        }
 
         contentDetails.forEach(content => {
-          if (content.content_metadata?.character_count && content.content_metadata?.is_exact_count) {
-            count += content.content_metadata.character_count;
-          } else if (content.estimated_characters) { // Pour YouTube ajouté dans le flux
-            count += content.estimated_characters;
-            allCountsExact = false; 
-          } else if (content.type === 'website' && content.character_count) { // Pour Website ajouté dans le flux
-             count += content.character_count;
-          } else {
-            // Fallback si pas de compte exact ou d'estimation
-            count += content.size ? content.size * 0.5 : 3000; // Estimation basée sur taille ou défaut
+          const { count: charCount, isExact } = getCharCountFromContent(content);
+          count += charCount;
+          if (!isExact) {
             allCountsExact = false;
           }
         });
 
       } catch (error) {
         console.error("Erreur calcul caractères:", error);
-        // En cas d'erreur, on peut garder l'ancien compte ou remettre à zéro?
-        // Pour l'instant, on garde l'ancien mais on marque comme estimé
-        allCountsExact = false;
+        allCountsExact = false; // Marquer comme estimation en cas d'erreur
       }
 
-      setTotalCharacters(Math.round(count));
+      const rounded = Math.round(count);
+      setTotalCharacters(rounded);
       setIsEstimated(!allCountsExact);
       if (onCharacterCountChange) {
-         onCharacterCountChange(Math.round(count));
+        onCharacterCountChange(rounded);
       }
       setLoading(false);
     };
 
     calculateChars();
 
-  }, [selectedContentIds, onCharacterCountChange]);
+  }, [selectedContentIds, selectedContents, onCharacterCountChange]);
 
   const estimatedCost = getEstimatedCost(totalCharacters);
   const progressValue = calculateProgressValue(totalCharacters, minRecommended);
