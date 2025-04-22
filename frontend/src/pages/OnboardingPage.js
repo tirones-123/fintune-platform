@@ -1728,7 +1728,7 @@ const OnboardingPage = () => {
                         {video.status === 'awaiting_transcription' ? (
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="caption" color="text.secondary">
-                              ~{video.estimated_characters?.toLocaleString() || '4000'} caractères estimés (transcription en cours...)
+                              ~{video.estimated_characters?.toLocaleString() || '4000'} caractères estimés
                             </Typography>
                           </Box>
                         ) : (
@@ -2050,7 +2050,12 @@ const OnboardingPage = () => {
                       creatingProject || 
                       savingApiKey || 
                       isCompleting || 
-                      (activeStep === 1 && [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => c.status !== 'completed' && c.status !== 'error')) || 
+                      // AJOUT DE L'EXCEPTION POUR YOUTUBE EN ATTENTE
+                      (activeStep === 1 && [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => 
+                        !(c.type === 'youtube' && c.status === 'awaiting_transcription') && 
+                        c.status !== 'completed' && 
+                        c.status !== 'error'
+                      )) || 
                       (activeStep === 2 && !apiKeySaved)
                     }
                 >
