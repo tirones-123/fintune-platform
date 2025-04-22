@@ -11,7 +11,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 # Configure Jinja2 environment
-template_dir = Path(__file__).parent.parent / "templates" / "emails"
+template_dir = Path(__file__).parent.parent / "templates"
 logger.info(f"Email template directory path: {template_dir}")
 if not template_dir.exists():
     logger.warning(f"Email template directory not found: {template_dir}")
@@ -47,9 +47,9 @@ def render_template(template_name: str, **context) -> str:
         logger.debug(f"First 200 chars of rendered content: {rendered[:200]}...")
         return rendered
     except Exception as e:
-        logger.error(f"Error rendering template {template_name}: {e}")
+        logger.error(f"Error rendering template {template_name}: {e}", exc_info=True)
         # Fallback to basic text representation on template error
-        return f"Subject: {context.get('subject', 'Notification')}\\n\\n{context.get('notification_message', 'Error rendering email template.')}"
+        return f"Subject: {context.get('subject', 'Notification')}\\n\\n{context.get('notification_message', 'Error rendering email template: ' + str(e))}"
 
 def send_email(
     to_email: str,
@@ -75,12 +75,16 @@ def send_email(
     msg['To'] = to_email
 
     # Attach parts in the correct order: plain text first, then HTML.
-    text_content = "This is a HTML email. If you see this plain text, your email client does not support HTML emails."
+    text_content = f"Subject: {subject}\n\n{context.get('notification_message', 'You have a new notification.')}\n\n(This is an automated message from {settings.PROJECT_NAME}. To view this email with full formatting, please use an email client that supports HTML.)"
     text_part = MIMEText(text_content, 'plain')
     msg.attach(text_part)
     
-    html_part = MIMEText(html_content, 'html')
-    msg.attach(html_part)
+    # Only attach HTML if it was rendered successfully
+    if "Error rendering email template" not in html_content:
+        html_part = MIMEText(html_content, 'html')
+        msg.attach(html_part)
+    else:
+        logger.warning(f"HTML content rendering failed for email to {to_email}. Sending text only.")
 
     try:
         # Connect using SMTP_SSL for port 465
@@ -131,10 +135,10 @@ def send_notification_email(
         # Add more context if needed, e.g., link to related object
     }
     
-    logger.info(f"Rendering email template with context: {context}")
+    logger.info(f"Rendering email template 'emails/notification_email.html' with context: {context}")
     
     # Render the HTML content
-    html_body = render_template("notification_email.html", **context)
+    html_body = render_template("emails/notification_email.html", **context)
     
     # Send the email
     success = send_email(
