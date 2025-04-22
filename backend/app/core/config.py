@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # API configuration
     API_V1_STR: str = "/api"
-    PROJECT_NAME: str = "FinTuner Platform API"
+    PROJECT_NAME: str = "FineTuner"
     
     # CORS configuration
     BACKEND_CORS_ORIGINS: List[str] = [

@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Configure Jinja2 environment
 template_dir = Path(__file__).parent.parent / "templates" / "emails"
+logger.info(f"Email template directory path: {template_dir}")
 if not template_dir.exists():
     logger.warning(f"Email template directory not found: {template_dir}")
     # Optionally create the directory
@@ -22,6 +23,9 @@ try:
         loader=FileSystemLoader(template_dir),
         autoescape=select_autoescape(['html', 'xml'])
     )
+    logger.info("Jinja2 environment initialized successfully")
+    templates = env.list_templates()
+    logger.info(f"Available templates: {templates}")
 except Exception as e:
     logger.error(f"Failed to initialize Jinja2 environment at {template_dir}: {e}")
     env = None # Ensure env is None if initialization fails
@@ -34,8 +38,14 @@ def render_template(template_name: str, **context) -> str:
         return f"Subject: {context.get('subject', 'Notification')}\\n\\n{context.get('notification_message', 'You have a new notification.')}"
 
     try:
+        logger.info(f"Attempting to load template: {template_name}")
         template = env.get_template(template_name)
-        return template.render(**context)
+        logger.info(f"Template loaded successfully: {template_name}")
+        rendered = template.render(**context)
+        logger.debug(f"Template rendered with context keys: {list(context.keys())}")
+        # Log the first 200 chars of the rendered HTML to verify content
+        logger.debug(f"First 200 chars of rendered content: {rendered[:200]}...")
+        return rendered
     except Exception as e:
         logger.error(f"Error rendering template {template_name}: {e}")
         # Fallback to basic text representation on template error
@@ -67,6 +77,11 @@ def send_email(
     # Attach HTML part
     part = MIMEText(html_content, 'html')
     msg.attach(part)
+    
+    # Also attach a text version as fallback
+    text_content = "This is a HTML email. If you see this plain text, your email client does not support HTML emails."
+    text_part = MIMEText(text_content, 'plain')
+    msg.attach(text_part)
 
     try:
         # Connect using SMTP_SSL for port 465
@@ -116,6 +131,8 @@ def send_notification_email(
         "logo_url": "https://drive.google.com/uc?export=view&id=1oOmEJx6NPITtgO_TOArsOJs1aekCV1bJ"
         # Add more context if needed, e.g., link to related object
     }
+    
+    logger.info(f"Rendering email template with context: {context}")
     
     # Render the HTML content
     html_body = render_template("notification_email.html", **context)
