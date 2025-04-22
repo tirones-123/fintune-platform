@@ -132,7 +132,7 @@ def send_notification_email(
         "notification_type": notification_type,
         "platform_url": settings.FRONTEND_URL,
         "platform_name": settings.PROJECT_NAME,
-        "logo_url": "https://drive.google.com/uc?export=view&id=1oOmEJx6NPITtgO_TOArsOJs1aekCV1bJ"
+        "logo_url": f"{settings.FRONTEND_URL.rstrip('/')}/Logo_FineTuner.png"
         # Add more context if needed, e.g., link to related object
     }
     
