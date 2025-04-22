@@ -89,7 +89,7 @@ def send_email(
         return False
 
 # Example usage (can be called from a Celery task)
-async def send_notification_email(
+def send_notification_email(
     user_email: str, 
     user_name: str, 
     notification_message: str, 
