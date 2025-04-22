@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # API configuration
     API_V1_STR: str = "/api"
-    PROJECT_NAME: str = "FinTune Platform API"
+    PROJECT_NAME: str = "FinTuner Platform API"
     
     # CORS configuration
     BACKEND_CORS_ORIGINS: List[str] = [
@@ -108,7 +108,8 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     SMTP_SENDER_EMAIL: EmailStr = Field(default="support@finetuner.io")
-    SMTP_SENDER_NAME: str = Field(default="FinTune Platform")
+    SMTP_SENDER_NAME: str = Field(default="FineTuner")
+    EMAIL_LOGO_URL: Optional[str] = None # URL publique du logo
 
 
 settings = Settings() 
