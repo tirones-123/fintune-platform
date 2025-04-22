@@ -54,7 +54,8 @@ def render_template(template_name: str, **context) -> str:
 def send_email(
     to_email: str,
     subject: str,
-    html_content: str
+    html_content: str,
+    notification_message: str
 ) -> bool:
     """Sends an email using configured SMTP settings."""
     
@@ -75,7 +76,7 @@ def send_email(
     msg['To'] = to_email
 
     # Attach parts in the correct order: plain text first, then HTML.
-    text_content = f"Subject: {subject}\n\n{context.get('notification_message', 'You have a new notification.')}\n\n(This is an automated message from {settings.PROJECT_NAME}. To view this email with full formatting, please use an email client that supports HTML.)"
+    text_content = f"Subject: {subject}\n\n{notification_message}\n\n(This is an automated message from {settings.PROJECT_NAME}. To view this email with full formatting, please use an email client that supports HTML.)"
     text_part = MIMEText(text_content, 'plain')
     msg.attach(text_part)
     
@@ -144,6 +145,7 @@ def send_notification_email(
     success = send_email(
         to_email=user_email,
         subject=subject,
-        html_content=html_body
+        html_content=html_body,
+        notification_message=notification_message
     )
     return success 
