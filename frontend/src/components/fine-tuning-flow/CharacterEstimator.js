@@ -59,8 +59,9 @@ const CharacterEstimator = ({
   // Fonction utilitaire locale pour obtenir le nombre de caractères d'un objet Content
   const getCharCountFromContent = (content) => {
     // 1. Comptage exact
-    if (content?.content_metadata?.character_count && content?.content_metadata?.is_exact_count) {
-      return { count: content.content_metadata.character_count, isExact: true };
+    if (content?.content_metadata?.character_count) {
+      const exactFlag = !!content?.content_metadata?.is_exact_count;
+      return { count: content.content_metadata.character_count, isExact: exactFlag };
     }
 
     // 2. Champ estimé (ajouté côté frontend pour YouTube)
