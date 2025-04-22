@@ -367,8 +367,15 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
       // Mettre à jour l'état approprié
       setProjectContents(prev => prev.map(c => c.id === contentId ? updatedContent : c));
       setNewlyAddedFiles(prev => prev.map(c => c.id === contentId ? updatedContent : c));
-      setNewlyAddedYouTube(prev => prev.map(c => c.id === contentId ? updatedContent : c));
-      setNewlyAddedWebsites(prev => prev.map(c => c.id === contentId ? updatedContent : c));
+      setNewlyAddedYouTube(prev => prev.map(c => {
+        if (c.id !== contentId) return c;
+        const merged = { ...c, ...updatedContent };
+        if (!merged.estimated_characters && c.estimated_characters && !(merged.content_metadata?.character_count)) {
+          merged.estimated_characters = c.estimated_characters;
+        }
+        return merged;
+      }));
+      setNewlyAddedWebsites(prev => prev.map(c => c.id === contentId ? { ...c, ...updatedContent } : c));
     } catch (error) {
       console.error(`Erreur rafraîchissement contenu ${contentId}:`, error);
     }
