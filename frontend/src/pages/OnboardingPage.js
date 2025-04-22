@@ -543,8 +543,12 @@ const OnboardingPage = () => {
     
     // Calculer l'état de traitement directement ici si nécessaire
     const allCurrentContentForCheck = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb];
+    // MODIFICATION : Ajouter l'exception pour YouTube en attente
     const isProcessingCheck = allCurrentContentForCheck.some(
-        content => content.status !== 'completed' && content.status !== 'error'
+        content => 
+            !(content.type === 'youtube' && content.status === 'awaiting_transcription') &&
+            content.status !== 'completed' && 
+            content.status !== 'error'
     );
 
     switch (activeStep) {
