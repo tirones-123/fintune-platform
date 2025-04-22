@@ -8,6 +8,9 @@ from app.models.user import User
 from app.models.notification import Notification
 from app.schemas.notification import NotificationResponse, NotificationUpdate
 
+# Import de la tâche Celery
+from app.tasks.email_tasks import send_notification_email_task
+
 router = APIRouter()
 
 @router.get("", response_model=List[NotificationResponse])
@@ -81,6 +84,22 @@ def create_notification(
         db.add(notification)
         db.commit()
         db.refresh(notification)
+        
+        # --- AJOUT : Déclencher la tâche d'envoi d'email --- 
+        try:
+            # Envoyer la tâche Celery. On passe les arguments nécessaires.
+            send_notification_email_task.delay(
+                user_id=user_id,
+                message=message,
+                notification_type=type or "info" # Utiliser le type ou 'info' par défaut
+            )
+            # logger.info(f"Tâche d'envoi d'email mise en file d'attente pour user {user_id}")
+        except Exception as task_error:
+            # Logguer l'erreur mais ne pas faire échouer la création de notification
+            # logger.error(f"Erreur lors de la mise en file d'attente de la tâche email pour user {user_id}: {task_error}")
+            pass # L'envoi d'email est secondaire par rapport à la notification in-app
+        # --- FIN AJOUT ---
+        
         # logger.info(f"Notification créée pour user {user_id}: {message}")
         return notification
     except Exception as e:

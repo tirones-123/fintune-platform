@@ -185,63 +185,105 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
     }
 
     try {
-      // --- NOUVELLE LOGIQUE : Étape 1 - Obtenir les détails (durée) --- 
-      console.log("Récupération des détails de la vidéo via RapidAPI pour", videoId);
-      const options = {
-        method: 'GET',
-        url: 'https://youtube-media-downloader.p.rapidapi.com/v2/video/details',
-        params: { videoId: videoId },
-        headers: {
-          'X-RapidAPI-Key': '9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8', // Votre clé RapidAPI
-          'X-RapidAPI-Host': 'youtube-media-downloader.p.rapidapi.com'
-        }
-      };
-      const rapidApiResponse = await axios.request(options);
-      console.log("Réponse RapidAPI (Détails):", rapidApiResponse.data);
-      
-      const videoInfo = rapidApiResponse.data;
-      const videoTitle = videoInfo.title || `Vidéo YouTube - ${Date.now()}`;
-      // Obtenir la durée en secondes, avec fallback
-      const durationSeconds = parseInt(videoInfo.lengthSeconds || videoInfo.length_seconds || '600'); 
-      const durationMinutes = Math.round(durationSeconds / 60);
-      
-      // Calculer l'estimation des caractères
-      const estimatedCharacters = Math.round((durationSeconds / 60) * 400);
-      console.log('Durée calculée:', durationSeconds, 'secondes; Caractères estimés:', estimatedCharacters);
-      
-      // --- Étape 2 - Créer l'enregistrement Content côté backend --- 
-      const urlContentPayload = {
-        project_id: projectId,
-        url: youtubeUrl,
-        name: videoTitle,
-        type: 'youtube',
-        // La description peut indiquer l'attente de transcription
-        description: `Vidéo en attente de transcription. Durée: ${durationMinutes} min (estimation).` 
-      };
-      
-      // Ajouter l'URL via notre API backend
-      const backendResponse = await contentService.addUrl(urlContentPayload);
-      console.log("Réponse Backend (Création Contenu):", backendResponse);
-      
-      // --- Étape 3 - Mettre à jour l'état frontend avec l'estimation --- 
-      const newYouTubeVideo = {
-        ...backendResponse, // Inclut l'ID et le statut initial du backend
-        url: youtubeUrl,
-        estimated_characters: estimatedCharacters, // Stocker l'estimation
-        // Affichage source pour l'utilisateur
-        source: `Durée: ${durationMinutes} min (estimation)`, 
-        status: backendResponse.status || 'processing' // Utiliser le statut du backend
-      };
+      // --- NOUVELLE LOGIQUE AVEC FALLBACK ---
+      let videoInfo = null;
+      let primaryError = null;
 
-      newlyAddedYouTubeRef.current.push(newYouTubeVideo);
-      setNewlyAddedYouTube([...newlyAddedYouTubeRef.current]);
-      setSelectedContentIds(prev => new Set(prev).add(newYouTubeVideo.id)); // Sélectionner auto
-      setYoutubeUrl('');
-      enqueueSnackbar(`Vidéo YouTube ajoutée (${estimatedCharacters.toLocaleString()} car. estimés)`, { variant: 'success' });
+      // --- Essai API Primaire (youtube-media-downloader) ---
+      try {
+        console.log("ContentManager: Trying Primary API (youtube-media-downloader) for", videoId);
+        const optionsPrimary = {
+          method: 'GET',
+          url: 'https://youtube-media-downloader.p.rapidapi.com/v2/video/details',
+          params: { videoId: videoId },
+          headers: {
+            'X-RapidAPI-Key': '9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8',
+            'X-RapidAPI-Host': 'youtube-media-downloader.p.rapidapi.com'
+          }
+        };
+        const rapidApiResponse = await axios.request(optionsPrimary);
+        console.log("ContentManager: Primary API Response:", rapidApiResponse.data);
+        if (rapidApiResponse.data && (rapidApiResponse.data.lengthSeconds || rapidApiResponse.data.length_seconds)) {
+            videoInfo = rapidApiResponse.data;
+            if (!videoInfo.lengthSeconds && videoInfo.length_seconds) {
+                videoInfo.lengthSeconds = videoInfo.length_seconds;
+            }
+        } else {
+            throw new Error("Primary API response missing duration.");
+        }
+      } catch (err) {
+        console.warn("ContentManager: Primary API Failed:", err.message);
+        primaryError = err;
+
+        // --- Essai API Secondaire (youtube-v2) ---
+        console.log("ContentManager: Trying Secondary API (youtube-v2) for", videoId);
+        try {
+          const optionsSecondary = {
+            method: 'GET',
+            url: 'https://youtube-v2.p.rapidapi.com/video/details',
+            params: { video_id: videoId },
+            headers: {
+              'x-rapidapi-key': '9144fffaabmsh319ba65e73a3d86p164f35jsn097fa4509ee8',
+              'x-rapidapi-host': 'youtube-v2.p.rapidapi.com'
+            }
+          };
+          const secondaryResponse = await axios.request(optionsSecondary);
+          console.log("ContentManager: Secondary API Response:", secondaryResponse.data);
+          const secondaryData = secondaryResponse.data;
+          if (secondaryData && secondaryData.video_length) {
+            videoInfo = {
+              title: secondaryData.title || `Vidéo YouTube - ${new Date().toLocaleString()}`,
+              lengthSeconds: secondaryData.video_length
+            };
+            console.log("ContentManager: Secondary API Success, mapped data:", videoInfo);
+          } else {
+            throw new Error("Secondary API response missing video_length.");
+          }
+        } catch (secondaryError) {
+          console.error("ContentManager: Secondary API Failed:", secondaryError.message);
+          primaryError = new Error(`Primary API failed (${primaryError.message || 'Unknown error'}) and Secondary API failed (${secondaryError.message || 'Unknown error'}).`);
+        }
+      }
+
+      // --- Traitement du résultat ou de l'erreur finale ---
+      if (videoInfo && videoInfo.lengthSeconds) {
+        const videoTitle = videoInfo.title || `Vidéo YouTube - ${Date.now()}`;
+        const durationSeconds = parseInt(videoInfo.lengthSeconds);
+        const durationMinutes = Math.round(durationSeconds / 60);
+        const estimatedCharacters = Math.round((durationSeconds / 60) * 400);
+        console.log('ContentManager: Duration:', durationSeconds, 's; Estimated Chars:', estimatedCharacters);
+
+        // --- Créer l'enregistrement Content côté backend ---
+        const urlContentPayload = {
+          project_id: projectId,
+          url: youtubeUrl,
+          name: videoTitle,
+          type: 'youtube',
+          description: `Vidéo en attente de transcription. Durée: ${durationMinutes} min (estimation).`
+        };
+        const backendResponse = await contentService.addUrl(urlContentPayload);
+        console.log("ContentManager: Réponse Backend (Création Contenu):", backendResponse);
+
+        // --- Mettre à jour l'état frontend ---
+        const newYouTubeVideo = {
+          ...backendResponse,
+          url: youtubeUrl,
+          estimated_characters: estimatedCharacters,
+          source: `Durée: ${durationMinutes} min (estimation)`,
+          status: backendResponse.status || 'awaiting_transcription'
+        };
+        newlyAddedYouTubeRef.current.push(newYouTubeVideo);
+        setNewlyAddedYouTube([...newlyAddedYouTubeRef.current]);
+        setSelectedContentIds(prev => new Set(prev).add(newYouTubeVideo.id));
+        setYoutubeUrl('');
+        enqueueSnackbar(`Vidéo YouTube ajoutée (${estimatedCharacters.toLocaleString()} car. estimés)`, { variant: 'success' });
+
+      } else {
+        throw primaryError || new Error("Impossible de récupérer la durée de la vidéo via les services disponibles.");
+      }
 
     } catch (error) {
-      console.error('Erreur ajout URL YouTube:', error);
-      // Gérer les erreurs de l'API RapidAPI ou de notre backend
+      console.error('ContentManager: Erreur finale ajout URL YouTube:', error);
       if (error.response) {
          setYoutubeUploadError(`Erreur API: ${error.response.data?.message || error.response.data?.detail || error.message}`);
       } else {

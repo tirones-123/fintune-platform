@@ -102,5 +102,13 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = Field(default="")
     GOOGLE_DISCOVERY_URL: str = Field(default="https://accounts.google.com/.well-known/openid-configuration")
 
+    # Email configuration (NEW)
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = Field(default=465) # Port SSL par défaut pour Hostinger
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_SENDER_EMAIL: EmailStr = Field(default="support@finetuner.io")
+    SMTP_SENDER_NAME: str = Field(default="FinTune Platform")
+
 
 settings = Settings() 
