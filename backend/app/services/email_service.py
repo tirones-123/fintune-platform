@@ -74,14 +74,13 @@ def send_email(
     msg['From'] = f"{sender_name} <{sender_email}>"
     msg['To'] = to_email
 
-    # Attach HTML part
-    part = MIMEText(html_content, 'html')
-    msg.attach(part)
-    
-    # Also attach a text version as fallback
+    # Attach parts in the correct order: plain text first, then HTML.
     text_content = "This is a HTML email. If you see this plain text, your email client does not support HTML emails."
     text_part = MIMEText(text_content, 'plain')
     msg.attach(text_part)
+    
+    html_part = MIMEText(html_content, 'html')
+    msg.attach(html_part)
 
     try:
         # Connect using SMTP_SSL for port 465
