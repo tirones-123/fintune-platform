@@ -524,7 +524,23 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                          </Typography>
                       )}
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                         {` | Caractères: ${content.content_metadata?.character_count?.toLocaleString() || content.estimated_characters?.toLocaleString() || (isProcessingContent ? 'Calcul...' : 'N/A')}`}
+                         {(() => {
+                           // Priorité 1 : comptage exact
+                           if (content.content_metadata?.character_count) {
+                             return ` | Caractères: ${Number(content.content_metadata.character_count).toLocaleString()}`;
+                           }
+                           // Priorité 2 : estimation stockée
+                           if (content.estimated_characters) {
+                             return ` | Caractères: ~${Number(content.estimated_characters).toLocaleString()}`;
+                           }
+                           // Priorité 3 : durée connue (YouTube déjà transcrit mais compteur manquant)
+                           if (content.type === 'youtube' && content.content_metadata?.duration_seconds) {
+                             const estChars = Math.round((content.content_metadata.duration_seconds / 60) * 400);
+                             return ` | Caractères: ~${estChars.toLocaleString()}`;
+                           }
+                           // Sinon état de traitement ou inconnu
+                           return isProcessingContent ? ' | Caractères: Calcul...' : ' | Caractères: N/A';
+                         })()}
                       </Typography>
                     </Box>
                   }
