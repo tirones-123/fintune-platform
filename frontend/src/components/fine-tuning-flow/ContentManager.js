@@ -525,17 +525,19 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                       )}
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                          {(() => {
-                           // Priorité 1 : comptage exact
-                           if (content.content_metadata?.character_count) {
-                             return ` | Caractères: ${Number(content.content_metadata.character_count).toLocaleString()}`;
+                           // Gestion d'un éventuel content_metadata stringifié
+                           let meta = content.content_metadata;
+                           if (typeof meta === 'string') {
+                             try { meta = JSON.parse(meta); } catch(_) { meta = null; }
                            }
-                           // Priorité 2 : estimation stockée
+                           if (meta?.character_count) {
+                             return ` | Caractères: ${Number(meta.character_count).toLocaleString()}`;
+                           }
                            if (content.estimated_characters) {
-                             return ` | Caractères: ~${Number(content.estimated_characters).toLocaleString()}`;
+                              return ` | Caractères: ~${Number(content.estimated_characters).toLocaleString()}`;
                            }
-                           // Priorité 3 : durée connue (YouTube déjà transcrit mais compteur manquant)
-                           if (content.type === 'youtube' && content.content_metadata?.duration_seconds) {
-                             const estChars = Math.round((content.content_metadata.duration_seconds / 60) * 400);
+                           if (content.type === 'youtube' && meta?.duration_seconds) {
+                             const estChars = Math.round((meta.duration_seconds / 60) * 400);
                              return ` | Caractères: ~${estChars.toLocaleString()}`;
                            }
                            // Sinon état de traitement ou inconnu
