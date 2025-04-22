@@ -515,6 +515,9 @@ def transcribe_youtube_video(self, content_id: int):
             
             # Ajouter à la session et commiter
             db.add(content) 
+            # --- AJOUT IMPORTANT : Marquer les métadonnées comme modifiées --- 
+            flag_modified(content, "content_metadata")
+            # --- FIN AJOUT ---
             db.commit()
             logger.info(f"Transcription terminée et enregistrée pour le contenu {content_id} ({character_count} caractères)")
             # Retourner le résultat
