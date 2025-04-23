@@ -254,8 +254,10 @@ const NewFineTuningFlowPage = () => {
                 </Paper>
                  <CharacterEstimator 
                     selectedContentIds={selectedContentIds} 
-                    newlyAddedContent={newlyAddedContent}
                     minCharactersRecommended={minCharactersRecommended}
+                    newlyAddedFiles={newlyAddedContent.files}
+                    newlyAddedYouTube={newlyAddedContent.youtube}
+                    newlyAddedWebsites={newlyAddedContent.websites}
                  />
                 {launchError && <Alert severity="error" sx={{ mb: 2 }}>{launchError}</Alert>}
                 <Button 
