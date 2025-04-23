@@ -1464,9 +1464,9 @@ GET /notifications
 Récupère les notifications pour l'utilisateur courant.
 
 **Paramètres de requête**
-- `limit` (int): Nombre max (défaut: 20)
-- `offset` (int): Pour pagination (défaut: 0)
-- `unread_only` (bool): Filtrer non lues (défaut: false)
+- `skip` (integer, optional): number of items to skip, default 0
+- `limit` (integer, optional): maximum items to return, default 20
+- `unread_only` (boolean, optional): if true, only return unread notifications
 
 **Réponse**
 ```json
@@ -1520,3 +1520,5 @@ Marque toutes les notifications de l'utilisateur comme lues.
   "message": "All notifications marked as read"
 }
 ```
+
+**Note:** Clicking the notifications icon on the frontend now automatically calls this endpoint to mark all notifications as read when opening the popover.
