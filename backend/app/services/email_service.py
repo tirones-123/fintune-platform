@@ -5,6 +5,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 import logging
 import os
 from pathlib import Path
+from premailer import transform
 
 from app.core.config import settings
 
@@ -140,6 +141,14 @@ def send_notification_email(
     
     # Render the HTML content
     html_body = render_template("emails/notification_email.html", **context)
+    
+    # Inline CSS to maximize compatibility with mobile email clients
+    try:
+        html_body = transform(html_body, disable_leftover_css=True, remove_classes=False)
+        logger.debug("CSS inlining completed successfully for email body")
+    except Exception as e:
+        # If inlining fails, log the error but keep the original HTML to avoid email loss
+        logger.error(f"CSS inlining failed: {e}")
     
     # Send the email
     success = send_email(
