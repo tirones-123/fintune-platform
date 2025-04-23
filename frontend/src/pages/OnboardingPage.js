@@ -1371,6 +1371,7 @@ const OnboardingPage = () => {
                 placeholder={`Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.es clients.\n`}
                 error={!!systemContentError}
                 helperText={systemContentError}
+                inputProps={{ maxLength: 1000 }}
               />
               <FormHelperText>
                 Soyez précis sur le domaine d'expertise, le ton à adopter et les capacités souhaitées.

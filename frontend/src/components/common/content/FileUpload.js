@@ -41,7 +41,7 @@ const FileUpload = ({
   onSuccess, 
   hideUrlInput = false, // Keep this prop
   label = "Déposez vos fichiers ici ou cliquez pour sélectionner", 
-  description = "Attachez autant de fichiers que vous le souhaitez (PDF, TXT, DOCX)",
+  description = "Vous pouvez attacher jusqu'à 10 fichiers à la fois (PDF, TXT, DOCX)",
   maxSize = 50 * 1024 * 1024 // 50MB par défaut
 }) => {
   const [files, setFiles] = useState([]); // State for files being processed/uploaded
@@ -89,11 +89,12 @@ const FileUpload = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     maxSize,
+    maxFiles: 10,
     accept: {
       'application/pdf': ['.pdf'],
       'text/plain': ['.txt', '.md'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
-    }
+      'application/vnd.openxmlformats-officedocument.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+    },
   });
 
   // Function to remove a file before/after upload (client-side only for this component)

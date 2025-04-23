@@ -209,11 +209,12 @@ const NewFineTuningFlowPage = () => {
             <TextField
               fullWidth
               multiline
-              rows={7}
+              rows={5}
               label="Objectif de votre assistant IA"
               value={assistantPurpose}
               onChange={(e) => setAssistantPurpose(e.target.value)}
               placeholder={`Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.`}
+              inputProps={{ maxLength: 1000 }}
               sx={{
                 '& .MuiInputBase-input::placeholder': {
                   whiteSpace: 'pre-line',

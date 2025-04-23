@@ -99,7 +99,7 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: acceptedFileTypes,
-    maxFiles: 5,
+    maxFiles: 10,
     maxSize: 10485760, // 10MB
   });
 
