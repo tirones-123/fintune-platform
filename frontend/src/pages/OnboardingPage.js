@@ -1353,25 +1353,21 @@ const OnboardingPage = () => {
       case 0: // Définition de l'assistant
         return (
           <Box>
-            <Typography variant="body1" paragraph>
-              Décrivez l'objectif et le comportement de l'assistant que vous souhaitez fine-tuner.
-            </Typography>
-            
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                Cette description sera utilisée pour générer un "system prompt" optimisé que votre modèle 
-                utilisera comme base de personnalité et de connaissances.
+              Indiquez le rôle de votre assistant IA, son ton (formel, amical, humoristique...)
+              et les types de tâches qu'il doit accomplir.
               </Typography>
             </Alert>
             
             <FormControl fullWidth sx={{ mb: 3 }}>
               <TextField
-                label="Objectif de votre assistant"
+                label="Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.\n- Un chatbot pour une banque qui aide à comprendre les offres et à gérer les comptes clients.\n- Un assistant RH qui répond aux questions sur la paie, les congés et la formation..."
                 value={assistantPurpose}
                 onChange={(e) => setAssistantPurpose(e.target.value)}
                 multiline
-                rows={4}
-                placeholder={`Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.\n- Un chatbot pour une banque qui aide à comprendre les offres et à gérer les comptes clients.\n- Un assistant RH qui répond aux questions sur la paie, les congés et la formation...`}
+                rows={7}
+                placeholder={`Objectif de votre assistant`}
                 error={!!systemContentError}
                 helperText={systemContentError}
               />
@@ -1385,6 +1381,13 @@ const OnboardingPage = () => {
       case 1: // Import de contenu
         return (
           <Box>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                Importez ici les contenus que votre assistant devra connaître : documents, pages web ou vidéos. Plus vous ajoutez de contenu pertinent, plus l'assistant sera précis et utile dans ses réponses.
+                Les 10 000 premiers caractères sont offerts.
+              </Typography>
+            </Alert>
+            
             <Paper 
               elevation={0} 
               sx={{
@@ -1598,7 +1601,7 @@ const OnboardingPage = () => {
               
               {/* Le composant FileUpload affiche déjà les fichiers sous forme de chips */}
               {createdProject && (
-                <Box sx={{ mb: 3 }}>
+                <Box sx={{ mb: 1 }}>
                   <FileUpload 
                     projectId={createdProject.id} 
                     hideUrlInput={true} 
@@ -1665,7 +1668,7 @@ const OnboardingPage = () => {
               )}
               
               {/* Ajout du module pour les vidéos YouTube */}
-              <Box sx={{ mb: 3, p: 2, border: '1px dashed', borderColor: 'grey.300', borderRadius: 2 }}>
+              <Box sx={{ mb: 2, p: 2, border: '1px dashed', borderColor: 'grey.300', borderRadius: 2 }}>
                 <Typography variant="h6" sx={{ mb: 2 }}>
                   Ajouter une vidéo YouTube
                 </Typography>
@@ -1687,16 +1690,8 @@ const OnboardingPage = () => {
                 >
                   {youtubeUploading ? <CircularProgress size={20} /> : "Ajouter la vidéo"}
                 </Button>
-                
-                {/* Information sur le traitement asynchrone */}
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Notre système traite les vidéos en arrière-plan et prend en charge des vidéos allant jusqu'à 5 heures. 
-                    Le temps de traitement dépend de la longueur de la vidéo. Vous pouvez continuer à utiliser l'application pendant ce temps.
-                  </Typography>
-                </Box>
               </Box>
-
+                  
               {/* Affichage des vidéos YouTube ajoutées */}
               {uploadedYouTube.length > 0 && (
                 <Box sx={{ mb: 3 }}>
@@ -1747,7 +1742,7 @@ const OnboardingPage = () => {
                   disabled={scrapeLoading || !scrapeUrl.trim()}
                   sx={{ mt: 2 }}
                 >
-                  {scrapeLoading ? <CircularProgress size={20} /> : "Ajouter le site"}
+                  {scrapeLoading ? <CircularProgress size={20} /> : "Ajouter l'URL"}
                 </Button>
               </Box>
 
