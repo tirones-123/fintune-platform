@@ -90,7 +90,11 @@ export const AuthProvider = ({ children }) => {
                 console.log("Backend mis à jour avec succès:", user);
                 
                 // Optionnel: Nettoyer l'URL après lecture et mise à jour réussie
-                window.history.replaceState({}, document.title, window.location.pathname);
+                // On ajoute un léger délai pour laisser les autres composants (ex. Dashboard)
+                // détecter le paramètre "onboarding_completed" avant de l'effacer.
+                setTimeout(() => {
+                  window.history.replaceState({}, document.title, window.location.pathname);
+                }, 1200); // 1,2 s : suffisant pour que le Dashboard monte et affiche la modale
 
               } catch (updateError) {
                 console.error("Échec de la mise à jour du statut d'onboarding via API:", updateError);
