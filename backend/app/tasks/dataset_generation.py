@@ -197,6 +197,30 @@ def generate_dataset(self: Task, dataset_id: int):
         total_characters += len(system_content) * total_pairs
         logger.info(f"Dataset {dataset_id} final character count: {total_characters}")
 
+        # -------------------------------------------------------------
+        # Nouveau : Décompte des caractères (crédits gratuits puis payants)
+        # -------------------------------------------------------------
+        try:
+            success, paid_chars, price = character_service.process_dataset_characters(
+                db=db,
+                user_id=dataset.project.user_id,
+                dataset_id=dataset_id,
+                character_count=total_characters
+            )
+            if success:
+                logger.info(
+                    f"Character usage recorded for dataset {dataset_id}: {total_characters} chars (paid: {paid_chars}, price: {price:.4f}$)"
+                )
+            else:
+                logger.error(
+                    f"Failed to record character usage for dataset {dataset_id}. Characters: {total_characters}"
+                )
+        except Exception as char_err:
+            logger.error(
+                f"Exception during character credit processing for dataset {dataset_id}: {char_err}",
+                exc_info=True
+            )
+
         dataset.status = "ready"
         dataset.pairs_count = total_pairs
         dataset.character_count = total_characters
