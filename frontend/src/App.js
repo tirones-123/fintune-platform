@@ -148,7 +148,8 @@ const AppRoutes = () => {
             </OnboardingCheck>
           }
         >
-          <Route index element={<ProjectsPage />} />
+          {/* Page d'accueil du dashboard (statistiques + popup welcome) */}
+          <Route index element={<DashboardPage />} />
           
           {/* Routes des projets */}
           <Route path="projects/new" element={<ProtectedRoute><NewProjectPage /></ProtectedRoute>} />

@@ -1363,12 +1363,12 @@ const OnboardingPage = () => {
             
             <FormControl fullWidth sx={{ mb: 3 }}>
               <TextField
-                label="Objectif de votre assistant"
+                label="Objectif de votre assistant IA"
                 value={assistantPurpose}
                 onChange={(e) => setAssistantPurpose(e.target.value)}
                 multiline
-                rows={7}
-                placeholder={`Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.\n- Un chatbot pour une banque qui aide à comprendre les offres et à gérer les comptes clients.\n- Un assistant RH qui répond aux questions sur la paie, les congés et la formation...`}
+                rows={5}
+                placeholder={`Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.es clients.\n`}
                 error={!!systemContentError}
                 helperText={systemContentError}
               />
@@ -1872,8 +1872,8 @@ const OnboardingPage = () => {
             </Box>
             
             {apiKeySaved && (
-              <Alert severity="success" sx={{ mt: 2, mb: 3, py: 0.5, fontSize: '0.9rem', display: 'flex', alignItems: 'center' }}>
-                <CheckCircleIcon fontSize="small" sx={{ mr: 1 }} /> Clé API validée avec succès
+              <Alert severity="success" sx={{ mt: 2, mb: 3, py: 0.5, fontSize: '0.9rem' }}>
+                Clé API validée avec succès
               </Alert>
             )}
             

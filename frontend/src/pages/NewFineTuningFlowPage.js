@@ -210,10 +210,15 @@ const NewFineTuningFlowPage = () => {
               fullWidth
               multiline
               rows={7}
-              label="Objectif / Personnalité"
+              label="Objectif de votre assistant IA"
               value={assistantPurpose}
               onChange={(e) => setAssistantPurpose(e.target.value)}
-              placeholder="Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.\n- Un chatbot pour une banque qui aide à comprendre les offres et à gérer les comptes clients.\n- Un assistant RH qui répond aux questions sur la paie, les congés et la formation..."
+              placeholder={`Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.`}
+              sx={{
+                '& .MuiInputBase-input::placeholder': {
+                  whiteSpace: 'pre-line',
+                },
+              }}
             />
           </Box>
         );
