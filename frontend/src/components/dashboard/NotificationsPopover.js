@@ -74,6 +74,10 @@ export default function NotificationsPopover({ notifications = [], totalUnread, 
 
   const handleOpen = (event) => {
     setOpen(event.currentTarget);
+    // Mark all notifications as read when opening the popover
+    if (onMarkAllAsRead) {
+      onMarkAllAsRead();
+    }
   };
 
   const handleClose = () => {
