@@ -132,11 +132,18 @@ const CharacterEstimator = ({
         allCountsExact = false; // Marquer comme estimation en cas d'erreur
       }
 
-      const rounded = Math.round(count);
-      setTotalCharacters(rounded);
-      setIsEstimated(!allCountsExact);
-      if (onCharacterCountChange) {
-        onCharacterCountChange(rounded);
+      const finalIsEstimated = !allCountsExact;
+      
+      // Assurer que finalCount est un nombre valide (pas NaN)
+      const validFinalCount = Number.isNaN(count) ? 0 : count;
+      
+      // N'appeler onCharacterCountChange que si les valeurs valides ont changé
+      if (validFinalCount !== totalCharacters || finalIsEstimated !== isEstimated) {
+        setTotalCharacters(validFinalCount);
+        setIsEstimated(finalIsEstimated); 
+        if (onCharacterCountChange) {
+          onCharacterCountChange({ count: validFinalCount, isEstimated: finalIsEstimated });
+        }
       }
       setLoading(false);
     };
