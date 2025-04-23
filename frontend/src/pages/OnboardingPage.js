@@ -80,6 +80,7 @@ import DialogActions from '@mui/material/DialogActions';
 import CloseIcon from '@mui/icons-material/Close';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Link from '@mui/material/Link';
+import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -636,7 +637,8 @@ const OnboardingPage = () => {
         dataset_name: datasetName,
         provider: provider,
         model: apiModelId,
-        system_content: systemContent
+        system_content: systemContent,
+        description_payment: `Fine-tuning d'un modèle ${provider === 'openai' ? 'OpenAI' : 'Anthropic'} (${model}) avec ${actualCharacterCount.toLocaleString()} caractères (dont 10 000 gratuits). Le modèle sera personnalisé selon vos données et entraîné pour devenir votre assistant IA.`
       });
 
       console.log("Réponse de l'API session:", response);
@@ -1361,13 +1363,24 @@ const OnboardingPage = () => {
             </Alert>
             
             <FormControl fullWidth sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                Exemples :
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                - Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc 
+                <br />- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.
+                <br />- Un expert juridique qui explique le droit du travail américain de façon simple.
+                <br />- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.
+                <br />- Un chatbot pour une banque qui aide à comprendre les offres et à gérer les comptes clients.
+                <br />- Un assistant RH qui répond aux questions sur la paie, les congés et la formation...
+              </Typography>
               <TextField
-                label="Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.\n- Un chatbot pour une banque qui aide à comprendre les offres et à gérer les comptes clients.\n- Un assistant RH qui répond aux questions sur la paie, les congés et la formation..."
+                label="Objectif de votre assistant"
                 value={assistantPurpose}
                 onChange={(e) => setAssistantPurpose(e.target.value)}
                 multiline
                 rows={7}
-                placeholder={`Objectif de votre assistant`}
+                placeholder="Décrivez ici ce que votre assistant doit faire..."
                 error={!!systemContentError}
                 helperText={systemContentError}
               />
@@ -1384,7 +1397,7 @@ const OnboardingPage = () => {
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 Importez ici les contenus que votre assistant devra connaître : documents, pages web ou vidéos. Plus vous ajoutez de contenu pertinent, plus l'assistant sera précis et utile dans ses réponses.
-                Les 10 000 premiers caractères sont offerts.
+                <br /><br /><CardGiftcardIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5, color: 'primary.main' }} /> Les 10 000 premiers caractères sont offerts.
               </Typography>
             </Alert>
             
@@ -1778,6 +1791,12 @@ const OnboardingPage = () => {
       case 2: // Fine-tuning du modèle
         return (
           <Box>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                Choisissez le modèle que vous souhaitez utiliser et ajoutez votre clé API pour lancer l'entraînement de votre assistant à partir des contenus importés.
+              </Typography>
+            </Alert>
+            
             <Typography variant="body1" paragraph>
               Configurez votre modèle pour le fine-tuning.
             </Typography>
@@ -1800,7 +1819,7 @@ const OnboardingPage = () => {
                   disabled={createdDataset !== null}
                 >
                   <MenuItem value="openai">OpenAI</MenuItem>
-                  <MenuItem value="anthropic">Anthropic</MenuItem>
+                  <MenuItem value="anthropic" disabled>Anthropic (Coming soon)</MenuItem>
                 </Select>
               </FormControl>
               
@@ -1865,8 +1884,8 @@ const OnboardingPage = () => {
             </Box>
             
             {apiKeySaved && (
-              <Alert severity="success" sx={{ mt: 2, mb: 3 }}>
-                <AlertTitle>Clé API validée</AlertTitle>
+              <Alert severity="success" sx={{ mt: 2, mb: 3, py: 0.5, fontSize: '0.9rem', display: 'flex', alignItems: 'center' }}>
+                <CheckCircleIcon fontSize="small" sx={{ mr: 1 }} /> Clé API validée avec succès
               </Alert>
             )}
             
