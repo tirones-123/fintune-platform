@@ -541,9 +541,6 @@ const OnboardingPage = () => {
   const handleNext = async () => {
     window.scrollTo(0, 0); // Scroll vers le haut
     
-    // Ajouter un état de chargement pour le bouton Next à l'étape 0
-    let isLoadingNext = false;
-    
     // Calculer l'état de traitement pour l'étape 1
     const allCurrentContentForCheck = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb];
     const isProcessingCheck = allCurrentContentForCheck.some(
@@ -555,21 +552,20 @@ const OnboardingPage = () => {
 
     switch (activeStep) {
       case 0: // Après étape définition de l'assistant
-        // Générer automatiquement le system prompt
         if (!assistantPurpose.trim()) {
           enqueueSnackbar("Veuillez décrire le but de votre assistant.", { variant: 'warning' });
           return;
         }
-        isLoadingNext = true; // Activer le chargement
-        setGeneratingSystemContent(true); // Utiliser l'état existant si possible
-        const success = await generateSystemContent(); // Appeler la fonction locale
+        // Ne plus utiliser isLoadingNext ici
+        setGeneratingSystemContent(true); 
+        const success = await generateSystemContent(); 
         setGeneratingSystemContent(false);
         if (!success) {
-          isLoadingNext = false; // Désactiver le chargement si erreur
           return; // Ne pas passer à l'étape suivante si la génération échoue
         }
-        // Si succès, on continue vers setActiveStep à la fin du switch
-        break;
+        // Passer à l'étape suivante ICI, après succès
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        return; // Important: Sortir du switch et de la fonction ici
       
       case 1: // Après étape import de contenu
         const hasAnyContent = uploadedFiles.length > 0 || uploadedUrls.length > 0 || uploadedYouTube.length > 0 || uploadedWeb.length > 0;
@@ -581,26 +577,22 @@ const OnboardingPage = () => {
             enqueueSnackbar("Veuillez attendre la fin du traitement des contenus.", { variant: 'warning' });
             return;
         }
-        break;
+        break; // On continue vers setActiveStep à la fin
       
       case 2: // Après étape fine-tuning
-        isLoadingNext = true; // Activer le chargement pour cette étape aussi
-        setIsCompleting(true); // Utiliser l'état existant
+        setIsCompleting(true); 
         const apiKeySuccess = await saveApiKey();
         if (!apiKeySuccess) {
             setIsCompleting(false);
-            isLoadingNext = false;
+            // Ne plus utiliser isLoadingNext
             return;
         }
-        await completeOnboarding(); // completeOnboarding gère la redirection/état final
-        // Pas besoin de désactiver isLoadingNext ici car completeOnboarding redirige
-        return; // Sortir après avoir appelé completeOnboarding
+        await completeOnboarding(); 
+        return; // Sortir car completeOnboarding gère la redirection
     }
     
-    // Passer à l'étape suivante si tout s'est bien passé
-    if (!isLoadingNext) { // Sécurité pour ne pas avancer si une étape asynchrone est en cours
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-    }
+    // Passer à l'étape suivante pour les cas qui n'ont pas fait return (ex: case 1)
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
   // Fonction pour revenir à l'étape précédente
