@@ -242,6 +242,39 @@ Le projet inclut une configuration HTTPS avec les éléments suivants :
 - Redirection automatique HTTP vers HTTPS
 - Support des noms d'hôte virtuels
 
+### Assets et Favicons
+
+Le projet utilise des favicons et des assets media organisés comme suit :
+
+#### Favicons
+
+Les favicons sont stockés dans le dossier `frontend/public/favicon/` et comprennent :
+- `favicon.ico` - Favicon standard
+- `favicon-16x16.png` et `favicon-32x32.png` - Versions de différentes tailles
+- `apple-touch-icon.png` - Pour les appareils iOS
+- `android-chrome-192x192.png` et `android-chrome-512x512.png` - Pour Android
+- `site.webmanifest` - Configuration pour les PWA
+
+Ces fichiers sont référencés dans `frontend/public/index.html`.
+
+#### Assets Media
+
+Les images et vidéos réutilisables sont organisées comme suit :
+
+1. **Fichiers statiques accessibles directement** :
+   - Stockés dans `frontend/public/assets/`
+   - Structure : `images/`, `videos/`, etc.
+   - Accès via URL relative : `/assets/images/mon-image.jpg`
+
+2. **Images utilisées dans les composants React** :
+   - Stockées dans `frontend/src/assets/`
+   - Importées dans les composants JavaScript
+   - Optimisées automatiquement par Webpack
+   
+3. **Images pour les emails** :
+   - Référencées dans les templates d'emails
+   - Utilisation des URL complètes pour assurer la compatibilité avec tous les clients email
+
 ## Gestion des variables d'environnement
 
 Pour garantir la sécurité de votre application et éviter de pousser des informations sensibles sur Git, suivez ces bonnes pratiques :

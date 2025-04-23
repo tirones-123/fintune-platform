@@ -82,11 +82,7 @@
 <body>
     <div class="container">
         <div class="header">
-            {% if logo_url %}
-                <img src="{{ logo_url }}" alt="{{ platform_name }}" width="180">
-            {% else %}
-                <h1 style="margin:0; font-size:24px; color:#F8FAFC;">{{ platform_name | default('Notification') }}</h1>
-            {% endif %}
+            <img src="https://finetuner.io/assets/images/LogoFineTuner_nobackground.png" alt="{{ platform_name }}" width="180">
         </div>
         <div class="content">
             {% block content %}
