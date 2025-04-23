@@ -80,7 +80,6 @@ import DialogActions from '@mui/material/DialogActions';
 import CloseIcon from '@mui/icons-material/Close';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Link from '@mui/material/Link';
-import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
@@ -638,7 +637,7 @@ const OnboardingPage = () => {
         provider: provider,
         model: apiModelId,
         system_content: systemContent,
-        description_payment: `Fine-tuning d'un modèle ${provider === 'openai' ? 'OpenAI' : 'Anthropic'} (${model}) avec ${actualCharacterCount.toLocaleString()} caractères (dont 10 000 gratuits). Le modèle sera personnalisé selon vos données et entraîné pour devenir votre assistant IA.`
+        description_payment: `Fine-tuning d'un modèle ${provider === 'openai' ? 'OpenAI' : 'Anthropic'} (${model}) avec ${actualCharacterCount.toLocaleString()} caractères (dont 10 000 gratuits). Le modèle IA sera entraîné selon les données que vous avez importées et personnalisé pour devenir l'assistant IA souhaité.`
       });
 
       console.log("Réponse de l'API session:", response);
@@ -1363,24 +1362,13 @@ const OnboardingPage = () => {
             </Alert>
             
             <FormControl fullWidth sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                Exemples :
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                - Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc 
-                <br />- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.
-                <br />- Un expert juridique qui explique le droit du travail américain de façon simple.
-                <br />- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.
-                <br />- Un chatbot pour une banque qui aide à comprendre les offres et à gérer les comptes clients.
-                <br />- Un assistant RH qui répond aux questions sur la paie, les congés et la formation...
-              </Typography>
               <TextField
                 label="Objectif de votre assistant"
                 value={assistantPurpose}
                 onChange={(e) => setAssistantPurpose(e.target.value)}
                 multiline
                 rows={7}
-                placeholder="Décrivez ici ce que votre assistant doit faire..."
+                placeholder={`Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.\n- Un chatbot pour une banque qui aide à comprendre les offres et à gérer les comptes clients.\n- Un assistant RH qui répond aux questions sur la paie, les congés et la formation...`}
                 error={!!systemContentError}
                 helperText={systemContentError}
               />
@@ -1397,7 +1385,7 @@ const OnboardingPage = () => {
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 Importez ici les contenus que votre assistant devra connaître : documents, pages web ou vidéos. Plus vous ajoutez de contenu pertinent, plus l'assistant sera précis et utile dans ses réponses.
-                <br /><br /><CardGiftcardIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5, color: 'primary.main' }} /> Les 10 000 premiers caractères sont offerts.
+                <br /><br /> Les 10 000 premiers caractères sont offerts.
               </Typography>
             </Alert>
             

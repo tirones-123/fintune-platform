@@ -200,17 +200,20 @@ const NewFineTuningFlowPage = () => {
       case 0: 
         return (
           <Box>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Décrivez précisément ce que votre assistant doit faire, son ton, son expertise...
-            </Typography>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+              Indiquez le rôle de votre assistant IA, son ton (formel, amical, humoristique...)
+              et les types de tâches qu'il doit accomplir.
+              </Typography>
+            </Alert>
             <TextField
               fullWidth
               multiline
-              rows={4}
+              rows={7}
               label="Objectif / Personnalité"
               value={assistantPurpose}
               onChange={(e) => setAssistantPurpose(e.target.value)}
-              placeholder="Ex: Un expert en vins qui recommande des accords mets-vins dans un style formel..."
+              placeholder="Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.\n- Un chatbot pour une banque qui aide à comprendre les offres et à gérer les comptes clients.\n- Un assistant RH qui répond aux questions sur la paie, les congés et la formation..."
             />
           </Box>
         );
@@ -243,6 +246,12 @@ const NewFineTuningFlowPage = () => {
       case 3: 
         return (
             <Box>
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  <Typography variant="body2">
+                    Vérifiez les détails du fine-tuning et lancez le traitement. Une fois votre modèle entrainé, vous pourrez l'utiliser pour interagir avec votre assistant personnalisé.
+                  </Typography>
+                </Alert>
+                
                 <Typography variant="h6" gutterBottom>Récapitulatif et Lancement</Typography>
                 <Paper sx={{ p: 2, mb: 2 }}>
                     <Typography><strong>Projet:</strong> {project?.name}</Typography>

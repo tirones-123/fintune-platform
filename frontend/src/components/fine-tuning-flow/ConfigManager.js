@@ -141,6 +141,12 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
 
   return (
     <Box>
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <Typography variant="body2">
+          Choisissez le modèle que vous souhaitez utiliser et ajoutez votre clé API pour lancer l'entraînement de votre assistant à partir des contenus importés.
+        </Typography>
+      </Alert>
+      
       <FormControl fullWidth margin="normal">
         <InputLabel id="provider-select-label">Fournisseur IA</InputLabel>
         <Select
