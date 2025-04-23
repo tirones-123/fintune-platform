@@ -29,23 +29,6 @@ This is the backend API for the FineTuner Platform, a SaaS application for fine-
 - PostgreSQL
 - Redis
 
-### Installation
-
-1. Clone the repository
-2. Create a virtual environment:
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-3. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-4. Copy `.env.example` to `.env` and update the values
-5. Run the application:
-   ```
-   uvicorn main:app --reload
-   ```
 
 ### Docker
 

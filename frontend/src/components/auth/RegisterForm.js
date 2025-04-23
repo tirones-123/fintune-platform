@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -178,11 +179,11 @@ const RegisterForm = () => {
               label={
                 <Typography variant="body2">
                   J'accepte les{' '}
-                  <Link href="#" underline="hover">
+                  <Link component={RouterLink} to="/terms-of-service" underline="hover">
                     Conditions d{"'"}utilisation
                   </Link>{' '}
                   et la{' '}
-                  <Link href="#" underline="hover">
+                  <Link component={RouterLink} to="/privacy-policy" underline="hover">
                     Politique de confidentialité
                   </Link>
                 </Typography>
