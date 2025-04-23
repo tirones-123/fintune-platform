@@ -541,9 +541,11 @@ const OnboardingPage = () => {
   const handleNext = async () => {
     window.scrollTo(0, 0); // Scroll vers le haut
     
-    // Calculer l'état de traitement directement ici si nécessaire
+    // Ajouter un état de chargement pour le bouton Next à l'étape 0
+    let isLoadingNext = false;
+    
+    // Calculer l'état de traitement pour l'étape 1
     const allCurrentContentForCheck = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb];
-    // MODIFICATION : Ajouter l'exception pour YouTube en attente
     const isProcessingCheck = allCurrentContentForCheck.some(
         content => 
             !(content.type === 'youtube' && content.status === 'awaiting_transcription') &&
@@ -553,10 +555,20 @@ const OnboardingPage = () => {
 
     switch (activeStep) {
       case 0: // Après étape définition de l'assistant
-        if (!systemContent) {
-          const success = await generateSystemContent();
-          if (!success) return;
+        // Générer automatiquement le system prompt
+        if (!assistantPurpose.trim()) {
+          enqueueSnackbar("Veuillez décrire le but de votre assistant.", { variant: 'warning' });
+          return;
         }
+        isLoadingNext = true; // Activer le chargement
+        setGeneratingSystemContent(true); // Utiliser l'état existant si possible
+        const success = await generateSystemContent(); // Appeler la fonction locale
+        setGeneratingSystemContent(false);
+        if (!success) {
+          isLoadingNext = false; // Désactiver le chargement si erreur
+          return; // Ne pas passer à l'étape suivante si la génération échoue
+        }
+        // Si succès, on continue vers setActiveStep à la fin du switch
         break;
       
       case 1: // Après étape import de contenu
@@ -565,7 +577,6 @@ const OnboardingPage = () => {
           enqueueSnackbar("Veuillez ajouter au moins un contenu.", { variant: 'warning' });
           return;
         }
-        // Vérification directe
         if (isProcessingCheck) { 
             enqueueSnackbar("Veuillez attendre la fin du traitement des contenus.", { variant: 'warning' });
             return;
@@ -573,12 +584,23 @@ const OnboardingPage = () => {
         break;
       
       case 2: // Après étape fine-tuning
+        isLoadingNext = true; // Activer le chargement pour cette étape aussi
+        setIsCompleting(true); // Utiliser l'état existant
         const apiKeySuccess = await saveApiKey();
-        if (!apiKeySuccess) return;
-        await completeOnboarding();
-        return;
+        if (!apiKeySuccess) {
+            setIsCompleting(false);
+            isLoadingNext = false;
+            return;
+        }
+        await completeOnboarding(); // completeOnboarding gère la redirection/état final
+        // Pas besoin de désactiver isLoadingNext ici car completeOnboarding redirige
+        return; // Sortir après avoir appelé completeOnboarding
     }
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    
+    // Passer à l'étape suivante si tout s'est bien passé
+    if (!isLoadingNext) { // Sécurité pour ne pas avancer si une étape asynchrone est en cours
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    }
   };
 
   // Fonction pour revenir à l'étape précédente
@@ -1379,59 +1401,6 @@ const OnboardingPage = () => {
                 Soyez précis sur le domaine d'expertise, le ton à adopter et les capacités souhaitées.
               </FormHelperText>
             </FormControl>
-            
-            {systemContent && (
-              <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                  System Prompt généré
-                </Typography>
-                <Typography variant="body2" sx={{ 
-                  p: 2, 
-                  backgroundColor: 'background.paper',
-                  borderRadius: 1,
-                  fontFamily: 'monospace'
-                }}>
-                  {systemContent}
-                </Typography>
-                
-                {fineTuningCategory && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                      Catégorie de fine-tuning détectée
-                    </Typography>
-                    <Chip 
-                      label={fineTuningCategory} 
-                      color="primary" 
-                      variant="outlined" 
-                      sx={{ mr: 1 }}
-                    />
-                  </Box>
-                )}
-                
-                {minCharactersRecommended > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                      Recommandation
-                    </Typography>
-                    <Alert severity="info" sx={{ mb: 1 }}>
-                      <Typography variant="body2">
-                        Pour ce type d'assistant, nous recommandons un minimum de <strong>{minCharactersRecommended.toLocaleString()}</strong> caractères dans votre dataset d'entraînement.
-                      </Typography>
-                    </Alert>
-                  </Box>
-                )}
-              </Paper>
-            )}
-            
-            <Button
-              variant="contained"
-              onClick={generateSystemContent}
-              disabled={generatingSystemContent || !assistantPurpose.trim()}
-              startIcon={generatingSystemContent ? <CircularProgress size={20} /> : null}
-              sx={{ mt: 2 }}
-            >
-              {generatingSystemContent ? 'Génération en cours...' : systemContent ? 'Regénérer' : 'Générer le system prompt'}
-            </Button>
           </Box>
         );
       
@@ -2092,14 +2061,18 @@ const OnboardingPage = () => {
                   variant="contained"
                   onClick={handleNext}
                     endIcon={activeStep === steps.length - 2 ? null : <ArrowForwardIcon />}
-                    startIcon={activeStep === steps.length - 2 && isCompleting ? <CircularProgress size={20} color="inherit" /> : null}
+                    startIcon={
+                        (activeStep === 0 && generatingSystemContent) || (activeStep === 2 && isCompleting) 
+                        ? <CircularProgress size={20} color="inherit" /> 
+                        : null
+                    }
                   sx={{ borderRadius: 3 }}
                     disabled={ 
                       uploading || 
                       creatingProject || 
                       savingApiKey || 
                       isCompleting || 
-                      // AJOUT DE L'EXCEPTION POUR YOUTUBE EN ATTENTE
+                      generatingSystemContent || // Désactiver pendant la génération auto
                       (activeStep === 1 && [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => 
                         !(c.type === 'youtube' && c.status === 'awaiting_transcription') && 
                         c.status !== 'completed' && 

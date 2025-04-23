@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -10,7 +10,8 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Divider
+  Divider,
+  TextField
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
@@ -19,8 +20,7 @@ import ContentManager from '../components/fine-tuning-flow/ContentManager';
 import ConfigManager from '../components/fine-tuning-flow/ConfigManager';
 import CharacterEstimator from '../components/fine-tuning-flow/CharacterEstimator';
 import PsychologyIcon from '@mui/icons-material/Psychology';
-import { projectService, api } from '../services/apiService'; // Importer api pour l'endpoint
-import SystemPromptGenerator from '../components/fine-tuning-flow/SystemPromptGenerator';
+import { projectService, api, helperService } from '../services/apiService'; // Importer helperService
 
 // Copier/Coller depuis ConfigManager ou OnboardingPage
 const providerModels = {
@@ -43,19 +43,18 @@ const NewFineTuningFlowPage = () => {
   const [project, setProject] = useState(null);
   const [loadingProject, setLoadingProject] = useState(true);
 
-  // États gérés par les sous-composants
+  // États pour les étapes
+  const [assistantPurpose, setAssistantPurpose] = useState('');
+  const [isGeneratingSystemContent, setIsGeneratingSystemContent] = useState(false);
   const [selectedContentIds, setSelectedContentIds] = useState([]);
   const [fineTuningConfig, setFineTuningConfig] = useState({});
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [characterCount, setCharacterCount] = useState(0);
   const [isContentProcessing, setIsContentProcessing] = useState(false);
-  const [selectedContents, setSelectedContents] = useState([]);
-  
-  // Nouveaux états pour l'étape 0
+  const [isCharCountEstimated, setIsCharCountEstimated] = useState(true); 
+  const [newlyAddedContent, setNewlyAddedContent] = useState({ files: [], youtube: [], websites: [] });
   const [systemPrompt, setSystemPrompt] = useState('');
   const [minCharactersRecommended, setMinCharactersRecommended] = useState(0);
-
-  // État pour le lancement
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchError, setLaunchError] = useState(null);
 
@@ -75,9 +74,8 @@ const NewFineTuningFlowPage = () => {
     fetchProject();
   }, [projectId, navigate, enqueueSnackbar]);
 
-  // Callbacks pour remonter l'état
+  // Callbacks
   const handleContentChange = useCallback((ids) => setSelectedContentIds(ids), []);
-  const handleSelectedContentObjectsChange = useCallback((objects) => setSelectedContents(objects), []);
   const handleConfigChange = useCallback((config) => {
       setFineTuningConfig(prev => ({ 
           ...prev, 
@@ -86,22 +84,42 @@ const NewFineTuningFlowPage = () => {
         }));
     }, []);
   const handleApiKeyValidation = useCallback((isValid) => setIsApiKeyValid(isValid), []);
-  const handleCharacterCountChange = useCallback((count) => setCharacterCount(count), []);
+  const handleCharacterCountChange = useCallback(({ count, isEstimated }) => {
+      setCharacterCount(count);
+      setIsCharCountEstimated(isEstimated);
+    }, []);
   const handleProcessingStatusChange = useCallback((isProcessing) => setIsContentProcessing(isProcessing), []);
-  
-  // Callback pour la nouvelle étape 0
-  const handleSystemPromptGenerated = useCallback((data) => {
-      setSystemPrompt(data.system_prompt);
-      setMinCharactersRecommended(data.min_characters_recommended);
-      setFineTuningConfig(prev => ({ ...prev, system_prompt: data.system_prompt }));
+  const handleNewlyAddedContentUpdate = useCallback((newContentLists) => {
+      setNewlyAddedContent(newContentLists);
     }, []);
 
-  // Mettre à jour la logique de navigation entre étapes
-  const handleNext = () => {
-    if (activeStep === 0 && !systemPrompt) { 
-         enqueueSnackbar("Veuillez générer un System Prompt.", { variant: 'warning' });
-         return;
-       }
+  // Logique de navigation
+  const handleNext = async () => {
+    let isLoadingNext = false;
+    if (activeStep === 0) {
+      if (!assistantPurpose.trim()) {
+        enqueueSnackbar("Veuillez décrire le but de votre assistant.", { variant: 'warning' });
+        return;
+      }
+      isLoadingNext = true;
+      setIsGeneratingSystemContent(true);
+      try {
+        console.log("NewFineTuningFlow: Calling generate-system-content API...");
+        const data = await helperService.generateSystemContent(assistantPurpose);
+        console.log("NewFineTuningFlow: API Response:", data);
+        setSystemPrompt(data.system_content);
+        setMinCharactersRecommended(data.min_characters_recommended);
+        setFineTuningConfig(prev => ({ ...prev, system_prompt: data.system_content }));
+        setActiveStep((prev) => prev + 1);
+      } catch (error) {
+        console.error("Erreur génération system prompt:", error);
+        enqueueSnackbar(`Erreur: ${error.message || 'Impossible de générer le system prompt'}`, { variant: 'error' });
+      } finally {
+        setIsGeneratingSystemContent(false);
+      }
+      return;
+    }
+    
     if (activeStep === 1 && selectedContentIds.length === 0) { 
       enqueueSnackbar("Veuillez sélectionner au moins un contenu.", { variant: 'warning' });
       return;
@@ -175,11 +193,27 @@ const NewFineTuningFlowPage = () => {
     }
   };
 
-  // Mettre à jour le rendu des étapes
+  // Rendu des étapes
   const getStepComponent = (step) => {
     switch (step) {
       case 0: 
-        return <SystemPromptGenerator onSystemPromptGenerated={handleSystemPromptGenerated} />;
+        return (
+          <Box>
+            <Typography variant="h6" gutterBottom>Objectif de l'Assistant</Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Décrivez précisément ce que votre assistant doit faire, son ton, son expertise...
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Objectif / Personnalité"
+              value={assistantPurpose}
+              onChange={(e) => setAssistantPurpose(e.target.value)}
+              placeholder="Ex: Un expert en vins qui recommande des accords mets-vins dans un style formel..."
+            />
+          </Box>
+        );
       case 1:
         return (
             <>
@@ -187,12 +221,12 @@ const NewFineTuningFlowPage = () => {
                     projectId={projectId} 
                     onContentChange={handleContentChange} 
                     onProcessingStatusChange={handleProcessingStatusChange}
-                    onSelectedContentObjectsChange={handleSelectedContentObjectsChange}
+                    onNewlyAddedContentUpdate={handleNewlyAddedContentUpdate}
                 />
                  {selectedContentIds.length > 0 && (
                     <CharacterEstimator 
                         selectedContentIds={selectedContentIds} 
-                        selectedContents={selectedContents}
+                        newlyAddedContent={newlyAddedContent}
                         minCharactersRecommended={minCharactersRecommended}
                         onCharacterCountChange={handleCharacterCountChange}
                     />
@@ -221,7 +255,7 @@ const NewFineTuningFlowPage = () => {
                 </Paper>
                  <CharacterEstimator 
                     selectedContentIds={selectedContentIds} 
-                    selectedContents={selectedContents}
+                    newlyAddedContent={newlyAddedContent}
                     minCharactersRecommended={minCharactersRecommended}
                  />
                 {launchError && <Alert severity="error" sx={{ mb: 2 }}>{launchError}</Alert>}
@@ -276,13 +310,14 @@ const NewFineTuningFlowPage = () => {
                     <Button 
                         variant="contained" 
                         onClick={handleNext}
+                        startIcon={isGeneratingSystemContent ? <CircularProgress size={20} color="inherit" /> : null}
                         disabled={
-                            (activeStep === 0 && !systemPrompt) ||
+                            (activeStep === 0 && (!assistantPurpose.trim() || isGeneratingSystemContent)) ||
                             (activeStep === 1 && (selectedContentIds.length === 0 || isContentProcessing)) || 
                             (activeStep === 2 && !isApiKeyValid) 
                         } 
                     >
-                        Suivant
+                        {isGeneratingSystemContent ? 'Génération...' : 'Suivant'}
                     </Button>
                 ) : null}
              </Box>
