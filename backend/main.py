@@ -27,8 +27,8 @@ upload_dir.mkdir(parents=True, exist_ok=True)
 
 # Create FastAPI app
 app = FastAPI(
-    title="FinTune Platform API",
-    description="API pour la plateforme FinTune de fine-tuning de modèles",
+    title="FinTuner API",
+    description="API pour la plateforme FinTuner de fine-tuning de modèles",
     version="1.0.0",
     openapi_url="/api/openapi.json",
     docs_url="/api/docs",
@@ -77,7 +77,7 @@ async def add_timeout_header(request, call_next):
 # Root endpoint
 @app.get("/")
 def root():
-    return {"message": "Welcome to the FinTune Platform API"}
+    return {"message": "Welcome to the FineTuner Platform API"}
 
 # Health check endpoint
 @app.get("/health")

@@ -1,6 +1,6 @@
-# FinTune Platform Backend
+# FineTuner Platform Backend
 
-This is the backend API for the FinTune Platform, a SaaS application for fine-tuning language models.
+This is the backend API for the FineTuner Platform, a SaaS application for fine-tuning language models.
 
 ## Features
 

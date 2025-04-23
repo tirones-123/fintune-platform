@@ -332,7 +332,7 @@ async def create_onboarding_session(
                 amount=amount_in_cents,
                 user_id=current_user.id,
                 db=db, # Passer la session db au service
-                line_item_name=f"FinTune Onboarding - {character_count} caractères",
+                line_item_name=f"FineTuner Onboarding - {character_count} caractères",
                 line_item_description=f"{billable_characters} caractères facturables (10k gratuits)",
                 metadata=metadata
             )

@@ -98,7 +98,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          FinTune
+          FineTuner
         </Typography>
       </Box>
 
@@ -255,7 +255,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
       {/* Version */}
       <Box sx={{ p: 2, textAlign: 'center' }}>
         <Typography variant="caption" color="text.secondary">
-          FinTune Platform v1.0.0
+          FineTuner v1.0.0
         </Typography>
       </Box>
     </Box>
