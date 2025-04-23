@@ -141,8 +141,6 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>Configuration du Fine-tuning</Typography>
-      
       <FormControl fullWidth margin="normal">
         <InputLabel id="provider-select-label">Fournisseur IA</InputLabel>
         <Select

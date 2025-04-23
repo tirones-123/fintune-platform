@@ -422,8 +422,6 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>Sélectionner ou Ajouter du Contenu</Typography>
-      
       {/* Section pour ajouter du contenu - Ordre modifié */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {/* 1. Upload Fichiers (prend toute la largeur sur petit écran) */}

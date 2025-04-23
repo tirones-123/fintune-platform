@@ -199,7 +199,6 @@ const NewFineTuningFlowPage = () => {
       case 0: 
         return (
           <Box>
-            <Typography variant="h6" gutterBottom>Objectif de l'Assistant</Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Décrivez précisément ce que votre assistant doit faire, son ton, son expertise...
             </Typography>

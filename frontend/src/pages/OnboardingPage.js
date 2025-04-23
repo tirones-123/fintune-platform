@@ -1353,20 +1353,6 @@ const OnboardingPage = () => {
       case 0: // Définition de l'assistant
         return (
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-              <Avatar
-                sx={{
-                  backgroundColor: 'success.main',
-                  mr: 2,
-                }}
-              >
-                <PsychologyIcon />
-              </Avatar>
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                Définir votre assistant
-              </Typography>
-            </Box>
-            
             <Typography variant="body1" paragraph>
               Décrivez l'objectif et le comportement de l'assistant que vous souhaitez fine-tuner.
             </Typography>
@@ -1399,24 +1385,9 @@ const OnboardingPage = () => {
       case 1: // Import de contenu
         return (
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-              <Avatar
-                sx={{
-                  backgroundColor: 'info.main',
-                  mr: 2,
-                }}
-              >
-                <CloudUploadIcon />
-              </Avatar>
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                Contenu d'entraînement
-              </Typography>
-            </Box>
-            
-            {/* Estimation des caractères et du coût - version simplifiée */}
             <Paper 
               elevation={0} 
-              sx={{ 
+              sx={{
                 p: 2, 
                 mb: 3, 
                 border: '1px solid', 
@@ -1812,20 +1783,6 @@ const OnboardingPage = () => {
       case 2: // Fine-tuning du modèle
         return (
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-              <Avatar
-                sx={{
-                  backgroundColor: 'secondary.main',
-                  mr: 2,
-                }}
-              >
-                <SettingsSuggestIcon />
-              </Avatar>
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                Fine-tuning de votre modèle
-              </Typography>
-            </Box>
-            
             <Typography variant="body1" paragraph>
               Configurez votre modèle pour le fine-tuning.
             </Typography>
