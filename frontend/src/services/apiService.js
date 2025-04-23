@@ -321,6 +321,53 @@ export const contentService = {
       throw new Error(error.response?.data?.detail || 'Erreur lors de la suppression du contenu');
     }
   },
+  
+  // NOUVELLE FONCTION : Télécharger le fichier d'un contenu
+  downloadContent: async (id) => {
+      try {
+          const response = await api.get(`/api/contents/${id}/download`, {
+              responseType: 'blob' // Important: Indiquer qu'on attend des données binaires
+          });
+          
+          // Récupérer le nom de fichier depuis les headers si possible
+          const contentDisposition = response.headers['content-disposition'];
+          let filename = `content_${id}_file`; // Nom par défaut
+          if (contentDisposition) {
+              const filenameMatch = contentDisposition.match(/filename="?([^\"]+)"?/i);
+              if (filenameMatch && filenameMatch[1]) {
+                  filename = filenameMatch[1];
+              } else {
+                  // Essayer sans les guillemets (moins courant)
+                   const fallbackMatch = contentDisposition.match(/filename=([^;]+)/i);
+                   if (fallbackMatch && fallbackMatch[1]) {
+                       filename = fallbackMatch[1];
+                   }
+              }
+          }
+          
+          console.log("Nom de fichier extrait:", filename);
+
+          return { blob: response.data, filename };
+          
+      } catch (error) {
+          console.error("Erreur API téléchargement contenu:", error);
+          // Essayer de lire le détail de l'erreur si c'est un JSON
+          let errorDetail = 'Erreur lors du téléchargement du contenu';
+          if (error.response?.data instanceof Blob && error.response.data.type === "application/json") {
+              try {
+                  const errorJson = JSON.parse(await error.response.data.text());
+                  errorDetail = errorJson.detail || errorDetail;
+              } catch (parseError) {
+                  // Ignorer si le parsing échoue
+              }
+          } else if (error.response?.data?.detail) {
+              errorDetail = error.response.data.detail;
+          } else if (error.message) {
+             errorDetail = error.message;
+          }
+          throw new Error(errorDetail);
+      }
+  }
 };
 
 // Service de gestion des datasets

@@ -456,23 +456,38 @@ const ProjectDetailPage = () => {
   };
 
   // Ajouter cette fonction pour le téléchargement des contenus
-  const handleDownloadContent = (content) => {
+  const handleDownloadContent = async (content) => {
     if (!content.file_path) {
-      enqueueSnackbar('Ce contenu ne peut pas être téléchargé', { variant: 'warning' });
+      enqueueSnackbar('Ce contenu ne peut pas être téléchargé (pas un fichier)', { variant: 'warning' });
       return;
     }
     
+    handleContentMenuClose(); // Fermer le menu si ouvert
+    enqueueSnackbar("Préparation du téléchargement...", { variant: 'info' });
+    
     try {
-      // Construire l'URL de téléchargement
-      const downloadUrl = `${process.env.REACT_APP_API_URL}/api/contents/${content.id}/download`;
+      // Utiliser le nouveau service
+      const { blob, filename } = await contentService.downloadContent(content.id);
+
+      // Créer une URL objet pour le blob
+      const url = window.URL.createObjectURL(blob);
       
-      // Ouvrir l'URL dans un nouvel onglet pour télécharger
-      window.open(downloadUrl, '_blank');
+      // Créer un lien temporaire
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename); // Utiliser le nom de fichier extrait
       
-      enqueueSnackbar('Téléchargement démarré', { variant: 'success' });
+      // Ajouter au DOM, cliquer, puis supprimer
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      
+      // Libérer l'URL objet
+      window.URL.revokeObjectURL(url);
+      
     } catch (error) {
       console.error('Erreur lors du téléchargement du contenu:', error);
-      enqueueSnackbar('Erreur lors du téléchargement', { variant: 'error' });
+      enqueueSnackbar(`Erreur téléchargement: ${error.message}`, { variant: 'error' });
     }
   };
 

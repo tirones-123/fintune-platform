@@ -28,6 +28,9 @@ FROM nginx:alpine
 # Copier le build final dans Nginx
 COPY --from=build /app/build /usr/share/nginx/html
 
+# Copier explicitement le logo à la racine pour qu'il soit accessible via /Logo_FineTuner.png
+COPY src/Images/Logo_FineTuner.png /usr/share/nginx/html/Logo_FineTuner.png
+
 # Copier une config Nginx personnalisée si nécessaire
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
