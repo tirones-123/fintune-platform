@@ -88,11 +88,11 @@ async def generate_system_content(
         
         # Déterminer le nombre minimum de caractères recommandé
         min_characters_map = {
-            "Conversational Style (Character)": 10000,
+            "Conversational Style (Character)": 15000,
             "Task-specific Assistant": 20000,
             "Professional Expertise (lawyer, doctor, etc.)": 40000,
             "Translation / Specialized Rewriting": 100000,
-            "Enterprise Chatbot (Internal Knowledge)": 10000
+            "Enterprise Chatbot (Internal Knowledge)": 15000
         }
         min_characters_recommended = min_characters_map.get(fine_tuning_category, 20000)
         

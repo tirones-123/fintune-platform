@@ -689,7 +689,7 @@ const DashboardPage = () => {
           aria-describedby="welcome-dialog-description"
         >
           <DialogTitle id="welcome-dialog-title">
-            🎉 Bienvenue sur FinTune Platform !
+            🎉 Bienvenue sur FinTuner !
           </DialogTitle>
           <DialogContent>
             <DialogContentText id="welcome-dialog-description">
