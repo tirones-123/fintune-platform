@@ -85,6 +85,7 @@ const NewFineTuningFlowPage = () => {
     }, []);
   const handleApiKeyValidation = useCallback((isValid) => setIsApiKeyValid(isValid), []);
   const handleCharacterCountChange = useCallback(({ count, isEstimated }) => {
+      console.log("NewFineTuningFlowPage: Character count update received:", { count, isEstimated });
       setCharacterCount(count);
       setIsCharCountEstimated(isEstimated);
     }, []);
