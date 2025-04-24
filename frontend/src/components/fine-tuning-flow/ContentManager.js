@@ -546,6 +546,10 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                              const estChars = Math.round((meta.duration_seconds / 60) * 400);
                              return ` | Caractères: ~${estChars.toLocaleString()}`;
                            }
+                           // Cas des sites web scrapés où le nombre de caractères est stocké au niveau racine
+                           if (content.character_count) {
+                             return ` | Caractères: ${Number(content.character_count).toLocaleString()}`;
+                           }
                            // Sinon état de traitement ou inconnu
                            return isProcessingContent ? ' | Caractères: Calcul...' : ' | Caractères: N/A';
                          })()}
