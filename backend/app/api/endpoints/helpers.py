@@ -57,9 +57,15 @@ async def generate_system_content(
         provider = get_ai_provider("openai") 
         
         # Construire le premier prompt (pour générer le system content)
-        prompt1 = f"""I'm currently fine-tuning an AI model...
-        Description: "{request.purpose}"
-        Return ONLY the system prompt...""" # Prompt abrégé pour la clarté
+        prompt1 = f"""
+        You are a system prompt-designer for AI fine-tuning. Your task is to transform the following plain-language
+        description into a short system prompt that starts with "You are…".
+        Respond **only** with the final system prompt, no introduction, no apology, no markdown.
+        Respond **only** in the language of the description.
+
+        Description:
+        \"\"\"{request.purpose}\"\"\"
+        """
         
         # Générer le system content (avec await)
         system_content_raw = await provider.generate_completion(prompt1)
@@ -73,14 +79,21 @@ async def generate_system_content(
         # Il faudrait adapter si la langue n'est pas l'anglais
         
         # Construire le second prompt (pour la catégorisation)
-        prompt2 = f"""Based on the following description...
-        1. Conversational Style (Character)...
-        2. Task-specific Assistant...
-        3. Professional Expertise...
-        4. Translation / Specialized Rewriting...
-        5. Enterprise Chatbot (Internal Knowledge)...
-        Description: "{request.purpose}"
-        Choose only one category...""" # Prompt abrégé
+        prompt2 = f"""
+        You are a classification assistant. Your job is to decide which single category from the list below best corresponds to the assistant description that follows.
+
+        Return **only** the full label of the chosen category (copy-paste exactly as written), with no numbering, explanation, or other text.
+
+        Categories:
+        1. Conversational Style (Character)
+        2. Task-specific Assistant
+        3. Professional Expertise (lawyer, doctor, etc.)
+        4. Translation / Specialized Rewriting
+        5. Enterprise Chatbot (Internal Knowledge)
+
+        Assistant description:
+        """{request.purpose}"""
+        """
         
         # Obtenir la catégorie (avec await)
         fine_tuning_category_raw = await provider.generate_completion(prompt2)

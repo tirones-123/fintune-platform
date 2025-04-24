@@ -1385,7 +1385,7 @@ const OnboardingPage = () => {
           <Box>
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                Importez ici les contenus que votre assistant devra connaître : documents, pages web ou vidéos. Plus vous ajoutez de contenu pertinent, plus l'assistant sera précis et utile dans ses réponses. Les recommandations seront alignées sur l’objectif que vous avez défini pour votre assistant.
+                Importez ici les contenus que votre assistant devra connaître : documents, pages web ou vidéos. Plus vous ajoutez de contenu pertinent, plus l'assistant sera précis et utile dans ses réponses.<br />Les recommandations sont alignées sur l’objectif que vous avez défini pour votre assistant.
                 <br /><br /> Les 10 000 premiers caractères sont offerts.
               </Typography>
             </Alert>
