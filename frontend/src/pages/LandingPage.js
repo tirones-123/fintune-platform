@@ -1983,6 +1983,7 @@ const FAQSection = () => {
 };
 
 const LandingPage = () => {
+  const theme = useTheme(); // Déclarer useTheme ici pour l'accès global dans le composant
   return (
     <PageTransition>
       <Box sx={{ minHeight: '100vh', background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)` }}>
