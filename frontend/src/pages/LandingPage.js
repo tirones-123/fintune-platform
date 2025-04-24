@@ -323,7 +323,7 @@ const Hero = () => {
                     p: 3,
                   }}
                 >
-                  Transformez instantanément vos contenus PDF, YouTube et sites web en assistants IA ultra-performants type <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span> ou <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>. <br></br> Aucune expertise requise.
+                  Transformez instantanément vos contenus PDF, YouTube et sites web en assistants IA ultra-performants type <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span> ou <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>.
                 </Typography>
               </motion.div>
 
@@ -336,9 +336,9 @@ const Hero = () => {
                     size="large"
                     endIcon={<ArrowForwardIcon />}
                     sx={{
-                      py: 2,
-                      px: 5,
-                      fontSize: '1.2rem',
+                      py: { xs: 1.5, sm: 2 },          // un peu moins haut sur mobile
+                      px: { xs: 3, sm: 5 },            // moins large
+                      fontSize: { xs: '1rem', md:'1.2rem' },
                       fontWeight: 700,
                       borderRadius: '50px', // Plus arrondi
                       background: 'linear-gradient(45deg, #bf00ff, #00d4ff)',
@@ -372,7 +372,7 @@ const Hero = () => {
                   </Button>
                 </Stack>
                 <Typography variant="caption" sx={{ display: 'block', mt: 2, color: alpha(theme.palette.text.secondary, 0.7) }}>
-                  Premiers pas en 60 secondes.
+                  Premiers pas en 60 secondes. Aucune expertise requise.
                 </Typography>
               </motion.div>
             </motion.div>
@@ -988,7 +988,12 @@ const ProcessSection = () => {
               color="secondary"
               size="large"
               endIcon={<RocketLaunchIcon />}
-              sx={{ /* Styles CTA */ }}
+              sx={{
+                py: { xs: 1.5, sm: 2 },
+                px: { xs: 3, sm: 5 },
+                fontSize: { xs: '1rem', md: '1.2rem' },
+                borderRadius: '50px',
+              }}
             >
               Lancez votre premier projet
             </Button>
@@ -1330,7 +1335,12 @@ const ChatExamplesSection = () => {
               to="/register"
               variant="outlined"
               size="large"
-              sx={{ /* Styles CTA */ }}
+              sx={{
+                py: { xs: 1.2, sm: 1.6 },
+                px: { xs: 3, sm: 5 },
+                fontSize: { xs: '0.95rem', md: '1.1rem' },
+                borderRadius: '50px',
+              }}
             >
               Voir ce que vous pouvez créer
             </Button>
@@ -1474,9 +1484,9 @@ const FinalCTASection = () => {
                   size="large"
                   startIcon={<RocketLaunchIcon />}
                   sx={{
-                    py: 2.5,
-                    px: 6,
-                    fontSize: '1.4rem',
+                    py: { xs: 1.5, sm: 2 },          // un peu moins haut sur mobile
+                    px: { xs: 3, sm: 5 },            // moins large
+                    fontSize: { xs: '1rem', md:'1.2rem' },
                     fontWeight: 700,
                     borderRadius: '50px',
                     background: 'linear-gradient(45deg, #bf00ff, #00d4ff)',
@@ -1620,7 +1630,7 @@ const DeploymentSection = () => {
             >
               <Grid container spacing={3} justifyContent={{ xs: 'center', md: 'flex-start' }}>
                 {simplifiedPlatforms.map((platform, index) => (
-                    <Grid item key={platform.label} xs={4} sm={3} md={4}>
+                    <Grid item key={platform.label} xs={6} sm={4} md={4}>
                       <motion.div 
                         variants={itemVariants} // Appliquer l'animation item par item
                       >
@@ -1666,7 +1676,12 @@ const DeploymentSection = () => {
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIcon />}
-              sx={{ /* Styles CTA */ }}
+              sx={{
+                py: { xs: 1.5, sm: 2 },
+                px: { xs: 3, sm: 5 },
+                fontSize: { xs: '1rem', md: '1.2rem' },
+                borderRadius: '50px',
+              }}
             >
               Intégrer votre IA partout
             </Button>
@@ -1785,7 +1800,12 @@ const FAQSection = () => {
               variant="outlined"
               size="large"
               startIcon={<RocketLaunchIcon />}
-              sx={{ /* Styles CTA */ }}
+              sx={{
+                py: { xs: 1.2, sm: 1.6 },
+                px: { xs: 3, sm: 5 },
+                fontSize: { xs: '0.95rem', md: '1.1rem' },
+                borderRadius: '50px',
+              }}
             >
               Prêt à commencer ?
             </Button>

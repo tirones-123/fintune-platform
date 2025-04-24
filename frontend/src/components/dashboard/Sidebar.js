@@ -264,9 +264,9 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   return (
     <Box
       component="nav"
-      sx={{ 
-        position: 'fixed',
-        width: drawerWidth,
+      sx={{
+        position: { xs: 'static', sm: 'fixed' },
+        width: { xs: 0, sm: drawerWidth },
         height: '100%',
         zIndex: 1200,
       }}

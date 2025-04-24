@@ -103,11 +103,16 @@ const AppRoutes = () => {
           localStorage.setItem(`${storagePrefix}user`, JSON.stringify(user));
         }
         
-        // Nettoyer l'URL (retirer les paramètres sensibles)
-        const destination = params.get('state_id') ? 
-          window.location.pathname : // Garder le chemin actuel
-          '/dashboard'; // Ou rediriger vers dashboard par défaut
-          
+        let destination = '/dashboard';
+        // Si un state_id est présent, on essaie de conserver la page courante
+        if (params.get('state_id')) {
+          destination = window.location.pathname || '/dashboard';
+        }
+        // Ne jamais rester sur la page login après authentification
+        if (destination === '/login') {
+          destination = '/dashboard';
+        }
+        
         // Rediriger sans les paramètres d'auth dans l'URL
         window.location.href = destination;
       }
