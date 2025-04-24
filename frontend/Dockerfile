@@ -11,7 +11,7 @@ COPY package.json package-lock.json ./
 
 # Nettoyer le cache npm avant d'installer les dépendances
 RUN npm cache clean --force && \
-    npm install --no-audit --no-fund --legacy-peer-deps
+    npm install --no-audit --no-fund --legacy-peer-deps i18next-http-backend
 
 # Copier le reste de l'application
 COPY . .
