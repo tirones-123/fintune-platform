@@ -66,9 +66,9 @@ const Footer = () => {
       title: 'Produit',
       links: [
          { name: 'Accueil', path: '/' },
-        { name: 'Comment ça marche', path: '/#how-it-works' },
-        { name: 'Tarifs', path: '/#pricing' },
-        { name: 'FAQ', path: '/#faq' },
+        { name: 'Comment ça marche', path: '/#process-section' },
+        { name: 'Tarifs', path: '/#pricing-section' },
+        { name: 'FAQ', path: '/#faq-section' },
       ],
     },
     {
@@ -215,96 +215,6 @@ const Footer = () => {
           animate={controls}
           variants={containerVariants}
         >
-          {/* Newsletter section */}
-          <Box 
-            sx={{ 
-              mb: 8,
-              p: 4,
-              borderRadius: 4,
-              position: 'relative',
-              overflow: 'hidden',
-              background: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? `linear-gradient(135deg, ${alpha('#0c0434', 0.8)}, ${alpha('#221b5b', 0.8)})`
-                  : `linear-gradient(135deg, ${alpha(theme.palette.primary.lighter, 0.8)}, ${alpha(theme.palette.secondary.lighter, 0.8)})`,
-              backdropFilter: 'blur(10px)',
-              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-              boxShadow: `0 10px 40px ${alpha(theme.palette.common.black, 0.1)}`,
-            }}
-          >
-            {/* Animated gradient accent */}
-            <Box
-              component={motion.div}
-              animate={{
-                backgroundPosition: ['0% 0%', '100% 100%'],
-              }}
-              transition={{
-                duration: 10,
-                repeat: Infinity,
-                repeatType: 'reverse',
-              }}
-              sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                opacity: 0.1,
-                background: 'linear-gradient(45deg, #7928CA, #00C6FF, #7928CA)',
-                backgroundSize: '200% 200%',
-                zIndex: 0,
-              }}
-            />
-
-            <Grid container spacing={4} alignItems="center" sx={{ position: 'relative', zIndex: 1 }}>
-              <Grid item xs={12} md={7}>
-                <Typography variant="h4" sx={{ 
-                  fontWeight: 700,
-                  mb: 2,
-                  fontFamily: "'Orbitron', sans-serif",
-                }}>
-                  Restez à la pointe de l'IA
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 0, color: 'text.secondary' }}>
-                  Abonnez-vous à notre newsletter pour recevoir les dernières actualités, conseils et mises à jour.
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={5}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <Box sx={{ 
-                    flex: 1,
-                    backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.2), 
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: 2,
-                    border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                    height: 50,
-                    width: '100%',
-                  }}>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    endIcon={<ArrowForwardIcon />}
-                    sx={{ 
-                      bgcolor: 'background.paper',
-                      color: 'primary.main',
-                      height: 50,
-                      borderRadius: 2,
-                      px: 3,
-                      fontWeight: 600,
-                      boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.common.black, 0.1)}`,
-                      '&:hover': {
-                        bgcolor: 'background.paper',
-                        boxShadow: (theme) => `0 6px 20px ${alpha(theme.palette.common.black, 0.15)}`,
-                      }
-                    }}
-                  >
-                    S'abonner
-                  </Button>
-                </Stack>
-              </Grid>
-            </Grid>
-          </Box>
-
           <Grid container spacing={4}>
             {/* Logo et description */}
             <Grid item xs={12} md={4}>

@@ -372,7 +372,7 @@ const Hero = () => {
                   </Button>
                 </Stack>
                 <Typography variant="caption" sx={{ display: 'block', mt: 2, color: alpha(theme.palette.text.secondary, 0.7) }}>
-                  Premiers pas en 60 secondes. Sans carte de crédit.
+                  Premiers pas en 60 secondes.
                 </Typography>
               </motion.div>
             </motion.div>
@@ -819,7 +819,7 @@ const ProcessSection = () => {
   ];
 
   return (
-    <Box
+    <Box id="process-section"
       ref={ref}
       sx={{
         py: { xs: 12, md: 20 },
@@ -957,192 +957,6 @@ const ProcessSection = () => {
             />
           </motion.svg>
         </Box>
-      </Container>
-    </Box>
-  );
-};
-
-// --- Nouvelle Section: Cas d'Usage Créatifs --- //
-const UseCasesSection = () => {
-  const theme = useTheme();
-  const controls = useAnimation();
-  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
-
-  useEffect(() => {
-    if (inView) controls.start('visible');
-  }, [controls, inView]);
-
-  const useCases = [
-    {
-      icon: <TheaterComedyIcon sx={{ fontSize: 45 }} />,
-      title: "Incarnez un Personnage Culte",
-      description: "Imaginez un chatbot façon \"Michael Scott\" pour des interactions client mémorables et décalées.",
-      color: '#fbc2eb', // Rose pâle
-    },
-    {
-      icon: <BrushIcon sx={{ fontSize: 45 }} />,
-      title: "Voix de Marque Unique",
-      description: "Ton ludique, élégant ou branché ? Créez une IA qui incarne parfaitement l'identité de votre marque.",
-      color: '#a18cd1', // Mauve
-    },
-    {
-      icon: <SchoolIcon sx={{ fontSize: 45 }} />,
-      title: "Formation & E-learning Engageants",
-      description: "Un assistant qui explique vos cours façon personnage fictif pour captiver les apprenants.",
-      color: '#84fab0', // Vert pâle
-    },
-    {
-      icon: <SupportAgentIcon sx={{ fontSize: 45 }} />,
-      title: "Support Client Thématique",
-      description: "Remplacez la FAQ par un chatbot humoristique ou au style de célébrité pour marquer les esprits.",
-      color: '#5ee7df', // Turquoise
-    },
-  ];
-
-  return (
-    <Box
-      ref={ref}
-      sx={{
-        py: { xs: 12, md: 20 },
-        position: "relative",
-        overflow: "hidden",
-        background: `linear-gradient(180deg, ${alpha("#050224", 1)} 0%, ${alpha("#0a043c", 1)} 100%)`, // Inversé par rapport à Intro
-      }}
-    >
-       {/* Arrière-plan géométrique animé */}
-       <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
-         <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 100, repeat: Infinity, ease: 'linear' }}
-            style={{ position: 'absolute', width: '150%', height: '150%', top: '-25%', left: '-25%' }}
-         >
-          <Box sx={{
-            width: '100%', height: '100%',
-            backgroundImage: `
-              repeating-linear-gradient(45deg, ${alpha('#bf00ff', 0.05)}, ${alpha('#bf00ff', 0.05)} 1px, transparent 1px, transparent 60px),
-              repeating-linear-gradient(-45deg, ${alpha('#00d4ff', 0.05)}, ${alpha('#00d4ff', 0.05)} 1px, transparent 1px, transparent 60px)
-            `,
-            opacity: 0.5,
-          }} />
-         </motion.div>
-       </Box>
-
-      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
-         {/* Titres */}
-         <Box sx={{ mb: 12, textAlign: "center" }}>
-           <motion.div
-             initial={{ opacity: 0, y: 20 }}
-             animate={controls}
-             variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0 } } }}
-           >
-             <Typography
-               variant="h6"
-               component="p"
-               sx={{ color: "#bf00ff", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #bf00ff' }}
-             >
-               Libérez Votre Créativité
-             </Typography>
-           </motion.div>
-           <motion.div
-             initial={{ opacity: 0, y: 20 }}
-             animate={controls}
-             variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.1 } } }}
-           >
-             <Typography
-               variant="h2"
-               component="h2"
-               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #00d4ff, #bf00ff)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(0, 212, 255, 0.4)' }}
-             >
-               Des Usages Uniques Pour Votre IA
-             </Typography>
-           </motion.div>
-           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={controls}
-            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.2 } } }}
-          >
-            <Typography
-              variant="h6"
-              color="text.secondary"
-              sx={{ maxWidth: 700, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
-            >
-              Allez plus loin que le simple chatbot. Créez des expériences mémorables et différenciantes grâce à la personnalisation ultime.
-            </Typography>
-          </motion.div>
-         </Box>
-
-         {/* Grille des cas d'usage */}
-         <Grid container spacing={4}>
-           {useCases.map((useCase, index) => (
-             <Grid item xs={12} sm={6} key={index}>
-               <motion.div
-                 initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                 animate={controls}
-                 variants={{
-                   visible: {
-                     opacity: 1,
-                     scale: 1,
-                     y: 0,
-                     transition: {
-                       duration: 0.7,
-                       delay: 0.3 + index * 0.15,
-                       ease: [0.16, 1, 0.3, 1],
-                     },
-                   },
-                 }}
-                 whileHover={{ scale: 1.03, y: -5 }}
-                 transition={{ type: 'spring', stiffness: 200 }}
-                 style={{ height: '100%' }}
-               >
-                 <Card
-                   sx={{
-                     height: '100%',
-                     p: 4,
-                     display: 'flex',
-                     flexDirection: 'column',
-                     borderRadius: '20px',
-                     position: 'relative',
-                     overflow: 'hidden',
-                     background: alpha(theme.palette.background.paper, 0.4),
-                     backdropFilter: 'blur(10px)',
-                     border: `1px solid ${alpha(useCase.color, 0.3)}`,
-                     boxShadow: `0 6px 20px ${alpha(theme.palette.common.black, 0.2)}`,
-                     transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                      '&:hover': {
-                        borderColor: alpha(useCase.color, 0.7),
-                        boxShadow: `0 0 20px ${alpha(useCase.color, 0.3)}, 0 10px 30px ${alpha(theme.palette.common.black, 0.3)}`,
-                      },
-                      '&::before': { // Effet de lueur interne au survol
-                        content: '""',
-                        position: 'absolute',
-                        inset: 0,
-                        borderRadius: 'inherit',
-                        boxShadow: `inset 0 0 25px ${alpha(useCase.color, 0.4)}`,
-                        opacity: 0,
-                        transition: 'opacity 0.4s ease',
-                        zIndex: 0,
-                      },
-                      '&:hover::before': {
-                        opacity: 1,
-                      },
-                   }}
-                 >
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5, zIndex: 1 }}>
-                       <Avatar sx={{ width: 56, height: 56, bgcolor: alpha(useCase.color, 0.2), color: useCase.color, mr: 2, boxShadow: `0 0 15px ${alpha(useCase.color, 0.4)}` }}>
-                         {useCase.icon}
-                       </Avatar>
-                       <Typography variant="h5" component="h3" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                         {useCase.title}
-                       </Typography>
-                     </Box>
-                     <Typography variant="body1" sx={{ color: alpha(theme.palette.text.secondary, 0.9), flexGrow: 1, zIndex: 1 }}>
-                       {useCase.description}
-                     </Typography>
-                 </Card>
-               </motion.div>
-             </Grid>
-           ))}
-         </Grid>
       </Container>
     </Box>
   );
@@ -1589,7 +1403,7 @@ const FinalCTASection = () => {
                   variant="h6"
                   sx={{ mb: 5, maxWidth: 650, mx: 'auto', color: alpha(theme.palette.text.secondary, 0.9), lineHeight: 1.7 }}
                 >
-                  FineTunet orchestre tout : conversion, préparation, entraînement. Vous vous concentrez sur l'essentiel : uploader votre contenu et voir votre IA prendre vie.
+                  FineTuner orchestre tout : conversion, préparation, entraînement. Vous vous concentrez sur l'essentiel : uploader votre contenu et voir votre IA prendre vie.
                 </Typography>
             </motion.div>
 
@@ -1643,88 +1457,21 @@ const DeploymentSection = () => {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
   const centerRef = useRef(null);
   
-  // Création des refs pour chaque plateforme
-  const platformRef0 = useRef(null);
-  const platformRef1 = useRef(null);
-  const platformRef2 = useRef(null);
-  const platformRef3 = useRef(null);
-  const platformRef4 = useRef(null);
-  const platformRef5 = useRef(null);
-  const platformRef6 = useRef(null);
-  const platformRef7 = useRef(null);
-  const platformRef8 = useRef(null);
-  const platformRef9 = useRef(null);
-  const platformRef10 = useRef(null);
-  const platformRef11 = useRef(null);
-  const platformRef12 = useRef(null);
-  const platformRef13 = useRef(null);
-  const platformRef14 = useRef(null);
-  const platformRef15 = useRef(null);
-  const platformRef16 = useRef(null);
-  const platformRef17 = useRef(null);
+  // --- Simplification --- 
+  // Sélection d'icônes représentatives
+  const simplifiedPlatforms = [
+    { icon: ApiIcon, label: "API REST", color: '#ff9a8b', delay: 0.5 },
+    { icon: WebIcon, label: "Web Apps", color: '#a18cd1', delay: 0.7 },
+    { icon: SmartphoneIcon, label: "Mobile Apps", color: '#fbc2eb', delay: 0.9 },
+    { icon: ElectricBoltIcon, label: "Zapier", color: '#ff7eb3', delay: 1.1 },
+    { icon: ChatIcon, label: "Slack", color: '#4a154b', delay: 1.3 },
+    { icon: SettingsEthernetIcon, label: "n8n", color: '#5ee7df', delay: 1.5 },
+  ];
   
-  // Tableau pour faciliter l'accès aux refs
-  const platformRefs = [
-    platformRef0, platformRef1, platformRef2, platformRef3, platformRef4, 
-    platformRef5, platformRef6, platformRef7, platformRef8, platformRef9, 
-    platformRef10, platformRef11, platformRef12, platformRef13, platformRef14, 
-    platformRef15, platformRef16, platformRef17
-  ];
-
-  // Définir la liste des plateformes AVANT de calculer les positions
-  const targetPlatforms = [
-    // APIs & Web
-    { icon: ApiIcon, label: "API REST", color: '#ff9a8b', delay: 0.5, category: 'API' },
-    { icon: WebIcon, label: "Applications Web", color: '#a18cd1', delay: 0.7, category: 'Web' },
-    // Automatisation / No-code
-    { icon: AutoFixHighIcon, label: "Make", color: '#84fab0', delay: 0.9, category: 'Automatisation' }, // Label simplifié
-    { icon: ElectricBoltIcon, label: "Zapier", color: '#ff7eb3', delay: 1.1, category: 'Automatisation' },
-    { icon: SettingsEthernetIcon, label: "n8n", color: '#5ee7df', delay: 1.3, category: 'Automatisation' },
-    // Appareils
-    { icon: SmartphoneIcon, label: "Apps Mobiles", color: '#fbc2eb', delay: 1.2, category: 'Appareils' },
-    { icon: HomeIcon, label: "Objets Connectés", color: '#adda83', delay: 1.4, category: 'Appareils' },
-    // Cloud
-    { icon: CloudQueueIcon, label: "Cloud", color: '#00d4ff', delay: 1.0, category: 'Cloud' }, // Label simplifié
-    // Réseaux sociaux
-    { icon: FacebookIcon, label: "Facebook", color: '#1877f2', delay: 1.5, category: 'Réseaux Sociaux' },
-    { icon: TwitterIcon, label: "Twitter", color: '#1da1f2', delay: 1.6, category: 'Réseaux Sociaux' },
-    { icon: InstagramIcon, label: "Instagram", color: '#e1306c', delay: 1.7, category: 'Réseaux Sociaux' },
-    { icon: LinkedInIcon, label: "LinkedIn", color: '#0077b5', delay: 1.8, category: 'Réseaux Sociaux' },
-    // Messageries
-    { icon: WhatsAppIcon, label: "WhatsApp", color: '#25d366', delay: 1.9, category: 'Messageries' },
-    { icon: ChatIcon, label: "Slack", color: '#4a154b', delay: 2.0, category: 'Messageries' },
-    { icon: ForumIcon, label: "Discord", color: '#5865f2', delay: 2.1, category: 'Messageries' },
-    // CRM
-    { icon: BusinessCenterIcon, label: "Salesforce", color: '#00a1e0', delay: 2.2, category: 'CRM' },
-    { icon: ContactsIcon, label: "HubSpot", color: '#ff7a59', delay: 2.3, category: 'CRM' },
-    // Ajouter une 18e pour équilibrer si besoin visuel
-    { icon: SyncAltIcon, label: "Autre API", color: theme.palette.grey[500], delay: 2.4, category: 'API' },
-  ];
-
-  // Calcul des positions circulaires
-  const radiusX = 38; // Rayon horizontal en %
-  const radiusY = 35; // Rayon vertical en %
-  const centerX = 50; // Centre X en %
-  const centerY = 50; // Centre Y en %
-  const totalPlatforms = targetPlatforms.length;
-  const zDepthVariance = 40; // Amplitude de la variation Z
-
-  const calculatedPlatforms = targetPlatforms.map((platform, index) => {
-    const angle = (index / totalPlatforms) * 2 * Math.PI + Math.PI / 4; // + PI/4 pour décaler le départ
-    const left = centerX + radiusX * Math.cos(angle);
-    const top = centerY + radiusY * Math.sin(angle);
-    // Calculer un Z qui varie pour l'effet 3D, par ex. basé sur l'angle
-    const z = Math.sin(angle * 2) * zDepthVariance; // Fait varier Z entre -variance et +variance
-
-    return {
-      ...platform,
-      calculatedPos: { 
-        top: `${top}%`, 
-        left: `${left}%`, 
-        z: z 
-      },
-    };
-  });
+  // Supprimer les refs et calculs pour les positions circulaires
+  // const platformRefs = [...];
+  // const targetPlatforms = [...]; // Ancienne liste
+  // const calculatedPlatforms = ...; // Calcul supprimé
 
   useEffect(() => {
     if (inView) controls.start('visible');
@@ -1741,141 +1488,104 @@ const DeploymentSection = () => {
       }}
     >
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-        {/* Titres */}
+        {/* Titres (inchangés) */}
         <Box sx={{ mb: 12, textAlign: 'center' }}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={controls}
-            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0 } } }}
-          >
-            <Typography
+             {/* ... Titres ... */}
+             <Typography
               variant="h6"
               component="p"
               sx={{ color: "#84fab0", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #84fab0' }}
             >
               Intégration Universelle
             </Typography>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={controls}
-            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.1 } } }}
-          >
-            <Typography
+             <Typography
               variant="h2"
               component="h2"
               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #84fab0, #5ee7df)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(132, 250, 176, 0.4)' }}
             >
               Déployez Votre IA Partout
             </Typography>
-          </motion.div>
-           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={controls}
-            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.2 } } }}
-          >
             <Typography
               variant="h6"
               color="text.secondary"
               sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
             >
-              Votre modèle fine-tuné est prêt à s'intégrer avec tous vos outils préférés. De la messagerie aux CRM, des réseaux sociaux à l'automatisation no-code, utilisez-le partout où vous en avez besoin.
+              Votre modèle fine-tuné est prêt à s'intégrer avec vos outils préférés via API.
             </Typography>
-          </motion.div>
         </Box>
 
-        {/* Visualisation du déploiement */}
-        <Box sx={{ height: { xs: 500, md: 650 }, position: 'relative', perspective: '1500px' }}>
-          {/* Noyau central représentant le modèle IA */}
-          <motion.div
-            ref={centerRef}
-            initial={{ opacity: 0, scale: 0.3 }}
-            animate={controls}
-            variants={{ visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3, ease: 'backOut' } } }}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%) translateZ(0px)',
-              width: 140,
-              height: 140,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(191, 0, 255, 0.4) 100%)',
-              boxShadow: `0 0 30px ${alpha('#bf00ff', 0.6)}, 0 0 50px ${alpha('#00d4ff', 0.4)}`,
-              zIndex: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-            }}
-          >
-            <HubIcon sx={{ fontSize: 70, color: '#fff', opacity: 0.8 }} />
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-              style={{
-                position: 'absolute',
-                width: '110%',
-                height: '110%',
-                border: '2px dashed rgba(255,255,255,0.2)',
-                borderRadius: '50%'
-              }}
-            />
-          </motion.div>
-
-          {/* Plateformes cibles flottantes */}
-          <Box sx={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 2 }}>
-            {calculatedPlatforms.map((platform, index) => (
-              <Box key={index} sx={{ display: 'inline-block', px: { xs: 2, md: 4 } }}>
-                <FloatingIcon
-                  icon={platform.icon}
-                  label={platform.label}
-                  color={platform.color}
-                  initialPos={platform.calculatedPos} // Utiliser les positions calculées
-                  delay={platform.delay}
-                  isIALogo={false}
-                  ref={platformRefs[index]}
-                  aiCenterRef={centerRef}
-                />
-              </Box>
-            ))}
-          </Box>
-
-          {/* Lignes de connexion animées depuis le centre */}
-          {calculatedPlatforms.map((platform, index) => {
-            if (index < platformRefs.length) {
-              return (
-                <NeonConnectionLine
-                  key={`line-${index}`}
-                  startRef={centerRef}
-                  endRef={platformRefs[index]}
-                  color={platform.color}
-                  delay={platform.delay + 0.2}
-                  thickness={2}
-                />
-              );
-            }
-            return null;
-          })}
-
-          {/* Légende des catégories */}
-          <Box sx={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', width: '90%', textAlign: 'center', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1.5 }}>
-            {['API', 'Web', 'Automatisation', 'Appareils', 'Cloud', 'Réseaux Sociaux', 'Messageries', 'CRM'].map((category, index) => (
-              <Chip 
-                key={category}
-                label={category}
-                size="small"
-                sx={{ 
-                  background: alpha(theme.palette.primary.main, 0.1), 
-                  backdropFilter: 'blur(5px)',
-                  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                  color: 'text.secondary',
-                  '& .MuiChip-label': { fontWeight: 500 }
+        {/* Visualisation Simplifiée */}
+        <Grid container spacing={6} alignItems="center">
+          {/* Colonne Gauche: Module Central */}
+          <Grid item xs={12} md={5} sx={{ display: 'flex', justifyContent: 'center' }}>
+              <motion.div
+                ref={centerRef}
+                initial={{ opacity: 0, scale: 0.3 }}
+                animate={controls}
+                variants={{ visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3, ease: 'backOut' } } }}
+                style={{
+                  position: 'relative', // Rendre relatif pour le flux normal
+                  width: 200, // Taille ajustée
+                  height: 200,
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(191, 0, 255, 0.4) 100%)',
+                  boxShadow: `0 0 30px ${alpha('#bf00ff', 0.6)}, 0 0 50px ${alpha('#00d4ff', 0.4)}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
                 }}
-              />
-            ))}
-          </Box>
-        </Box>
+              >
+                <HubIcon sx={{ fontSize: 90, color: '#fff', opacity: 0.8 }} />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+                  style={{
+                    position: 'absolute',
+                    width: '110%',
+                    height: '110%',
+                    border: '2px dashed rgba(255,255,255,0.2)',
+                    borderRadius: '50%'
+                  }}
+                />
+              </motion.div>
+          </Grid>
+
+          {/* Colonne Droite: Icônes Simplifiées */}
+          <Grid item xs={12} md={7}>
+            <motion.div 
+              variants={containerVariants} // Utiliser containerVariants pour stagger
+              initial="hidden"
+              animate={controls} // Animer avec le reste de la section
+            >
+              <Grid container spacing={3} justifyContent={{ xs: 'center', md: 'flex-start' }}>
+                {simplifiedPlatforms.map((platform, index) => (
+                    <Grid item key={platform.label} xs={4} sm={3} md={4}>
+                      <motion.div 
+                        variants={itemVariants} // Appliquer l'animation item par item
+                      >
+                        {/* Utiliser une Box simple pour l'icône et le texte */}
+                        <Box sx={{ textAlign: 'center', p: 2 }}>
+                          <Avatar sx={{ bgcolor: alpha(platform.color, 0.1), color: platform.color, width: 60, height: 60, mb: 1, mx: 'auto' }}>
+                            <platform.icon sx={{ fontSize: 30 }} />
+                          </Avatar>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                            {platform.label}
+                          </Typography>
+                        </Box>
+                       </motion.div>
+                    </Grid>
+                ))}
+              </Grid>
+            </motion.div>
+          </Grid>
+        </Grid>
+        
+        {/* Supprimer les lignes de connexion et la légende */}
+        {/* <Box sx={{ width: '100%', height: '100%', ... }}> ... </Box> */}
+        {/* {calculatedPlatforms.map(...NeonConnectionLine...)} */}
+        {/* <Box sx={{ position: 'absolute', bottom: 10, ... }}> ... </Box> */}
+        
       </Container>
     </Box>
   );
@@ -1886,40 +1596,42 @@ const FAQSection = () => {
   const faqs = [
     {
       question: "Qu'est-ce que FineTuner ?",
-      answer: "FineTuner est une plateforme qui permet de transformer vos contenus (PDF, vidéos, textes, etc.) en assistants IA personnalisés, déployables partout, sans expertise technique."
+      answer: "FineTuner est une plateforme SaaS (Software as a Service) conçue pour simplifier radicalement la création d'assistants IA personnalisés. Vous importez vos propres données (documents PDF, transcriptions de vidéos YouTube, pages web, bases de connaissances, etc.) et notre plateforme les transforme en un dataset optimisé. Ensuite, nous gérons le processus complexe de fine-tuning (ré-entraînement spécialisé) sur des modèles de langage de pointe comme ceux d'OpenAI (GPT) ou Anthropic (Claude). Le résultat est une IA qui parle avec votre voix, connaît votre domaine et peut être intégrée via API dans vos applications, sites web, ou outils internes."
     },
     {
       question: "Dois-je avoir un compte OpenAI ou Anthropic ?",
-      answer: "Oui, pour entraîner et déployer votre propre modèle fine-tuné, vous devez connecter votre compte OpenAI ou Anthropic. FineTuner orchestre tout le processus pour vous."
+      answer: "Oui, c'est essentiel. FineTuner agit comme un orchestrateur et un facilitateur. Le modèle fine-tuné est entraîné et hébergé directement sur **votre propre compte** OpenAI ou Anthropic. Cela garantit que vous gardez la pleine propriété et le contrôle de votre modèle IA spécialisé. Nous vous guidons pour connecter votre compte de manière sécurisée via vos clés API, et nous nous chargeons de toutes les étapes techniques du fine-tuning sur leur infrastructure."
     },
     {
       question: "Quels types de contenus puis-je importer ?",
-      answer: "Vous pouvez importer des PDF, des textes, des transcriptions vidéo (YouTube), des pages web, et bien plus. La plateforme s'occupe de la conversion et du formatage."
+      answer: "FineTuner est très flexible. Vous pouvez importer divers formats : fichiers PDF, documents texte (.txt, .md), coller du texte brut, fournir des URL de pages web que nous allons scraper, ou encore des liens vers des vidéos YouTube (nous extrayons automatiquement la transcription). Notre système analyse, nettoie et structure ces informations pour créer le meilleur dataset possible pour l'entraînement de votre IA."
     },
     {
       question: "Comment fonctionne la tarification ?",
-      answer: "Les 10 000 premiers caractères sont gratuits chaque mois. Au-delà, chaque caractère supplémentaire coûte 0,000365€. Vous ne payez que ce que vous consommez, sans engagement."
+      answer: "Notre modèle est basé sur l'utilisation ('Pay-as-you-go') pour une flexibilité maximale. Les 10 000 premiers caractères de contenu que vous nous soumettez pour traitement (conversion, préparation du dataset) sont gratuits. Au-delà de ce quota gratuit, chaque caractère supplémentaire est facturé à 0,000365€ HT. Il n'y a aucun abonnement mensuel fixe ni engagement. Vous ne payez que pour le volume de données que vous traitez réellement, ce qui est idéal pour démarrer ou pour des besoins variables."
     },
     {
       question: "Puis-je intégrer mon IA sur d'autres plateformes ?",
-      answer: "Oui, votre modèle fine-tuné peut être utilisé via API, sur des applications web, mobiles, CRM, réseaux sociaux, outils no-code, etc."
+      answer: "Absolument. Une fois votre modèle fine-tuné sur votre compte OpenAI/Anthropic, vous obtenez un identifiant unique pour ce modèle. Vous pouvez ensuite l'appeler via leur API standard. Cela signifie que vous pouvez l'intégrer où vous voulez : chatbots sur votre site web, applications mobiles, systèmes de support client, outils d'automatisation (Zapier, Make), CRM, plateformes d'e-learning, et bien plus encore. FineTuner vous fournit le modèle prêt à l'emploi, l'intégration dépend ensuite de vos outils."
     },
     {
       question: "Mes données sont-elles sécurisées ?",
-      answer: "Oui, vos données sont traitées de façon sécurisée et ne sont jamais revendues. Vous gardez le contrôle total sur vos contenus et vos modèles."
+      answer: "La sécurité et la confidentialité de vos données sont notre priorité absolue. Vos contenus importés sont utilisés uniquement dans le but de créer votre dataset et de fine-tuner VOTRE modèle, sur VOTRE compte fournisseur (OpenAI/Anthropic). Nous ne revendons jamais vos données et n'utilisons pas vos informations pour entraîner d'autres modèles. Vous conservez la pleine propriété intellectuelle de vos contenus et du modèle fine-tuné résultant."
     },
     {
       question: "Ai-je besoin de compétences techniques ?",
-      answer: "Non, la plateforme est conçue pour être accessible à tous. Aucune compétence technique n'est requise pour créer, entraîner et déployer votre IA."
+      answer: "Pas du tout ! C'est tout l'intérêt de FineTuner. Nous avons conçu l'interface pour qu'elle soit intuitive et facile à utiliser, même sans aucune connaissance en programmation ou en intelligence artificielle. Vous téléchargez vos contenus, vous cliquez sur quelques boutons pour lancer le processus, et nous nous occupons de toute la complexité technique en arrière-plan. Vous récupérez simplement l'identifiant de votre modèle prêt à être utilisé."
     },
   ];
   return (
-    <Box sx={{
-      py: { xs: 10, md: 16 },
-      background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
-      borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-      borderColor: 'divider',
-    }}>
+    <Box id="faq-section"
+      sx={{
+        py: { xs: 10, md: 16 },
+        background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+        borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        borderColor: 'divider',
+      }}
+    >
       <Container maxWidth="md">
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: theme.palette.primary.main }}>
@@ -1980,6 +1692,117 @@ const FAQSection = () => {
   );
 };
 
+// Section Tarification Pay-as-you-go
+const PricingSection = () => { // Renommer pour clarté si besoin, mais l'ID suffit
+  const theme = useTheme(); 
+  return (
+    <Box id="pricing-section"
+      py: { xs: 10, md: 16 },
+      background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+      borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+      borderColor: 'divider',
+    >
+      <Container maxWidth="md">
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: theme.palette.primary.main }}>
+            Tarification Pay-as-you-go
+          </Typography>
+          <Typography variant="h6" color={theme.palette.text.secondary} sx={{ mb: 2 }}>
+            Flexible et transparente. Payez uniquement pour ce que vous consommez.
+          </Typography>
+        </Box>
+        
+        {/* Grande carte de tarification */}
+        <Box
+          sx={{
+            p: { xs: 3, md: 5 },
+            borderRadius: 4, // Consistent with theme shape
+            background: alpha(theme.palette.background.paper, 0.7),
+            backdropFilter: 'blur(12px)',
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+            boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.1)}`,
+            textAlign: 'center',
+          }}
+        >
+          <Grid container spacing={4} alignItems="center">
+            {/* Colonne Gauche: Explication */}
+            <Grid item xs={12} md={7} sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 3, color: theme.palette.primary.dark }}>
+                Comment ça marche ?
+              </Typography>
+              <Stack spacing={2.5} sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.dark }}>
+                    <CheckCircleOutlineIcon fontSize="small" />
+                  </Avatar>
+                  <Typography variant="body1" color={theme.palette.text.secondary}>
+                    Les <b>10 000 premiers caractères</b> traités chaque mois sont <b>GRATUITS</b>.
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                   <Avatar sx={{ bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.dark }}>
+                     <AttachMoneyIcon fontSize="small" />
+                  </Avatar>
+                  <Typography variant="body1" color={theme.palette.text.secondary}>
+                    Au-delà, chaque caractère supplémentaire coûte seulement <b>0,000365 € HT</b>.
+                  </Typography>
+                </Box>
+                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                   <Avatar sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: theme.palette.warning.dark }}>
+                     <CalculateIcon fontSize="small" />
+                   </Avatar>
+                  <Typography variant="body1" color={theme.palette.text.secondary}>
+                    Exemple : <b>50 000</b> caractères = 10k gratuits + 40k * 0,000365€ = <b>14,60 € HT</b>.
+                  </Typography>
+                </Box>
+              </Stack>
+            </Grid> {/* Correction: Fermeture de la Grid gauche */}
+            
+            {/* Colonne Droite: Prix */}
+            <Grid item xs={12} md={5}>
+              <Box sx={{ 
+                p: 3,
+                borderRadius: 3,
+                background: alpha(theme.palette.primary.main, 0.05),
+                border: `1px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
+              }}>
+                <Typography variant="overline" color={theme.palette.text.secondary} display="block">
+                  Prix par caractère
+                </Typography>
+                <Typography variant="h2" sx={{ fontWeight: 800, color: theme.palette.primary.main, my: 1, letterSpacing: -1 }}>
+                  0,000365<Box component="span" sx={{ fontSize: '1.5rem' }}> €</Box>
+                </Typography>
+                 <Typography variant="caption" color={theme.palette.text.secondary} display="block">
+                  (Après les 10 000 gratuits / mois)
+                </Typography>
+              </Box>
+              <Button
+                  component={RouterLink}
+                  to="/register"
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  startIcon={<RocketLaunchIcon />}
+                  sx={{
+                    mt: 3,
+                    py: 1.5,
+                  }}
+                >
+                  Commencer Gratuitement
+                </Button>
+            </Grid> {/* Correction: Fermeture de la Grid droite */}
+          </Grid> {/* Correction: Fermeture de la Grid container */}
+        </Box>
+  
+        {/* Supprimer l'ancienne grid et le texte d'exemple */}
+        {/* <Grid container spacing={4} justifyContent="center"> ... </Grid> */}
+        {/* <Box sx={{ textAlign: 'center', mt: 6 }}> ... </Box> */}
+        
+      </Container>
+    </Box>
+  );
+};
+
 const LandingPage = () => {
   const theme = useTheme(); // Déclarer useTheme ici pour l'accès global dans le composant
   return (
@@ -2023,119 +1846,19 @@ const LandingPage = () => {
         <IntroductionSection />
         <ProcessSection />
         <ChatExamplesSection />
-        <DeploymentSection /> {/* Maintenant placé juste après les chats */}
-        <UseCasesSection />
-        <FinalCTASection />
-        {/* Section Tarification Pay-as-you-go */}
-        <Box sx={{
-          py: { xs: 10, md: 16 },
-          background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
-          borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-          borderColor: 'divider',
-        }}>
-          <Container maxWidth="md">
-            <Box sx={{ textAlign: 'center', mb: 6 }}>
-              <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: theme.palette.primary.main }}>
-                Tarification Pay-as-you-go
-              </Typography>
-              <Typography variant="h6" color={theme.palette.text.secondary} sx={{ mb: 2 }}>
-                Flexible et transparente. Payez uniquement pour ce que vous consommez.
-              </Typography>
-            </Box>
-            
-            {/* Grande carte de tarification */}
-            <Box
-              sx={{
-                p: { xs: 3, md: 5 },
-                borderRadius: 4, // Consistent with theme shape
-                background: alpha(theme.palette.background.paper, 0.7),
-                backdropFilter: 'blur(12px)',
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.1)}`,
-                textAlign: 'center',
-              }}
-            >
-              <Grid container spacing={4} alignItems="center">
-                {/* Colonne Gauche: Explication */}
-                <Grid item xs={12} md={7} sx={{ textAlign: { xs: 'center', md: 'left' } }}>
-                  <Typography variant="h4" sx={{ fontWeight: 700, mb: 3, color: theme.palette.primary.dark }}>
-                    Comment ça marche ?
-                  </Typography>
-                  <Stack spacing={2.5} sx={{ mb: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.dark }}>
-                        <CheckCircleOutlineIcon fontSize="small" />
-                      </Avatar>
-                      <Typography variant="body1" color={theme.palette.text.secondary}>
-                        Les <b>10 000 premiers caractères</b> traités chaque mois sont <b>GRATUITS</b>.
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                       <Avatar sx={{ bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.dark }}>
-                         <AttachMoneyIcon fontSize="small" />
-                      </Avatar>
-                      <Typography variant="body1" color={theme.palette.text.secondary}>
-                        Au-delà, chaque caractère supplémentaire coûte seulement <b>0,000365 € HT</b>.
-                      </Typography>
-                    </Box>
-                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                       <Avatar sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: theme.palette.warning.dark }}>
-                         <CalculateIcon fontSize="small" />
-                       </Avatar>
-                      <Typography variant="body1" color={theme.palette.text.secondary}>
-                        Exemple : <b>50 000</b> caractères = 10k gratuits + 40k * 0,000365€ = <b>14,60 € HT</b>.
-                      </Typography>
-                    </Box>
-                  </Stack>
-                  <Typography variant="body2" color={theme.palette.text.disabled} sx={{ mb: 3 }}>
-                    Facturation mensuelle, sans engagement. Annulez à tout moment.
-                  </Typography>
-                </Grid> {/* Correction: Fermeture de la Grid gauche */}
-                
-                {/* Colonne Droite: Prix */}
-                <Grid item xs={12} md={5}>
-                  <Box sx={{ 
-                    p: 3,
-                    borderRadius: 3,
-                    background: alpha(theme.palette.primary.main, 0.05),
-                    border: `1px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
-                  }}>
-                    <Typography variant="overline" color={theme.palette.text.secondary} display="block">
-                      Prix par caractère
-                    </Typography>
-                    <Typography variant="h2" sx={{ fontWeight: 800, color: theme.palette.primary.main, my: 1, letterSpacing: -1 }}>
-                      0,000365<Box component="span" sx={{ fontSize: '1.5rem' }}> €</Box>
-                    </Typography>
-                     <Typography variant="caption" color={theme.palette.text.secondary} display="block">
-                      (Après les 10 000 gratuits / mois)
-                    </Typography>
-                  </Box>
-                  <Button
-                      component={RouterLink}
-                      to="/register"
-                      variant="contained"
-                      size="large"
-                      fullWidth
-                      startIcon={<RocketLaunchIcon />}
-                      sx={{
-                        mt: 3,
-                        py: 1.5,
-                      }}
-                    >
-                      Commencer Gratuitement
-                    </Button>
-                </Grid> {/* Correction: Fermeture de la Grid droite */}
-              </Grid> {/* Correction: Fermeture de la Grid container */}
-            </Box>
-  
-            {/* Supprimer l'ancienne grid et le texte d'exemple */}
-            {/* <Grid container spacing={4} justifyContent="center"> ... </Grid> */}
-            {/* <Box sx={{ textAlign: 'center', mt: 6 }}> ... </Box> */}
-            
-          </Container>
+        <DeploymentSection /> 
+        <Box id="pricing-section"
+          sx={{
+            py: { xs: 10, md: 16 },
+            background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+            borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            borderColor: 'divider',
+          }}
+        >
+          {/* ... Contenu de la section Tarification ... */}
         </Box>
-        {/* Section FAQ */}
         <FAQSection />
+        <FinalCTASection />
         <Footer />
       </Box>
     </PageTransition>

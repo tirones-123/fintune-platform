@@ -66,12 +66,12 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Liens de navigation
+  // Liens de navigation mis à jour
   const navLinks = [
     { name: 'Accueil', path: '/' },
-    { name: 'Comment ça marche', path: '/#how-it-works' },
-    { name: 'Avantages', path: '/#benefits' },
-    { name: 'Tarifs', path: '/#pricing' },
+    { name: 'Comment ça marche', path: '/#process-section' },
+    { name: 'Tarifs', path: '/#pricing-section' },
+    { name: 'FAQ', path: '/#faq-section' },
   ];
 
   // Gérer l'ouverture/fermeture du menu mobile
@@ -202,24 +202,38 @@ const Navbar = () => {
                 animate="visible"
                 variants={logoVariants}
               >
-                <Typography
-                  variant="h5"
-                  component={RouterLink}
+                <Box 
+                  component={RouterLink} 
                   to="/"
-                  sx={{
-                    mr: 4,
-                    fontWeight: 800,
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
                     textDecoration: 'none',
-                    background: (theme) => 
-                      theme.palette.mode === 'dark'
-                        ? `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.accent.main} 100%)`
-                        : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.accent.main} 100%)`,
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
+                    mr: 4,
                   }}
                 >
-                  FineTuner
-                </Typography>
+                  <Box 
+                    component="img" 
+                    src="/assets/images/logo_sans_texte.png" 
+                    alt="FineTuner Logo" 
+                    sx={{ height: 32, mr: 1.5 }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 800,
+                      textDecoration: 'none',
+                      background: (theme) => 
+                        theme.palette.mode === 'dark'
+                          ? `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.accent.main} 100%)`
+                          : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.accent.main} 100%)`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
+                    FineTuner
+                  </Typography>
+                </Box>
               </motion.div>
 
               {/* Menu mobile */}
