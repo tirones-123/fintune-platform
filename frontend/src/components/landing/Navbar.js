@@ -60,15 +60,12 @@ function HideOnScroll(props) {
   );
 }
 
-// Fonction utilitaire pour le défilement
+// Fonction utilitaire pour le défilement (simplifiée)
 const handleScrollToSection = (sectionId) => {
-  // Attendre un court instant que le DOM soit stable
-  setTimeout(() => {
-    const element = document.getElementById(sectionId.substring(1)); // Enlever le #
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, 50); // Petit délai (ajuster si nécessaire)
+  const element = document.getElementById(sectionId.substring(1)); // Enlever le #
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth' }); // Utiliser le block par défaut
+  }
 };
 
 const Navbar = () => {
@@ -77,11 +74,10 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Liens de navigation mis à jour
+  // Liens de navigation mis à jour (sans Tarifs)
   const navLinks = [
     { name: 'Accueil', path: '/' },
     { name: 'Comment ça marche', path: '/#process-section' },
-    { name: 'Tarifs', path: '/#pricing-section' },
     { name: 'FAQ', path: '/#faq-section' },
   ];
 
@@ -105,7 +101,7 @@ const Navbar = () => {
     };
   }, [scrolled]);
 
-  // Contenu du menu mobile
+  // Contenu du menu mobile (modifié)
   const drawer = (
     <Box sx={{ width: 280, pt: 2 }}>
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
@@ -133,14 +129,12 @@ const Navbar = () => {
             <ListItemButton
               onClick={() => {
                 if (link.path.startsWith('/#')) {
-                  handleScrollToSection(link.path);
+                  handleScrollToSection(link.path); // Appel de la fonction simplifiée
                 } else {
-                  // Gérer la navigation normale pour les autres liens (si nécessaire)
-                  // Pour l'instant, on assume que seul / est non-ancre
-                  // Si on clique sur Accueil (path='/') dans le drawer, on peut juste fermer le drawer
-                  // ou naviguer explicitement avec navigate() si importé
+                  // Naviguer vers la page d'accueil si ce n'est pas une ancre
+                  window.location.href = link.path; 
                 }
-                handleDrawerToggle(); // Ferme le drawer dans tous les cas
+                handleDrawerToggle(); 
               }}
               sx={{
                 py: 1.5,
@@ -276,7 +270,7 @@ const Navbar = () => {
                 </Box>
               )}
 
-              {/* Menu desktop */}
+              {/* Menu desktop (modifié) */}
               {!isMobile && (
                 <>
                   <Box sx={{ flexGrow: 1, display: 'flex' }}>
@@ -291,11 +285,9 @@ const Navbar = () => {
                         <Button
                           onClick={() => {
                             if (link.path.startsWith('/#')) {
-                              handleScrollToSection(link.path);
+                              handleScrollToSection(link.path); // Appel de la fonction simplifiée
                             } else {
-                              // Gérer la navigation normale (ex: aller à la page d'accueil)
-                              // On pourrait utiliser navigate('/') si useNavigation est importé
-                              // Pour l'instant, on ne fait rien pour le lien '/' dans le header desktop
+                               window.location.href = link.path;
                             }
                           }}
                           sx={{

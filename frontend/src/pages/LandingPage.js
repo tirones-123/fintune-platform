@@ -323,7 +323,7 @@ const Hero = () => {
                     p: 3,
                   }}
                 >
-                  Transformez instantanément PDF, YouTube et sites web en assistants IA ultra-performants type <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span> ou <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>. Aucune expertise requise.
+                  Transformez instantanément vos contenus PDF, YouTube et sites web en assistants IA ultra-performants type <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span> ou <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>. Aucune expertise requise.
                 </Typography>
               </motion.div>
 
@@ -1794,7 +1794,7 @@ const FAQSection = () => {
 };
 
 const LandingPage = () => {
-  const theme = useTheme(); // Déclarer useTheme ici pour l'accès global dans le composant
+  const theme = useTheme();
   return (
     <PageTransition>
       <Box sx={{ minHeight: '100vh', background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)` }}>
@@ -1837,15 +1837,6 @@ const LandingPage = () => {
         <ProcessSection />
         <ChatExamplesSection />
         <DeploymentSection /> 
-        <Box id="pricing-section"
-          sx={{
-            py: { xs: 7, md: 11 }, // Réduction du padding - Correction ici aussi
-            background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
-            // ...
-          }}
-        >
-          {/* ... Contenu Pricing ... */}
-        </Box>
         <FAQSection />
         <FinalCTASection />
         <Footer />

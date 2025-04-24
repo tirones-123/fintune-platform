@@ -21,14 +21,12 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
-// Fonction utilitaire pour le défilement (réutilisée ou redéfinie si nécessaire)
+// Fonction utilitaire pour le défilement (simplifiée)
 const handleScrollToSection = (sectionId) => {
-  setTimeout(() => {
     const element = document.getElementById(sectionId.substring(1)); 
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      element.scrollIntoView({ behavior: 'smooth' }); 
     }
-  }, 50); 
 };
 
 const Footer = () => {
@@ -70,14 +68,13 @@ const Footer = () => {
     },
   };
 
-  // Liens du footer
+  // Liens du footer mis à jour (sans Tarifs)
   const footerLinks = [
     {
       title: 'Produit',
       links: [
          { name: 'Accueil', path: '/' },
         { name: 'Comment ça marche', path: '/#process-section' },
-        { name: 'Tarifs', path: '/#pricing-section' },
         { name: 'FAQ', path: '/#faq-section' },
       ],
     },
@@ -360,8 +357,13 @@ const Footer = () => {
                             </Link>
                           ) : (
                             <Link
-                              component={RouterLink}
-                              to={link.path}
+                              onClick={() => {
+                                if (link.path.startsWith('/#')) {
+                                  handleScrollToSection(link.path); // Appel fonction simplifiée
+                                } else {
+                                  window.location.href = link.path; // Navigation simple
+                                }
+                              }}
                               underline="none"
                               color="text.secondary"
                               sx={{
@@ -387,7 +389,8 @@ const Footer = () => {
                                   left: -15,
                                   top: '50%',
                                   transition: 'all 0.3s ease',
-                                }
+                                },
+                                cursor: 'pointer',
                               }}
                             >
                               {link.name}
