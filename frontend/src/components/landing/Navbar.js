@@ -20,6 +20,7 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 // Animation pour le logo
 const logoVariants = {
@@ -79,15 +80,16 @@ const handleScrollToSection = (sectionPath) => {
 
 const Navbar = () => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Liens de navigation mis à jour (sans Tarifs)
+  // Liens de navigation (utilise t pour les noms)
   const navLinks = [
-    { name: 'Accueil', path: '/' },
-    { name: 'Comment ça marche', path: '/#process-section' },
-    { name: 'FAQ', path: '/#faq-section' },
+    { name: t('navbar.home'), path: '/' },
+    { name: t('navbar.howItWorks'), path: '/#process-section' },
+    { name: t('navbar.faq'), path: '/#faq-section' },
   ];
 
   // Gérer l'ouverture/fermeture du menu mobile
@@ -110,7 +112,7 @@ const Navbar = () => {
     };
   }, [scrolled]);
 
-  // Contenu du menu mobile (modifié)
+  // Contenu du menu mobile
   const drawer = (
     <Box sx={{ width: 280, pt: 2 }}>
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
@@ -159,7 +161,7 @@ const Navbar = () => {
               }}
             >
               <ListItemText 
-                primary={link.name} 
+                primary={link.name}
                 primaryTypographyProps={{ 
                   fontWeight: 600,
                 }}
@@ -181,7 +183,7 @@ const Navbar = () => {
             fontWeight: 600,
           }}
         >
-          Se connecter
+          {t('navbar.login')}
         </Button>
         <Button
           component={RouterLink}
@@ -194,7 +196,7 @@ const Navbar = () => {
             fontWeight: 600,
           }}
         >
-          S'inscrire
+          {t('navbar.register')}
         </Button>
       </Box>
     </Box>
@@ -221,7 +223,6 @@ const Navbar = () => {
         >
           <Container maxWidth="lg">
             <Toolbar disableGutters sx={{ height: 70 }}>
-              {/* Logo */}
               <motion.div
                 initial="hidden"
                 animate="visible"
@@ -240,7 +241,7 @@ const Navbar = () => {
                   <Box 
                     component="img" 
                     src="/assets/images/logo_sans_texte.png" 
-                    alt="FineTuner Logo" 
+                    alt={t('navbar.logoAlt')}
                     sx={{ height: 32, mr: 1.5 }}
                   />
                   <Typography
@@ -261,12 +262,11 @@ const Navbar = () => {
                 </Box>
               </motion.div>
 
-              {/* Menu mobile */}
               {isMobile && (
                 <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end' }}>
                   <IconButton
                     color="inherit"
-                    aria-label="open drawer"
+                    aria-label={t('navbar.openDrawerAriaLabel')}
                     edge="end"
                     onClick={handleDrawerToggle}
                     sx={{ 
@@ -282,7 +282,6 @@ const Navbar = () => {
                 </Box>
               )}
 
-              {/* Menu desktop (modifié) */}
               {!isMobile && (
                 <>
                   <Box sx={{ flexGrow: 1, display: 'flex' }}>
@@ -298,9 +297,9 @@ const Navbar = () => {
                           onClick={() => {
                             if (link.path.startsWith('/#')) {
                               if (window.location.pathname === '/' || window.location.pathname === '') {
-                                handleScrollToSection(link.path); // Scroll direct si on est déjà sur la landing
+                                handleScrollToSection(link.path);
                               } else {
-                                window.location.href = link.path; // Naviguer puis scroll (ancre dans l'URL)
+                                window.location.href = link.path;
                               }
                             } else {
                               window.location.href = link.path;
@@ -341,7 +340,7 @@ const Navbar = () => {
                           },
                         }}
                       >
-                        Se connecter
+                        {t('navbar.login')}
                       </Button>
                     </motion.div>
                     <motion.div
@@ -366,7 +365,7 @@ const Navbar = () => {
                               : '0 4px 12px rgba(59, 130, 246, 0.2)',
                         }}
                       >
-                        S'inscrire
+                        {t('navbar.register')}
                       </Button>
                     </motion.div>
                   </Box>
@@ -377,13 +376,12 @@ const Navbar = () => {
         </AppBar>
       </HideOnScroll>
 
-      {/* Drawer pour le menu mobile */}
       <Drawer
         anchor="right"
         open={mobileOpen}
         onClose={handleDrawerToggle}
         ModalProps={{
-          keepMounted: true, // Better open performance on mobile.
+          keepMounted: true,
         }}
         sx={{
           display: { xs: 'block', md: 'none' },
@@ -396,7 +394,6 @@ const Navbar = () => {
         {drawer}
       </Drawer>
 
-      {/* Espace pour compenser la hauteur de la navbar */}
       <Toolbar />
     </>
   );

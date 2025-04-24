@@ -40,10 +40,12 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { useSnackbar } from 'notistack';
 import { projectService, contentService, datasetService } from '../services/apiService';
 import QualityAssessment from '../components/dashboard/QualityAssessment';
+import { useTranslation } from 'react-i18next';
 
 const DatasetDetailPage = () => {
   const { datasetId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [dataset, setDataset] = useState(null);
   const [project, setProject] = useState(null);
   const [contents, setContents] = useState([]);
@@ -77,10 +79,10 @@ const DatasetDetailPage = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      enqueueSnackbar(`Export pour ${provider} démarré`, { variant: 'success' });
+      enqueueSnackbar(t('datasetDetail.snackbar.exportStarted', { provider }), { variant: 'success' });
     } catch (error) {
       console.error('Error exporting dataset:', error);
-      enqueueSnackbar(`Erreur lors de l'export pour ${provider}: ${error.message || error}`, { variant: 'error' });
+      enqueueSnackbar(t('datasetDetail.snackbar.exportError', { provider, error: error.message || error }), { variant: 'error' });
     } finally {
       handleCloseExportMenu();
     }
@@ -105,7 +107,7 @@ const DatasetDetailPage = () => {
       setError(null);
     } catch (err) {
       console.error('Error fetching dataset data:', err);
-      setError('Impossible de récupérer les données du dataset. Veuillez réessayer.');
+      setError(t('datasetDetail.error.loadData'));
     } finally {
       setLoading(false);
     }
@@ -113,7 +115,7 @@ const DatasetDetailPage = () => {
 
   useEffect(() => {
     fetchDatasetData();
-  }, [datasetId]);
+  }, [datasetId, t]);
 
   // Formatage de la date
   const formatDate = (dateString) => {
@@ -152,29 +154,19 @@ const DatasetDetailPage = () => {
 
   // Obtenir la couleur du statut
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'generating':
-        return 'primary';
-      case 'ready':
-        return 'success';
-      case 'failed':
-        return 'error';
-      default:
-        return 'default';
-    }
+    if (status === t('datasetDetail.status.generating')) return 'primary';
+    if (status === t('datasetDetail.status.ready')) return 'success';
+    if (status === t('datasetDetail.status.failed')) return 'error';
+    return 'default';
   };
 
   // Obtenir le libellé du statut
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'generating':
-        return 'En cours de génération';
-      case 'ready':
-        return 'Prêt';
-      case 'failed':
-        return 'Échec';
-      default:
-        return 'Inconnu';
+      case 'generating': return t('datasetDetail.status.generating');
+      case 'ready': return t('datasetDetail.status.ready');
+      case 'failed': return t('datasetDetail.status.failed');
+      default: return t('common.unknown');
     }
   };
 
@@ -189,11 +181,11 @@ const DatasetDetailPage = () => {
       // Supprimer le dataset via l'API
       await datasetService.delete(datasetId);
       
-      enqueueSnackbar('Dataset supprimé avec succès', { variant: 'success' });
+      enqueueSnackbar(t('datasetDetail.snackbar.deleteSuccess'), { variant: 'success' });
       navigate(`/dashboard/projects/${project.id}`);
     } catch (err) {
       console.error('Error deleting dataset:', err);
-      enqueueSnackbar('Erreur lors de la suppression du dataset', { variant: 'error' });
+      enqueueSnackbar(t('datasetDetail.snackbar.deleteError'), { variant: 'error' });
     }
   };
 
@@ -205,17 +197,17 @@ const DatasetDetailPage = () => {
         sx={{ mb: 3 }}
       >
         <Link component={RouterLink} to="/dashboard" color="inherit">
-          Dashboard
+          {t('common.dashboard')}
         </Link>
         <Link component={RouterLink} to="/dashboard/projects" color="inherit">
-          Projets
+          {t('sidebar.menu.projects')}
         </Link>
         {project && (
           <Link component={RouterLink} to={`/dashboard/projects/${project.id}`} color="inherit">
             {project.name}
           </Link>
         )}
-        <Typography color="text.primary">Dataset</Typography>
+        <Typography color="text.primary">{t('datasetDetail.breadcrumb')}</Typography>
       </Breadcrumbs>
 
       {loading ? (
@@ -234,7 +226,7 @@ const DatasetDetailPage = () => {
                 {dataset.name}
               </Typography>
               <Typography variant="body1" color="text.secondary">
-                {dataset.description || 'Aucune description'}
+                {dataset.description || t('common.noDescription')}
               </Typography>
             </Box>
             <Box>
@@ -246,16 +238,16 @@ const DatasetDetailPage = () => {
                     onClick={handleStartFineTuning}
                     sx={{ mr: 2 }}
                   >
-                    Lancer un fine-tuning
+                    {t('datasetDetail.startFinetuningButton')}
                   </Button>
                   <Button
                     variant="outlined"
                     startIcon={<DownloadIcon />}
                     onClick={handleOpenExportMenu}
                     disabled={dataset.status !== 'ready'}
-                    title={dataset.status !== 'ready' ? "Le dataset doit être prêt pour être exporté." : undefined}
+                    title={dataset.status !== 'ready' ? t('datasetDetail.exportTooltipDisabled') : undefined}
                   >
-                    Exporter
+                    {t('datasetDetail.exportButton')}
                   </Button>
                   <Menu
                     anchorEl={exportMenuAnchor}
@@ -263,15 +255,15 @@ const DatasetDetailPage = () => {
                     onClose={handleCloseExportMenu}
                   >
                     <MenuItem onClick={() => handleExportDataset('openai')} disabled={dataset.status !== 'ready'}>
-                      Exporter pour OpenAI
+                      {t('datasetDetail.exportMenu.openai')}
                     </MenuItem>
                     <MenuItem onClick={() => handleExportDataset('anthropic')} disabled={dataset.status !== 'ready'}>
-                      Exporter pour Anthropic
+                      {t('datasetDetail.exportMenu.anthropic')}
                     </MenuItem>
                   </Menu>
                   {dataset.status !== 'ready' && (
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      Le dataset doit être prêt pour être exporté.
+                      {t('datasetDetail.exportTooltipDisabled')}
                     </Typography>
                   )}
                 </>
@@ -285,7 +277,7 @@ const DatasetDetailPage = () => {
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
-                      Informations générales
+                      {t('datasetDetail.generalInfoTitle')}
                     </Typography>
                     <Chip
                       label={getStatusLabel(dataset.status)}
@@ -296,7 +288,7 @@ const DatasetDetailPage = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={6} md={3}>
                       <Typography variant="body2" color="text.secondary">
-                        Créé le
+                        {t('common.createdOn')}
                       </Typography>
                       <Typography variant="body1">
                         {formatDate(dataset.created_at)}
@@ -304,7 +296,7 @@ const DatasetDetailPage = () => {
                     </Grid>
                     <Grid item xs={6} md={3}>
                       <Typography variant="body2" color="text.secondary">
-                        Nombre de paires
+                        {t('datasetDetail.pairCountLabel')}
                       </Typography>
                       <Typography variant="body1">
                         {dataset.pairs_count}
@@ -312,7 +304,7 @@ const DatasetDetailPage = () => {
                     </Grid>
                     <Grid item xs={6} md={3}>
                       <Typography variant="body2" color="text.secondary">
-                        Taille
+                        {t('common.size')}
                       </Typography>
                       <Typography variant="body1">
                         {formatSize(dataset.size)}
@@ -320,10 +312,10 @@ const DatasetDetailPage = () => {
                     </Grid>
                     <Grid item xs={6} md={3}>
                       <Typography variant="body2" color="text.secondary">
-                        Méthode de génération
+                        {t('datasetDetail.generationMethodLabel')}
                       </Typography>
                       <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                        {dataset.generation_method === 'auto' ? 'Automatique' : 'Manuelle'}
+                        {t(`datasetDetail.generationMethods.${dataset.generation_method}`)}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -333,7 +325,7 @@ const DatasetDetailPage = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Contenus utilisés
+                    {t('datasetDetail.usedContentTitle')}
                   </Typography>
                   
                   <List>
@@ -344,7 +336,7 @@ const DatasetDetailPage = () => {
                         </ListItemIcon>
                         <ListItemText
                           primary={content.name}
-                          secondary={content.description || 'Aucune description'}
+                          secondary={content.description || t('common.noDescription')}
                         />
                         <ListItemSecondaryAction>
                           <Typography variant="body2" color="text.secondary">
@@ -362,25 +354,25 @@ const DatasetDetailPage = () => {
               <Card sx={{ mb: 4 }}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Paramètres de génération
+                    {t('datasetDetail.generationParamsTitle')}
                   </Typography>
                   
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Box>
                       <Typography variant="body2" color="text.secondary">
-                        Taille des chunks
+                        {t('datasetDetail.chunkSizeLabel')}
                       </Typography>
                       <Typography variant="body1">
-                        3000 caractères (fixe)
+                        {t('datasetDetail.chunkSizeValue')}
                       </Typography>
                     </Box>
                     
                     <Box>
                       <Typography variant="body2" color="text.secondary">
-                        Méthode
+                        {t('common.method')}
                       </Typography>
                       <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                        {dataset.generation_method === 'auto' ? 'Automatique' : 'Personnalisée'}
+                        {t(`datasetDetail.generationMethods.${dataset.generation_method}`)}
                       </Typography>
                     </Box>
                   </Box>
@@ -391,7 +383,7 @@ const DatasetDetailPage = () => {
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Typography variant="h6" gutterBottom>
-                      System Prompt
+                      {t('datasetDetail.systemPromptTitle')}
                     </Typography>
                     <Button 
                       size="small" 
@@ -400,8 +392,8 @@ const DatasetDetailPage = () => {
                       onClick={() => {
                         // Ouvrir la boîte de dialogue pour éditer le system content
                         const newSystemContent = prompt(
-                          "Modifier le system prompt", 
-                          dataset.system_content || "You are a helpful assistant."
+                          t('datasetDetail.editSystemPromptDialog.title'),
+                          dataset.system_content || t('datasetDetail.editSystemPromptDialog.defaultValue')
                         );
                         
                         if (newSystemContent !== null && newSystemContent.trim() !== "") {
@@ -409,27 +401,27 @@ const DatasetDetailPage = () => {
                           datasetService.updateSystemContent(datasetId, newSystemContent)
                             .then(() => {
                               fetchDatasetData(); // Rafraîchir les données
-                              enqueueSnackbar('System prompt mis à jour avec succès', { variant: 'success' });
+                              enqueueSnackbar(t('datasetDetail.snackbar.systemPromptUpdateSuccess'), { variant: 'success' });
                             })
                             .catch(error => {
                               console.error('Error updating system content:', error);
-                              enqueueSnackbar('Erreur lors de la mise à jour du system prompt', { variant: 'error' });
+                              enqueueSnackbar(t('datasetDetail.snackbar.systemPromptUpdateError'), { variant: 'error' });
                             });
                         }
                       }}
                     >
-                      Modifier
+                      {t('common.edit')}
                     </Button>
                   </Box>
                   
                   <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
                     <Typography variant="body2" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                      {dataset.system_content || "You are a helpful assistant."}
+                      {dataset.system_content || t('datasetDetail.editSystemPromptDialog.defaultValue')}
                     </Typography>
                   </Paper>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                    Le system prompt définit le comportement et le rôle de l'assistant pendant le fine-tuning. Cette instruction sera utilisée pour tous les exemples d'entraînement.
+                    {t('datasetDetail.systemPromptHelperText')}
                   </Typography>
                 </CardContent>
               </Card>
@@ -446,36 +438,36 @@ const DatasetDetailPage = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Exemples de paires
+                    {t('datasetDetail.pairExamplesTitle')}
                   </Typography>
                   
                   <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
                     <Typography variant="subtitle2" color="primary" gutterBottom>
-                      Question:
+                      {t('common.question')}:
                     </Typography>
                     <Typography variant="body2" paragraph>
-                      Quels sont les avantages de votre solution par rapport à la concurrence ?
+                      {t('datasetDetail.example1.question')}
                     </Typography>
                     <Typography variant="subtitle2" color="secondary" gutterBottom>
-                      Réponse:
+                      {t('common.answer')}:
                     </Typography>
                     <Typography variant="body2">
-                      Notre solution se distingue par trois avantages majeurs : une interface intuitive qui ne nécessite aucune formation, une intégration facile avec vos outils existants, et un prix compétitif sans frais cachés. Contrairement à nos concurrents, nous offrons également un support client 24/7 inclus dans tous nos forfaits.
+                      {t('datasetDetail.example1.answer')}
                     </Typography>
                   </Paper>
                   
                   <Paper variant="outlined" sx={{ p: 2 }}>
                     <Typography variant="subtitle2" color="primary" gutterBottom>
-                      Question:
+                      {t('common.question')}:
                     </Typography>
                     <Typography variant="body2" paragraph>
-                      Comment puis-je contacter le service client ?
+                      {t('datasetDetail.example2.question')}
                     </Typography>
                     <Typography variant="subtitle2" color="secondary" gutterBottom>
-                      Réponse:
+                      {t('common.answer')}:
                     </Typography>
                     <Typography variant="body2">
-                      Vous pouvez contacter notre service client par téléphone au 01 23 45 67 89 du lundi au vendredi de 9h à 18h, par email à support@example.com, ou via le chat en direct sur notre site web. Pour les clients Premium, une ligne dédiée est disponible 24/7.
+                      {t('datasetDetail.example2.answer')}
                     </Typography>
                   </Paper>
                 </CardContent>

@@ -23,18 +23,20 @@ import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import { characterService } from '../../services/apiService';
-
-const usageTypes = [
-  { id: 'generic', name: 'Usage général' },
-  { id: 'customer_support', name: 'Support client' },
-  { id: 'sales', name: 'Ventes' },
-  { id: 'marketing', name: 'Marketing' },
-  { id: 'technical', name: 'Documentation technique' },
-  { id: 'legal', name: 'Contenu juridique' },
-  { id: 'medical', name: 'Contenu médical' },
-];
+import { useTranslation } from 'react-i18next';
 
 const QualityAssessment = ({ characterCount = 0 }) => {
+  const { t } = useTranslation();
+  const usageTypes = [
+    { id: 'generic', name: t('qualityAssessment.usageTypes.generic') },
+    { id: 'customer_support', name: t('qualityAssessment.usageTypes.customer_support') },
+    { id: 'sales', name: t('qualityAssessment.usageTypes.sales') },
+    { id: 'marketing', name: t('qualityAssessment.usageTypes.marketing') },
+    { id: 'technical', name: t('qualityAssessment.usageTypes.technical') },
+    { id: 'legal', name: t('qualityAssessment.usageTypes.legal') },
+    { id: 'medical', name: t('qualityAssessment.usageTypes.medical') },
+  ];
+
   const [selectedUsage, setSelectedUsage] = useState('generic');
   const [assessment, setAssessment] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -49,7 +51,7 @@ const QualityAssessment = ({ characterCount = 0 }) => {
       setError(null);
     } catch (error) {
       console.error('Error assessing quality:', error);
-      setError(error.message || 'Erreur lors de l\'évaluation de la qualité');
+      setError(t('qualityAssessment.error.assessment'));
     } finally {
       setLoading(false);
     }
@@ -76,25 +78,25 @@ const QualityAssessment = ({ characterCount = 0 }) => {
 
   // Fonction pour obtenir un libellé basé sur le score
   const getScoreLabel = (score) => {
-    if (score >= 0.9) return 'Excellent';
-    if (score >= 0.7) return 'Bon';
-    if (score >= 0.4) return 'Moyen';
-    if (score >= 0.2) return 'Faible';
-    return 'Insuffisant';
+    if (score >= 0.9) return t('qualityAssessment.scoreLabel.excellent');
+    if (score >= 0.7) return t('qualityAssessment.scoreLabel.good');
+    if (score >= 0.4) return t('qualityAssessment.scoreLabel.average');
+    if (score >= 0.2) return t('qualityAssessment.scoreLabel.low');
+    return t('qualityAssessment.scoreLabel.insufficient');
   };
 
   return (
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Évaluation de la qualité
+          {t('qualityAssessment.title')}
         </Typography>
         
         <FormControl fullWidth sx={{ mb: 3 }}>
-          <InputLabel>Type d'utilisation</InputLabel>
+          <InputLabel>{t('qualityAssessment.usageTypeLabel')}</InputLabel>
           <Select
             value={selectedUsage}
-            label="Type d'utilisation"
+            label={t('qualityAssessment.usageTypeLabel')}
             onChange={(e) => setSelectedUsage(e.target.value)}
           >
             {usageTypes.map((type) => (
@@ -115,7 +117,7 @@ const QualityAssessment = ({ characterCount = 0 }) => {
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="body1">
-                Nombre de caractères: <strong>{characterCount.toLocaleString()}</strong>
+                {t('qualityAssessment.characterCountLabel')}: <strong>{characterCount.toLocaleString()}</strong>
               </Typography>
               <Chip 
                 icon={getScoreIcon(assessment.score)} 
@@ -158,7 +160,7 @@ const QualityAssessment = ({ characterCount = 0 }) => {
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                     <TipsAndUpdatesIcon sx={{ mr: 1 }} color="warning" />
-                    Suggestions d'amélioration
+                    {t('qualityAssessment.suggestionsTitle')}
                   </Typography>
                   <List dense>
                     {assessment.suggestions.map((suggestion, index) => (
@@ -176,7 +178,7 @@ const QualityAssessment = ({ characterCount = 0 }) => {
           </Box>
         ) : (
           <Typography variant="body2" color="text.secondary">
-            Aucune donnée disponible pour l'évaluation.
+            {t('qualityAssessment.noData')}
           </Typography>
         )}
       </CardContent>

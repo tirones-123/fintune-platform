@@ -26,6 +26,7 @@ import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
 import NotificationsPopover from './NotificationsPopover';
 import { notificationService } from '../../services/notificationService';
+import { useTranslation } from 'react-i18next';
 
 const drawerWidth = 280;
 
@@ -34,6 +35,7 @@ const Header = ({ onDrawerToggle }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   // États pour les notifications
   const [notifications, setNotifications] = useState([]);
@@ -176,7 +178,7 @@ const Header = ({ onDrawerToggle }) => {
         {/* Bouton menu uniquement visible sur mobile */}
         <IconButton
           color="inherit"
-          aria-label="open drawer"
+          aria-label={t('header.openDrawerAriaLabel')}
           edge="start"
           onClick={onDrawerToggle}
           sx={{ mr: 2, display: { xs: 'flex', sm: 'none' } }}
@@ -205,7 +207,7 @@ const Header = ({ onDrawerToggle }) => {
           />
 
           {/* User Menu */}
-          <Tooltip title="Options du compte">
+          <Tooltip title={t('header.accountOptionsTooltip')}>
             <IconButton 
               onClick={handleOpenUserMenu} 
               sx={{
@@ -218,7 +220,7 @@ const Header = ({ onDrawerToggle }) => {
               }}
             >
               <Avatar
-                alt={user?.displayName || 'User'}
+                alt={user?.displayName || t('common.user')}
                 src={user?.photoURL}
                 sx={{
                   width: 38,
@@ -273,26 +275,26 @@ const Header = ({ onDrawerToggle }) => {
           <ListItemIcon>
             <AccountCircleIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Mon profil" />
+          <ListItemText primary={t('header.userMenu.profile')} />
         </MenuItem>
         <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/dashboard/settings'); }}>
           <ListItemIcon>
             <SettingsIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Paramètres" />
+          <ListItemText primary={t('header.userMenu.settings')} />
         </MenuItem>
-        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/help'); }}>
+        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/dashboard/help'); }}>
           <ListItemIcon>
             <HelpIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Aide" />
+          <ListItemText primary={t('header.userMenu.help')} />
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>
             <LogoutIcon fontSize="small" sx={{ color: 'error.main' }} />
           </ListItemIcon>
-          <ListItemText primary="Déconnexion" sx={{ color: 'error.main' }} />
+          <ListItemText primary={t('header.userMenu.logout')} sx={{ color: 'error.main' }} />
         </MenuItem>
       </Menu>
     </AppBar>

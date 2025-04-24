@@ -23,8 +23,10 @@ import AddIcon from '@mui/icons-material/Add';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { characterService } from '../../services/apiService';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 
 const CharacterCounter = () => {
+  const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [pricingInfo, setPricingInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,15 +50,16 @@ const CharacterCounter = () => {
         setError(null);
       } catch (error) {
         console.error('Error fetching character data:', error);
-        setError(error.message || 'Erreur lors du chargement des données');
-        enqueueSnackbar('Erreur lors du chargement des statistiques', { variant: 'error' });
+        const errorMessage = error.message || t('characterCounter.error.loading');
+        setError(errorMessage);
+        enqueueSnackbar(t('characterCounter.snackbar.loadError'), { variant: 'error' });
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, t]);
 
   // Calculer le prix de l'achat
   const calculatePrice = () => {
@@ -69,7 +72,7 @@ const CharacterCounter = () => {
     setPurchaseInProgress(true);
     try {
       await characterService.purchaseCredits(purchaseAmount);
-      enqueueSnackbar('Achat de caractères réussi', { variant: 'success' });
+      enqueueSnackbar(t('characterCounter.snackbar.purchaseSuccess'), { variant: 'success' });
       setOpenDialog(false);
       
       // Rafraîchir les stats
@@ -77,7 +80,7 @@ const CharacterCounter = () => {
       setStats(statsData);
     } catch (error) {
       console.error('Error purchasing characters:', error);
-      enqueueSnackbar('Erreur lors de l\'achat: ' + error.message, { variant: 'error' });
+      enqueueSnackbar(t('characterCounter.snackbar.purchaseError', { error: error.message }), { variant: 'error' });
     } finally {
       setPurchaseInProgress(false);
     }
@@ -89,7 +92,7 @@ const CharacterCounter = () => {
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Caractères disponibles
+            {t('characterCounter.availableTitle')}
           </Typography>
           <LinearProgress />
         </CardContent>
@@ -103,7 +106,7 @@ const CharacterCounter = () => {
       <Card>
         <CardContent>
           <Typography variant="h6" color="error">
-            Erreur: {error}
+            {t('common.errorLabel', { error: error })}
           </Typography>
         </CardContent>
       </Card>
@@ -118,7 +121,7 @@ const CharacterCounter = () => {
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">
-                Caractères disponibles
+                {t('characterCounter.availableTitle')}
               </Typography>
               <Button 
                 startIcon={<AddIcon />}
@@ -126,7 +129,7 @@ const CharacterCounter = () => {
                 size="small"
                 onClick={() => setOpenDialog(true)}
               >
-                Acheter des caractères
+                {t('characterCounter.buyButton')}
               </Button>
             </Box>
             
@@ -134,7 +137,7 @@ const CharacterCounter = () => {
               <Grid item xs={12} md={4}>
                 <Box sx={{ textAlign: 'center', p: 1 }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Caractères gratuits restants
+                    {t('characterCounter.freeRemainingLabel')}
                   </Typography>
                   <Typography variant="h5" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <TextFieldsIcon color="primary" sx={{ mr: 1 }} />
@@ -146,7 +149,7 @@ const CharacterCounter = () => {
               <Grid item xs={12} md={4}>
                 <Box sx={{ textAlign: 'center', p: 1 }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Caractères utilisés au total
+                    {t('characterCounter.totalUsedLabel')}
                   </Typography>
                   <Typography variant="h5" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <TextFieldsIcon color="secondary" sx={{ mr: 1 }} />
@@ -158,7 +161,7 @@ const CharacterCounter = () => {
               <Grid item xs={12} md={4}>
                 <Box sx={{ textAlign: 'center', p: 1 }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Prix par caractère
+                    {t('characterCounter.pricePerCharLabel')}
                   </Typography>
                   <Typography variant="h5" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <MoneyIcon color="success" sx={{ mr: 1 }} />
@@ -170,7 +173,7 @@ const CharacterCounter = () => {
             
             <Box sx={{ mt: 2 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Utilisation des caractères gratuits
+                {t('characterCounter.freeUsageLabel')}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <LinearProgress 
@@ -188,15 +191,14 @@ const CharacterCounter = () => {
 
         {/* Dialogue d'achat de caractères */}
         <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Acheter des caractères</DialogTitle>
+          <DialogTitle>{t('characterCounter.dialog.title')}</DialogTitle>
           <DialogContent>
             <Typography variant="body2" paragraph sx={{ mb: 3 }}>
-              Les caractères vous permettent de créer des datasets pour fine-tuner vos modèles.
-              Chaque utilisateur dispose de {pricingInfo.free_characters.toLocaleString()} caractères gratuits.
+              {t('characterCounter.dialog.description', { count: pricingInfo.free_characters.toLocaleString() })}
             </Typography>
             
             <TextField
-              label="Nombre de caractères"
+              label={t('characterCounter.dialog.amountLabel')}
               type="number"
               fullWidth
               value={purchaseAmount}
@@ -209,14 +211,14 @@ const CharacterCounter = () => {
                   </InputAdornment>
                 ),
               }}
-              helperText="Minimum 1 000 caractères"
+              helperText={t('characterCounter.dialog.amountHelper')}
             />
             
             <Divider sx={{ my: 2 }} />
             
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Typography variant="body1">
-                Prix par caractère:
+                {t('characterCounter.dialog.pricePerCharLabel')}:
               </Typography>
               <Typography variant="body1">
                 ${pricingInfo.price_per_character.toFixed(6)}
@@ -225,7 +227,7 @@ const CharacterCounter = () => {
             
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                Total:
+                {t('characterCounter.dialog.totalLabel')}:
               </Typography>
               <Chip 
                 icon={<MoneyIcon />} 
@@ -238,7 +240,7 @@ const CharacterCounter = () => {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenDialog(false)}>
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button 
               variant="contained" 
@@ -246,7 +248,7 @@ const CharacterCounter = () => {
               disabled={purchaseInProgress || purchaseAmount < 1000}
               startIcon={purchaseInProgress ? null : <ShoppingCartIcon />}
             >
-              {purchaseInProgress ? 'Traitement...' : 'Acheter maintenant'}
+              {purchaseInProgress ? t('characterCounter.dialog.processingButton') : t('characterCounter.dialog.buyButton')}
             </Button>
           </DialogActions>
         </Dialog>

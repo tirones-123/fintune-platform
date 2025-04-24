@@ -1,8 +1,12 @@
 import React from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
-const LoadingScreen = ({ message = 'Chargement...' }) => {
+const LoadingScreen = ({ message }) => {
+  const { t } = useTranslation();
+  const displayMessage = message || t('common.loading');
+
   return (
     <Box
       sx={{
@@ -42,7 +46,7 @@ const LoadingScreen = ({ message = 'Chargement...' }) => {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            FineTune
+            FineTuner
           </Typography>
           
           <CircularProgress 
@@ -52,7 +56,7 @@ const LoadingScreen = ({ message = 'Chargement...' }) => {
           />
           
           <Typography variant="body1" color="text.secondary">
-            {message}
+            {displayMessage}
           </Typography>
         </Box>
       </motion.div>

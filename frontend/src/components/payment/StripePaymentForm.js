@@ -20,6 +20,7 @@ import {
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 // Plans disponibles
 const plans = [
@@ -68,6 +69,7 @@ const plans = [
 const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
   const theme = useTheme();
   const { updateSubscription, startTrial } = useAuth();
+  const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState('pro');
   const [cardName, setCardName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -117,22 +119,22 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
     
     // Validation simple
     if (!cardName.trim()) {
-      setError('Le nom sur la carte est requis');
+      setError(t('payment.validation.cardNameRequired'));
       return;
     }
     
     if (cardNumber.replace(/\s+/g, '').length < 16) {
-      setError('Numéro de carte invalide');
+      setError(t('payment.validation.invalidCardNumber'));
       return;
     }
     
     if (expiryDate.length < 5) {
-      setError('Date d\'expiration invalide');
+      setError(t('payment.validation.invalidExpiryDate'));
       return;
     }
     
     if (cvv.length < 3) {
-      setError('CVV invalide');
+      setError(t('payment.validation.invalidCvv'));
       return;
     }
     
@@ -163,7 +165,7 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
       }, 1500);
     } catch (err) {
       console.error('Payment error:', err);
-      setError('Une erreur est survenue lors du traitement du paiement. Veuillez réessayer.');
+      setError(t('payment.error.generic'));
     } finally {
       setLoading(false);
     }
@@ -174,15 +176,15 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
       {success ? (
         <Alert severity="success" sx={{ mb: 3 }}>
           {isTrial 
-            ? 'Votre essai gratuit a été activé avec succès ! Votre carte sera débitée automatiquement à la fin de la période d\'essai, sauf si vous annulez avant.'
-            : 'Paiement traité avec succès ! Votre abonnement est maintenant actif.'}
+            ? t('payment.success.trial')
+            : t('payment.success.subscription')}
         </Alert>
       ) : (
         <form onSubmit={handleSubmit}>
           {!isTrial && (
             <>
               <Typography variant="h6" gutterBottom>
-                Choisissez votre plan
+                {t('payment.choosePlanTitle')}
               </Typography>
               
               <FormControl component="fieldset" sx={{ width: '100%', mb: 4 }}>
@@ -216,7 +218,7 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
                                 borderRadius: 1,
                               }}
                             >
-                              Recommandé
+                              {t('payment.recommendedBadge')}
                             </Box>
                           )}
                           
@@ -229,7 +231,7 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
                                   {plan.name}
                                 </Typography>
                                 <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', my: 1 }}>
-                                  {plan.price}€<Typography component="span" variant="body2">/mois</Typography>
+                                  {plan.price}€<Typography component="span" variant="body2">/{t('common.monthShort')}</Typography>
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
                                   {plan.description}
@@ -260,12 +262,12 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
           )}
           
           <Typography variant="h6" gutterBottom>
-            {isTrial ? 'Informations de paiement pour l\'essai gratuit' : 'Informations de paiement'}
+            {isTrial ? t('payment.trialInfoTitle') : t('payment.paymentInfoTitle')}
           </Typography>
           
           {isTrial && (
             <Alert severity="info" sx={{ mb: 3 }}>
-              Votre carte ne sera pas débitée aujourd'hui. Nous la conservons uniquement pour activer votre abonnement à la fin de la période d'essai de 7 jours, sauf si vous annulez avant.
+              {t('payment.trialAlert')}
             </Alert>
           )}
           
@@ -274,7 +276,7 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <TextField
-                    label="Nom sur la carte"
+                    label={t('payment.cardNameLabel')}
                     value={cardName}
                     onChange={(e) => setCardName(e.target.value)}
                     fullWidth
@@ -284,7 +286,7 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
                 
                 <Grid item xs={12}>
                   <TextField
-                    label="Numéro de carte"
+                    label={t('payment.cardNumberLabel')}
                     value={cardNumber}
                     onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
                     fullWidth
@@ -299,7 +301,7 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
                 
                 <Grid item xs={6}>
                   <TextField
-                    label="Date d'expiration"
+                    label={t('payment.expiryDateLabel')}
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
                     fullWidth
@@ -311,7 +313,7 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
                 
                 <Grid item xs={6}>
                   <TextField
-                    label="CVV"
+                    label={t('payment.cvvLabel')}
                     value={cvv}
                     onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
                     fullWidth
@@ -328,7 +330,7 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
             <LockIcon sx={{ mr: 1, color: 'success.main' }} />
             <Typography variant="body2" color="text.secondary">
-              Paiement sécurisé avec Stripe. Vos informations de paiement sont protégées.
+              {t('payment.securePaymentMessage')}
             </Typography>
           </Box>
           
@@ -348,10 +350,10 @@ const StripePaymentForm = ({ onSuccess, isTrial = false }) => {
             startIcon={loading ? <CircularProgress size={20} /> : null}
           >
             {loading
-              ? 'Traitement en cours...'
+              ? t('payment.processingButton')
               : isTrial
-                ? 'Démarrer l\'essai gratuit'
-                : `Payer ${plans.find(p => p.id === selectedPlan)?.price || 0}€ par mois`}
+                ? t('payment.startTrialButton')
+                : t('payment.payButton', { amount: plans.find(p => p.id === selectedPlan)?.price || 0 })}
           </Button>
         </form>
       )}

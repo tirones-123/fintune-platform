@@ -32,6 +32,7 @@ import {
   Psychology as FineTuningIcon // Exemple pour fine-tuning
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 // Fonction pour choisir une icône basée sur le type de notification
 function renderContent(notification) {
@@ -70,6 +71,7 @@ function renderContent(notification) {
 
 export default function NotificationsPopover({ notifications = [], totalUnread, onMarkAllAsRead, onMarkOneAsRead, isLoading }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(null);
 
   const handleOpen = (event) => {
@@ -104,7 +106,7 @@ export default function NotificationsPopover({ notifications = [], totalUnread, 
 
   return (
     <>
-      <Tooltip title="Notifications">
+      <Tooltip title={t('notifications.tooltip')}>
         <IconButton color={open ? 'primary' : 'default'} onClick={handleOpen}>
           <Badge badgeContent={totalUnread} color="error">
             <NotificationsIcon />
@@ -130,14 +132,14 @@ export default function NotificationsPopover({ notifications = [], totalUnread, 
       >
         <Box sx={{ display: 'flex', alignItems: 'center', py: 2, px: 2.5 }}>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="subtitle1">Notifications</Typography>
+            <Typography variant="subtitle1">{t('notifications.title')}</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              Vous avez {totalUnread} messages non lus
+              {t('notifications.unreadCount', { count: totalUnread })}
             </Typography>
           </Box>
 
           {totalUnread > 0 && (
-            <Tooltip title="Marquer tout comme lu">
+            <Tooltip title={t('notifications.markAllReadTooltip')}>
               <IconButton color="primary" onClick={handleMarkAllRead}>
                 <DoneAllIcon />
               </IconButton>
@@ -150,13 +152,13 @@ export default function NotificationsPopover({ notifications = [], totalUnread, 
         {isLoading ? (
           <Box sx={{ p: 2, textAlign: 'center' }}><CircularProgress size={24} /></Box>
         ) : notifications.length === 0 ? (
-            <Typography sx={{ p: 2, color: 'text.secondary' }}>Aucune notification</Typography>
+            <Typography sx={{ p: 2, color: 'text.secondary' }}>{t('notifications.noNotifications')}</Typography>
         ) : (
           <List
             disablePadding
             subheader=
               <ListSubheader disableSticky sx={{ py: 1, px: 2.5, typography: 'overline' }}>
-                Nouveau
+                {t('notifications.newSubheader')}
               </ListSubheader>
           >
             {notifications.map((notification) => (

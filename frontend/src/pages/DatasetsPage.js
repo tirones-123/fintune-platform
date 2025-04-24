@@ -21,6 +21,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import { datasetService } from '../services/apiService';
+import { useTranslation } from 'react-i18next';
 
 // Animation variants
 const containerVariants = {
@@ -47,6 +48,7 @@ const itemVariants = {
 
 const DatasetsPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [datasets, setDatasets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -58,14 +60,14 @@ const DatasetsPage = () => {
         const data = await datasetService.getAll();
         setDatasets(data);
       } catch (error) {
-        console.error('Erreur lors de la récupération des datasets:', error);
+        console.error(t('datasetsPage.error.fetch'), error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchDatasets();
-  }, []);
+  }, [t]);
 
   const handleMenuOpen = (event, datasetId) => {
     setMenuAnchorEl(event.currentTarget);
@@ -84,35 +86,20 @@ const DatasetsPage = () => {
       await datasetService.delete(selectedDatasetId);
       setDatasets(datasets.filter(dataset => dataset.id !== selectedDatasetId));
     } catch (error) {
-      console.error('Erreur lors de la suppression du dataset:', error);
+      console.error(t('datasetsPage.error.delete'), error);
     }
     handleMenuClose();
   };
 
   const getStatusLabel = (status) => {
-    switch (status) {
-      case 'processing':
-        return 'En traitement';
-      case 'ready':
-        return 'Prêt';
-      case 'failed':
-        return 'Échec';
-      default:
-        return status;
-    }
+    return t(`datasetDetail.status.${status}`, status);
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'processing':
-        return 'warning';
-      case 'ready':
-        return 'success';
-      case 'failed':
-        return 'error';
-      default:
-        return 'default';
-    }
+    if (status === t('datasetDetail.status.ready')) return 'success';
+    if (status === t('datasetDetail.status.generating')) return 'warning';
+    if (status === t('datasetDetail.status.failed')) return 'error';
+    return 'default';
   };
 
   const formatDate = (dateString) => {
@@ -140,7 +127,7 @@ const DatasetsPage = () => {
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-          Datasets
+          {t('datasetsPage.title')}
         </Typography>
         <Box>
           <Button
@@ -149,7 +136,7 @@ const DatasetsPage = () => {
             onClick={() => navigate('/dashboard/projects')}
             sx={{ borderRadius: 2, mr: 2 }}
           >
-            Nouveau dataset
+            {t('datasetsPage.newDatasetButton')}
           </Button>
           <Button
             variant="outlined"
@@ -157,7 +144,7 @@ const DatasetsPage = () => {
             onClick={() => navigate('/dashboard/fine-tuning')}
             sx={{ borderRadius: 2 }}
           >
-            Fine-tunings
+            {t('datasetsPage.fineTuningsButton')}
           </Button>
         </Box>
       </Box>
@@ -196,6 +183,7 @@ const DatasetsPage = () => {
                       <IconButton 
                         size="small" 
                         onClick={(e) => handleMenuOpen(e, dataset.id)}
+                        aria-label={t('common.options')}
                       >
                         <MoreVertIcon />
                       </IconButton>
@@ -210,16 +198,16 @@ const DatasetsPage = () => {
 
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      Modèle: {dataset.model}
+                      {t('datasetsPage.modelLabel')}: {dataset.model}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {dataset.pairs_count} paires • {formatSize(dataset.size)}
+                      {t('datasetsPage.pairsAndSize', { pairs: dataset.pairs_count, size: formatSize(dataset.size) })}
                     </Typography>
                   </Box>
 
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                     <Typography variant="caption" color="text.secondary">
-                      Créé le {formatDate(dataset.created_at)}
+                      {t('common.createdOn')}: {formatDate(dataset.created_at)}
                     </Typography>
                   </Box>
                   
@@ -232,7 +220,7 @@ const DatasetsPage = () => {
                         onClick={() => navigate(`/dashboard/datasets/${dataset.id}`)}
                         sx={{ borderRadius: 2 }}
                       >
-                        Voir les détails
+                        {t('common.viewDetails')}
                       </Button>
                     </Grid>
                     <Grid item xs={6}>
@@ -243,7 +231,7 @@ const DatasetsPage = () => {
                         sx={{ borderRadius: 2 }}
                         disabled={dataset.status !== 'ready'}
                       >
-                        Fine-tuner
+                        {t('datasetsPage.fineTuneButton')}
                       </Button>
                     </Grid>
                   </Grid>
@@ -265,10 +253,10 @@ const DatasetsPage = () => {
         >
           <DatasetIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" gutterBottom>
-            Aucun dataset disponible
+            {t('datasetsPage.noDatasets.title')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 500, mx: 'auto' }}>
-            Vous n'avez pas encore créé de dataset. Les datasets sont des ensembles de paires question-réponse utilisées pour le fine-tuning de modèles.
+            {t('datasetsPage.noDatasets.description')}
           </Typography>
           <Button 
             variant="contained" 
@@ -276,7 +264,7 @@ const DatasetsPage = () => {
             onClick={() => navigate('/dashboard/projects')}
             sx={{ borderRadius: 2 }}
           >
-            Créer un dataset
+            {t('datasetsPage.noDatasets.createButton')}
           </Button>
         </Box>
       )}
@@ -292,7 +280,7 @@ const DatasetsPage = () => {
             navigate(`/dashboard/datasets/${selectedDatasetId}`);
           }
         }}>
-          Voir les détails
+          {t('common.viewDetails')}
         </MenuItem>
         {datasets.find(d => d.id === selectedDatasetId)?.status === 'ready' && (
           <MenuItem onClick={() => {
@@ -301,11 +289,11 @@ const DatasetsPage = () => {
               navigate(`/dashboard/fine-tuning/new/${selectedDatasetId}`);
             }
           }}>
-            Créer un fine-tuning
+            {t('datasetsPage.menu.createFineTuning')}
           </MenuItem>
         )}
         <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-          Supprimer
+          {t('common.delete')}
         </MenuItem>
       </Menu>
     </Box>

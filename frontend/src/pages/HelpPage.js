@@ -16,43 +16,46 @@ import ApiIcon from '@mui/icons-material/Api';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import PageTransition from '../components/common/PageTransition';
+import { useTranslation } from 'react-i18next';
 
 function HelpPage() {
+  const { t } = useTranslation();
+
   return (
     <PageTransition>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
-          <HelpOutlineIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Centre d'Aide FineTuner
+          <HelpOutlineIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> {t('helpPage.title')}
         </Typography>
 
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2, mb: 4 }}>
           <Typography variant="h5" gutterBottom>
-            Comment fonctionne FineTuner Platform ?
+            {t('helpPage.howItWorks.title')}
           </Typography>
           <Typography paragraph>
-            FineTuner vous permet de créer des assistants IA personnalisés en fine-tunant des modèles de langage sur vos propres données. Le processus général est le suivant :
+            {t('helpPage.howItWorks.intro')}
           </Typography>
           <List dense>
             <ListItem>
-              <ListItemText primary="1. Création d'un Projet :" secondary="Organisez vos travaux en projets distincts." />
+              <ListItemText primary={t('helpPage.howItWorks.step1.title')} secondary={t('helpPage.howItWorks.step1.desc')} />
             </ListItem>
             <ListItem>
-              <ListItemText primary="2. Import de Contenu :" secondary="Ajoutez vos documents, pages web, ou vidéos YouTube. Nous extrayons le texte pertinent." />
+              <ListItemText primary={t('helpPage.howItWorks.step2.title')} secondary={t('helpPage.howItWorks.step2.desc')} />
             </ListItem>
             <ListItem>
-              <ListItemText primary="3. Création d'un Dataset :" secondary="Nous transformons votre contenu en paires de questions/réponses optimisées pour le fine-tuning." />
+              <ListItemText primary={t('helpPage.howItWorks.step3.title')} secondary={t('helpPage.howItWorks.step3.desc')} />
             </ListItem>
             <ListItem>
-              <ListItemText primary="4. Lancement du Fine-tuning :" secondary="Choisissez un modèle de base (ex: GPT-3.5) et lancez l'entraînement sur votre dataset." />
+              <ListItemText primary={t('helpPage.howItWorks.step4.title')} secondary={t('helpPage.howItWorks.step4.desc')} />
             </ListItem>
             <ListItem>
-              <ListItemText primary="5. Test & Intégration :" secondary="Testez votre modèle personnalisé dans le Playground et intégrez-le à vos applications." />
+              <ListItemText primary={t('helpPage.howItWorks.step5.title')} secondary={t('helpPage.howItWorks.step5.desc')} />
             </ListItem>
           </List>
           
           <Box sx={{ mt: 3, mb: 3 }}>
             <Typography variant="subtitle1" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-              <YouTubeIcon color="error" fontSize="small" sx={{ mr: 1 }} /> Tutoriel vidéo :
+              <YouTubeIcon color="error" fontSize="small" sx={{ mr: 1 }} /> {t('helpPage.howItWorks.videoTitle')}
             </Typography>
             <Box sx={{ 
               position: 'relative',
@@ -73,7 +76,7 @@ function HelpPage() {
                   border: 'none'
                 }}
                 src="https://www.youtube.com/embed/VIDEO_ID_PLACEHOLDER"
-                title="Tutoriel FineTuner Platform"
+                title={t('helpPage.howItWorks.videoIframeTitle')}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               ></iframe>
@@ -81,27 +84,27 @@ function HelpPage() {
           </Box>
           
           <Typography paragraph>
-            Le fine-tuning adapte le modèle à votre style, terminologie et base de connaissances spécifiques, le rendant beaucoup plus performant pour vos cas d'usage.
+            {t('helpPage.howItWorks.conclusion')}
           </Typography>
         </Paper>
 
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
           <Typography variant="h5" gutterBottom>
-            <IntegrationInstructionsIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Intégrer vos modèles Fine-tunés
+            <IntegrationInstructionsIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> {t('helpPage.integration.title')}
           </Typography>
           <Typography paragraph>
-            Une fois votre modèle fine-tuné (statut "completed"), vous pouvez l'utiliser dans vos propres applications ou workflows.
+            {t('helpPage.integration.intro')}
           </Typography>
 
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              <ApiIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Via l'API FineTuner (Recommandé)
+              <ApiIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> {t('helpPage.integration.viaFinetunerApi.title')}
             </Typography>
             <Typography paragraph>
-              Nous fournirons bientôt un endpoint API dédié pour interagir facilement avec vos modèles fine-tunés hébergés sur FineTuner. Cela simplifiera l'intégration et la gestion.
+              {t('helpPage.integration.viaFinetunerApi.description')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              *(Cette fonctionnalité est en cours de développement)*
+              {t('helpPage.integration.viaFinetunerApi.status')}
             </Typography>
           </Box>
 
@@ -109,31 +112,21 @@ function HelpPage() {
 
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Via l'API du Fournisseur (OpenAI, Anthropic, etc.)
+              {t('helpPage.integration.viaProviderApi.title')}
             </Typography>
             <Typography paragraph>
-              Vous pouvez utiliser directement l'API du fournisseur (ex: OpenAI) en utilisant l'ID de votre modèle fine-tuné. Vous trouverez cet ID sur la page de détails de votre Fine-tuning ou dans le Playground.
+              {t('helpPage.integration.viaProviderApi.description')}
             </Typography>
             <Typography paragraph>
-              Exemple avec l'API OpenAI (Python) :
+              {t('helpPage.integration.viaProviderApi.exampleTitle')}
             </Typography>
             <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'action.hover', borderRadius: 1, overflowX: 'auto' }}>
               <pre><code>
-{`import openai
-
-openai.api_key = 'VOTRE_CLE_API_OPENAI'
-
-response = openai.Completion.create(
-  model="VOTRE_ID_MODELE_FINETUNE", # Remplacez par l'ID de votre modèle
-  prompt="Votre prompt ici...",
-  max_tokens=150
-)
-
-print(response.choices[0].text.strip())`}
+{t('helpPage.integration.viaProviderApi.codeExample')}
               </code></pre>
             </Paper>
             <Typography variant="body2" sx={{ mt: 1 }}>
-              Consultez la documentation de <Link href="https://platform.openai.com/docs/api-reference/completions/create" target="_blank" rel="noopener noreferrer">l'API OpenAI</Link> pour plus de détails sur les paramètres.
+              {t('helpPage.integration.viaProviderApi.docsLinkText')} <Link href="https://platform.openai.com/docs/api-reference/completions/create" target="_blank" rel="noopener noreferrer">{t('helpPage.integration.viaProviderApi.openaiApiLink')}</Link> {t('helpPage.integration.viaProviderApi.forMoreDetails')}
             </Typography>
           </Box>
 
@@ -141,19 +134,19 @@ print(response.choices[0].text.strip())`}
 
           <Box>
             <Typography variant="h6" gutterBottom>
-              Via Zapier / Make / Autres plateformes d'automatisation
+              {t('helpPage.integration.viaAutomation.title')}
             </Typography>
             <Typography paragraph>
-              La plupart des plateformes d'automatisation (Zapier, Make, n8n, etc.) proposent des intégrations natives avec OpenAI ou permettent d'effectuer des appels API HTTP génériques.
+              {t('helpPage.integration.viaAutomation.description1')}
             </Typography>
             <Typography paragraph>
-              Vous pouvez utiliser l'action "OpenAI Completion" (ou équivalent) en spécifiant l'ID de votre modèle fine-tuné dans le champ "Model". Vous aurez besoin de votre clé API OpenAI.
+              {t('helpPage.integration.viaAutomation.description2')}
             </Typography>
             <Typography paragraph>
-              Si l'intégration directe n'est pas disponible, utilisez l'action "Webhook" ou "HTTP Request" pour appeler l'API du fournisseur comme décrit ci-dessus.
+              {t('helpPage.integration.viaAutomation.description3')}
             </Typography>
             <Typography variant="body2">
-              Référez-vous à la documentation de votre plateforme d'automatisation préférée pour la configuration exacte.
+              {t('helpPage.integration.viaAutomation.docsNote')}
             </Typography>
           </Box>
         </Paper>

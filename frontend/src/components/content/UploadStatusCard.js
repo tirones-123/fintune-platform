@@ -22,6 +22,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import UpdateIcon from '@mui/icons-material/Update';
 import { contentService } from '../../services/apiService';
+import { useTranslation } from 'react-i18next';
 
 // Prix par caractère
 const PRICE_PER_CHARACTER = 0.000365;
@@ -35,13 +36,13 @@ const USAGE_THRESHOLDS = {
   other: { min: 5000, optimal: 30000, max: 100000 }
 };
 
-// Descriptions des niveaux de qualité
+// Traductions statiques pour les niveaux de qualité (peut être mis dans JSON plus tard)
 const QUALITY_DESCRIPTIONS = {
-  insufficient: "Données insuffisantes",
-  minimal: "Qualité minimale",
-  good: "Bonne qualité",
-  optimal: "Qualité optimale",
-  excessive: "Données au-delà de l'optimal"
+  insufficient: "Insufficient Data",
+  minimal: "Minimal Quality",
+  good: "Good Quality",
+  optimal: "Optimal Quality",
+  excessive: "Excessive Data"
 };
 
 // Couleurs pour les niveaux de qualité
@@ -85,7 +86,7 @@ const getQualityProgress = (characterCount, usageType = 'other') => {
 };
 
 const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageType = 'other', onMetadataUpdate }) => {
-  // État local pour le contenu et les métadonnées
+  const { t } = useTranslation();
   const [contentData, setContentData] = useState(content);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pollingActive, setPollingActive] = useState(content.status === 'processing');
@@ -108,7 +109,7 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
     }
   };
 
-  // Fonction pour obtenir le chip de statut
+  // Fonction pour obtenir le chip de statut (traduite)
   const getStatusChip = () => {
     const status = contentData.status || 'pending';
     
@@ -117,7 +118,7 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
         return (
           <Chip
             icon={<CheckCircleIcon />}
-            label="Prêt"
+            label={t('content.status.ready')}
             size="small"
             color="success"
             variant="outlined"
@@ -127,7 +128,7 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
         return (
           <Chip
             icon={<ErrorIcon />}
-            label="Échec"
+            label={t('content.status.failed')}
             size="small"
             color="error"
             variant="outlined"
@@ -137,7 +138,7 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
         return (
           <Chip
             icon={<HourglassTopIcon />}
-            label="En cours"
+            label={t('content.status.processing')}
             size="small"
             color="primary"
             variant="outlined"
@@ -147,7 +148,7 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
         return (
           <Chip
             icon={<HourglassTopIcon />}
-            label="En attente"
+            label={t('content.status.pending')}
             size="small"
             color="default"
             variant="outlined"
@@ -223,7 +224,7 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
             <Box mr={2}>{getContentIcon()}</Box>
             <Box>
               <Typography variant="subtitle2" noWrap sx={{ maxWidth: 200 }}>
-                {contentData.name || 'Sans titre'}
+                {contentData.name || t('common.untitled')}
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block" noWrap>
                 {contentData.url ? contentData.url : (contentData.filename || '')}
@@ -234,9 +235,8 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
           <Stack direction="row" spacing={1} alignItems="center">
             {getStatusChip()}
             
-            {/* Bouton de rafraîchissement des métadonnées */}
             {(contentData.status === 'completed' || contentData.status === 'processing') && (
-              <Tooltip title="Rafraîchir les données">
+              <Tooltip title={t('content.refreshTooltip')}>
                 <IconButton
                   size="small"
                   color="primary"
@@ -253,7 +253,7 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
             )}
             
             {onDelete && (
-              <Tooltip title="Supprimer">
+              <Tooltip title={t('common.delete')}>
                 <IconButton
                   size="small"
                   color="error"
@@ -270,32 +270,30 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
           <Box mt={1}>
             <LinearProgress />
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, textAlign: 'center' }}>
-              Extraction des caractères en cours...
+              {t('content.processingMessage')}
             </Typography>
           </Box>
         )}
         
-        {/* Affichage des statistiques détaillées */}
         {showDetailedStats && contentData.status === 'completed' && (
           <Box mt={1.5} p={1.5} bgcolor="background.paper" borderRadius={1} border="1px solid" borderColor="divider">
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
               <Typography variant="body2">
                 {hasCharacterCount ? (
-                  <strong>{characterCount.toLocaleString()} caractères</strong>
+                  <strong>{t('content.charCountDisplay', { count: characterCount.toLocaleString() })}</strong>
                 ) : (
-                  <em>Comptage en attente...</em>
+                  <em>{t('content.countingPending')}</em>
                 )}
               </Typography>
               {hasCharacterCount && (
                 <Typography variant="body2" color="text.secondary">
-                  <Tooltip title="Coût calculé au tarif de 0,000365$ par caractère">
-                    <span>Coût: ${(characterCount * PRICE_PER_CHARACTER).toFixed(2)}</span>
+                  <Tooltip title={t('content.costTooltip')}>
+                    <span>{t('content.costLabel')}: ${(characterCount * PRICE_PER_CHARACTER).toFixed(2)}</span>
                   </Tooltip>
                 </Typography>
               )}
             </Box>
             
-            {/* Jauge de qualité pour ce contenu spécifique */}
             {hasCharacterCount && (
               <Box mt={1}>
                 <LinearProgress 
@@ -311,9 +309,9 @@ const UploadStatusCard = ({ content, onDelete, showDetailedStats = false, usageT
                   }} 
                 />
                 <Box display="flex" justifyContent="space-between" mt={0.5}>
-                  <Typography variant="caption" color="text.secondary">Qualité</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('content.qualityLabel')}</Typography>
                   <Chip
-                    label={QUALITY_DESCRIPTIONS[qualityLevel]}
+                    label={t(`content.qualityLevel.${qualityLevel}`, QUALITY_DESCRIPTIONS[qualityLevel])}
                     size="small"
                     sx={{
                       height: 18,

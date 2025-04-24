@@ -47,6 +47,7 @@ import FolderIcon from '@mui/icons-material/Folder';
 import DescriptionIcon from '@mui/icons-material/Description';
 import BuildIcon from '@mui/icons-material/Build';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import { useTranslation } from 'react-i18next';
 
 // Animation variants
 const containerVariants = {
@@ -128,6 +129,7 @@ const StatCard = ({ title, value, icon: Icon, color, suffix = '', prefix = '' })
 const RecentProjects = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { t } = useTranslation();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -148,7 +150,7 @@ const RecentProjects = () => {
             
             // Calculer la progression du projet (simple exemple)
             const progress = datasets.length > 0 ? 100 : (contents.length > 0 ? 50 : 25);
-            const status = progress === 100 ? 'Terminé' : 'En cours';
+            const status = progress === 100 ? t('common.status.completed') : t('common.status.inProgress');
             
             return {
               ...project,
@@ -158,20 +160,20 @@ const RecentProjects = () => {
               status
             };
           } catch (error) {
-            console.error(`Erreur lors de la récupération des détails pour le projet ${project.id}:`, error);
+            console.error(t('dashboard.recentProjects.error.fetch'), error);
             return {
               ...project,
               contentCount: 0,
               datasetCount: 0,
               progress: 0,
-              status: 'En cours'
+              status: t('common.status.inProgress')
             };
           }
         }));
         
         setProjects(projectsWithCounts);
       } catch (error) {
-        console.error('Erreur lors de la récupération des projets:', error);
+        console.error(t('dashboard.recentProjects.error.fetch'), error);
         setProjects([]);
       } finally {
         setLoading(false);
@@ -179,7 +181,7 @@ const RecentProjects = () => {
     };
 
     fetchProjects();
-  }, []);
+  }, [t]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -187,14 +189,9 @@ const RecentProjects = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Terminé':
-        return theme.palette.success.main;
-      case 'En cours':
-        return theme.palette.warning.main;
-      default:
-        return theme.palette.info.main;
-    }
+    if (status === t('common.status.completed')) return theme.palette.success.main;
+    if (status === t('common.status.inProgress')) return theme.palette.warning.main;
+    return theme.palette.info.main;
   };
 
   return (
@@ -202,13 +199,13 @@ const RecentProjects = () => {
       <Card sx={{ borderRadius: 4, height: '100%' }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6">Projets récents</Typography>
+            <Typography variant="h6">{t('dashboard.recentProjects.title')}</Typography>
             <Button
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/dashboard/projects')}
               sx={{ fontWeight: 600 }}
             >
-              Voir tous
+              {t('common.viewAll')}
             </Button>
           </Box>
           
@@ -259,22 +256,22 @@ const RecentProjects = () => {
                   </Box>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                    Mis à jour le {formatDate(project.updated_at || project.created_at)}
+                    {t('dashboard.recentProjects.updatedOn', { date: formatDate(project.updated_at || project.created_at) })}
                   </Typography>
                   
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-                      {project.contentCount} contenus
+                      {t('dashboard.recentProjects.contentCount', { count: project.contentCount })}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {project.datasetCount} datasets
+                      {t('dashboard.recentProjects.datasetCount', { count: project.datasetCount })}
                     </Typography>
                   </Box>
                   
                   <Box sx={{ mt: 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Progression
+                        {t('dashboard.recentProjects.progress')}
                       </Typography>
                       <Typography variant="caption" fontWeight={600}>
                         {project.progress}%
@@ -300,14 +297,14 @@ const RecentProjects = () => {
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                Vous n'avez pas encore de projets
+                {t('dashboard.recentProjects.noProjects')}
               </Typography>
               <Button
                 variant="contained"
                 onClick={() => navigate('/dashboard/projects/new')}
                 startIcon={<AddIcon />}
               >
-                Créer un projet
+                {t('dashboard.recentProjects.createButton')}
               </Button>
             </Box>
           )}
@@ -320,7 +317,7 @@ const RecentProjects = () => {
               onClick={() => navigate('/dashboard/projects/new')}
               sx={{ mt: 3, borderRadius: 3, py: 1.2 }}
             >
-              Nouveau projet
+              {t('sidebar.newProjectButton')}
             </Button>
           )}
         </CardContent>
@@ -425,6 +422,7 @@ const QuickActions = () => {
 const RecentModels = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { t } = useTranslation();
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -440,10 +438,10 @@ const RecentModels = () => {
         
         setModels(sortedModels.map(model => ({
           ...model,
-          status: 'Actif' // Simplification pour l'affichage
+          status: t('common.status.active')
         })));
       } catch (error) {
-        console.error('Erreur lors de la récupération des modèles:', error);
+        console.error(t('dashboard.recentModels.error.fetch'), error);
         setModels([]);
       } finally {
         setLoading(false);
@@ -451,7 +449,7 @@ const RecentModels = () => {
     };
 
     fetchModels();
-  }, []);
+  }, [t]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -463,13 +461,13 @@ const RecentModels = () => {
       <Card sx={{ borderRadius: 4, height: '100%' }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6">Modèles récents</Typography>
+            <Typography variant="h6">{t('dashboard.recentModels.title')}</Typography>
             <Button
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/dashboard/fine-tuning')}
               sx={{ fontWeight: 600 }}
             >
-              Voir tous
+              {t('common.viewAll')}
             </Button>
           </Box>
           
@@ -520,7 +518,7 @@ const RecentModels = () => {
                   </Box>
                   
                   <Typography variant="caption" color="text.secondary">
-                    Créé le {formatDate(model.created_at)}
+                    {t('dashboard.recentModels.createdOn', { date: formatDate(model.created_at) })}
                   </Typography>
                 </Box>
               ))}
@@ -528,14 +526,14 @@ const RecentModels = () => {
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                Vous n'avez pas encore de modèles fine-tunés
+                {t('dashboard.recentModels.noModels')}
               </Typography>
               <Button
                 variant="contained"
                 onClick={() => navigate('/dashboard/fine-tuning/new')}
                 startIcon={<PsychologyIcon />}
               >
-                Créer un modèle
+                {t('dashboard.recentModels.createButton')}
               </Button>
             </Box>
           )}
@@ -548,6 +546,7 @@ const RecentModels = () => {
 const DashboardPage = () => {
   const theme = useTheme();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const STORAGE_PREFIX = process.env.REACT_APP_STORAGE_PREFIX || 'fintune_';
   const [stats, setStats] = useState({
     projectCount: 0,
@@ -598,20 +597,20 @@ const DashboardPage = () => {
           creditBalance: user?.creditBalance || 0
         });
       } catch (error) {
-        console.error('Erreur lors de la récupération des statistiques:', error);
+        console.error(t('dashboard.error.fetchStats'), error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
-  }, [user]);
+  }, [user, t]);
 
   return (
     <PageTransition>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
-          Bienvenue sur votre Dashboard, {user?.name || 'Utilisateur'} !
+          {t('dashboard.welcomeMessage', { name: user?.name || t('common.user') })}
         </Typography>
 
         {loading && <CircularProgress sx={{ display: 'block', margin: 'auto' }} />}

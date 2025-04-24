@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -14,12 +14,15 @@ import {
 } from '@mui/material';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import { useSnackbar } from 'notistack';
+import { helperService } from '../../services/apiService';
+import { useTranslation } from 'react-i18next';
 
 // Ce composant gère la définition de l'objectif et la génération du system prompt
-const SystemPromptGenerator = ({ onSystemPromptGenerated }) => {
+const SystemPromptGenerator = ({ onSystemPromptGenerated, initialSystemPrompt = '' }) => {
   const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation();
   const [assistantPurpose, setAssistantPurpose] = useState('');
-  const [systemContent, setSystemContent] = useState('');
+  const [systemContent, setSystemContent] = useState(initialSystemPrompt);
   const [generatingSystemContent, setGeneratingSystemContent] = useState(false);
   const [systemContentError, setSystemContentError] = useState(null);
   const [fineTuningCategory, setFineTuningCategory] = useState('');
@@ -28,25 +31,14 @@ const SystemPromptGenerator = ({ onSystemPromptGenerated }) => {
   // Fonction pour générer le system content (similaire à OnboardingPage)
   const generateSystemContent = async () => {
     if (!assistantPurpose.trim()) {
-      setSystemContentError("Veuillez décrire le but de votre assistant.");
+      setSystemContentError(t('systemPromptGenerator.error.purposeRequired'));
       return;
     }
     setGeneratingSystemContent(true);
     setSystemContentError(null);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/helpers/generate-system-content`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('fintune_accessToken')}`
-        },
-        body: JSON.stringify({ purpose: assistantPurpose })
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Erreur génération system content");
-      }
-      const data = await response.json();
+      const response = await helperService.generateSystemContent(assistantPurpose);
+      const data = response;
       
       setSystemContent(data.system_content);
       setFineTuningCategory(data.fine_tuning_category);
@@ -59,40 +51,47 @@ const SystemPromptGenerator = ({ onSystemPromptGenerated }) => {
           min_characters_recommended: data.min_characters_recommended
       });
       
-      enqueueSnackbar('System prompt généré avec succès', { variant: 'success' });
+      enqueueSnackbar(t('systemPromptGenerator.snackbar.generateSuccess'), { variant: 'success' });
     } catch (error) {
       console.error('Erreur génération system content:', error);
-      setSystemContentError(error.message || "Erreur inconnue.");
-      enqueueSnackbar(`Erreur: ${error.message || "Échec génération"}`, { variant: 'error' });
+      const errMsg = error.message || t('systemPromptGenerator.error.genericGenerate');
+      setSystemContentError(errMsg);
+      enqueueSnackbar(`${t('common.error')}: ${errMsg}`, { variant: 'error' });
     } finally {
       setGeneratingSystemContent(false);
     }
   };
 
+  // Appeler onSystemPromptGenerated quand systemContent change (utile si initialSystemPrompt est fourni)
+  useEffect(() => {
+      if (onSystemPromptGenerated && systemContent) {
+          onSystemPromptGenerated({ system_prompt: systemContent });
+      }
+  }, [systemContent, onSystemPromptGenerated]);
+
   return (
     <Box>
        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <Avatar sx={{ bgcolor: 'success.light', mr: 1.5 }}><PsychologyIcon /></Avatar>
-              <Typography variant="h6">Définir l'Assistant</Typography>
+              <Typography variant="h6">{t('systemPromptGenerator.title')}</Typography>
        </Box>
        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Décrivez l'objectif de votre assistant IA. Cela nous aidera à générer un "System Prompt" initial 
-            et à estimer la quantité de données recommandée.
+            {t('systemPromptGenerator.description')}
        </Typography>
       
       <FormControl fullWidth sx={{ mb: 2 }}>
         <TextField
-          label="Objectif de l'assistant"
+          label={t('systemPromptGenerator.purposeLabel')}
           value={assistantPurpose}
           onChange={(e) => setAssistantPurpose(e.target.value)}
           multiline
           rows={4}
-          placeholder="Exemple: Un chatbot pour répondre aux questions fréquentes sur nos produits, avec un ton amical et informel."
+          placeholder={t('systemPromptGenerator.purposePlaceholder')}
           error={!!systemContentError}
           helperText={systemContentError}
         />
         <FormHelperText>
-          Soyez précis sur le domaine, le ton, et les capacités souhaitées.
+          {t('systemPromptGenerator.purposeHelper')}
         </FormHelperText>
       </FormControl>
 
@@ -103,20 +102,20 @@ const SystemPromptGenerator = ({ onSystemPromptGenerated }) => {
         startIcon={generatingSystemContent ? <CircularProgress size={20} /> : null}
         sx={{ mb: 2 }}
       >
-        {generatingSystemContent ? 'Génération...' : systemContent ? 'Regénérer' : 'Générer System Prompt'}
+        {generatingSystemContent ? t('common.generating') : systemContent ? t('common.regenerate') : t('systemPromptGenerator.generateButton')}
       </Button>
 
       {systemContent && (
         <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>System Prompt Suggéré :</Typography>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>{t('systemPromptGenerator.suggestedPromptTitle')}:</Typography>
           <Typography variant="body2" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', bgcolor: 'action.hover', p: 1, borderRadius: 1 }}>
             {systemContent}
           </Typography>
           {fineTuningCategory && (
-            <Chip label={`Catégorie: ${fineTuningCategory}`} size="small" sx={{ mt: 1, mr: 1 }} />
+            <Chip label={`${t('common.category')}: ${fineTuningCategory}`} size="small" sx={{ mt: 1, mr: 1 }} />
           )}
           {minCharactersRecommended > 0 && (
-            <Chip label={`Recommandé: ${minCharactersRecommended.toLocaleString()} car.`} size="small" sx={{ mt: 1 }} color="info"/>
+            <Chip label={`${t('common.recommended')}: ${minCharactersRecommended.toLocaleString()} car.`} size="small" sx={{ mt: 1 }} color="info"/>
           )}
         </Paper>
       )}

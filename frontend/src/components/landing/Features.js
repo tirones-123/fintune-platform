@@ -4,31 +4,34 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
-
-const features = [
-  {
-    title: 'Importation de contenu simplifiée',
-    description: "Importez facilement vos documents, articles, FAQ ou tout autre contenu textuel pour créer votre base de connaissances.",
-    icon: <AutoAwesomeIcon fontSize="large" />
-  },
-  {
-    title: 'Génération de datasets optimisés',
-    description: "Transformez automatiquement votre contenu en paires question-réponse parfaitement formatées pour le fine-tuning.",
-    icon: <DatasetIcon fontSize="large" />
-  },
-  {
-    title: 'Fine-tuning en un clic',
-    description: "Lancez le fine-tuning de vos modèles préférés directement depuis notre plateforme, sans code ni configuration complexe.",
-    icon: <PsychologyIcon fontSize="large" />
-  },
-  {
-    title: 'Analyse de performance',
-    description: "Évaluez la qualité de vos modèles fine-tunés et identifiez les opportunités d'amélioration grâce à nos outils d'analyse.",
-    icon: <AnalyticsIcon fontSize="large" />
-  }
-];
+import { useTranslation } from 'react-i18next';
 
 const Features = () => {
+  const { t } = useTranslation();
+
+  const features = [
+    {
+      title: t('landing.features.importTitle'),
+      description: t('landing.features.importDesc'),
+      icon: <AutoAwesomeIcon fontSize="large" />
+    },
+    {
+      title: t('landing.features.datasetTitle'),
+      description: t('landing.features.datasetDesc'),
+      icon: <DatasetIcon fontSize="large" />
+    },
+    {
+      title: t('landing.features.finetuneTitle'),
+      description: t('landing.features.finetuneDesc'),
+      icon: <PsychologyIcon fontSize="large" />
+    },
+    {
+      title: t('landing.features.analyticsTitle'),
+      description: t('landing.features.analyticsDesc'),
+      icon: <AnalyticsIcon fontSize="large" />
+    }
+  ];
+
   return (
     <Box
       sx={{
@@ -45,10 +48,10 @@ const Features = () => {
             gutterBottom
             sx={{ fontWeight: 700 }}
           >
-            Fonctionnalités principales
+            {t('landing.features.mainTitle')}
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 800, mx: 'auto' }}>
-            Découvrez comment FineTuner simplifie chaque étape du processus de fine-tuning
+            {t('landing.features.subtitle')}
           </Typography>
         </Box>
 

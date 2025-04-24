@@ -31,24 +31,31 @@ import { api, apiKeyService, userService } from '../../services/apiService';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import DownloadIcon from '@mui/icons-material/Download';
-
-// Définition des modèles disponibles (similaire à OnboardingPage)
-const providerModels = {
-  openai: [
-    { id: 'gpt-4o', name: 'GPT-4o (Modèle le plus performant et récent)', apiId: 'gpt-4o-2024-08-06' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Bon rapport qualité/prix)', apiId: 'gpt-4o-mini-2024-07-18' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo (Économique, bonne performance)', apiId: 'gpt-3.5-turbo-0125' },
-    // Ajouter d'autres modèles si nécessaire
-  ],
-  anthropic: [
-    // { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet (Coming soon)' },
-    // { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku (Coming soon)' },
-  ],
-};
+import { useTranslation } from 'react-i18next';
 
 const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation }) => {
+  const { t } = useTranslation();
+
+  // Définir providerModels ici pour accéder à t()
+  const providerModels = {
+    openai: [
+      { id: 'gpt-4o', name: t('configManager.models.openai.gpt-4o'), apiId: 'gpt-4o-2024-08-06' },
+      { id: 'gpt-4o-mini', name: t('configManager.models.openai.gpt-4o-mini'), apiId: 'gpt-4o-mini-2024-07-18' },
+      { id: 'gpt-3.5-turbo', name: t('configManager.models.openai.gpt-3.5-turbo'), apiId: 'gpt-3.5-turbo-0125' },
+    ],
+    anthropic: [], // Garder vide pour l'instant
+  };
+
   const [provider, setProvider] = useState(initialConfig.provider || 'openai');
-  const [model, setModel] = useState(initialConfig.model || 'gpt-4o');
+  // Sélectionner le premier modèle *traduit* si le modèle initial n'est pas défini ou invalide
+  const [model, setModel] = useState(() => {
+      const initialModelId = initialConfig.model;
+      const availableModels = providerModels[provider] || [];
+      if (initialModelId && availableModels.some(m => m.id === initialModelId)) {
+          return initialModelId;
+      }
+      return availableModels.length > 0 ? availableModels[0].id : '';
+  });
   const [systemPrompt, setSystemPrompt] = useState(initialConfig.system_prompt || '');
   const [apiKey, setApiKey] = useState(''); // La clé n'est pas stockée dans initialConfig
   const [apiKeySaved, setApiKeySaved] = useState(false);
@@ -93,46 +100,44 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
   const handleProviderChange = (e) => {
     const newProvider = e.target.value;
     setProvider(newProvider);
-    setModel(''); // Réinitialiser le modèle
-    setApiKey(''); // Réinitialiser la clé API
+    // Sélectionner le premier modèle du nouveau fournisseur
+    const availableModels = providerModels[newProvider] || [];
+    setModel(availableModels.length > 0 ? availableModels[0].id : '');
+    setApiKey('');
     setApiKeySaved(false);
     setApiKeyError(null);
-    // Sélectionner le premier modèle du nouveau fournisseur
-    if (providerModels[newProvider] && providerModels[newProvider].length > 0) {
-      setModel(providerModels[newProvider][0].id);
-    }
   };
 
   const handleSaveApiKey = async () => {
     if (!apiKey) {
-      setApiKeyError("Clé API requise.");
+      setApiKeyError(t('configManager.error.apiKeyRequired'));
       onApiKeyValidation(false);
       return;
     }
     setSavingApiKey(true);
     setApiKeyError(null);
     try {
-      const verificationResponse = await userService.verifyApiKey(provider, apiKey); // Utiliser userService
+      const verificationResponse = await userService.verifyApiKey(provider, apiKey);
       const { valid, credits, message } = verificationResponse;
 
       if (!valid) {
-        setApiKeyError(message || "Clé API invalide.");
+        setApiKeyError(message || t('configManager.error.invalidApiKey'));
         onApiKeyValidation(false);
         return;
       }
       if (credits === 0) {
-        setApiKeyError("Compte API sans crédits suffisants.");
-        onApiKeyValidation(false); // Valide mais pas utilisable
+        setApiKeyError(t('configManager.error.noCredits'));
+        onApiKeyValidation(false); 
         return;
       }
 
       await apiKeyService.addKey(provider, apiKey);
       setApiKeySaved(true);
-      onApiKeyValidation(true); // Informer le parent que la clé est valide
-      enqueueSnackbar('Clé API validée et enregistrée', { variant: 'success' });
+      onApiKeyValidation(true); 
+      enqueueSnackbar(t('configManager.snackbar.apiKeyValidated'), { variant: 'success' });
     } catch (error) {
       console.error('Erreur validation clé API:', error);
-      setApiKeyError(error.response?.data?.detail || error.message || "Erreur validation clé API.");
+      setApiKeyError(error.response?.data?.detail || error.message || t('configManager.error.validationFailed'));
       onApiKeyValidation(false);
     } finally {
       setSavingApiKey(false);
@@ -143,17 +148,17 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
     <Box>
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
-          Choisissez le modèle que vous souhaitez utiliser et ajoutez votre clé API pour lancer l'entraînement de votre assistant à partir des contenus importés.
+          {t('configManager.infoAlert')}
         </Typography>
       </Alert>
       
       <FormControl fullWidth margin="normal">
-        <InputLabel id="provider-select-label">Fournisseur IA</InputLabel>
+        <InputLabel id="provider-select-label">{t('configManager.providerLabel')}</InputLabel>
         <Select
           labelId="provider-select-label"
           value={provider}
           onChange={handleProviderChange}
-          label="Fournisseur IA"
+          label={t('configManager.providerLabel')}
         >
           <MenuItem value="openai">OpenAI</MenuItem>
           {/* <MenuItem value="anthropic" disabled>Anthropic (Bientôt)</MenuItem> */}
@@ -161,12 +166,12 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
       </FormControl>
 
       <FormControl fullWidth margin="normal">
-        <InputLabel id="model-select-label">Modèle de base</InputLabel>
+        <InputLabel id="model-select-label">{t('configManager.modelLabel')}</InputLabel>
         <Select
           labelId="model-select-label"
           value={model}
           onChange={(e) => setModel(e.target.value)}
-          label="Modèle de base"
+          label={t('configManager.modelLabel')}
           disabled={!provider}
         >
           {provider && providerModels[provider] ? (
@@ -180,15 +185,15 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
               </MenuItem>
             ))
           ) : (
-            <MenuItem disabled>Sélectionnez un fournisseur</MenuItem>
+            <MenuItem disabled>{t('configManager.selectProviderFirst')}</MenuItem>
           )}
         </Select>
-        <FormHelperText>Modèle qui sera fine-tuné avec vos données.</FormHelperText>
+        <FormHelperText>{t('configManager.modelHelperText')}</FormHelperText>
       </FormControl>
 
       <Box sx={{ mt: 2 }}>
         <TextField
-          label={`Clé API ${provider === 'openai' ? 'OpenAI' : 'Anthropic'}`}
+          label={t('configManager.apiKeyLabel', { providerName: provider === 'openai' ? 'OpenAI' : 'Anthropic' })}
           value={apiKey}
           onChange={(e) => {
             setApiKey(e.target.value);
@@ -198,7 +203,7 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
           fullWidth
           type="password"
           margin="normal"
-          placeholder={`Entrez votre clé API ${provider === 'openai' ? 'OpenAI' : 'Anthropic'}`}
+          placeholder={t('configManager.apiKeyPlaceholder', { providerName: provider === 'openai' ? 'OpenAI' : 'Anthropic' })}
           error={!!apiKeyError}
           helperText={apiKeyError}
           disabled={!provider}
@@ -207,8 +212,8 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
               <IconButton 
                 onClick={() => setApiHelpOpen(true)} 
                 edge="end"
-                aria-label="aide clés API"
-                title="Comment obtenir ma clé API ?"
+                aria-label={t('configManager.apiKeyHelpAriaLabel')}
+                title={t('configManager.apiKeyHelpTooltip')}
               >
                 <HelpOutlineIcon />
               </IconButton>
@@ -223,61 +228,61 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
             sx={{ mt: 1 }}
           >
             {savingApiKey ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
-            Valider et Enregistrer la Clé
+            {t('configManager.validateApiKeyButton')}
           </Button>
         ) : (
-           <Alert severity="success" sx={{ mt: 1 }}>Clé API enregistrée et validée.</Alert>
+           <Alert severity="success" sx={{ mt: 1 }}>{t('configManager.apiKeyValidatedMessage')}</Alert>
         )}
       </Box>
 
       {/* Popup d'aide pour la clé API (copié de OnboardingPage) */}
        <Dialog open={apiHelpOpen} onClose={() => setApiHelpOpen(false)} maxWidth="md">
          <DialogTitle>
-           Comment obtenir votre clé API {provider === 'openai' ? 'OpenAI' : 'Anthropic'}
-           <IconButton aria-label="fermer" onClick={() => setApiHelpOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
+           {t('configManager.apiKeyHelpDialog.title', { providerName: provider === 'openai' ? 'OpenAI' : 'Anthropic' })}
+           <IconButton aria-label={t('common.close')} onClick={() => setApiHelpOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
              <CloseIcon />
            </IconButton>
          </DialogTitle>
          <DialogContent dividers>
            {/* Contenu copié depuis OnboardingPage */}
            <Typography variant="h6" gutterBottom>
-             Pourquoi avons-nous besoin de votre clé API ?
+             {t('configManager.apiKeyHelpDialog.whyTitle')}
            </Typography>
            <Typography paragraph>
-             Pour fine-tuner un modèle, nous devons envoyer vos données d'entraînement au fournisseur d'IA que vous avez choisi (OpenAI ou Anthropic). L'entraînement se déroule sur leur infrastructure.
+             {t('configManager.apiKeyHelpDialog.whyPara1', { providerName: provider === 'openai' ? 'OpenAI' : 'Anthropic' })}
            </Typography>
            <Typography paragraph>
-             Votre clé API nous permet d'agir en votre nom pour :
+             {t('configManager.apiKeyHelpDialog.whyPara2')}
            </Typography>
            <List dense>
              <ListItem>
                {/* Remplacer par des icônes Material UI standard si UploadFileIcon etc. ne sont pas importées */}
                <ListItemIcon sx={{ minWidth: 30 }}><CloudUploadIcon fontSize="small" /></ListItemIcon>
-               <ListItemText primary="Envoyer le fichier d'entraînement" />
+               <ListItemText primary={t('configManager.apiKeyHelpDialog.whyItem1')} />
              </ListItem>
              <ListItem>
                <ListItemIcon sx={{ minWidth: 30 }}><PlayCircleOutlineIcon fontSize="small" /></ListItemIcon>
-               <ListItemText primary="Lancer le job de fine-tuning" />
+               <ListItemText primary={t('configManager.apiKeyHelpDialog.whyItem2')} />
              </ListItem>
              <ListItem>
                <ListItemIcon sx={{ minWidth: 30 }}><DownloadIcon fontSize="small" /></ListItemIcon>
-               <ListItemText primary="Récupérer l'identifiant du modèle fine-tuné une fois terminé" />
+               <ListItemText primary={t('configManager.apiKeyHelpDialog.whyItem3')} />
              </ListItem>
            </List>
            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-             Où trouver votre clé API ?
+             {t('configManager.apiKeyHelpDialog.whereTitle')}
            </Typography>
            {provider === 'openai' && (
              <>
                <Typography paragraph>
-                 Connectez-vous à votre compte sur le site d'OpenAI, puis accédez à la section des clés API.
+                 {t('configManager.apiKeyHelpDialog.whereOpenAI1')}
                </Typography>
                <Typography paragraph>
-                 Créez une nouvelle clé secrète (elle commence généralement par "sk-..."). Copiez-la et collez-la ici.
+                  {t('configManager.apiKeyHelpDialog.whereOpenAI2')}
                </Typography>
                <Alert severity="warning" sx={{ mb: 2 }}>
-                 <AlertTitle>Important</AlertTitle>
-                 Assurez-vous d'avoir ajouté des crédits à votre compte OpenAI, car le fine-tuning et l'utilisation des modèles sont payants. Vérifiez votre <Link href="https://platform.openai.com/account/billing/overview" target="_blank" rel="noopener noreferrer">page de facturation OpenAI</Link>.
+                 <AlertTitle>{t('common.important')}</AlertTitle>
+                  {t('configManager.apiKeyHelpDialog.whereOpenAICredits')} <Link href="https://platform.openai.com/account/billing/overview" target="_blank" rel="noopener noreferrer">{t('configManager.apiKeyHelpDialog.billingLink')}</Link>.
                </Alert>
              </>
            )}
@@ -287,18 +292,18 @@ const ConfigManager = ({ initialConfig = {}, onConfigChange, onApiKeyValidation 
                </Typography>
            )}
            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-             Sécurité de votre clé
+             {t('configManager.apiKeyHelpDialog.securityTitle')}
            </Typography>
            <Typography paragraph>
-             Votre clé API est sensible. Nous la stockons de manière sécurisée et ne l'utilisons que pour les opérations de fine-tuning que vous lancez via notre plateforme. Elle n'est jamais exposée côté client.
+             {t('configManager.apiKeyHelpDialog.securityPara')}
            </Typography>
          </DialogContent>
          <DialogActions>
-           <Button onClick={() => setApiHelpOpen(false)}>Fermer</Button>
+           <Button onClick={() => setApiHelpOpen(false)}>{t('common.close')}</Button>
            {/* Boutons spécifiques au provider */}
            {provider === 'openai' && (
              <Button href="https://platform.openai.com/account/api-keys" target="_blank" rel="noopener noreferrer">
-               Aller aux clés OpenAI
+               {t('configManager.apiKeyHelpDialog.goToOpenAIKeys')}
              </Button>
            )}
             {provider === 'anthropic' && (

@@ -8,11 +8,13 @@ import PageTransition from '../common/PageTransition';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import CelebrationIcon from '@mui/icons-material/Celebration';
+import { useTranslation } from 'react-i18next';
 
 const drawerWidth = 280;
 
 const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useTranslation();
 
   // --- Welcome modal après onboarding ---
   const { user } = useAuth();
@@ -94,23 +96,24 @@ const DashboardLayout = () => {
         >
           <CelebrationIcon color="primary" />
           <Typography variant="h6" component="span" fontWeight={700}>
-            Bienvenue sur FineTuner Platform&nbsp;!
+            {t('dashboardLayout.welcomeModal.title')}
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <DialogContentText id="welcome-dialog-description" component="div" sx={{ whiteSpace: 'normal' }}>
-            Votre premier fine-tuning est maintenant en cours de traitement&nbsp;!<br /><br />
-            Voici quelques points importants&nbsp;:
+            {t('dashboardLayout.welcomeModal.line1')}
+            <br /><br />
+            {t('dashboardLayout.welcomeModal.line2')}
             <ul style={{ paddingLeft: '1.2rem', margin: 0 }}>
-              <li>Le processus peut prendre de quelques minutes à plusieurs heures selon la taille de votre dataset.</li>
-              <li>Vous pouvez suivre la progression dans l'onglet <strong>Fine-Tunings</strong>.</li>
-              <li>Vous pouvez également consulter le statut directement sur le tableau de bord OpenAI.</li>
+              <li>{t('dashboardLayout.welcomeModal.listItem1')}</li>
+              <li>{t('dashboardLayout.welcomeModal.listItem2')}</li>
+              <li>{t('dashboardLayout.welcomeModal.listItem3')}</li>
             </ul>
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ pb: 2, pr: 3 }}>
           <Button variant="contained" onClick={handleCloseWelcomeModal} autoFocus>
-            Compris&nbsp;!
+            {t('dashboardLayout.welcomeModal.closeButton')}
           </Button>
         </DialogActions>
       </Dialog>

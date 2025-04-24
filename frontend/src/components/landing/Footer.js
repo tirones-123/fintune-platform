@@ -20,6 +20,7 @@ import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { useTranslation } from 'react-i18next';
 
 // Fonction utilitaire pour le défilement – gère '/#id', '#id' ou 'id'
 const handleScrollToSection = (sectionPath) => {
@@ -40,6 +41,7 @@ const handleScrollToSection = (sectionPath) => {
 
 const Footer = () => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
   const controls = useAnimation();
   const [ref, inView] = useInView({
@@ -77,46 +79,45 @@ const Footer = () => {
     },
   };
 
-  // Liens du footer mis à jour (sans Tarifs)
+  // Liens du footer (utilise t pour les titres et noms)
   const footerLinks = [
     {
-      title: 'Produit',
+      title: t('footer.product.title'),
       links: [
-         { name: 'Accueil', path: '/' },
-        { name: 'Comment ça marche', path: '/#process-section' },
-        { name: 'FAQ', path: '/#faq-section' },
+         { name: t('footer.product.home'), path: '/' },
+         { name: t('footer.product.howItWorks'), path: '/#process-section' },
+         { name: t('footer.product.faq'), path: '/#faq-section' },
       ],
     },
     {
-      title: 'Ressources',
+      title: t('footer.resources.title'),
       links: [
-        { name: 'Aide', path: '/help' },
-        { name: 'Playground', path: '/playground' },
-        { name: 'Documentation API', path: 'https://finetuner.io/docs', external: true },
+        { name: t('footer.resources.help'), path: '/help' },
+        { name: t('footer.resources.playground'), path: '/playground' },
+        { name: t('footer.resources.apiDocs'), path: 'https://finetuner.io/docs', external: true },
       ],
     },
     {
-      title: 'Entreprise',
+      title: t('footer.company.title'),
       links: [
-        // On ne garde que Contact si une page existe, sinon on retire la section
-        // { name: 'Contact', path: '/contact' },
+        // { name: t('footer.company.contact'), path: '/contact' },
       ],
     },
     {
-      title: 'Légal',
+      title: t('footer.legal.title'),
       links: [
-        { name: 'Politique de confidentialité', path: '/privacy-policy' },
-        { name: 'Conditions d\'utilisation', path: '/terms-of-service' },
+        { name: t('footer.legal.privacy'), path: '/privacy-policy' },
+        { name: t('footer.legal.terms'), path: '/terms-of-service' },
       ],
     },
   ];
 
-  // Définition des couleurs pour les icônes de réseaux sociaux avec effet néon
+  // Icônes réseaux sociaux (aria-label traduit)
   const socialIcons = [
-    { Icon: TwitterIcon, href: "https://twitter.com/finetuner", color: "#1DA1F2", label: "Twitter" },
-    { Icon: LinkedInIcon, href: "https://linkedin.com/company/finetunre", color: "#0A66C2", label: "LinkedIn" },
-    { Icon: GitHubIcon, href: "https://github.com/finetuner", color: theme.palette.mode === 'dark' ? '#ffffff' : '#24292e', label: "GitHub" },
-    { Icon: FacebookIcon, href: "https://facebook.com/finetuner", color: "#1877F2", label: "Facebook" },
+    { Icon: TwitterIcon, href: "#", color: "#1DA1F2", label: t('footer.social.twitter') },
+    { Icon: LinkedInIcon, href: "#", color: "#0A66C2", label: t('footer.social.linkedin') },
+    { Icon: GitHubIcon, href: "#", color: theme.palette.mode === 'dark' ? '#ffffff' : '#24292e', label: t('footer.social.github') },
+    { Icon: FacebookIcon, href: "#", color: "#1877F2", label: t('footer.social.facebook') },
   ];
 
   return (
@@ -253,10 +254,9 @@ const Footer = () => {
                   FineTuner
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 320, lineHeight: 1.7 }}>
-                  Transformez vos contenus en IA fine-tunée en quelques clics. La technologie d'IA la plus simple et la plus puissante pour créer votre assistant sur-mesure.
+                  {t('footer.description')}
                 </Typography>
                 
-                {/* Social media icons with neon effect */}
                 <Box sx={{ display: 'flex', gap: 1.5 }}>
                   {socialIcons.map((social, index) => (
                     <IconButton
@@ -436,7 +436,7 @@ const Footer = () => {
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              © {currentYear} FineTuner. Tous droits réservés.
+              © {currentYear} FineTuner. {t('footer.copyright')}
             </Typography>
             <Box
               sx={{
@@ -459,7 +459,7 @@ const Footer = () => {
                   }
                 }}
               >
-                Conditions d'utilisation
+                {t('footer.legal.terms')}
               </Link>
               <Link
                 component={RouterLink}
@@ -474,7 +474,7 @@ const Footer = () => {
                   }
                 }}
               >
-                Politique de confidentialité
+                {t('footer.legal.privacy')}
               </Link>
             </Box>
           </Box>

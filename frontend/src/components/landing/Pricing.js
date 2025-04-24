@@ -19,58 +19,60 @@ import {
 } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import { useNavigate } from 'react-router-dom';
-
-const pricingOptions = [
-  {
-    title: 'Gratuit',
-    price: 0,
-    description: 'Parfait pour débuter et tester la plateforme',
-    features: [
-      '1 000 tokens de génération',
-      '1 projet',
-      '5 MB de stockage',
-      'Accès aux modèles de base',
-    ],
-    buttonText: 'Commencer gratuitement',
-    buttonVariant: 'outlined',
-  },
-  {
-    title: 'Pro',
-    price: 29,
-    description: 'Pour les professionnels et les petites équipes',
-    features: [
-      '50 000 tokens de génération',
-      'Projets illimités',
-      '100 MB de stockage',
-      'Accès à tous les modèles',
-      'Support prioritaire',
-    ],
-    buttonText: 'Commencer l\'essai gratuit',
-    buttonVariant: 'contained',
-    highlighted: true,
-  },
-  {
-    title: 'Entreprise',
-    price: 99,
-    description: 'Pour les grandes équipes et les besoins avancés',
-    features: [
-      'Tokens de génération illimités',
-      'Projets illimités',
-      'Stockage illimité',
-      'Accès à tous les modèles',
-      'Support dédié',
-      'API personnalisée',
-      'Déploiement sur site disponible',
-    ],
-    buttonText: 'Contacter les ventes',
-    buttonVariant: 'outlined',
-  },
-];
+import { useTranslation } from 'react-i18next';
 
 const Pricing = () => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [annual, setAnnual] = useState(true);
   const navigate = useNavigate();
+
+  const pricingOptions = [
+    {
+      title: t('pricing.free.title'),
+      price: 0,
+      description: t('pricing.free.description'),
+      features: [
+        t('pricing.free.features.tokens', { count: '1,000' }),
+        t('pricing.free.features.projects', { count: 1 }),
+        t('pricing.free.features.storage'),
+        t('pricing.free.features.models'),
+      ],
+      buttonText: t('pricing.free.buttonText'),
+      buttonVariant: 'outlined',
+    },
+    {
+      title: t('pricing.pro.title'),
+      price: 29,
+      description: t('pricing.pro.description'),
+      features: [
+        t('pricing.pro.features.tokens', { count: '50,000' }),
+        t('pricing.pro.features.projects'),
+        t('pricing.pro.features.storage'),
+        t('pricing.pro.features.models'),
+        t('pricing.pro.features.support'),
+      ],
+      buttonText: t('pricing.pro.buttonText'),
+      buttonVariant: 'contained',
+      highlighted: true,
+    },
+    {
+      title: t('pricing.enterprise.title'),
+      price: 99,
+      description: t('pricing.enterprise.description'),
+      features: [
+        t('pricing.enterprise.features.tokens'),
+        t('pricing.enterprise.features.projects'),
+        t('pricing.enterprise.features.storage'),
+        t('pricing.enterprise.features.models'),
+        t('pricing.enterprise.features.support'),
+        t('pricing.enterprise.features.api'),
+        t('pricing.enterprise.features.deployment'),
+      ],
+      buttonText: t('pricing.enterprise.buttonText'),
+      buttonVariant: 'outlined',
+    },
+  ];
 
   const handleBillingChange = () => {
     setAnnual(!annual);
@@ -92,10 +94,10 @@ const Pricing = () => {
             gutterBottom
             sx={{ fontWeight: 700 }}
           >
-            Tarifs transparents
+            {t('pricing.mainTitle')}
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 800, mx: 'auto' }}>
-            Choisissez le plan qui correspond à vos besoins
+            {t('pricing.subtitle')}
           </Typography>
 
           <Box
@@ -107,7 +109,7 @@ const Pricing = () => {
             }}
           >
             <Typography variant="subtitle1" color={annual ? 'text.secondary' : 'text.primary'}>
-              Mensuel
+              {t('pricing.billing.monthly')}
             </Typography>
             <Switch
               checked={annual}
@@ -116,7 +118,7 @@ const Pricing = () => {
               sx={{ mx: 2 }}
             />
             <Typography variant="subtitle1" color={annual ? 'text.primary' : 'text.secondary'}>
-              Annuel <Box component="span" sx={{ color: 'success.main', fontWeight: 'bold' }}>(-20%)</Box>
+              {t('pricing.billing.annual')} <Box component="span" sx={{ color: 'success.main', fontWeight: 'bold' }}>{t('pricing.billing.discount')}</Box>
             </Typography>
           </Box>
         </Box>
@@ -166,11 +168,11 @@ const Pricing = () => {
                     }}
                   >
                     <Typography component="h3" variant="h2" color="text.primary">
-                      {tier.price === 0 ? 'Gratuit' : `${tier.price}€`}
+                      {tier.price === 0 ? t('common.free') : `${tier.price}€`}
                     </Typography>
                     {tier.price > 0 && (
                       <Typography variant="h6" color="text.secondary">
-                        /{annual ? 'an' : 'mois'}
+                        /{annual ? t('common.yearShort') : t('common.monthShort')}
                       </Typography>
                     )}
                   </Box>
@@ -207,10 +209,10 @@ const Pricing = () => {
 
         <Box sx={{ mt: 6, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
-            Tous les prix sont hors taxes. Vous pouvez également opter pour notre modèle de tarification à l'usage.
+            {t('pricing.footer.taxNote')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            0,05€ par MB de contenu traité • 0,10€ par chunk de dataset généré • 0,01€ par étape de fine-tuning
+            {t('pricing.footer.usageBasedNote')}
           </Typography>
         </Box>
       </Container>

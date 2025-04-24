@@ -4,16 +4,18 @@ import { motion } from 'framer-motion';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { useTheme } from '../../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const ThemeToggle = () => {
   const { mode, toggleColorMode } = useTheme();
+  const { t } = useTranslation();
 
   return (
-    <Tooltip title={mode === 'dark' ? 'Mode clair' : 'Mode sombre'}>
+    <Tooltip title={mode === 'dark' ? t('themeToggle.lightModeTooltip') : t('themeToggle.darkModeTooltip')}>
       <IconButton
         onClick={toggleColorMode}
         color="inherit"
-        aria-label="toggle theme"
+        aria-label={t('themeToggle.ariaLabel')}
         sx={{
           p: 1,
           borderRadius: '50%',

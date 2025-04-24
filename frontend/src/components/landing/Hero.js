@@ -2,6 +2,8 @@ import React from 'react';
 import { Box, Button, Container, Grid, Typography, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { keyframes } from '@mui/system';
+import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 
 // Animation de flottement
 const float = keyframes`
@@ -56,6 +58,7 @@ const Circle = ({ size, top, left, borderColor, delay }) => (
 
 const Hero = () => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Box
@@ -79,83 +82,113 @@ const Hero = () => {
       <Circle size={150} top="30%" left="70%" borderColor={theme.palette.accent.main} delay="0.5s" />
 
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-        <Grid container spacing={6} alignItems="center">
+        <Grid container spacing={8} alignItems="center" sx={{ position: 'relative' }}>
           <Grid item xs={12} md={6}>
-            <Box
-              sx={{
-                mb: { xs: 5, md: 0 },
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0 },
               }}
+              transition={{ duration: 0.5 }}
             >
-              <Typography
-                component="h1"
-                variant="h2"
-                gutterBottom
-                sx={{
-                  fontWeight: 800,
-                  fontSize: { xs: '2.5rem', md: '3.75rem' },
-                  lineHeight: 1.1,
-                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.accent.main} 100%)`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  mb: 2,
-                }}
-              >
-                Fine-tunez vos modèles d'IA en quelques clics
-              </Typography>
-              
-              <Typography
-                variant="h5"
-                color="text.secondary"
-                paragraph
-                sx={{ 
-                  mb: 4,
-                  fontSize: { xs: '1.1rem', md: '1.25rem' },
-                  lineHeight: 1.6,
-                  maxWidth: '90%'
-                }}
-              >
-                FineTuner simplifie la création de datasets personnalisés et le fine-tuning des modèles d'IA. Importez votre contenu, générez des données d'entraînement et déployez votre modèle en quelques minutes.
-              </Typography>
-              
-              <Box sx={{ mt: 5, display: 'flex', gap: 3, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-                <Button
-                  component={RouterLink}
-                  to="/register"
-                  variant="contained"
-                  size="large"
-                  sx={{ 
-                    minWidth: 200, 
-                    py: 1.8,
-                    px: 4,
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    boxShadow: '0 8px 20px rgba(59, 130, 246, 0.3)',
-                    '&:hover': {
-                      transform: 'translateY(-5px)',
-                      boxShadow: '0 12px 24px rgba(59, 130, 246, 0.4)',
-                    }
+              <motion.div variants={{
+                hidden: { opacity: 0, scale: 0.5 },
+                visible: { opacity: 1, scale: 1 },
+              }}>
+                <Typography
+                  component="h1"
+                  variant="h2"
+                  gutterBottom
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: { xs: '2.5rem', md: '3.75rem' },
+                    lineHeight: 1.1,
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.accent.main} 100%)`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    mb: 2,
                   }}
                 >
-                  Commencer gratuitement
-                </Button>
-                <Button
-                  component={RouterLink}
-                  to="/login"
-                  variant="outlined"
-                  size="large"
+                  {t('landing.hero.titleLine1')}
+                  <br />
+                  {t('landing.hero.titleLine2')}
+                  <Box component="span" sx={{ color: '#00d4ff' }}> </Box>
+                </Typography>
+              </motion.div>
+
+              <motion.div variants={{
+                hidden: { opacity: 0, scale: 0.5 },
+                visible: { opacity: 1, scale: 1 },
+              }} style={{ marginBottom: '32px' }}>
+                <Typography
+                  variant="h5"
+                  color="text.secondary"
+                  paragraph
                   sx={{ 
-                    minWidth: 180, 
-                    py: 1.8,
-                    borderWidth: 2,
-                    fontSize: '1rem',
-                    fontWeight: 600,
+                    mb: 4,
+                    fontSize: { xs: '1.1rem', md: '1.25rem' },
+                    lineHeight: 1.6,
+                    maxWidth: '90%'
                   }}
                 >
-                  Se connecter
-                </Button>
-              </Box>
+                  {t('landing.hero.subtitle.part1')}
+                  <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span>
+                  {t('landing.hero.subtitle.part2')}
+                  <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>
+                  {t('landing.hero.subtitle.part3')}
+                </Typography>
+              </motion.div>
+
+              <motion.div variants={{
+                hidden: { opacity: 0, scale: 0.5 },
+                visible: { opacity: 1, scale: 1 },
+              }}>
+                <Stack spacing={2} direction="row" sx={{ mt: 5, display: 'flex', gap: 3, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                  <Button
+                    component={RouterLink}
+                    to="/register"
+                    variant="contained"
+                    size="large"
+                    sx={{ 
+                      minWidth: 200, 
+                      py: 1.8,
+                      px: 4,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      boxShadow: '0 8px 20px rgba(59, 130, 246, 0.3)',
+                      '&:hover': {
+                        transform: 'translateY(-5px)',
+                        boxShadow: '0 12px 24px rgba(59, 130, 246, 0.4)',
+                      }
+                    }}
+                    aria-label={t('landing.hero.ctaAriaLabel')}
+                  >
+                    {t('landing.hero.ctaButton')}
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/login"
+                    variant="outlined"
+                    size="large"
+                    sx={{ 
+                      minWidth: 180, 
+                      py: 1.8,
+                      borderWidth: 2,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Se connecter
+                  </Button>
+                </Stack>
+              </motion.div>
               
-              <Box sx={{ mt: 4, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <motion.div variants={{
+                hidden: { opacity: 0, scale: 0.5 },
+                visible: { opacity: 1, scale: 1 },
+              }} sx={{ mt: 4, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box
                   sx={{
                     display: 'flex',
@@ -181,8 +214,8 @@ const Hero = () => {
                 <Typography variant="body2" color="text.secondary">
                   Rejoint par <b>1,200+</b> utilisateurs ce mois-ci
                 </Typography>
-              </Box>
-            </Box>
+              </motion.div>
+            </motion.div>
           </Grid>
           
           <Grid item xs={12} md={6}>

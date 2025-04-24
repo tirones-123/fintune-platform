@@ -24,6 +24,7 @@ import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import CountUp from 'react-countup';
 import { projectService, contentService, datasetService, fineTuningService, characterService } from '../services/apiService';
 import PageTransition from '../components/common/PageTransition';
+import { useTranslation } from 'react-i18next';
 
 const StatCard = ({ title, value, icon: Icon, color, suffix = '', prefix = '' }) => (
   <Card sx={{ display: 'flex', alignItems: 'center', p: 2, height: '100%', borderRadius: 2 }}>
@@ -43,6 +44,7 @@ const StatCard = ({ title, value, icon: Icon, color, suffix = '', prefix = '' })
 
 const AnalyticsPage = () => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     projects: 0,
     datasets: 0,
@@ -93,20 +95,20 @@ const AnalyticsPage = () => {
         });
       } catch (error) {
         console.error('Erreur lors de la récupération des statistiques:', error);
-        setError('Impossible de charger les données analytiques.');
+        setError(t('analytics.error.load'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
-  }, []);
+  }, [t]);
 
   return (
     <PageTransition>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
-          Analyses & Statistiques
+          {t('analytics.title')}
         </Typography>
 
         {loading ? (
@@ -118,37 +120,37 @@ const AnalyticsPage = () => {
         ) : (
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6} md={4}>
-              <StatCard title="Projets Créés" value={stats.projects} icon={FolderIcon} color={theme.palette.primary.main} />
+              <StatCard title={t('analytics.cards.projects')} value={stats.projects} icon={FolderIcon} color={theme.palette.primary.main} />
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <StatCard title="Datasets Générés" value={stats.datasets} icon={DescriptionIcon} color={theme.palette.secondary.main} />
+              <StatCard title={t('analytics.cards.datasets')} value={stats.datasets} icon={DescriptionIcon} color={theme.palette.secondary.main} />
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <StatCard title="Modèles Entraînés" value={stats.completedFineTunings} icon={ModelTrainingIcon} color={theme.palette.success.main} />
+              <StatCard title={t('analytics.cards.trainedModels')} value={stats.completedFineTunings} icon={ModelTrainingIcon} color={theme.palette.success.main} />
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <StatCard title="Caractères Gratuits Restants" value={stats.charsRemaining} icon={AccountBalanceWalletIcon} color={theme.palette.info.main} />
+              <StatCard title={t('analytics.cards.freeChars')} value={stats.charsRemaining} icon={AccountBalanceWalletIcon} color={theme.palette.info.main} />
             </Grid>
              <Grid item xs={12} sm={6} md={4}>
-              <StatCard title="Caractères Total Utilisés" value={stats.charsUsed} icon={AnalyticsIcon} color={theme.palette.warning.main} />
+              <StatCard title={t('analytics.cards.usedChars')} value={stats.charsUsed} icon={AnalyticsIcon} color={theme.palette.warning.main} />
             </Grid>
              <Grid item xs={12} sm={6} md={4}>
-              <StatCard title="Jobs Actifs" value={stats.activeJobs} icon={PlayCircleOutlineIcon} color={theme.palette.action.active} />
+              <StatCard title={t('analytics.cards.activeJobs')} value={stats.activeJobs} icon={PlayCircleOutlineIcon} color={theme.palette.action.active} />
             </Grid>
 
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 2, height: 300, borderRadius: 2 }}>
-                <Typography variant="h6">Historique Utilisation Caractères</Typography>
+                <Typography variant="h6">{t('analytics.charts.usageHistory')}</Typography>
                 <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80%'}}>
-                   <Typography color="text.secondary">(Graphique bientôt disponible)</Typography>
+                   <Typography color="text.secondary">{t('analytics.charts.comingSoon')}</Typography>
                 </Box>
               </Paper>
             </Grid>
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 2, height: 300, borderRadius: 2 }}>
-                <Typography variant="h6">Répartition Types de Contenu</Typography>
+                <Typography variant="h6">{t('analytics.charts.contentTypeDistribution')}</Typography>
                 <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80%'}}>
-                   <Typography color="text.secondary">(Graphique bientôt disponible)</Typography>
+                   <Typography color="text.secondary">{t('analytics.charts.comingSoon')}</Typography>
                  </Box>
               </Paper>
             </Grid>

@@ -32,9 +32,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { contentService, projectService } from '../../services/apiService';
+import { useTranslation } from 'react-i18next';
 
 const FileUpload = ({ projectId, onSuccess }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -60,7 +62,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
     onDrop,
     accept: acceptedFileTypes,
     maxFiles: 5,
-    maxSize: 10485760, // 10MB
+    maxSize: 100 * 1024 * 1024, // Augmentation à 100MB
   });
 
   // Fonction pour obtenir l'icône en fonction du type de fichier
@@ -79,7 +81,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
   // Fonction pour télécharger les fichiers
   const handleUploadFiles = async () => {
     if (files.length === 0) {
-      setError('Veuillez sélectionner au moins un fichier');
+      setError(t('content.fileUpload.error.noFileSelected'));
       return;
     }
 
@@ -87,29 +89,42 @@ const FileUpload = ({ projectId, onSuccess }) => {
     setError(null);
     
     try {
-      // Télécharger chaque fichier via l'API
-      for (const file of files) {
+      const uploadPromises = files.map(async (file) => {
         const response = await contentService.uploadFile(projectId, file, {
-          name: file.name, // Utiliser le nom du fichier comme nom du contenu
+          name: file.name,
           file_type: file.type.includes('pdf') ? 'pdf' : 'text',
         });
-
-        // Appeler le callback onSuccess si fourni
         if (onSuccess) {
           onSuccess(response);
         }
+        return { name: file.name };
+      });
+
+      const results = await Promise.allSettled(uploadPromises);
+      const successfulUploads = results.filter(r => r.status === 'fulfilled');
+      const failedUploads = results.filter(r => r.status === 'rejected');
+
+      if (successfulUploads.length > 0) {
+        enqueueSnackbar(t('content.fileUpload.snackbar.uploadSuccessMultiple', { count: successfulUploads.length }), { variant: 'success' });
+      }
+
+      if (failedUploads.length > 0) {
+         const failedNames = failedUploads.map((f, idx) => files[results.findIndex(r => r === f)].name).join(', ');
+         const errorMsg = t('content.fileUpload.error.someFailed', { names: failedNames });
+         setError(errorMsg);
+         enqueueSnackbar(errorMsg, { variant: 'error' });
       }
       
-      enqueueSnackbar('Fichiers téléchargés avec succès', { variant: 'success' });
       setFiles([]);
       
-      // Rediriger vers la page du projet seulement si onSuccess n'est pas fourni
-      if (!onSuccess) {
+      if (!onSuccess && failedUploads.length === 0) {
         navigate(`/dashboard/projects/${projectId}`);
       }
     } catch (err) {
       console.error('Error uploading files:', err);
-      setError(err.message || 'Erreur lors du téléchargement des fichiers');
+      const errorMsg = err.message || t('content.fileUpload.error.genericUpload');
+      setError(errorMsg);
+      enqueueSnackbar(errorMsg, { variant: 'error' });
     } finally {
       setUploading(false);
     }
@@ -118,13 +133,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
   // Fonction pour gérer l'envoi du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Si des fichiers sont sélectionnés, les télécharger
-    if (files.length > 0) {
-      await handleUploadFiles();
-    } else {
-      setError('Veuillez sélectionner au moins un fichier');
-    }
+    await handleUploadFiles();
   };
 
   return (
@@ -132,15 +141,15 @@ const FileUpload = ({ projectId, onSuccess }) => {
       <CardContent>
         <Box component="form" onSubmit={handleSubmit}>
           <Typography variant="h5" gutterBottom>
-            Ajouter du contenu
+            {t('content.fileUpload.title')}
           </Typography>
           
           <Typography variant="body2" color="text.secondary" paragraph>
-            Importez des fichiers pour créer votre dataset de fine-tuning.
+            {t('content.fileUpload.description')}
           </Typography>
           
           <Typography variant="h6" gutterBottom>
-            Importer des fichiers
+            {t('content.fileUpload.importTitle')}
           </Typography>
           
           <Paper
@@ -164,20 +173,20 @@ const FileUpload = ({ projectId, onSuccess }) => {
             <input {...getInputProps()} />
             <CloudUploadIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
-              Glissez-déposez vos fichiers ici
+              {isDragActive ? t('content.fileUpload.dropzone.dragActive') : t('content.fileUpload.dropzone.prompt')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              ou cliquez pour sélectionner des fichiers
+              {t('content.fileUpload.dropzone.select')}
             </Typography>
             <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-              Formats acceptés: TXT, PDF, DOCX (max 100MD)
+              {t('content.fileUpload.dropzone.acceptedFormats')}
             </Typography>
           </Paper>
 
           {files.length > 0 && (
             <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle2" gutterBottom>
-                Fichiers sélectionnés:
+                {t('content.fileUpload.selectedFilesTitle')}:
               </Typography>
               <List sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
                 {files.map((file, index) => (
@@ -188,7 +197,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
                         const newFiles = [...files];
                         newFiles.splice(index, 1);
                         setFiles(newFiles);
-                      }}>
+                      }} aria-label={t('common.delete')}>
                         <DeleteIcon />
                       </IconButton>
                     }
@@ -217,7 +226,7 @@ const FileUpload = ({ projectId, onSuccess }) => {
               disabled={uploading || files.length === 0}
               startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : null}
             >
-              {uploading ? 'Envoi en cours...' : 'Ajouter le contenu'}
+              {uploading ? t('content.fileUpload.buttonUploading') : t('content.fileUpload.buttonAdd')}
             </Button>
           </Box>
         </Box>

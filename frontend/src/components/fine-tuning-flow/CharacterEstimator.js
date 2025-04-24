@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -13,6 +13,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import StarsIcon from '@mui/icons-material/Stars';
 import { contentService } from '../../services/apiService'; // Pour récupérer le contenu
+import { useTranslation } from 'react-i18next'; // Importer
 
 // --- Constantes copiées de OnboardingPage --- 
 const PRICE_PER_CHARACTER = 0.000365;
@@ -50,6 +51,7 @@ const CharacterEstimator = ({
   onCharacterCountChange, 
   minCharactersRecommended = 5000 
 }) => {
+  const { t } = useTranslation(); // Initialiser
   const [totalCharacters, setTotalCharacters] = useState(0);
   const [isEstimated, setIsEstimated] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -158,7 +160,7 @@ const CharacterEstimator = ({
   return (
     <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
       <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        Estimation du Dataset
+        {t('characterEstimator.title')}
       </Typography>
 
       {loading ? (
@@ -168,14 +170,14 @@ const CharacterEstimator = ({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    {isEstimated ? 'Caractères Estimés:' : 'Caractères Comptés:'} 
+                    {isEstimated ? t('characterEstimator.estimatedCharsLabel') : t('characterEstimator.countedCharsLabel')}: 
                     <strong> {totalCharacters.toLocaleString()}</strong>
                 </Typography>
                 </Box>
                 <Box>
                 <Typography variant="body2" color="text.secondary">
-                    Coût Estimé: 
-                    <strong> {totalCharacters <= FREE_CHARACTER_QUOTA ? 'Gratuit' : `$${estimatedCost.toFixed(2)}`}</strong>
+                    {t('characterEstimator.estimatedCostLabel')}: 
+                    <strong> {totalCharacters <= FREE_CHARACTER_QUOTA ? t('common.free') : `$${estimatedCost.toFixed(2)}`}</strong>
                 </Typography>
                 </Box>
             </Box>
@@ -183,8 +185,8 @@ const CharacterEstimator = ({
             {/* Barre de progression (similaire à Onboarding) */}
             <Box sx={{ mt: 1, width: '100%' }}>
                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                     <Typography variant="body2" fontWeight="medium">Progression du dataset</Typography>
-                     <Typography variant="body2" color="primary.main" fontWeight="medium">{totalCharacters.toLocaleString()} caractères</Typography>
+                     <Typography variant="body2" fontWeight="medium">{t('characterEstimator.progressTitle')}</Typography>
+                     <Typography variant="body2" color="primary.main" fontWeight="medium">{t('characterEstimator.progressChars', { count: totalCharacters.toLocaleString() })}</Typography>
                  </Box>
                  <Box sx={{ position: 'relative', height: 38, mt: 2 }}>
                      <LinearProgress 
@@ -193,21 +195,21 @@ const CharacterEstimator = ({
                          sx={{ height: 10, borderRadius: 5, '& .MuiLinearProgress-bar': { transition: 'transform .4s linear' } }}
                      />
                      {/* Seuils (simplifié) */}
-                     <Tooltip title="Crédits gratuits" placement="top">
+                     <Tooltip title={t('characterEstimator.tooltip.freeCredits')} placement="top">
                          <Box sx={{ position: 'absolute', left: '25%', top: 12 }}><Chip label="10k" size="small" sx={{transform: 'translateX(-50%)'}} /></Box>
                      </Tooltip>
-                     <Tooltip title="Minimum recommandé" placement="top">
-                         <Box sx={{ position: 'absolute', left: '50%', top: 12 }}><Chip label={`Min ${minRecommended.toLocaleString()}`} size="small" color="warning" sx={{transform: 'translateX(-50%)'}} /></Box>
+                     <Tooltip title={t('characterEstimator.tooltip.minRecommended')} placement="top">
+                         <Box sx={{ position: 'absolute', left: '50%', top: 12 }}><Chip label={`${t('common.min')} ${minRecommended.toLocaleString()}`} size="small" color="warning" sx={{transform: 'translateX(-50%)'}} /></Box>
                      </Tooltip>
-                     <Tooltip title="Optimal" placement="top">
-                         <Box sx={{ position: 'absolute', left: '100%', top: 12 }}><Chip label={`Opt ${maxRecommended.toLocaleString()}`} size="small" color="primary" sx={{transform: 'translateX(-100%)'}} /></Box>
+                     <Tooltip title={t('characterEstimator.tooltip.optimal')} placement="top">
+                         <Box sx={{ position: 'absolute', left: '100%', top: 12 }}><Chip label={`${t('common.optimal')} ${maxRecommended.toLocaleString()}`} size="small" color="primary" sx={{transform: 'translateX(-100%)'}} /></Box>
                      </Tooltip>
                  </Box>
                  {/* Messages d'aide (simplifié) */}
                  {totalCharacters < minRecommended && (
                     <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.5 }}>
                         <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                        {(minRecommended - totalCharacters).toLocaleString()} caractères manquants pour le minimum recommandé.
+                        {t('characterEstimator.missingCharsWarning', { count: (minRecommended - totalCharacters).toLocaleString() })}
                     </Typography>
                  )}
              </Box>

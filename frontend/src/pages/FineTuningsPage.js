@@ -21,6 +21,7 @@ import DatasetIcon from '@mui/icons-material/Dataset';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ChatIcon from '@mui/icons-material/Chat';
 import { fineTuningService } from '../services/apiService';
+import { useTranslation } from 'react-i18next';
 
 // Animation variants
 const containerVariants = {
@@ -47,6 +48,7 @@ const itemVariants = {
 
 const FineTuningsPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [fineTunings, setFineTunings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -58,14 +60,14 @@ const FineTuningsPage = () => {
         const data = await fineTuningService.getAll();
         setFineTunings(data);
       } catch (error) {
-        console.error('Erreur lors de la récupération des fine-tunings:', error);
+        console.error(t('fineTuningsPage.error.fetch'), error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchFineTunings();
-  }, []);
+  }, [t]);
 
   const handleMenuOpen = (event, fineTuningId) => {
     setMenuAnchorEl(event.currentTarget);
@@ -84,7 +86,7 @@ const FineTuningsPage = () => {
       await fineTuningService.delete(selectedFineTuningId);
       setFineTunings(fineTunings.filter(fineTuning => fineTuning.id !== selectedFineTuningId));
     } catch (error) {
-      console.error('Erreur lors de la suppression du fine-tuning:', error);
+      console.error(t('fineTuningsPage.error.delete'), error);
     }
     handleMenuClose();
   };
@@ -93,12 +95,11 @@ const FineTuningsPage = () => {
     if (!selectedFineTuningId) return;
 
     try {
-      await fineTuningService.cancel(selectedFineTuningId, { reason: 'Annulé par l\'utilisateur' });
-      // Rafraîchir la liste après annulation
+      await fineTuningService.cancel(selectedFineTuningId, { reason: t('fineTuningsPage.cancelReason') });
       const data = await fineTuningService.getAll();
       setFineTunings(data);
     } catch (error) {
-      console.error('Erreur lors de l\'annulation du fine-tuning:', error);
+      console.error(t('fineTuningsPage.error.cancel'), error);
     }
     handleMenuClose();
   };
@@ -106,17 +107,17 @@ const FineTuningsPage = () => {
   const getStatusLabel = (status) => {
     switch (status) {
       case 'queued':
-        return 'En attente';
+        return t('fineTuningsPage.status.queued');
       case 'preparing':
-        return 'Préparation';
+        return t('fineTuningsPage.status.preparing');
       case 'training':
-        return 'En entraînement';
+        return t('fineTuningsPage.status.training');
       case 'completed':
-        return 'Terminé';
+        return t('fineTuningsPage.status.completed');
       case 'cancelled':
-        return 'Annulé';
+        return t('fineTuningsPage.status.cancelled');
       case 'error':
-        return 'Erreur';
+        return t('fineTuningsPage.status.error');
       default:
         return status;
     }
@@ -141,7 +142,7 @@ const FineTuningsPage = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return t('common.na');
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
@@ -160,7 +161,7 @@ const FineTuningsPage = () => {
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-          Fine-tunings
+          {t('fineTuningsPage.title')}
         </Typography>
         <Box>
           <Button
@@ -169,7 +170,7 @@ const FineTuningsPage = () => {
             onClick={() => navigate('/dashboard/datasets')}
             sx={{ borderRadius: 2, mr: 2 }}
           >
-            Datasets
+            {t('fineTuningsPage.datasetsButton')}
           </Button>
         </Box>
       </Box>
@@ -208,6 +209,7 @@ const FineTuningsPage = () => {
                       <IconButton 
                         size="small" 
                         onClick={(e) => handleMenuOpen(e, fineTuning.id)}
+                        aria-label={t('common.options')}
                       >
                         <MoreVertIcon />
                       </IconButton>
@@ -222,10 +224,10 @@ const FineTuningsPage = () => {
 
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      Modèle: {fineTuning.model}
+                      {t('fineTuningsPage.modelLabel')}: {fineTuning.model}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize', mb: 0.5 }}>
-                      Provider: {fineTuning.provider}
+                      {t('fineTuningsPage.providerLabel')}: {fineTuning.provider}
                     </Typography>
                   </Box>
 
@@ -233,7 +235,7 @@ const FineTuningsPage = () => {
                     <Box sx={{ mb: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                         <Typography variant="caption" color="text.secondary">
-                          Progression
+                          {t('common.progress')}
                         </Typography>
                         <Typography variant="caption" fontWeight={600}>
                           {fineTuning.progress || 0}%
@@ -252,11 +254,11 @@ const FineTuningsPage = () => {
 
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                      Créé le {formatDate(fineTuning.created_at)}
+                      {t('common.createdOn')}: {formatDate(fineTuning.created_at)}
                     </Typography>
                     {fineTuning.completed_at && (
                       <Typography variant="caption" color="text.secondary">
-                        Terminé le {formatDate(fineTuning.completed_at)}
+                        {t('common.completedOn')}: {formatDate(fineTuning.completed_at)}
                       </Typography>
                     )}
                   </Box>
@@ -270,7 +272,7 @@ const FineTuningsPage = () => {
                         onClick={() => navigate(`/dashboard/fine-tuning/${fineTuning.id}`)}
                         sx={{ borderRadius: 2 }}
                       >
-                        Détails
+                        {t('common.details')}
                       </Button>
                     </Grid>
                     <Grid item xs={6}>
@@ -282,7 +284,7 @@ const FineTuningsPage = () => {
                         sx={{ borderRadius: 2 }}
                         disabled={fineTuning.status !== 'completed'}
                       >
-                        Chat
+                        {t('common.chat')}
                       </Button>
                     </Grid>
                   </Grid>
@@ -304,10 +306,10 @@ const FineTuningsPage = () => {
         >
           <PsychologyIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" gutterBottom>
-            Aucun fine-tuning disponible
+            {t('fineTuningsPage.noFineTunings.title')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 500, mx: 'auto' }}>
-            Vous n'avez pas encore créé de modèle fine-tuné. Les fine-tunings vous permettent d'adapter des modèles de langage à vos données spécifiques.
+            {t('fineTuningsPage.noFineTunings.description')}
           </Typography>
           <Button 
             variant="contained" 
@@ -315,7 +317,7 @@ const FineTuningsPage = () => {
             onClick={() => navigate('/dashboard/datasets')}
             sx={{ borderRadius: 2 }}
           >
-            Voir les datasets
+            {t('fineTuningsPage.noFineTunings.viewDatasetsButton')}
           </Button>
         </Box>
       )}
@@ -331,7 +333,7 @@ const FineTuningsPage = () => {
             navigate(`/dashboard/fine-tuning/${selectedFineTuningId}`);
           }
         }}>
-          Voir les détails
+          {t('common.viewDetails')}
         </MenuItem>
         {fineTunings.find(ft => ft.id === selectedFineTuningId)?.status === 'completed' && (
           <MenuItem onClick={() => {
@@ -340,16 +342,16 @@ const FineTuningsPage = () => {
               navigate(`/dashboard/chat/${selectedFineTuningId}`);
             }
           }}>
-            Discuter avec le modèle
+            {t('fineTuningsPage.menu.chatWithModel')}
           </MenuItem>
         )}
         {isInProgress(fineTunings.find(ft => ft.id === selectedFineTuningId)?.status) && (
           <MenuItem onClick={handleCancel} sx={{ color: 'warning.main' }}>
-            Annuler l'entraînement
+            {t('fineTuningsPage.menu.cancelTraining')}
           </MenuItem>
         )}
         <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-          Supprimer
+          {t('common.delete')}
         </MenuItem>
       </Menu>
     </Box>

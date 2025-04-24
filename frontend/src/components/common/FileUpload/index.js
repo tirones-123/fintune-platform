@@ -38,9 +38,11 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { contentService } from '../../../services/apiService';
+import { useTranslation } from 'react-i18next';
 
 const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -82,25 +84,27 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
             onSuccess(response);
           }
           
-          enqueueSnackbar(`Fichier "${file.name}" téléchargé avec succès`, { variant: 'success' });
+          enqueueSnackbar(t('fileUpload.snackbar.uploadSuccess', { fileName: file.name }), { variant: 'success' });
         }
         
         // Vider la liste des fichiers après le téléchargement
         setFiles([]);
       } catch (err) {
         console.error('Error uploading files:', err);
-        setError(err.message || 'Erreur lors du téléchargement des fichiers');
+        const errorMessage = err.message || t('fileUpload.error.genericUpload');
+        setError(errorMessage);
+        enqueueSnackbar(errorMessage, { variant: 'error' });
       } finally {
         setUploading(false);
       }
     }
-  }, [projectId, onSuccess, enqueueSnackbar]);
+  }, [projectId, onSuccess, enqueueSnackbar, t, files]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: acceptedFileTypes,
     maxFiles: 10,
-    maxSize: 10485760, // 10MB
+    maxSize: 100 * 1024 * 1024, // 100MB
   });
 
   // Fonction pour obtenir l'icône en fonction du type de fichier
@@ -119,7 +123,7 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
   // Fonction pour télécharger les fichiers
   const handleUploadFiles = async () => {
     if (files.length === 0) {
-      setError('Veuillez sélectionner au moins un fichier');
+      setError(t('fileUpload.error.noFileSelected'));
       return;
     }
 
@@ -140,7 +144,7 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
         }
       }
       
-      enqueueSnackbar('Fichiers téléchargés avec succès', { variant: 'success' });
+      enqueueSnackbar(t('fileUpload.snackbar.uploadSuccessMultiple', { count: files.length }), { variant: 'success' });
       setFiles([]);
       
       // Rediriger vers la page du projet seulement si onSuccess n'est pas fourni
@@ -149,7 +153,9 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
       }
     } catch (err) {
       console.error('Error uploading files:', err);
-      setError(err.message || 'Erreur lors du téléchargement des fichiers');
+      const errorMessage = err.message || t('fileUpload.error.genericUpload');
+      setError(errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setUploading(false);
     }
@@ -163,7 +169,7 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
     if (files.length > 0) {
       await handleUploadFiles();
     } else {
-      setError('Veuillez sélectionner au moins un fichier');
+      setError(t('fileUpload.error.noFileSelected'));
     }
   };
 
@@ -187,16 +193,15 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
   // Fonction pour formater le nombre de caractères
   const formatCharCount = (content) => {
     if (content.status === 'completed' && content.content_metadata && content.content_metadata.character_count) {
-      // Si le contenu est traité et que le comptage existe, afficher le nombre exact
       const count = parseInt(content.content_metadata.character_count);
       if (count > 1000000) {
-        return `${(count / 1000000).toFixed(2)} M car`;
+        return t('fileUpload.charCount.mega', { count: (count / 1000000).toFixed(2) });
       } else if (count > 1000) {
-        return `${(count / 1000).toFixed(1)} K car`;
+        return t('fileUpload.charCount.kilo', { count: (count / 1000).toFixed(1) });
       }
-      return `${count} car`;
+      return t('fileUpload.charCount.exact', { count });
     } else if (content.status === 'error') {
-      return 'Erreur';
+      return t('common.error');
     } else {
       return '...';
     }
@@ -227,15 +232,15 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
               if (updatedContent.status === 'completed' && content.status !== 'completed') {
                 const charCount = updatedContent.content_metadata?.character_count 
                   ? parseInt(updatedContent.content_metadata.character_count).toLocaleString() 
-                  : "inconnu";
-                enqueueSnackbar(`"${updatedContent.name}" traité : ${charCount} caractères`, { variant: 'success' });
+                  : t('common.unknown');
+                enqueueSnackbar(t('fileUpload.snackbar.processingComplete', { name: updatedContent.name, count: charCount }), { variant: 'success' });
                 
                 // Informer le parent (si onSuccess est fourni) de la mise à jour
                 if (onSuccess) {
                   onSuccess(updatedContent);
                 }
               } else if (updatedContent.status === 'error' && content.status !== 'error') {
-                enqueueSnackbar(`Erreur lors du traitement de "${updatedContent.name}"`, { variant: 'error' });
+                enqueueSnackbar(t('fileUpload.snackbar.processingError', { name: updatedContent.name }), { variant: 'error' });
               }
             })
             .catch(err => console.error(`Erreur lors de la vérification du contenu ${content.id}:`, err));
@@ -244,17 +249,17 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
       
       return () => clearInterval(intervalId);
     }
-  }, [uploadedContents, enqueueSnackbar, onSuccess]);
+  }, [uploadedContents, enqueueSnackbar, onSuccess, t]);
 
   // Fonction pour supprimer un contenu
-  const handleDeleteContent = async (contentId) => {
+  const handleDeleteContent = async (contentId, contentName) => {
     try {
       await contentService.delete(contentId);
       // Mettre à jour la liste des contenus uploadés
       setUploadedContents(prev => prev.filter(content => content.id !== contentId));
       
       // Notifier l'utilisateur
-      enqueueSnackbar('Contenu supprimé avec succès', { variant: 'success' });
+      enqueueSnackbar(t('fileUpload.snackbar.deleteSuccess', { name: contentName }), { variant: 'success' });
       
       // Si un callback onSuccess est fourni, l'appeler avec l'action de suppression
       if (onSuccess) {
@@ -263,7 +268,7 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
       }
     } catch (error) {
       console.error('Erreur lors de la suppression du contenu:', error);
-      enqueueSnackbar(`Erreur: ${error.message || "Échec de la suppression"}`, { variant: 'error' });
+      enqueueSnackbar(t('fileUpload.snackbar.deleteError', { message: error.message || 'Échec de la suppression' }), { variant: 'error' });
     }
   };
 
@@ -292,13 +297,13 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
             <input {...getInputProps()} />
             <CloudUploadIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
-              Glissez-déposez vos fichiers ici
+              {isDragActive ? t('fileUpload.dropzone.dragActive') : t('fileUpload.dropzone.prompt')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              ou cliquez pour sélectionner des fichiers
+              {t('fileUpload.dropzone.select')}
             </Typography>
             <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-              Formats acceptés: TXT, PDF, DOCX (max 100MB)
+              {t('fileUpload.dropzone.acceptedFormats')}
             </Typography>
           </Paper>
           
@@ -312,7 +317,7 @@ const FileUpload = ({ projectId, onSuccess, hideUrlInput = false }) => {
                   label={`${content.name.length > 20 ? content.name.substring(0, 18) + '...' : content.name} (${formatCharCount(content)})`}
                   sx={{ mb: 1, maxWidth: '100%' }}
                   color={content.status === 'completed' ? 'success' : content.status === 'error' ? 'error' : 'default'}
-                  onDelete={() => handleDeleteContent(content.id)}
+                  onDelete={() => handleDeleteContent(content.id, content.name)}
                 />
               ))}
             </Stack>

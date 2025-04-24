@@ -23,6 +23,7 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import DescriptionIcon from '@mui/icons-material/Description';
 import WebIcon from '@mui/icons-material/Web';
 import { contentService } from '../services/apiService';
+import { useTranslation } from 'react-i18next';
 
 // Animation variants
 const containerVariants = {
@@ -49,6 +50,7 @@ const itemVariants = {
 
 const ContentsPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [contents, setContents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -92,17 +94,7 @@ const ContentsPage = () => {
   };
 
   const getStatusLabel = (status) => {
-    switch (status) {
-      case 'processing':
-        return 'En traitement';
-      case 'processed':
-        return 'Traité';
-      case 'failed':
-      case 'error':
-        return 'Échec';
-      default:
-        return status;
-    }
+    return t(`contentManager.status.${status}`, status);
   };
 
   const getStatusColor = (status) => {
@@ -149,7 +141,7 @@ const ContentsPage = () => {
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-          Contenus
+          {t('contentsPage.title')}
         </Typography>
         <Button
           variant="contained"
@@ -157,7 +149,7 @@ const ContentsPage = () => {
           onClick={() => navigate('/dashboard/content/upload')}
           sx={{ borderRadius: 2 }}
         >
-          Nouveau contenu
+          {t('contentsPage.newContentButton')}
         </Button>
       </Box>
 
@@ -206,6 +198,7 @@ const ContentsPage = () => {
                     <IconButton 
                       size="small" 
                       onClick={(e) => handleMenuOpen(e, content.id)}
+                      aria-label={t('common.options')}
                     >
                       <MoreVertIcon />
                     </IconButton>
@@ -219,13 +212,13 @@ const ContentsPage = () => {
 
                   {(content.status === 'error' || content.status === 'failed') && content.error_message && (
                     <Typography variant="body2" color="error.main" sx={{ mb: 2 }}>
-                      Erreur: {content.error_message}
+                      {t('common.errorLabel', { error: content.error_message })}
                     </Typography>
                   )}
 
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Typography variant="caption" color="text.secondary">
-                      Ajouté le {formatDate(content.created_at)}
+                      {t('contentsPage.addedOn', { date: formatDate(content.created_at) })}
                     </Typography>
                     <Typography variant="caption" sx={{ textTransform: 'capitalize' }}>
                       {content.type}
@@ -239,7 +232,7 @@ const ContentsPage = () => {
                     onClick={() => navigate(`/dashboard/content/${content.id}`)}
                     sx={{ borderRadius: 2 }}
                   >
-                    Voir les détails
+                    {t('contentsPage.viewDetailsButton')}
                   </Button>
                 </CardContent>
               </Card>
@@ -259,10 +252,10 @@ const ContentsPage = () => {
         >
           <CloudUploadIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" gutterBottom>
-            Aucun contenu disponible
+            {t('contentsPage.noContent.title')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 500, mx: 'auto' }}>
-            Vous n'avez pas encore ajouté de contenu. Les contenus sont utilisés pour créer des datasets qui serviront au fine-tuning de modèles.
+            {t('contentsPage.noContent.description')}
           </Typography>
           <Button 
             variant="contained" 
@@ -270,7 +263,7 @@ const ContentsPage = () => {
             onClick={() => navigate('/dashboard/content/upload')}
             sx={{ borderRadius: 2 }}
           >
-            Ajouter du contenu
+            {t('contentsPage.noContent.addButton')}
           </Button>
         </Box>
       )}
@@ -286,10 +279,10 @@ const ContentsPage = () => {
             navigate(`/dashboard/content/${selectedContentId}`);
           }
         }}>
-          Voir les détails
+          {t('contentsPage.menu.viewDetails')}
         </MenuItem>
         <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-          Supprimer
+          {t('common.delete')}
         </MenuItem>
       </Menu>
     </Box>

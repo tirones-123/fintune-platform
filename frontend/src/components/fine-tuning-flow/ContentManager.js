@@ -27,6 +27,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 import { contentService, scrapingService } from '../../services/apiService';
 import FileUpload from '../common/FileUpload'; // Adapter le chemin si nécessaire
@@ -61,6 +62,7 @@ const getContentIcon = (type) => {
 
 const ContentManager = ({ projectId, onContentChange, initialContentIds = [], onProcessingStatusChange, onSelectedContentObjectsChange }) => {
   const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation();
   const [projectContents, setProjectContents] = useState([]); // Contenus existants du projet
   const [newlyAddedFiles, setNewlyAddedFiles] = useState([]); // Fichiers uploadés dans ce flux
   const [newlyAddedYouTube, setNewlyAddedYouTube] = useState([]); // Vidéos ajoutées dans ce flux
@@ -98,13 +100,13 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
            // setSelectedContentIds(new Set(initialIds));
         }
       } catch (error) {
-        enqueueSnackbar("Erreur lors du chargement des contenus du projet", { variant: 'error' });
+        enqueueSnackbar(t('contentManager.error.loadProjectContent'), { variant: 'error' });
       } finally {
         setLoadingProjectContent(false);
       }
     };
     loadProjectContents();
-  }, [projectId, enqueueSnackbar]);
+  }, [projectId, enqueueSnackbar, t]);
 
   // Mettre à jour le parent chaque fois que la sélection OU le statut de traitement changent
   useEffect(() => {
@@ -172,7 +174,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
       newSet.delete(fileId);
       return newSet;
     });
-    enqueueSnackbar("Fichier retiré de la sélection", { variant: 'info' });
+    enqueueSnackbar(t('contentManager.snackbar.fileRemoved'), { variant: 'info' });
   };
 
   const handleAddYouTubeUrl = async () => {
@@ -185,7 +187,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
     const videoId = match && match[1];
 
     if (!videoId) {
-      setYoutubeUploadError("URL YouTube invalide.");
+      setYoutubeUploadError(t('contentManager.error.invalidYoutubeUrl'));
       setYoutubeUploading(false);
       return;
     }
@@ -282,18 +284,18 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
         setNewlyAddedYouTube([...newlyAddedYouTubeRef.current]);
         setSelectedContentIds(prev => new Set(prev).add(newYouTubeVideo.id));
         setYoutubeUrl('');
-        enqueueSnackbar(`Vidéo YouTube ajoutée (${estimatedCharacters.toLocaleString()} car. estimés)`, { variant: 'success' });
+        enqueueSnackbar(t('contentManager.snackbar.youtubeAdded', { count: estimatedCharacters.toLocaleString() }), { variant: 'success' });
 
       } else {
-        throw primaryError || new Error("Impossible de récupérer la durée de la vidéo via les services disponibles.");
+        throw primaryError || new Error(t('contentManager.error.youtubeDurationFailed'));
       }
 
     } catch (error) {
       console.error('ContentManager: Erreur finale ajout URL YouTube:', error);
       if (error.response) {
-         setYoutubeUploadError(`Erreur API: ${error.response.data?.message || error.response.data?.detail || error.message}`);
+         setYoutubeUploadError(`${t('common.apiError')}: ${error.response.data?.message || error.response.data?.detail || error.message}`);
       } else {
-         setYoutubeUploadError(`Erreur: ${error.message || "Impossible d'ajouter la vidéo"}`);
+         setYoutubeUploadError(`${t('common.error')}: ${error.message || t('contentManager.error.youtubeAddFailed')}`);
       }
     } finally {
       setYoutubeUploading(false);
@@ -308,7 +310,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
       newSet.delete(videoId);
       return newSet;
     });
-    enqueueSnackbar("Vidéo YouTube retirée", { variant: 'info' });
+    enqueueSnackbar(t('contentManager.snackbar.youtubeRemoved'), { variant: 'info' });
   };
   
   const handleScrapeUrl = async () => {
@@ -339,11 +341,11 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
         setNewlyAddedWebsites([...newlyAddedWebsitesRef.current]);
         setSelectedContentIds(prev => new Set(prev).add(newWebSite.id)); // Sélectionner auto
         setScrapeUrl('');
-        enqueueSnackbar(`Site web ajouté (${characterCount} caractères)`, { variant: 'success' });
+        enqueueSnackbar(t('contentManager.snackbar.websiteAdded', { count: characterCount }), { variant: 'success' });
   
       } catch (error) {
         console.error('Erreur scraping URL:', error);
-        setScrapeError(error.message || 'Erreur lors du scraping');
+        setScrapeError(error.message || t('contentManager.error.scrapeFailed'));
       } finally {
         setScrapeLoading(false);
       }
@@ -357,7 +359,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
         newSet.delete(siteId);
         return newSet;
       });
-      enqueueSnackbar("Site web retiré", { variant: 'info' });
+      enqueueSnackbar(t('contentManager.snackbar.websiteRemoved'), { variant: 'info' });
     };
 
   // --- Fonction de rafraîchissement pour les contenus --- 
@@ -435,7 +437,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
         {/* 1. Upload Fichiers (prend toute la largeur sur petit écran) */}
         <Grid item xs={12} md={12}>
           <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle1" gutterBottom>1. Ajouter des Fichiers</Typography>
+            <Typography variant="subtitle1" gutterBottom>{t('contentManager.addFilesTitle')}</Typography>
             <FileUpload projectId={projectId} onSuccess={handleFileUploadSuccess} />
           </Paper>
         </Grid>
@@ -443,9 +445,9 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
         {/* 2. Ajouter URL YouTube */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="subtitle1" gutterBottom>2. Ajouter une Vidéo YouTube</Typography>
+            <Typography variant="subtitle1" gutterBottom>{t('contentManager.addYoutubeTitle')}</Typography>
             <TextField
-              label="URL YouTube"
+              label={t('contentManager.youtubeUrlLabel')}
               value={youtubeUrl}
               onChange={(e) => setYoutubeUrl(e.target.value)}
               fullWidth
@@ -456,7 +458,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
               sx={{ mb: 1 }}
             />
             <Button onClick={handleAddYouTubeUrl} disabled={youtubeUploading || !youtubeUrl.trim()} size="small">
-              {youtubeUploading ? <CircularProgress size={20} /> : "Ajouter Vidéo"}
+              {youtubeUploading ? <CircularProgress size={20} /> : t('contentManager.addVideoButton')}
             </Button>
           </Paper>
         </Grid>
@@ -464,9 +466,9 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
         {/* 3. Ajouter URL Web */}
         <Grid item xs={12} md={6}>
            <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="subtitle1" gutterBottom>3. Ajouter un Site Web</Typography>
+            <Typography variant="subtitle1" gutterBottom>{t('contentManager.addWebsiteTitle')}</Typography>
              <TextField
-              label="URL Site Web"
+              label={t('contentManager.websiteUrlLabel')}
               value={scrapeUrl}
               onChange={(e) => setScrapeUrl(e.target.value)}
               fullWidth
@@ -477,26 +479,26 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
               sx={{ mb: 1 }}
             />
             <Button onClick={handleScrapeUrl} disabled={scrapeLoading || !scrapeUrl.trim()} size="small">
-              {scrapeLoading ? <CircularProgress size={20} /> : "Extraire Contenu"}
+              {scrapeLoading ? <CircularProgress size={20} /> : t('contentManager.extractButton')}
             </Button>
              <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
-                Extrait le contenu textuel principal de la page.
+                {t('contentManager.extractHelperText')}
             </Typography>
            </Paper>
         </Grid>
       </Grid>
 
       {/* Liste des contenus (existants + nouveaux) */}
-      <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>Contenus disponibles pour ce Fine-tuning</Typography>
+      <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>{t('contentManager.availableContentTitle')}</Typography>
       {isProcessing && ( // Afficher une alerte globale si quelque chose est en traitement
         <Alert severity="info" sx={{ mb: 2 }}>
-          Traitement de certains contenus en cours... Le bouton 'Suivant' sera activé lorsque tout sera prêt.
+          {t('contentManager.processingAlert')}
         </Alert>
       )}
       {loadingProjectContent ? (
         <CircularProgress />
       ) : allContent.length === 0 ? (
-        <Typography>Aucun contenu disponible ou ajouté.</Typography>
+        <Typography>{t('contentManager.noContentAvailable')}</Typography>
       ) : (
         <List component={Paper} dense>
           {allContent.map((content) => {
@@ -504,7 +506,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
             return (
               <ListItem key={content.id} divider>
                 <ListItemIcon sx={{ minWidth: 35 }}>
-                  <Tooltip title={`Type: ${content.type}`}> 
+                  <Tooltip title={`${t('common.type')}: ${content.type}`}>
                    {getContentIcon(content.type)}
                   </Tooltip>
                 </ListItemIcon>
@@ -515,8 +517,8 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                        {isProcessingContent ? (
                         <Chip 
                           label={content.type === 'youtube' && content.status === 'awaiting_transcription' 
-                                ? 'Prêt (transcription différée)' 
-                                : content.status || 'En attente'}
+                                ? t('contentManager.status.readyTranscriptionDelayed')
+                                : t(`content.status.${content.status}`, content.status || t('contentManager.status.pending'))}
                           size="small"
                           color={content.type === 'youtube' && content.status === 'awaiting_transcription' ? "success" : "warning"}
                           icon={content.type === 'youtube' && content.status === 'awaiting_transcription' 
@@ -526,7 +528,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                         />
                       ) : (
                          <Typography variant="caption" sx={{ color: content.status === 'error' ? 'error.main' : 'text.secondary' }}>
-                           {`Statut: ${content.status}`}
+                           {`${t('common.status')}: ${t(`content.status.${content.status}`, content.status)}`}
                          </Typography>
                       )}
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -537,28 +539,25 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                              try { meta = JSON.parse(meta); } catch(_) { meta = null; }
                            }
                            if (meta?.character_count) {
-                             return ` | Caractères: ${Number(meta.character_count).toLocaleString()}`;
+                             return ` | ${t('common.characters')}: ${Number(meta.character_count).toLocaleString()}`;
                            }
                            if (content.estimated_characters) {
-                              return ` | Caractères: ~${Number(content.estimated_characters).toLocaleString()}`;
+                              return ` | ${t('common.characters')}: ~${Number(content.estimated_characters).toLocaleString()}`;
                            }
                            if (content.type === 'youtube' && meta?.duration_seconds) {
                              const estChars = Math.round((meta.duration_seconds / 60) * 400);
-                             return ` | Caractères: ~${estChars.toLocaleString()}`;
+                             return ` | ${t('common.characters')}: ~${estChars.toLocaleString()}`;
                            }
-                           // Cas des sites web scrapés où le nombre de caractères est stocké au niveau racine
                            if (content.character_count) {
-                             return ` | Caractères: ${Number(content.character_count).toLocaleString()}`;
+                             return ` | ${t('common.characters')}: ${Number(content.character_count).toLocaleString()}`;
                            }
-                           // Sinon état de traitement ou inconnu
-                           return isProcessingContent ? ' | Caractères: Calcul...' : ' | Caractères: N/A';
+                           return isProcessingContent ? ` | ${t('common.characters')}: ${t('common.calculating')}...` : ` | ${t('common.characters')}: N/A`;
                          })()}
                       </Typography>
                     </Box>
                   }
                 />
                 <ListItemSecondaryAction sx={{ display: 'flex', alignItems: 'center' }}>
-                   {/* Afficher le bouton de suppression uniquement pour les nouveaux contenus */}
                    {(newlyAddedFiles.some(f => f.id === content.id) || 
                      newlyAddedYouTube.some(v => v.id === content.id) || 
                      newlyAddedWebsites.some(w => w.id === content.id)) && (
@@ -566,7 +565,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                            if (newlyAddedFiles.some(f => f.id === content.id)) handleDeleteNewlyAddedFile(content.id);
                            if (newlyAddedYouTube.some(v => v.id === content.id)) handleDeleteNewlyAddedYouTube(content.id);
                            if (newlyAddedWebsites.some(w => w.id === content.id)) handleDeleteNewlyAddedWebsite(content.id);
-                       }} size="small" title="Retirer">
+                       }} size="small" title={t('common.remove')}>
                            <DeleteIcon fontSize="small"/>
                        </IconButton>
                    )}
@@ -583,7 +582,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                         />
                     }
                     labelPlacement="start"
-                    label="Inclure"
+                    label={t('common.include')}
                     sx={{ mr: 0, '& .MuiFormControlLabel-label': { fontSize: '0.8rem' } }}
                    />
                 </ListItemSecondaryAction>

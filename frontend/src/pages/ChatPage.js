@@ -27,10 +27,12 @@ import PersonIcon from '@mui/icons-material/Person';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useSnackbar } from 'notistack';
 import { fineTuningService } from '../services/apiService';
+import { useTranslation } from 'react-i18next';
 
 const ChatPage = () => {
   const { fineTuningId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [fineTuning, setFineTuning] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -51,7 +53,7 @@ const ChatPage = () => {
       setError(null);
     } catch (err) {
       console.error('Error fetching fine-tuning data:', err);
-      setError('Impossible de récupérer les données du modèle. Veuillez réessayer.');
+      setError(t('chatPage.error.loadModelData'));
     } finally {
       setLoading(false);
     }
@@ -59,7 +61,7 @@ const ChatPage = () => {
 
   useEffect(() => {
     fetchFineTuningData();
-  }, [fineTuningId]);
+  }, [fineTuningId, t]);
 
   // Faire défiler vers le bas lorsque de nouveaux messages sont ajoutés
   useEffect(() => {
@@ -102,11 +104,10 @@ const ChatPage = () => {
       
     } catch (err) {
       console.error('Error getting model response:', err);
-      enqueueSnackbar('Erreur lors de la récupération de la réponse du modèle', { variant: 'error' });
-      // Optionnel: Ajouter un message d'erreur à la conversation
+      enqueueSnackbar(t('chatPage.error.getResponse'), { variant: 'error' });
       const errorMessage = {
         role: 'assistant',
-        content: `Désolé, une erreur s'est produite: ${err.message}`,
+        content: t('chatPage.error.apiError', { message: err.message }),
         timestamp: new Date().toISOString()
       };
       setMessages(prevMessages => [...prevMessages, errorMessage]);
@@ -133,11 +134,12 @@ const ChatPage = () => {
             color="inherit" 
             onClick={() => navigate(`/dashboard/fine-tuning/${fineTuningId}`)}
             sx={{ mr: 1 }}
+            aria-label={t('common.back')}
           >
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h5">
-            {loading ? 'Chargement...' : fineTuning?.name}
+            {loading ? t('common.loading') : fineTuning?.name}
           </Typography>
         </Box>
       </Box>
@@ -148,15 +150,15 @@ const ChatPage = () => {
         sx={{ mb: 3 }}
       >
         <Link component={RouterLink} to="/dashboard" color="inherit">
-          Dashboard
+          {t('common.dashboard')}
         </Link>
         <Link component={RouterLink} to="/dashboard/fine-tuning" color="inherit">
-          Fine-tuning
+          {t('common.fineTuning')}
         </Link>
         <Link component={RouterLink} to={`/dashboard/fine-tuning/${fineTuningId}`} color="inherit">
-          {loading ? 'Chargement...' : fineTuning?.name}
+          {loading ? t('common.loading') : fineTuning?.name}
         </Link>
-        <Typography color="text.primary">Test du modèle</Typography>
+        <Typography color="text.primary">{t('chatPage.breadcrumb.testModel')}</Typography>
       </Breadcrumbs>
 
       {error && (
@@ -265,7 +267,7 @@ const ChatPage = () => {
               <TextField
                 fullWidth
                 variant="outlined"
-                placeholder="Tapez votre message..."
+                placeholder={t('chatPage.inputPlaceholder')}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={loading || responding}
@@ -292,6 +294,7 @@ const ChatPage = () => {
                     boxShadow: 'none',
                   }
                 }}
+                aria-label={t('chatPage.sendAriaLabel')}
               >
                 {responding ? <CircularProgress size={24} color="inherit" /> : <SendIcon />}
               </Button>

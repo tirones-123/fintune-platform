@@ -1,7 +1,28 @@
 {
   "common": {
     "loading": "Loading...",
-    "orDivider": "OR"
+    "orDivider": "OR",
+    "error": "Error",
+    "unknown": "unknown",
+    "delete": "Delete",
+    "remove": "Remove",
+    "untitled": "Untitled",
+    "status": "Status",
+    "characters": "Characters",
+    "calculating": "Calculating",
+    "type": "Type",
+    "include": "Include",
+    "min": "Min",
+    "optimal": "Opt",
+    "free": "Free",
+    "important": "Important",
+    "close": "Close",
+    "generating": "Generating...",
+    "regenerate": "Regenerate",
+    "category": "Category",
+    "recommended": "Recommended",
+    "cancel": "Cancel",
+    "errorLabel": "Error: {{error}}"
   },
   "login": {
     "title": "Login",
@@ -47,6 +68,852 @@
     },
     "error": {
       "generic": "An error occurred during registration. Please try again."
+    }
+  },
+  "themeToggle": {
+    "lightModeTooltip": "Switch to light mode",
+    "darkModeTooltip": "Switch to dark mode",
+    "ariaLabel": "Toggle theme"
+  },
+  "fileUpload": {
+    "dropzone": {
+      "dragActive": "Drop the files here...",
+      "prompt": "Drag 'n' drop your files here",
+      "select": "or click to select files",
+      "acceptedFormats": "Accepted formats: TXT, PDF, DOCX (max 100MB)"
+    },
+    "charCount": {
+      "mega": "{{count}} M chars",
+      "kilo": "{{count}} K chars",
+      "exact": "{{count}} chars"
+    },
+    "status": {
+      "error": "Failed",
+      "success": "Upload complete"
+    },
+    "error": {
+      "genericUpload": "Error during file upload",
+      "noFileSelected": "Please select at least one file"
+    },
+    "snackbar": {
+      "uploadSuccess": "File \"{{fileName}}\" uploaded successfully",
+      "uploadSuccessMultiple": "{{count}} files uploaded successfully",
+      "processingComplete": "\"{{name}}\" processed: {{count}} characters",
+      "processingError": "Error processing \"{{name}}\"",
+      "deleteSuccess": "Content \"{{name}}\" deleted successfully",
+      "deleteError": "Error deleting content: {{message}}"
+    }
+  },
+  "content": {
+    "fileUpload": {
+      "title": "Add Content",
+      "description": "Import files to create your fine-tuning dataset.",
+      "importTitle": "Import Files",
+      "dropzone": {
+        "dragActive": "Drop the files here...",
+        "prompt": "Drag 'n' drop your files here",
+        "select": "or click to select files",
+        "acceptedFormats": "Accepted formats: TXT, PDF, DOCX (max 100MB)"
+      },
+      "selectedFilesTitle": "Selected files",
+      "buttonUploading": "Uploading...",
+      "buttonAdd": "Add Content",
+      "error": {
+        "noFileSelected": "Please select at least one file",
+        "genericUpload": "Error uploading files",
+        "someFailed": "Upload failed for: {{names}}"
+      },
+      "snackbar": {
+         "uploadSuccessMultiple": "{{count}} files uploaded successfully"
+      }
+    },
+    "uploadStatus": {
+      "ready": "Ready",
+      "failed": "Failed",
+      "processing": "Processing",
+      "pending": "Pending",
+      "refreshTooltip": "Refresh data",
+      "processingMessage": "Character extraction in progress...",
+      "charCountDisplay": "<strong>{{count}} characters</strong>",
+      "countingPending": "Counting pending...",
+      "costTooltip": "Cost calculated at $0.000365 per character",
+      "costLabel": "Cost",
+      "qualityLabel": "Quality",
+      "qualityLevel": {
+        "insufficient": "Insufficient Data",
+        "minimal": "Minimal Quality",
+        "good": "Good Quality",
+        "optimal": "Optimal Quality",
+        "excessive": "Excessive Data"
+      }
+    }
+  },
+  "characterCounter": {
+    "availableTitle": "Available Characters",
+    "buyButton": "Buy Characters",
+    "freeRemainingLabel": "Free Characters Remaining",
+    "totalUsedLabel": "Total Characters Used",
+    "pricePerCharLabel": "Price per Character",
+    "freeUsageLabel": "Free Character Usage",
+    "error": {
+      "loading": "Error loading character data"
+    },
+    "snackbar": {
+      "loadError": "Error loading statistics",
+      "purchaseSuccess": "Character purchase successful",
+      "purchaseError": "Error purchasing characters: {{error}}"
+    },
+    "dialog": {
+      "title": "Buy Characters",
+      "description": "Characters allow you to create datasets to fine-tune your models. Each user has {{count}} free characters.",
+      "amountLabel": "Number of characters",
+      "amountHelper": "Minimum 1,000 characters",
+      "pricePerCharLabel": "Price per character",
+      "totalLabel": "Total",
+      "processingButton": "Processing...",
+      "buyButton": "Buy Now"
+    }
+  },
+  "dashboardLayout": {
+    "welcomeModal": {
+      "title": "Welcome to FineTuner Platform!",
+      "line1": "Your first fine-tuning is now processing!",
+      "line2": "Here are a few important points:",
+      "listItem1": "The process can take from a few minutes to several hours depending on your dataset size.",
+      "listItem2": "You can monitor the progress in the <strong>Fine-Tunings</strong> tab.",
+      "listItem3": "You can also check the status directly on the OpenAI dashboard.",
+      "closeButton": "Got it!"
+    }
+  },
+  "header": {
+    "openDrawerAriaLabel": "Open drawer",
+    "accountOptionsTooltip": "Account options",
+    "userMenu": {
+      "profile": "My profile",
+      "settings": "Settings",
+      "help": "Help",
+      "logout": "Logout"
+    }
+  },
+  "notifications": {
+    "tooltip": "Notifications",
+    "title": "Notifications",
+    "unreadCount_one": "You have {{count}} unread message",
+    "unreadCount_other": "You have {{count}} unread messages",
+    "markAllReadTooltip": "Mark all as read",
+    "noNotifications": "No notifications",
+    "newSubheader": "New"
+  },
+  "qualityAssessment": {
+    "title": "Quality Assessment",
+    "usageTypeLabel": "Usage Type",
+    "characterCountLabel": "Character Count",
+    "suggestionsTitle": "Improvement Suggestions",
+    "noData": "No data available for assessment.",
+    "costTooltip": "Cost calculated at $0.000365 per character",
+    "costLabel": "Cost",
+    "qualityLabel": "Quality",
+    "usageTypes": {
+      "generic": "General Use",
+      "customer_support": "Customer Support",
+      "sales": "Sales",
+      "marketing": "Marketing",
+      "technical": "Technical Documentation",
+      "legal": "Legal Content",
+      "medical": "Medical Content"
+    },
+    "scoreLabel": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "average": "Average",
+      "low": "Low",
+      "insufficient": "Insufficient"
+    },
+    "error": {
+      "assessment": "Error assessing quality"
+    }
+  },
+  "sidebar": {
+    "newProjectButton": "New Project",
+    "menu": {
+      "projects": "Projects",
+      "projectsTooltip": "Manage your projects",
+      "playground": "Playground",
+      "playgroundTooltip": "Access the playground",
+      "analytics": "Analytics",
+      "analyticsTooltip": "Statistics and metrics",
+      "help": "Help & Documentation",
+      "helpTooltip": "Documentation and guides"
+    },
+    "bottomNav": {
+      "settings": "Settings",
+      "settingsTooltip": "Manage your settings",
+      "logout": "Logout",
+      "logoutTooltip": "Log out"
+    }
+  },
+  "characterEstimator": {
+    "title": "Dataset Estimation",
+    "estimatedCharsLabel": "Estimated Characters",
+    "countedCharsLabel": "Characters Counted",
+    "estimatedCostLabel": "Estimated Cost",
+    "progressTitle": "Dataset Progress",
+    "progressChars": "{{count}} characters",
+    "tooltip": {
+      "freeCredits": "Free credits",
+      "minRecommended": "Minimum recommended",
+      "optimal": "Optimal"
+    },
+    "missingCharsWarning": "{{count}} characters missing for minimum recommended."
+  },
+  "configManager": {
+    "infoAlert": "Choose the model you want to use and add your API key to start training your assistant from the imported content.",
+    "providerLabel": "AI Provider",
+    "modelLabel": "Base Model",
+    "selectProviderFirst": "Select a provider first",
+    "modelHelperText": "Model that will be fine-tuned with your data.",
+    "apiKeyLabel": "{{providerName}} API Key",
+    "apiKeyPlaceholder": "Enter your {{providerName}} API key",
+    "apiKeyHelpAriaLabel": "API key help",
+    "apiKeyHelpTooltip": "How to get my API key?",
+    "validateApiKeyButton": "Validate and Save Key",
+    "apiKeyValidatedMessage": "API key saved and validated.",
+    "models": {
+      "openai": {
+        "gpt-4o": "GPT-4o (Most capable and recent model)",
+        "gpt-4o-mini": "GPT-4o Mini (Good price/performance ratio)",
+        "gpt-3.5-turbo": "GPT-3.5 Turbo (Cost-effective, good performance)"
+      },
+      "anthropic": {}
+    },
+    "error": {
+      "apiKeyRequired": "API key required.",
+      "invalidApiKey": "Invalid API key.",
+      "noCredits": "API account has insufficient credits.",
+      "validationFailed": "API key validation error."
+    },
+    "snackbar": {
+      "apiKeyValidated": "API key validated and saved"
+    },
+    "apiKeyHelpDialog": {
+      "title": "How to get your {{providerName}} API Key",
+      "whyTitle": "Why do we need your API key?",
+      "whyPara1": "To fine-tune a model, we need to send your training data to the chosen AI provider ({{providerName}}). The training happens on their infrastructure.",
+      "whyPara2": "Your API key allows us to act on your behalf to:",
+      "whyItem1": "Send the training file",
+      "whyItem2": "Start the fine-tuning job",
+      "whyItem3": "Retrieve the fine-tuned model ID once completed",
+      "whereTitle": "Where to find your API key?",
+      "whereOpenAI1": "Log in to your OpenAI account, then navigate to the API keys section.",
+      "whereOpenAI2": "Create a new secret key (it usually starts with \"sk-...\"). Copy it and paste it here.",
+      "whereOpenAICredits": "Make sure you have added credits to your OpenAI account, as fine-tuning and model usage are paid services. Check your",
+      "billingLink": "OpenAI billing page",
+      "securityTitle": "Key Security",
+      "securityPara": "Your API key is sensitive. We store it securely and only use it for the fine-tuning operations you initiate through our platform. It is never exposed client-side.",
+      "goToOpenAIKeys": "Go to OpenAI Keys"
+    }
+  },
+  "contentManager": {
+    "addFilesTitle": "1. Add Files",
+    "addYoutubeTitle": "2. Add a YouTube Video",
+    "addWebsiteTitle": "3. Add a Website",
+    "youtubeUrlLabel": "YouTube URL",
+    "addVideoButton": "Add Video",
+    "websiteUrlLabel": "Website URL",
+    "extractButton": "Extract Content",
+    "extractHelperText": "Extracts the main text content from the page.",
+    "availableContentTitle": "Available Content for this Fine-tuning",
+    "processingAlert": "Some content is still processing... The 'Next' button will be enabled when everything is ready.",
+    "noContentAvailable": "No content available or added.",
+    "status": {
+      "ready": "Ready",
+      "failed": "Failed",
+      "processing": "Processing",
+      "pending": "Pending",
+      "readyTranscriptionDelayed": "Ready (Transcription deferred)",
+      "awaiting_transcription": "Awaiting Transcription"
+    },
+    "error": {
+      "loadProjectContent": "Error loading project content",
+      "invalidYoutubeUrl": "Invalid YouTube URL.",
+      "youtubeDurationFailed": "Could not retrieve video duration from available services.",
+      "youtubeAddFailed": "Could not add the video",
+      "scrapeFailed": "Error scraping URL"
+    },
+    "snackbar": {
+      "fileRemoved": "File removed from selection",
+      "youtubeAdded": "YouTube video added (~{{count}} estimated chars)",
+      "youtubeRemoved": "YouTube video removed",
+      "websiteAdded": "Website added ({{count}} characters)",
+      "websiteRemoved": "Website removed"
+    }
+  },
+  "systemPromptGenerator": {
+    "title": "Define the Assistant",
+    "description": "Describe the purpose of your AI assistant. This will help us generate an initial System Prompt and estimate the recommended amount of data.",
+    "purposeLabel": "Assistant's Purpose",
+    "purposePlaceholder": "Example: A chatbot to answer frequently asked questions about our products, with a friendly and informal tone.",
+    "purposeHelper": "Be specific about the domain, tone, and desired capabilities.",
+    "generateButton": "Generate System Prompt",
+    "suggestedPromptTitle": "Suggested System Prompt",
+    "error": {
+      "purposeRequired": "Please describe the purpose of your assistant.",
+      "genericGenerate": "Unknown error during system prompt generation."
+    },
+    "snackbar": {
+      "generateSuccess": "System prompt generated successfully"
+    }
+  },
+  "landing": {
+    "features": {
+      "mainTitle": "Main Features",
+      "subtitle": "Discover how FineTuner simplifies every step of the fine-tuning process",
+      "importTitle": "Simplified Content Import",
+      "importDesc": "Easily import your documents, articles, FAQs, or any other text content to build your knowledge base.",
+      "datasetTitle": "Optimized Dataset Generation",
+      "datasetDesc": "Automatically transform your content into perfectly formatted question-answer pairs for fine-tuning.",
+      "finetuneTitle": "One-Click Fine-tuning",
+      "finetuneDesc": "Launch fine-tuning for your favorite models directly from our platform, without code or complex configuration.",
+      "analyticsTitle": "Performance Analysis",
+      "analyticsDesc": "Evaluate the quality of your fine-tuned models and identify improvement opportunities with our analysis tools."
+    },
+    "hero": {
+      "titleLine1": "Your Content,",
+      "titleLine2": "Your AI.",
+      "subtitle": {
+        "part1": "Instantly transform PDF, YouTube, and websites into powerful AI assistants like ",
+        "part2": " or ",
+        "part3": ". No expertise required."
+      },
+      "ctaButton": "Start for Free",
+      "ctaAriaLabel": "Start using FineTuner for free",
+      "ctaCaption": "Get started in 60 seconds."
+    }
+  },
+  "navbar": {
+    "home": "Home",
+    "howItWorks": "How it Works",
+    "faq": "FAQ",
+    "login": "Login",
+    "register": "Sign Up",
+    "logoAlt": "FineTuner Logo",
+    "openDrawerAriaLabel": "Open drawer"
+  },
+  "footer": {
+    "description": "Turn your content into fine-tuned AI in a few clicks. The simplest and most powerful AI technology to create your custom assistant.",
+    "copyright": "All rights reserved.",
+    "product": {
+      "title": "Product",
+      "home": "Home",
+      "howItWorks": "How it Works",
+      "faq": "FAQ"
+    },
+    "resources": {
+      "title": "Resources",
+      "help": "Help",
+      "playground": "Playground",
+      "apiDocs": "API Documentation"
+    },
+    "company": {
+      "title": "Company"
+    },
+    "legal": {
+      "title": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    },
+    "social": {
+      "twitter": "Twitter",
+      "linkedin": "LinkedIn",
+      "github": "GitHub",
+      "facebook": "Facebook"
+    }
+  },
+  "pricing": {
+    "mainTitle": "Transparent Pricing",
+    "subtitle": "Choose the plan that fits your needs",
+    "billing": {
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "discount": "(-20%)"
+    },
+    "free": {
+      "title": "Free",
+      "description": "Perfect for getting started and testing the platform",
+      "features": {
+        "tokens": "{{count}} generation tokens",
+        "projects": "{{count}} project",
+        "storage": "5 MB storage",
+        "models": "Access to base models"
+      },
+      "buttonText": "Start for free"
+    },
+    "pro": {
+      "title": "Pro",
+      "description": "For professionals and small teams",
+      "features": {
+        "tokens": "{{count}} generation tokens",
+        "projects": "Unlimited projects",
+        "storage": "100 MB storage",
+        "models": "Access to all models",
+        "support": "Priority support"
+      },
+      "buttonText": "Start free trial"
+    },
+    "enterprise": {
+      "title": "Enterprise",
+      "description": "For large teams and advanced needs",
+      "features": {
+        "tokens": "Unlimited generation tokens",
+        "projects": "Unlimited projects",
+        "storage": "Unlimited storage",
+        "models": "Access to all models",
+        "support": "Dedicated support",
+        "api": "Custom API",
+        "deployment": "On-premise deployment available"
+      },
+      "buttonText": "Contact Sales"
+    },
+    "footer": {
+      "taxNote": "All prices exclude taxes. You can also opt for our usage-based pricing model.",
+      "usageBasedNote": "$0.05 per MB of processed content • $0.10 per generated dataset chunk • $0.01 per fine-tuning step"
+    }
+  },
+  "payment": {
+    "choosePlanTitle": "Choose your plan",
+    "recommendedBadge": "Recommended",
+    "trialInfoTitle": "Payment Information for Free Trial",
+    "paymentInfoTitle": "Payment Information",
+    "trialAlert": "Your card will not be charged today. We only keep it to activate your subscription at the end of the 7-day trial period, unless you cancel beforehand.",
+    "cardNameLabel": "Name on card",
+    "cardNumberLabel": "Card number",
+    "expiryDateLabel": "Expiration date",
+    "cvvLabel": "CVV",
+    "securePaymentMessage": "Secure payment with Stripe. Your payment information is protected.",
+    "processingButton": "Processing...",
+    "startTrialButton": "Start Free Trial",
+    "payButton": "Pay {{amount}}€ per month",
+    "validation": {
+      "cardNameRequired": "Name on card is required",
+      "invalidCardNumber": "Invalid card number",
+      "invalidExpiryDate": "Invalid expiration date",
+      "invalidCvv": "Invalid CVV"
+    },
+    "error": {
+      "generic": "An error occurred while processing the payment. Please try again."
+    },
+    "success": {
+      "trial": "Your free trial has been successfully activated! Your card will be automatically charged at the end of the trial period unless you cancel beforehand.",
+      "subscription": "Payment processed successfully! Your subscription is now active."
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Ideal for beginners",
+        "features": {
+          "tokens": "{{count, number}} generation tokens",
+          "projects": "{{count}} project max",
+          "storage": "{{size}} MB storage",
+          "support": "Email support"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "For professionals",
+        "features": {
+          "tokens": "Unlimited generation tokens",
+          "projects": "Unlimited projects",
+          "storage": "{{size}} GB storage",
+          "support": "Priority support",
+          "api": "Custom API"
+        }
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "For teams",
+        "features": {
+          "tokens": "Unlimited generation tokens",
+          "projects": "Unlimited projects",
+          "storage": "Unlimited storage",
+          "support": "Dedicated support",
+          "api": "Custom API",
+          "deployment": "On-site deployment available"
+        }
+      }
+    }
+  },
+  "analytics": {
+    "title": "Analytics & Statistics",
+    "error": {
+      "load": "Could not load analytics data."
+    },
+    "cards": {
+      "projects": "Projects Created",
+      "datasets": "Datasets Generated",
+      "trainedModels": "Models Trained",
+      "freeChars": "Free Characters Remaining",
+      "usedChars": "Total Characters Used",
+      "activeJobs": "Active Jobs"
+    },
+    "charts": {
+      "usageHistory": "Character Usage History",
+      "contentTypeDistribution": "Content Type Distribution",
+      "comingSoon": "(Chart coming soon)"
+    }
+  },
+  "chatPage": {
+    "error": {
+      "loadModelData": "Could not retrieve model data. Please try again.",
+      "getResponse": "Error retrieving model response",
+      "apiError": "Sorry, an error occurred: {{message}}"
+    },
+    "breadcrumb": {
+      "testModel": "Test Model"
+    },
+    "inputPlaceholder": "Type your message...",
+    "sendAriaLabel": "Send message"
+  },
+  "contentsPage": {
+    "title": "Contents",
+    "newContentButton": "New Content",
+    "addedOn": "Added on {{date}}",
+    "viewDetailsButton": "View Details",
+    "noContent": {
+      "title": "No content available",
+      "description": "You haven't added any content yet. Contents are used to create datasets for fine-tuning models.",
+      "addButton": "Add Content"
+    },
+    "menu": {
+      "viewDetails": "View Details"
+    }
+  },
+  "dashboard": {
+    "welcomeMessage": "Welcome to your Dashboard, {{name}}!",
+    "error": {
+        "fetchStats": "Error fetching dashboard statistics"
+    },
+    "stats": {
+        "projects": "Projects",
+        "contents": "Contents",
+        "datasets": "Datasets",
+        "credits": "Remaining Credits"
+    },
+    "recentProjects": {
+        "title": "Recent Projects",
+        "updatedOn": "Updated on {{date}}",
+        "contentCount_one": "{{count}} content",
+        "contentCount_other": "{{count}} contents",
+        "datasetCount_one": "{{count}} dataset",
+        "datasetCount_other": "{{count}} datasets",
+        "progress": "Progress",
+        "noProjects": "You don't have any projects yet",
+        "createButton": "Create a project",
+        "error": {
+            "fetch": "Error fetching project details"
+        }
+    },
+    "recentModels": {
+        "title": "Recent Models",
+        "createdOn": "Created on {{date}}",
+        "noModels": "You don't have any fine-tuned models yet",
+        "createButton": "Create a model",
+        "error": {
+            "fetch": "Error fetching models"
+        }
+    }
+  },
+  "datasetDetail": {
+    "breadcrumb": "Dataset",
+    "noDescription": "No description",
+    "startFinetuningButton": "Start Fine-tuning",
+    "exportButton": "Export",
+    "exportTooltipDisabled": "Dataset must be ready to be exported.",
+    "generalInfoTitle": "General Information",
+    "pairCountLabel": "Number of Pairs",
+    "generationMethodLabel": "Generation Method",
+    "generationMethods": {
+      "auto": "Automatic",
+      "manual": "Manual",
+      "custom": "Custom"
+    },
+    "usedContentTitle": "Used Content",
+    "generationParamsTitle": "Generation Parameters",
+    "chunkSizeLabel": "Chunk Size",
+    "chunkSizeValue": "3000 characters (fixed)",
+    "systemPromptTitle": "System Prompt",
+    "systemPromptHelperText": "The system prompt defines the assistant's behavior and role during fine-tuning. This instruction will be used for all training examples.",
+    "pairExamplesTitle": "Pair Examples",
+    "editSystemPromptDialog": {
+      "title": "Edit System Prompt",
+      "defaultValue": "You are a helpful assistant."
+    },
+    "status": {
+      "generating": "Generating",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "exportMenu": {
+      "openai": "Export for OpenAI",
+      "anthropic": "Export for Anthropic"
+    },
+    "snackbar": {
+      "exportStarted": "Export for {{provider}} started",
+      "exportError": "Error exporting for {{provider}}: {{error}}",
+      "deleteSuccess": "Dataset deleted successfully",
+      "deleteError": "Error deleting dataset",
+      "systemPromptUpdateSuccess": "System prompt updated successfully",
+      "systemPromptUpdateError": "Error updating system prompt"
+    },
+    "error": {
+        "loadData": "Could not retrieve dataset data. Please try again."
+    },
+    "example1": {
+        "question": "What are the advantages of your solution compared to the competition?",
+        "answer": "Our solution stands out with three major advantages: an intuitive interface requiring no training, easy integration with your existing tools, and competitive pricing with no hidden fees. Unlike competitors, we also offer 24/7 customer support included in all our plans."
+    },
+    "example2": {
+        "question": "How can I contact customer service?",
+        "answer": "You can contact our customer service by phone at +1-800-123-4567 Monday to Friday from 9 AM to 6 PM, by email at support@example.com, or via live chat on our website. For Premium customers, a dedicated line is available 24/7."
+    }
+  },
+  "datasetsPage": {
+    "title": "Datasets",
+    "newDatasetButton": "New Dataset",
+    "fineTuningsButton": "Fine-tunings",
+    "modelLabel": "Model",
+    "pairsAndSize": "{{pairs}} pairs • {{size}}",
+    "fineTuneButton": "Fine-tune",
+    "noDatasets": {
+      "title": "No datasets available",
+      "description": "You haven't created any datasets yet. Datasets are sets of question-answer pairs used for fine-tuning models.",
+      "createButton": "Create a Dataset"
+    },
+    "menu": {
+      "createFineTuning": "Create Fine-tuning"
+    },
+    "error": {
+        "fetch": "Error fetching datasets",
+        "delete": "Error deleting dataset"
+    }
+  },
+  "fineTuningsPage": {
+      "title": "Fine-tunings",
+      "datasetsButton": "Datasets",
+      "modelLabel": "Model",
+      "providerLabel": "Provider",
+      "cancelReason": "Cancelled by user",
+      "status": {
+        "queued": "Queued",
+        "preparing": "Preparing",
+        "training": "Training",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "error": "Error"
+      },
+      "noFineTunings": {
+          "title": "No fine-tunings available",
+          "description": "You haven't created any fine-tuned models yet. Fine-tunings allow you to adapt language models to your specific data.",
+          "viewDatasetsButton": "View Datasets"
+      },
+      "menu": {
+          "chatWithModel": "Chat with Model",
+          "cancelTraining": "Cancel Training"
+      },
+      "error": {
+          "fetch": "Error fetching fine-tunings",
+          "delete": "Error deleting fine-tuning",
+          "cancel": "Error cancelling fine-tuning"
+      }
+  },
+  "fineTuningDetail": {
+      "breadcrumb": "Fine-tuning",
+      "downloadDatasetButton": "Download Dataset",
+      "cancelButton": "Cancel",
+      "testModelButton": "Test Model",
+      "fineTuningInfoTitle": "Fine-tuning Information",
+      "associatedDatasetTitle": "Associated Dataset",
+      "datasetInfoUnavailable": "Dataset information not available",
+      "backToProjectButton": "Back to Project",
+      "deleteButton": "Delete this Fine-tuning",
+      "noInfoFound": "No information found for this fine-tuning.",
+      "error": {
+          "loadData": "Could not retrieve fine-tuning data. Please try again.",
+          "missingDatasetId": "Missing dataset ID",
+          "downloadError": "Download error"
+      },
+      "snackbar": {
+          "cancelSuccess": "Fine-tuning cancelled successfully",
+          "cancelError": "Error cancelling fine-tuning",
+          "deleteSuccess": "Fine-tuning deleted successfully",
+          "deleteError": "Error deleting fine-tuning",
+          "preparingDownload": "Preparing download..."
+      }
+  },
+  "helpPage": {
+      "title": "FineTuner Help Center",
+      "howItWorks": {
+          "title": "How FineTuner Platform Works",
+          "intro": "FineTuner allows you to create custom AI assistants by fine-tuning language models on your own data. The general process is as follows:",
+          "step1": {
+              "title": "1. Project Creation:",
+              "desc": "Organize your work into distinct projects."
+          },
+          "step2": {
+              "title": "2. Content Import:",
+              "desc": "Add your documents, web pages, or YouTube videos. We extract the relevant text."
+          },
+          "step3": {
+              "title": "3. Dataset Creation:",
+              "desc": "We transform your content into question/answer pairs optimized for fine-tuning."
+          },
+          "step4": {
+              "title": "4. Fine-tuning Launch:",
+              "desc": "Choose a base model (e.g., GPT-3.5) and launch training on your dataset."
+          },
+          "step5": {
+              "title": "5. Test & Integration:",
+              "desc": "Test your custom model in the Playground and integrate it into your applications."
+          },
+          "videoTitle": "Video Tutorial:",
+          "videoIframeTitle": "FineTuner Platform Tutorial",
+          "conclusion": "Fine-tuning adapts the model to your specific style, terminology, and knowledge base, making it much more effective for your use cases."
+      },
+      "integration": {
+          "title": "Integrating Your Fine-tuned Models",
+          "intro": "Once your model is fine-tuned (status \"completed\"), you can use it in your own applications or workflows.",
+          "viaFinetunerApi": {
+              "title": "Via FineTuner API (Recommended)",
+              "description": "We will soon provide a dedicated API endpoint to easily interact with your fine-tuned models hosted on FineTuner. This will simplify integration and management.",
+              "status": "*(This feature is under development)*"
+          },
+          "viaProviderApi": {
+              "title": "Via Provider API (OpenAI, Anthropic, etc.)",
+              "description": "You can directly use the provider's API (e.g., OpenAI) using your fine-tuned model ID. You can find this ID on your Fine-tuning details page or in the Playground.",
+              "exampleTitle": "Example with OpenAI API (Python):",
+              "codeExample": "import openai\n\nopenai.api_key = 'YOUR_OPENAI_API_KEY'\n\nresponse = openai.Completion.create(\n  model=\"YOUR_FINETUNED_MODEL_ID\", # Replace with your model ID\n  prompt=\"Your prompt here...\",\n  max_tokens=150\n)\n\nprint(response.choices[0].text.strip())",
+              "docsLinkText": "Consult the",
+              "openaiApiLink": "OpenAI API documentation",
+              "forMoreDetails": "for more details on parameters."
+          },
+          "viaAutomation": {
+              "title": "Via Zapier / Make / Other Automation Platforms",
+              "description1": "Most automation platforms (Zapier, Make, n8n, etc.) offer native integrations with OpenAI or allow making generic HTTP API calls.",
+              "description2": "You can use the \"OpenAI Completion\" action (or equivalent) by specifying your fine-tuned model ID in the \"Model\" field. You will need your OpenAI API key.",
+              "description3": "If direct integration is not available, use the \"Webhook\" or \"HTTP Request\" action to call the provider's API as described above.",
+              "docsNote": "Refer to the documentation of your preferred automation platform for the exact configuration."
+          }
+      }
+  },
+  "landingPage": {
+    "introduction": {
+      "title": "What is FineTuner?",
+      "paragraph1": "FineTuner is your gateway to truly personalized AI. In just a few clicks, transform your unique content (texts, PDFs, YouTube videos...) into powerful AI models like ChatGPT or Claude.",
+      "paragraph2": {
+        "part1": "Everything happens directly on ",
+        "strong": "your own OpenAI or Anthropic account",
+        "part2": ". Forget complex manual configuration: you get a fine-tuned model, ready to be integrated and reflect the DNA of your brand or project."
+      },
+      "ctaButton": "Try FineTuner for Free"
+    },
+    "process": {
+      "subtitle": "Your Journey to Custom AI",
+      "title": "How Does It Work?",
+      "step1": {
+        "title": "1. Connect Your Content",
+        "description": "Easily import PDFs, texts, video transcripts... The source of your future AI."
+      },
+      "step2": {
+        "title": "2. Technical Magic Behind the Scenes",
+        "description": "Click \"Launch\". Our platform prepares, formats, and trains the model for you."
+      },
+      "step3": {
+        "title": "3. Your Model, Your Property",
+        "description": "Retrieve your fine-tuned AI (e.g., \"AI_Marketing_Fun\") on your OpenAI/Anthropic account, ready to use."
+      },
+      "ctaButton": "Launch your first project"
+    },
+    "chatExamples": {
+      "subtitle": "See the Magic in Action",
+      "title": "Fine-Tuned AI in Conversation",
+      "description": "Discover how your personalized AI can respond, assist, or even entertain, adopting the tone and knowledge YOU gave it.",
+      "inputPlaceholder": "Your message...",
+      "ctaButton": "See what you can create",
+      "example1": {
+        "title": "Michael Scott Bot (The Office)",
+        "user1": "What do you think of my PowerPoint presentation?",
+        "bot1": "It's... how do I put this... It's like PowerPoint met an episode of \"Threat Level Midnight\". Intense. Unforgettable. That's what she said!",
+        "user2": "Okay... and for the team building on Friday?",
+        "bot2": "I have a GREAT idea. We're all going to... survive in the forest! Well, the park next door. It'll build bonds. Or lawsuits. We'll see!"
+      },
+      "example2": {
+        "title": "Customized Technical Support",
+        "user1": "Hi, I'm having an issue with the API, error 403.",
+        "bot1": "Hello! Error 403 indicates an authentication issue. Please verify that your API key is correct and included in the 'Authorization: Bearer YOUR_KEY' header.",
+        "user2": "Ah right, I forgot the \"Bearer\". Thanks!",
+        "bot2": "No problem! Let me know if you have other questions. The key is always to check the details, like Pam does with my expense reports!"
+      },
+      "example3": {
+        "title": "Interactive E-Learning Assistant",
+        "user1": "Can you explain the concept of fine-tuning simply?",
+        "bot1": "Of course! Imagine a master chef (the base model). Fine-tuning is like teaching them YOUR secret recipes (your data) so they cook exactly the way YOU want!",
+        "user2": "Great analogy! And how does it work here?",
+        "bot2": "You provide the ingredients (PDFs, videos...), we teach the chef (OpenAI/Claude) your recipes (Q&A format), and voilà! You get your own specialized star chef!"
+      }
+    },
+    "deployment": {
+      "subtitle": "Universal Integration",
+      "title": "Deploy Your AI Everywhere",
+      "description": "Your fine-tuned model is ready to integrate with your favorite tools via API.",
+      "platforms": {
+        "api": "REST API",
+        "web": "Web Apps",
+        "mobile": "Mobile Apps",
+        "zapier": "Zapier",
+        "slack": "Slack",
+        "crm": "CRM"
+      },
+      "ctaButton": "Integrate your AI everywhere"
+    },
+    "faq": {
+      "title": "FAQ",
+      "subtitle": "Frequently asked questions about FineTuner and custom AI",
+      "ctaButton": "Ready to start?",
+      "q1": {
+        "question": "What is FineTuner?",
+        "answer": "FineTuner is a SaaS (Software as a Service) platform designed to radically simplify the creation of custom AI assistants. You import your own data (PDF documents, YouTube video transcripts, web pages, knowledge bases, etc.) and our platform transforms them into an optimized dataset. Then, we handle the complex fine-tuning process (specialized re-training) on cutting-edge language models like those from OpenAI (GPT) or Anthropic (Claude). The result is an AI that speaks with your voice, knows your domain, and can be integrated via API into your applications, websites, or internal tools."
+      },
+      "q2": {
+        "question": "Do I need an OpenAI or Anthropic account?",
+        "answer": "Yes, it's essential. FineTuner acts as an orchestrator and facilitator. The fine-tuned model is trained and hosted directly on **your own** OpenAI or Anthropic account. This ensures you retain full ownership and control of your specialized AI model. We guide you to securely connect your account via your API keys, and we handle all the technical steps of fine-tuning on their infrastructure."
+      },
+      "q3": {
+        "question": "What types of content can I import?",
+        "answer": "FineTuner is very flexible. You can import various formats: PDF files, text documents (.txt, .md), paste raw text, provide web page URLs that we will scrape, or even links to YouTube videos (we automatically extract the transcript). Our system analyzes, cleans, and structures this information to create the best possible dataset for training your AI."
+      },
+      "q4": {
+        "question": "How does pricing work?",
+        "answer": "Our model is based on usage ('Pay-as-you-go') for maximum flexibility. The first 10,000 characters of content you submit for processing (conversion, dataset preparation) are free. Beyond this free quota, each additional character is billed at €0.000365 excluding tax. There are no fixed monthly subscriptions or commitments. You only pay for the volume of data you actually process, which is ideal for starting out or for variable needs."
+      },
+      "q5": {
+        "question": "Can I integrate my AI on other platforms?",
+        "answer": "Absolutely. Once your model is fine-tuned on your OpenAI/Anthropic account, you get a unique ID for that model. You can then call it via their standard API. This means you can integrate it wherever you want: chatbots on your website, mobile apps, customer support systems, automation tools (Zapier, Make), CRMs, e-learning platforms, and much more. FineTuner provides the ready-to-use model; integration then depends on your tools."
+      },
+      "q6": {
+        "question": "Is my data secure?",
+        "answer": "The security and confidentiality of your data are our top priority. Your imported content is used solely for the purpose of creating your dataset and fine-tuning YOUR model, on YOUR provider account (OpenAI/Anthropic). We never resell your data or use your information to train other models. You retain full intellectual property rights over your content and the resulting fine-tuned model."
+      },
+      "q7": {
+        "question": "Do I need technical skills?",
+        "answer": "Not at all! That's the whole point of FineTuner. We designed the interface to be intuitive and easy to use, even without any knowledge of programming or artificial intelligence. You upload your content, click a few buttons to start the process, and we handle all the technical complexity in the background. You simply retrieve your ready-to-use model ID."
+      }
+    },
+    "finalCta": {
+      "subtitle": "Why Is It So Simple?",
+      "titleLine1": "We Handle the Complexity.",
+      "titleLine2": "You Unleash Your Creativity.",
+      "description": "FineTuner orchestrates everything: conversion, preparation, training. You focus on what matters: uploading your content and watching your AI come to life.",
+      "ctaButton": "Create Your AI Now",
+      "caption": "Free sign-up. Unlimited potential."
     }
   }
 } 

@@ -32,6 +32,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import BuildIcon from '@mui/icons-material/Build';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useTheme } from '@mui/material/styles';
+import { useTranslation } from 'react-i18next';
 
 const drawerWidth = 280;
 
@@ -54,31 +55,32 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const menuItems = [
-    { name: 'Projets', icon: <FolderIcon />, path: '/dashboard', description: 'Gérer vos projets' },
-    { name: 'Playground', icon: <ScienceOutlinedIcon />, path: '/dashboard/playground', description: 'Accéder au playground' },
-    { name: 'Analyses', icon: <AnalyticsIcon />, path: '/dashboard/analytics', description: 'Statistiques et métriques' },
+    { name: t('sidebar.menu.projects'), icon: <FolderIcon />, path: '/dashboard', description: t('sidebar.menu.projectsTooltip') },
+    { name: t('sidebar.menu.playground'), icon: <ScienceOutlinedIcon />, path: '/dashboard/playground', description: t('sidebar.menu.playgroundTooltip') },
+    { name: t('sidebar.menu.analytics'), icon: <AnalyticsIcon />, path: '/dashboard/analytics', description: t('sidebar.menu.analyticsTooltip') },
     {
-      name: 'Aide & Documentation',
+      name: t('sidebar.menu.help'),
       icon: <HelpOutlineIcon />,
       path: '/dashboard/help',
-      description: 'Documentation et guides'
+      description: t('sidebar.menu.helpTooltip')
     },
   ];
 
   const bottomNavItems = [
     {
-      name: 'Paramètres',
+      name: t('sidebar.bottomNav.settings'),
       icon: <SettingsIcon />,
       path: '/dashboard/settings',
-      description: 'Gérer vos paramètres'
+      description: t('sidebar.bottomNav.settingsTooltip')
     },
     {
-      name: 'Déconnexion',
+      name: t('sidebar.bottomNav.logout'),
       icon: <LogoutIcon />,
       action: logout,
-      description: 'Se déconnecter'
+      description: t('sidebar.bottomNav.logoutTooltip')
     }
   ];
 
@@ -123,7 +125,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
                 : '0 8px 16px rgba(59, 130, 246, 0.2)',
           }}
         >
-          Nouveau projet
+          {t('sidebar.newProjectButton')}
         </Button>
       </Box>
 

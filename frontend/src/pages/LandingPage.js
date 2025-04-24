@@ -52,6 +52,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CalculateIcon from '@mui/icons-material/Calculate';
+import { useTranslation } from 'react-i18next'; // Importer useTranslation
 
 // Animation variants
 const containerVariants = {
@@ -66,10 +67,10 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
-    y: 0,
     opacity: 1,
+    y: 0,
     transition: {
       duration: 0.5,
       ease: [0.4, 0, 0.2, 1],
@@ -185,23 +186,25 @@ const ContentSourceIcon = ({ icon: Icon, label, color, delay }) => {
 // Section Hero
 const Hero = () => {
   const theme = useTheme();
-  const { scrollYProgress } = useScroll();
-  const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
-  const controls = useAnimation();
-
-  // Références pour les positions des éléments pour les lignes néon
-  const pdfRef = useRef(null);
-  const youtubeRef = useRef(null);
-  const webRef = useRef(null);
-  const aiCenterRef = useRef(null);
-
-  // Références pour les logos 3D IA
-  const openAiRef = useRef(null);
-  const anthropicRef = useRef(null);
+  const { t } = useTranslation();
+  const controls = useAnimation(); // Ajouté pour l'animation
+  const containerRef = useRef(null); // Ajouté pour les lignes Neon
 
   useEffect(() => {
     controls.start("visible");
   }, [controls]);
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.4, 0, 0.2, 1],
+      },
+    },
+  };
 
   const glassmorphismStyle = {
     backdropFilter: 'blur(12px)',
@@ -211,13 +214,22 @@ const Hero = () => {
     borderRadius: '16px',
   };
 
+  // Références pour les positions
+  const pdfRef = useRef(null);
+  const youtubeRef = useRef(null);
+  const webRef = useRef(null);
+  const aiCenterRef = useRef(null);
+  const openAiRef = useRef(null);
+  const anthropicRef = useRef(null);
+
   return (
     <Box
+      ref={containerRef} // Ajouter la ref au conteneur principal de Hero
       sx={{
         position: 'relative',
         overflow: 'hidden',
-        pt: { xs: 4, md: 8 }, // Réduction de l'espace en haut
-        pb: { xs: 16, md: 24 }, // Plus d'espace en bas
+        pt: { xs: 4, md: 8 },
+        pb: { xs: 16, md: 24 },
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
@@ -284,7 +296,7 @@ const Hero = () => {
             <motion.div
               initial="hidden"
               animate={controls}
-              variants={containerVariants}
+              variants={containerVariants} // Utiliser containerVariants pour le groupe
             >
               <motion.div variants={itemVariants}>
                 <Typography
@@ -299,14 +311,13 @@ const Hero = () => {
                     WebkitTextFillColor: 'transparent',
                     textShadow: '0 0 30px rgba(191, 0, 255, 0.5)',
                     mb: 4,
-                    fontFamily: "'Exo 2', sans-serif", // Police plus futuriste
+                    fontFamily: "'Exo 2', sans-serif",
                     letterSpacing: '-1px',
                   }}
                 >
-                  Votre Contenu,
+                  {t('landing.hero.titleLine1')}
                   <br />
-                  Votre IA.
-                  <Box component="span" sx={{ color: '#00d4ff' }}> </Box>
+                  {t('landing.hero.titleLine2')}
                 </Typography>
               </motion.div>
 
@@ -319,28 +330,29 @@ const Hero = () => {
                     maxWidth: '95%',
                     fontWeight: 400,
                     color: alpha(theme.palette.text.secondary, 0.9),
-                    ...glassmorphismStyle, // Appliquer l'effet glassmorphism
+                    ...glassmorphismStyle,
                     p: 3,
                   }}
                 >
-                  Transformez instantanément vos contenus PDF, YouTube et sites web en assistants IA ultra-performants type <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span> ou <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>.
+                  {t('landing.hero.subtitle.part1')}<span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span>{t('landing.hero.subtitle.part2')}<span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>{t('landing.hero.subtitle.part3')}
                 </Typography>
               </motion.div>
 
               <motion.div variants={itemVariants}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} sx={{ mt: 5, display: 'flex', gap: 3, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}> {/* Ajout sx ici */} 
                   <Button
                     component={RouterLink}
                     to="/register"
                     variant="contained"
                     size="large"
                     endIcon={<ArrowForwardIcon />}
+                    aria-label={t('landing.hero.ctaAriaLabel')}
                     sx={{
-                      py: { xs: 1.5, sm: 2 },          // un peu moins haut sur mobile
-                      px: { xs: 3, sm: 5 },            // moins large
+                      py: { xs: 1.5, sm: 2 },
+                      px: { xs: 3, sm: 5 },
                       fontSize: { xs: '1rem', md:'1.2rem' },
                       fontWeight: 700,
-                      borderRadius: '50px', // Plus arrondi
+                      borderRadius: '50px',
                       background: 'linear-gradient(45deg, #bf00ff, #00d4ff)',
                       position: 'relative',
                       overflow: 'hidden',
@@ -368,22 +380,22 @@ const Hero = () => {
                       },
                     }}
                   >
-                    Démarrez Gratuitement
+                    {t('landing.hero.ctaButton')}
                   </Button>
-                </Stack>
+                </Stack> {/* Fermer Stack correctement */} 
                 <Typography variant="caption" sx={{ display: 'block', mt: 2, color: alpha(theme.palette.text.secondary, 0.7) }}>
-                  Premiers pas en 60 secondes. Aucune expertise requise.
+                  {t('landing.hero.ctaCaption')}
                 </Typography>
               </motion.div>
             </motion.div>
           </Grid>
 
-          {/* Colonne visualisation 3D */}
+          {/* Colonne visualisation 3D */} 
           <Grid item xs={12} md={6}>
             <Box
               sx={{
                 position: 'relative',
-                height: { xs: 500, md: 650 }, // Hauteur augmentée
+                height: { xs: 500, md: 650 },
                 width: '100%',
                 perspective: '1200px',
                 transformStyle: 'preserve-3d',
@@ -454,8 +466,8 @@ const Hero = () => {
                 color="#FF0000"
                 initialPos={{ top: '40%', left: '0%', z: -20 }}
                 delay={1.0}
-                 aiCenterRef={aiCenterRef}
-             />
+                aiCenterRef={aiCenterRef}
+              />
               <FloatingIcon
                 ref={webRef}
                 icon={LanguageIcon}
@@ -463,37 +475,37 @@ const Hero = () => {
                 color="#4ECDC4"
                 initialPos={{ top: '70%', left: '10%', z: -40 }}
                 delay={1.2}
-                 aiCenterRef={aiCenterRef}
-             />
+                aiCenterRef={aiCenterRef}
+              />
 
               {/* Logos IA 3D */}
               <FloatingIcon
                 ref={openAiRef}
-                icon={SmartToyIcon} // Remplacer par un logo OpenAI si disponible
+                icon={SmartToyIcon}
                 label="OpenAI"
                 color="#74AA9C"
                 initialPos={{ top: '30%', right: '5%', z: 80 }}
                 delay={1.4}
                 isIALogo
-                 aiCenterRef={aiCenterRef}
-             />
+                aiCenterRef={aiCenterRef}
+              />
               <FloatingIcon
                 ref={anthropicRef}
-                icon={SmartToyIcon} // Remplacer par un logo Anthropic/Claude si disponible
+                icon={SmartToyIcon}
                 label="Claude"
                 color="#D09A74"
                 initialPos={{ top: '65%', right: '15%', z: 60 }}
                 delay={1.6}
                 isIALogo
-                 aiCenterRef={aiCenterRef}
-             />
+                aiCenterRef={aiCenterRef}
+              />
 
               {/* Lignes de connexion Neon animées */}
-              <NeonConnectionLine startRef={pdfRef} endRef={aiCenterRef} color="#FF6B6B" delay={1.8} />
-              <NeonConnectionLine startRef={youtubeRef} endRef={aiCenterRef} color="#FF0000" delay={2.0} />
-              <NeonConnectionLine startRef={webRef} endRef={aiCenterRef} color="#4ECDC4" delay={2.2} />
-              <NeonConnectionLine startRef={aiCenterRef} endRef={openAiRef} color="#74AA9C" delay={2.4} thickness={3} />
-              <NeonConnectionLine startRef={aiCenterRef} endRef={anthropicRef} color="#D09A74" delay={2.6} thickness={3} />
+              <NeonConnectionLine containerRef={containerRef} startRef={pdfRef} endRef={aiCenterRef} color="#FF6B6B" delay={1.8} />
+              <NeonConnectionLine containerRef={containerRef} startRef={youtubeRef} endRef={aiCenterRef} color="#FF0000" delay={2.0} />
+              <NeonConnectionLine containerRef={containerRef} startRef={webRef} endRef={aiCenterRef} color="#4ECDC4" delay={2.2} />
+              <NeonConnectionLine containerRef={containerRef} startRef={aiCenterRef} endRef={openAiRef} color="#74AA9C" delay={2.4} thickness={3} />
+              <NeonConnectionLine containerRef={containerRef} startRef={aiCenterRef} endRef={anthropicRef} color="#D09A74" delay={2.6} thickness={3} />
 
             </Box>
           </Grid>
@@ -661,6 +673,7 @@ const NeonConnectionLine = ({ startRef, endRef, color, delay, thickness = 2, con
 // --- Nouvelle Section: Introduction --- //
 const IntroductionSection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Déjà ajouté
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
 
@@ -675,6 +688,11 @@ const IntroductionSection = () => {
     borderRadius: '20px',
     padding: theme.spacing(4),
     boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.37)}`,
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.1, ease: 'easeOut' } }
   };
 
   return (
@@ -744,9 +762,9 @@ const IntroductionSection = () => {
           {/* Colonne Texte */}
           <Grid item xs={12} md={7}>
             <motion.div
-              initial={{ opacity: 0, y: 50 }}
+              initial="hidden"
               animate={controls}
-              variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.1, ease: 'easeOut' } } }}
+              variants={itemVariants} // Appliquer les variants ici
             >
               <Typography
                 variant="h2"
@@ -761,7 +779,7 @@ const IntroductionSection = () => {
                   textShadow: '0 0 15px rgba(0, 212, 255, 0.4)',
                 }}
               >
-                Qu'est-ce que FineTuner ?
+                {t('landing.introduction.title')} {/* Traduit */} 
               </Typography>
 
               <Box sx={{ ...glassmorphismStyle }}>
@@ -774,17 +792,17 @@ const IntroductionSection = () => {
                     fontWeight: 400,
                   }}
                 >
-                  FineTuner est votre passerelle vers une IA véritablement personnalisée. En quelques clics, transformez vos contenus uniques (textes, PDF, vidéos YouTube...) en modèles d'IA surpuissants type ChatGPT ou Claude.
+                  {t('landing.introduction.paragraph1')}
                 </Typography>
                 <Typography
                   variant="body1"
                   sx={{ color: alpha(theme.palette.text.secondary, 0.8), lineHeight: 1.7 }}
                 >
-                  Le tout s'opère directement sur <strong style={{ color: theme.palette.primary.light }}>votre propre compte OpenAI ou Anthropic</strong>. Oubliez la configuration manuelle complexe : vous récupérez un modèle fine-tuné, prêt à être intégré et à refléter l'ADN de votre marque ou projet.
+                  {t('landing.introduction.paragraph2.part1')}<strong style={{ color: theme.palette.primary.light }}>{t('landing.introduction.paragraph2.strong')}</strong>{t('landing.introduction.paragraph2.part2')}
                 </Typography>
               </Box>
               {/* Ajout du CTA ici */}
-              <motion.div variants={itemVariants} style={{ marginTop: theme.spacing(4), textAlign: 'center' }}>
+              <motion.div style={{ marginTop: theme.spacing(4), textAlign: 'center' }}> {/* Appliquer motion ici si besoin */} 
                  <Button
                     component={RouterLink}
                     to="/register"
@@ -793,7 +811,7 @@ const IntroductionSection = () => {
                     endIcon={<ArrowForwardIcon />}
                     sx={{ /* Styles similaires au bouton Hero */ }}
                   >
-                    Essayer FineTuner Gratuitement
+                    {t('landing.introduction.ctaButton')}
                   </Button>
               </motion.div>
             </motion.div>
@@ -807,6 +825,7 @@ const IntroductionSection = () => {
 // --- Nouvelle Section: Processus "Comment ça marche ?" --- //
 const ProcessSection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Déjà ajouté
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
@@ -872,7 +891,7 @@ const ProcessSection = () => {
               component="h2"
               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #bf00ff, #00d4ff)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(191, 0, 255, 0.4)' }}
             >
-              Comment ça Fonctionne ?
+              {t('landing.process.title')}
             </Typography>
           </motion.div>
         </Box>
@@ -995,7 +1014,7 @@ const ProcessSection = () => {
                 borderRadius: '50px',
                    }}
                  >
-              Lancez votre premier projet
+              {t('landing.process.ctaButton')}
             </Button>
                </motion.div>
       </Container>
@@ -1102,6 +1121,7 @@ const AnimatedChatMessage = ({ message, isUser, avatar, animationDelay, accentCo
 // Composant pour un exemple de conversation complet avec design amélioré
 const ChatExample = ({ title, Icon, messages, initialDelay, accentColor }) => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Déjà ajouté
   let cumulativeDelay = initialDelay;
 
   return (
@@ -1176,7 +1196,7 @@ const ChatExample = ({ title, Icon, messages, initialDelay, accentColor }) => {
           backgroundColor: alpha(theme.palette.background.default, 0.5)
         }}>
           <Typography variant="body2" sx={{ color: alpha(theme.palette.text.secondary, 0.6), flexGrow: 1 }}>
-            Votre message...
+            {t('landing.chatExamples.inputPlaceholder')}
           </Typography>
           <IconButton size="small" sx={{ color: accentColor || theme.palette.primary.main }}>
             <SendIcon fontSize="small" />
@@ -1189,6 +1209,7 @@ const ChatExample = ({ title, Icon, messages, initialDelay, accentColor }) => {
 
 const ChatExamplesSection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Déjà ajouté
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
@@ -1260,7 +1281,7 @@ const ChatExamplesSection = () => {
                component="p"
                sx={{ color: "#a18cd1", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #a18cd1' }}
              >
-               Voyez la Magie en Action
+               {t('landing.chatExamples.subtitle')}
              </Typography>
            </motion.div>
            <motion.div
@@ -1273,7 +1294,7 @@ const ChatExamplesSection = () => {
                component="h2"
                sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #a18cd1, #fbc2eb)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(161, 140, 209, 0.4)' }}
              >
-               L'IA Fine-Tunée en Conversation
+               {t('landing.chatExamples.title')}
              </Typography>
            </motion.div>
             <motion.div
@@ -1286,7 +1307,7 @@ const ChatExamplesSection = () => {
               color="text.secondary"
               sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
             >
-              Découvrez comment votre IA personnalisée peut répondre, aider ou même divertir, en adoptant le ton et les connaissances que VOUS lui avez donnés.
+              {t('landing.chatExamples.description')}
             </Typography>
           </motion.div>
          </Box>
@@ -1342,7 +1363,7 @@ const ChatExamplesSection = () => {
                 borderRadius: '50px',
               }}
             >
-              Voir ce que vous pouvez créer
+              {t('landing.chatExamples.ctaButton')}
             </Button>
          </motion.div>
        </Container>
@@ -1353,6 +1374,7 @@ const ChatExamplesSection = () => {
 // --- Nouvelle Section: Appel à l'Action Final (CTA) --- //
 const FinalCTASection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Déjà ajouté
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
 
@@ -1431,7 +1453,7 @@ const FinalCTASection = () => {
                   component="p"
                   sx={{ color: "#00d4ff", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #00d4ff' }}
                 >
-                  Pourquoi c'est si Simple ?
+                  {t('landing.finalCta.subtitle')}
                 </Typography>
             </motion.div>
 
@@ -1453,9 +1475,9 @@ const FinalCTASection = () => {
                   textShadow: '0 0 20px rgba(191, 0, 255, 0.4)',
                 }}
               >
-                Nous Gérons la Complexité.
+                {t('landing.finalCta.titleLine1')}
                 <br />
-                Vous Libérez Votre Créativité.
+                {t('landing.finalCta.titleLine2')}
               </Typography>
             </motion.div>
 
@@ -1468,7 +1490,7 @@ const FinalCTASection = () => {
                   variant="h6"
                   sx={{ mb: 5, maxWidth: 650, mx: 'auto', color: alpha(theme.palette.text.secondary, 0.9), lineHeight: 1.7 }}
                 >
-                  FineTuner orchestre tout : conversion, préparation, entraînement. Vous vous concentrez sur l'essentiel : uploader votre contenu et voir votre IA prendre vie.
+                  {t('landing.finalCta.description')}
                 </Typography>
             </motion.div>
 
@@ -1502,10 +1524,10 @@ const FinalCTASection = () => {
                     },
                   }}
                 >
-                  Créez Votre IA Maintenant
+                  {t('landing.finalCta.ctaButton')}
                 </Button>
                 <Typography variant="caption" sx={{ display: 'block', mt: 2.5, color: alpha(theme.palette.text.secondary, 0.7) }}>
-                  Inscription gratuite. Potentiel illimité.
+                  {t('landing.finalCta.caption')}
                 </Typography>
             </motion.div>
           </Box>
@@ -1518,6 +1540,7 @@ const FinalCTASection = () => {
 // --- Nouvelle Section: Déploiement Partout --- //
 const DeploymentSection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Déjà ajouté
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
   const centerRef = useRef(null);
@@ -1566,21 +1589,21 @@ const DeploymentSection = () => {
               component="p"
               sx={{ color: "#84fab0", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #84fab0' }}
             >
-              Intégration Universelle
+              {t('landing.deployment.subtitle')}
             </Typography>
             <Typography
               variant="h2"
               component="h2"
               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #84fab0, #5ee7df)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(132, 250, 176, 0.4)' }}
             >
-              Déployez Votre IA Partout
+              {t('landing.deployment.title')}
             </Typography>
             <Typography
               variant="h6"
               color="text.secondary"
               sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
             >
-              Votre modèle fine-tuné est prêt à s'intégrer avec vos outils préférés via API.
+              {t('landing.deployment.description')}
             </Typography>
         </Box>
 
@@ -1640,7 +1663,7 @@ const DeploymentSection = () => {
                             <platform.icon sx={{ fontSize: 30 }} />
                           </Avatar>
                           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                            {platform.label}
+                            {platform.label} {/* Déjà traduit */} 
                           </Typography>
               </Box>
                        </motion.div>
@@ -1683,7 +1706,7 @@ const DeploymentSection = () => {
                 borderRadius: '50px',
               }}
             >
-              Intégrer votre IA partout
+              {t('landing.deployment.ctaButton')}
             </Button>
         </motion.div>
       </Container>
@@ -1693,6 +1716,7 @@ const DeploymentSection = () => {
 
 const FAQSection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Déjà ajouté
   const faqs = [
     {
       question: "Qu'est-ce que FineTuner ?",
@@ -1735,12 +1759,12 @@ const FAQSection = () => {
       <Container maxWidth="md">
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: theme.palette.primary.main }}>
-            FAQ
+            {t('landing.faq.title')}
           </Typography>
           <Typography variant="h6" color={theme.palette.text.secondary}>
-            Questions fréquentes sur FineTuner et l'IA personnalisée
+            {t('landing.faq.subtitle')}
           </Typography>
-          </Box>
+        </Box>
         {faqs.map((faq, idx) => (
           <Accordion 
             key={idx} 
@@ -1771,7 +1795,7 @@ const FAQSection = () => {
                 py: 1, // Add some padding
               }}
             >
-              {faq.question}
+              {faq.question} {/* Déjà traduit */} 
             </AccordionSummary>
             <AccordionDetails 
               sx={{
@@ -1783,7 +1807,7 @@ const FAQSection = () => {
                 px: 2,
               }}
             >
-              {faq.answer}
+              {faq.answer} {/* Déjà traduit */} 
             </AccordionDetails>
           </Accordion>
         ))}
@@ -1807,7 +1831,7 @@ const FAQSection = () => {
                 borderRadius: '50px',
               }}
             >
-              Prêt à commencer ?
+              {t('landing.faq.ctaButton')}
             </Button>
         </motion.div>
       </Container>
