@@ -21,6 +21,16 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
+// Fonction utilitaire pour le défilement (réutilisée ou redéfinie si nécessaire)
+const handleScrollToSection = (sectionId) => {
+  setTimeout(() => {
+    const element = document.getElementById(sectionId.substring(1)); 
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50); 
+};
+
 const Footer = () => {
   const theme = useTheme();
   const currentYear = new Date().getFullYear();

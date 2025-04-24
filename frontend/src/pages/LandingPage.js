@@ -573,7 +573,7 @@ const FloatingIcon = React.forwardRef(({ icon: Icon, label, color, initialPos, d
 });
 
 // --- Nouveau composant pour les lignes de connexion Neon --- //
-const NeonConnectionLine = ({ startRef, endRef, color, delay, thickness = 2 }) => {
+const NeonConnectionLine = ({ startRef, endRef, color, delay, thickness = 2, containerRef }) => { // Ajout de containerRef
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [endPos, setEndPos] = useState({ x: 0, y: 0 });
   const controls = useAnimation();
@@ -582,12 +582,14 @@ const NeonConnectionLine = ({ startRef, endRef, color, delay, thickness = 2 }) =
 
   useEffect(() => {
     const updatePositions = () => {
-      if (startRef.current && endRef.current) {
+      // Utiliser containerRef si disponible, sinon le parent direct comme fallback
+      const parentElement = containerRef?.current || startRef.current?.parentElement;
+      if (startRef.current && endRef.current && parentElement) {
         const startRect = startRef.current.getBoundingClientRect();
         const endRect = endRef.current.getBoundingClientRect();
-        const parentRect = startRef.current.parentElement.getBoundingClientRect();
+        const parentRect = parentElement.getBoundingClientRect();
 
-        // Calculer les centres des éléments par rapport au parent
+        // Calculer les centres des éléments par rapport au parent fourni ou trouvé
         setStartPos({
           x: startRect.left - parentRect.left + startRect.width / 2,
           y: startRect.top - parentRect.top + startRect.height / 2,
@@ -596,6 +598,8 @@ const NeonConnectionLine = ({ startRef, endRef, color, delay, thickness = 2 }) =
           x: endRect.left - parentRect.left + endRect.width / 2,
           y: endRect.top - parentRect.top + endRect.height / 2,
         });
+      } else {
+        console.log("Refs not ready:", startRef.current, endRef.current);
       }
     };
 
@@ -603,7 +607,7 @@ const NeonConnectionLine = ({ startRef, endRef, color, delay, thickness = 2 }) =
     // Recalculer si la fenêtre est redimensionnée
     window.addEventListener('resize', updatePositions);
     return () => window.removeEventListener('resize', updatePositions);
-  }, [startRef, endRef]);
+  }, [startRef, endRef, containerRef]);
 
   useEffect(() => {
     if (inView && startPos.x !== 0) { // S'assurer que les positions sont calculées
@@ -779,6 +783,19 @@ const IntroductionSection = () => {
                   Le tout s'opère directement sur <strong style={{ color: theme.palette.primary.light }}>votre propre compte OpenAI ou Anthropic</strong>. Oubliez la configuration manuelle complexe : vous récupérez un modèle fine-tuné, prêt à être intégré et à refléter l'ADN de votre marque ou projet.
                 </Typography>
               </Box>
+              {/* Ajout du CTA ici */}
+              <motion.div variants={itemVariants} style={{ marginTop: theme.spacing(4), textAlign: 'center' }}>
+                 <Button
+                    component={RouterLink}
+                    to="/register"
+                    variant="contained"
+                    size="large"
+                    endIcon={<ArrowForwardIcon />}
+                    sx={{ /* Styles similaires au bouton Hero */ }}
+                  >
+                    Essayer FineTuner Gratuitement
+                  </Button>
+              </motion.div>
             </motion.div>
           </Grid>
         </Grid>
@@ -957,6 +974,25 @@ const ProcessSection = () => {
             />
           </motion.svg>
         </Box>
+        {/* Ajout du CTA ici */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={controls} 
+          variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.8 } } }}
+          style={{ marginTop: theme.spacing(6), textAlign: 'center' }}
+        >
+           <Button
+              component={RouterLink}
+              to="/register"
+              variant="contained"
+              color="secondary"
+              size="large"
+              endIcon={<RocketLaunchIcon />}
+              sx={{ /* Styles CTA */ }}
+            >
+              Lancez votre premier projet
+            </Button>
+        </motion.div>
       </Container>
     </Box>
   );
@@ -1282,6 +1318,23 @@ const ChatExamplesSection = () => {
              </Grid>
            ))}
          </Grid>
+         {/* Ajout du CTA ici */}
+         <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={controls} 
+            variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.6 } } }}
+            style={{ marginTop: theme.spacing(6), textAlign: 'center' }}
+         >
+           <Button
+              component={RouterLink}
+              to="/register"
+              variant="outlined"
+              size="large"
+              sx={{ /* Styles CTA */ }}
+            >
+              Voir ce que vous pouvez créer
+            </Button>
+         </motion.div>
        </Container>
     </Box>
   );
@@ -1456,6 +1509,7 @@ const DeploymentSection = () => {
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
   const centerRef = useRef(null);
+  const gridContainerRef = useRef(null); // Ref pour le conteneur Grid
   
   // --- Simplification --- 
   // Sélection d'icônes représentatives
@@ -1465,13 +1519,17 @@ const DeploymentSection = () => {
     { icon: SmartphoneIcon, label: "Mobile Apps", color: '#fbc2eb', delay: 0.9 },
     { icon: ElectricBoltIcon, label: "Zapier", color: '#ff7eb3', delay: 1.1 },
     { icon: ChatIcon, label: "Slack", color: '#4a154b', delay: 1.3 },
-    { icon: SettingsEthernetIcon, label: "n8n", color: '#5ee7df', delay: 1.5 },
+    { icon: BusinessCenterIcon, label: "CRM", color: '#00a1e0', delay: 1.5 }, 
   ];
   
-  // Supprimer les refs et calculs pour les positions circulaires
-  // const platformRefs = [...];
-  // const targetPlatforms = [...]; // Ancienne liste
-  // const calculatedPlatforms = ...; // Calcul supprimé
+  // Initialisation individuelle des refs
+  const platformRef0 = useRef(null);
+  const platformRef1 = useRef(null);
+  const platformRef2 = useRef(null);
+  const platformRef3 = useRef(null);
+  const platformRef4 = useRef(null);
+  const platformRef5 = useRef(null);
+  const platformRefs = [platformRef0, platformRef1, platformRef2, platformRef3, platformRef4, platformRef5];
 
   useEffect(() => {
     if (inView) controls.start('visible');
@@ -1480,7 +1538,6 @@ const DeploymentSection = () => {
   return (
     <Box
       ref={ref}
-      data-section-container="deployment"
       sx={{
         py: { xs: 10, md: 16 }, // Padding déjà réduit
         position: 'relative',
@@ -1516,7 +1573,7 @@ const DeploymentSection = () => {
         </Box>
 
         {/* Visualisation Simplifiée */}
-        <Grid container spacing={6} alignItems="center">
+        <Grid container spacing={6} alignItems="center" sx={{position: 'relative'}} ref={gridContainerRef}>
           {/* Colonne Gauche: Module Central */}
           <Grid item xs={12} md={5} sx={{ display: 'flex', justifyContent: 'center' }}>
               <motion.div
@@ -1580,13 +1637,38 @@ const DeploymentSection = () => {
               </Grid>
             </motion.div>
           </Grid>
+          
+          {/* Lignes de connexion - passage de containerRef */}
+          {platformRefs.map((platformRef, index) => (
+            <NeonConnectionLine
+              key={`line-${simplifiedPlatforms[index].label}`}
+              startRef={centerRef} 
+              endRef={platformRef}
+              containerRef={gridContainerRef} // Passage de la ref du conteneur
+              color={simplifiedPlatforms[index].color}
+              delay={simplifiedPlatforms[index].delay + 0.2}
+              thickness={2}
+            />
+          ))}
         </Grid>
-        
-        {/* Supprimer les lignes de connexion et la légende */}
-        {/* <Box sx={{ width: '100%', height: '100%', ... }}> ... </Box> */}
-        {/* {calculatedPlatforms.map(...NeonConnectionLine...)} */}
-        {/* <Box sx={{ position: 'absolute', bottom: 10, ... }}> ... </Box> */}
-        
+        {/* Ajout du CTA ici */}
+        <motion.div 
+          variants={itemVariants} 
+          initial="hidden" 
+          animate={controls}
+          style={{ marginTop: theme.spacing(8), textAlign: 'center' }} // Marge un peu plus grande
+        >
+           <Button
+              component={RouterLink}
+              to="/register"
+              variant="contained"
+              size="large"
+              endIcon={<ArrowForwardIcon />}
+              sx={{ /* Styles CTA */ }}
+            >
+              Intégrer votre IA partout
+            </Button>
+        </motion.div>
       </Container>
     </Box>
   );
@@ -1688,6 +1770,24 @@ const FAQSection = () => {
             </AccordionDetails>
           </Accordion>
         ))}
+        {/* Ajout du CTA ici */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }} // Animation simple pour le CTA FAQ
+          transition={{ duration: 0.5, delay: 0.5 }}
+          style={{ marginTop: theme.spacing(5), textAlign: 'center' }}
+        >
+           <Button
+              component={RouterLink}
+              to="/register"
+              variant="outlined"
+              size="large"
+              startIcon={<RocketLaunchIcon />}
+              sx={{ /* Styles CTA */ }}
+            >
+              Prêt à commencer ?
+            </Button>
+        </motion.div>
       </Container>
     </Box>
   );

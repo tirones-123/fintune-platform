@@ -60,6 +60,17 @@ function HideOnScroll(props) {
   );
 }
 
+// Fonction utilitaire pour le défilement
+const handleScrollToSection = (sectionId) => {
+  // Attendre un court instant que le DOM soit stable
+  setTimeout(() => {
+    const element = document.getElementById(sectionId.substring(1)); // Enlever le #
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50); // Petit délai (ajuster si nécessaire)
+};
+
 const Navbar = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -120,9 +131,17 @@ const Navbar = () => {
         {navLinks.map((link) => (
           <ListItem key={link.name} disablePadding>
             <ListItemButton
-              component={RouterLink}
-              to={link.path}
-              onClick={handleDrawerToggle}
+              onClick={() => {
+                if (link.path.startsWith('/#')) {
+                  handleScrollToSection(link.path);
+                } else {
+                  // Gérer la navigation normale pour les autres liens (si nécessaire)
+                  // Pour l'instant, on assume que seul / est non-ancre
+                  // Si on clique sur Accueil (path='/') dans le drawer, on peut juste fermer le drawer
+                  // ou naviguer explicitement avec navigate() si importé
+                }
+                handleDrawerToggle(); // Ferme le drawer dans tous les cas
+              }}
               sx={{
                 py: 1.5,
                 '&:hover': {
@@ -270,8 +289,15 @@ const Navbar = () => {
                         variants={navItemVariants}
                       >
                         <Button
-                          component={RouterLink}
-                          to={link.path}
+                          onClick={() => {
+                            if (link.path.startsWith('/#')) {
+                              handleScrollToSection(link.path);
+                            } else {
+                              // Gérer la navigation normale (ex: aller à la page d'accueil)
+                              // On pourrait utiliser navigate('/') si useNavigation est importé
+                              // Pour l'instant, on ne fait rien pour le lien '/' dans le header desktop
+                            }
+                          }}
                           sx={{
                             mx: 1,
                             color: 'text.primary',
