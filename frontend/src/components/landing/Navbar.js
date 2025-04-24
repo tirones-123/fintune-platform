@@ -60,11 +60,20 @@ function HideOnScroll(props) {
   );
 }
 
-// Fonction utilitaire pour le défilement (simplifiée)
-const handleScrollToSection = (sectionId) => {
-  const element = document.getElementById(sectionId.substring(1)); // Enlever le #
+// Fonction utilitaire pour le défilement – gère '/#id', '#id' ou 'id'
+const handleScrollToSection = (sectionPath) => {
+  if (!sectionPath) return;
+
+  let id = sectionPath;
+  if (id.startsWith('/#')) {
+    id = id.slice(2); // Enlever '/#'
+  } else if (id.startsWith('#')) {
+    id = id.slice(1); // Enlever '#'
+  }
+
+  const element = document.getElementById(id);
   if (element) {
-    element.scrollIntoView({ behavior: 'smooth' }); // Utiliser le block par défaut
+    element.scrollIntoView({ behavior: 'smooth' });
   }
 };
 
@@ -129,10 +138,13 @@ const Navbar = () => {
             <ListItemButton
               onClick={() => {
                 if (link.path.startsWith('/#')) {
-                  handleScrollToSection(link.path); // Appel de la fonction simplifiée
+                  if (window.location.pathname === '/' || window.location.pathname === '') {
+                    handleScrollToSection(link.path); // Scroll direct si on est déjà sur la landing
+                  } else {
+                    window.location.href = link.path; // Naviguer puis scroll (ancre dans l'URL)
+                  }
                 } else {
-                  // Naviguer vers la page d'accueil si ce n'est pas une ancre
-                  window.location.href = link.path; 
+                  window.location.href = link.path;
                 }
                 handleDrawerToggle(); 
               }}
@@ -285,9 +297,13 @@ const Navbar = () => {
                         <Button
                           onClick={() => {
                             if (link.path.startsWith('/#')) {
-                              handleScrollToSection(link.path); // Appel de la fonction simplifiée
+                              if (window.location.pathname === '/' || window.location.pathname === '') {
+                                handleScrollToSection(link.path); // Scroll direct si on est déjà sur la landing
+                              } else {
+                                window.location.href = link.path; // Naviguer puis scroll (ancre dans l'URL)
+                              }
                             } else {
-                               window.location.href = link.path;
+                              window.location.href = link.path;
                             }
                           }}
                           sx={{

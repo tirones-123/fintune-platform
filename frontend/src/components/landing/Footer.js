@@ -21,11 +21,20 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
-// Fonction utilitaire pour le défilement (simplifiée)
-const handleScrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId.substring(1)); 
+// Fonction utilitaire pour le défilement – gère '/#id', '#id' ou 'id'
+const handleScrollToSection = (sectionPath) => {
+    if (!sectionPath) return;
+
+    let id = sectionPath;
+    if (id.startsWith('/#')) {
+      id = id.slice(2); // Enlever '/#'
+    } else if (id.startsWith('#')) {
+      id = id.slice(1); // Enlever '#'
+    }
+
+    const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' }); 
+      element.scrollIntoView({ behavior: 'smooth' });
     }
 };
 
@@ -359,9 +368,13 @@ const Footer = () => {
                             <Link
                               onClick={() => {
                                 if (link.path.startsWith('/#')) {
-                                  handleScrollToSection(link.path); // Appel fonction simplifiée
+                                  if (window.location.pathname === '/' || window.location.pathname === '') {
+                                    handleScrollToSection(link.path); // Scroll direct
+                                  } else {
+                                    window.location.href = link.path; // Navigation puis scroll
+                                  }
                                 } else {
-                                  window.location.href = link.path; // Navigation simple
+                                  window.location.href = link.path;
                                 }
                               }}
                               underline="none"
