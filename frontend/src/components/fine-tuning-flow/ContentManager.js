@@ -375,7 +375,15 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
         }
         return merged;
       }));
-      setNewlyAddedWebsites(prev => prev.map(c => c.id === contentId ? { ...c, ...updatedContent } : c));
+      setNewlyAddedWebsites(prev => prev.map(c => {
+        if (c.id !== contentId) return c;
+        return {
+          ...c,
+          ...updatedContent,
+          // Conserver le character_count estimé si le backend ne le renvoie pas
+          character_count: updatedContent.character_count ?? c.character_count,
+        };
+      }));
     } catch (error) {
       console.error(`Erreur rafraîchissement contenu ${contentId}:`, error);
     }
