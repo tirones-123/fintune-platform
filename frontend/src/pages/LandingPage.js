@@ -212,7 +212,7 @@ const Hero = () => {
       sx={{
         position: 'relative',
         overflow: 'hidden',
-        pt: { xs: 16, md: 24 }, // Plus d'espace en haut
+        pt: { xs: 4, md: 8 }, // Réduction de l'espace en haut
         pb: { xs: 16, md: 24 }, // Plus d'espace en bas
         minHeight: '100vh',
         display: 'flex',
@@ -1144,187 +1144,6 @@ const UseCasesSection = () => {
   );
 };
 
-// --- Nouvelle Section: Avantages Clés --- //
-const AdvantagesSection = () => {
-  const theme = useTheme();
-  const controls = useAnimation();
-  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
-
-  useEffect(() => {
-    if (inView) controls.start('visible');
-  }, [controls, inView]);
-
-  const advantages = [
-    { icon: <SpeedIcon sx={{ fontSize: 30 }}/>, title: "Gain de Temps Massif", description: "Oubliez la préparation des données et l'entraînement manuel. Cliquez, c'est prêt.", color: "#84fab0" },
-    { icon: <EmojiObjectsIcon sx={{ fontSize: 30 }}/>, title: "Expérience Utilisateur Unique", description: "Différenciez-vous avec une IA qui sort de l'ordinaire et engage vraiment.", color: "#5ee7df" },
-    { icon: <TuneIcon sx={{ fontSize: 30 }}/>, title: "Flexibilité Totale", description: "Personnalité, style, tonalité... Sculptez l'IA selon vos besoins marketing ou pédagogiques.", color: "#fbc2eb" },
-    { icon: <IntegrationInstructionsIcon sx={{ fontSize: 30 }}/>, title: "Intégration Transparente", description: "Utilisez votre modèle personnalisé via l'API OpenAI/Anthropic aussi simplement qu'un modèle standard.", color: "#a18cd1" },
-    { icon: <AccessibilityNewIcon sx={{ fontSize: 30 }}/>, title: "Simplicité Maximale", description: "Conçu pour tous. Aucune compétence technique requise pour créer des expériences IA marquantes.", color: "#ff9a8b" },
-  ];
-
-  return (
-    <Box
-      ref={ref}
-      sx={{
-        py: { xs: 12, md: 20 },
-        position: 'relative',
-        overflow: 'hidden',
-        background: `linear-gradient(rgba(10, 4, 60, 0.97), rgba(10, 4, 60, 0.97)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs><filter id="f1" x="0" y="0"><feGaussianBlur in="SourceGraphic" stdDeviation="1" /></filter></defs><circle cx="50" cy="50" r="5" fill="${alpha('#00d4ff', 0.1)}" filter="url(%23f1)"/><path d="M0 0 L50 50 L0 100 Z" fill="${alpha('#bf00ff', 0.05)}"/></svg>')`,
-        backgroundSize: 'auto, 100px 100px',
-        borderTop: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-        borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-      }}
-    >
-       {/* Lignes de circuit animées */}
-       <Box sx={{ position: 'absolute', inset: 0, opacity: 0.1, zIndex: 0 }}>
-         {/* Utilisation d'une base numérique (ex: 1000x1000) pour les coordonnées */}
-         <motion.svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="none">
-           {[...Array(15)].map((_, i) => (
-             <motion.path
-               key={i}
-               // Correction: Générer des coordonnées numériques entre 0 et 1000
-               d={`M ${Math.random() * 1000} 0 V 1000`}
-               stroke={i % 2 === 0 ? '#00d4ff' : '#bf00ff'}
-               strokeWidth={Math.random() * 1 + 0.5}
-               initial={{ pathLength: 0, opacity: 0 }}
-               animate={{ pathLength: [0, 1, 0], opacity: [0, 1, 0] }}
-               transition={{
-                 duration: Math.random() * 5 + 5,
-                 repeat: Infinity,
-                 delay: Math.random() * 5,
-                 ease: "easeInOut"
-               }}
-               style={{ filter: `drop-shadow(0 0 3px ${i % 2 === 0 ? '#00d4ff' : '#bf00ff'})` }}
-             />
-           ))}
-            {[...Array(10)].map((_, i) => (
-             <motion.path
-               key={`h-${i}`}
-                // Correction: Générer des coordonnées numériques entre 0 et 1000
-               d={`M 0 ${Math.random() * 1000} H 1000`}
-               stroke={i % 2 === 0 ? '#bf00ff' : '#00d4ff'}
-               strokeWidth={Math.random() * 1 + 0.5}
-               initial={{ pathLength: 0, opacity: 0 }}
-               animate={{ pathLength: [0, 1, 0], opacity: [0, 1, 0] }}
-               transition={{
-                 duration: Math.random() * 5 + 6,
-                 repeat: Infinity,
-                 delay: Math.random() * 6,
-                 ease: "easeInOut"
-               }}
-               style={{ filter: `drop-shadow(0 0 3px ${i % 2 === 0 ? '#bf00ff' : '#00d4ff'})` }}
-             />
-           ))}
-         </motion.svg>
-       </Box>
-
-      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-         {/* Titres */}
-         <Box sx={{ mb: 12, textAlign: 'center' }}>
-           <motion.div
-             initial={{ opacity: 0, y: 20 }}
-             animate={controls}
-             variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0 } } }}
-           >
-             <Typography
-               variant="h6"
-               component="p"
-               sx={{ color: "#84fab0", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #84fab0' }}
-             >
-               La Différence FinTune
-             </Typography>
-           </motion.div>
-           <motion.div
-             initial={{ opacity: 0, y: 20 }}
-             animate={controls}
-             variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.1 } } }}
-           >
-             <Typography
-               variant="h2"
-               component="h2"
-               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #84fab0, #5ee7df)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(132, 250, 176, 0.4)' }}
-             >
-               Vos Avantages Stratégiques
-             </Typography>
-           </motion.div>
-         </Box>
-
-         {/* Grille des avantages */}
-         <Grid container spacing={4} justifyContent="center">
-           {advantages.slice(0, 3).map((advantage, index) => (
-             <AdvantageCard key={index} advantage={advantage} index={index} controls={controls} />
-           ))}
-         </Grid>
-         <Grid container spacing={4} justifyContent="center" sx={{ mt: 4 }}>
-           {advantages.slice(3).map((advantage, index) => (
-            <AdvantageCard key={index + 3} advantage={advantage} index={index + 3} controls={controls} />
-           ))}
-         </Grid>
-
-      </Container>
-    </Box>
-  );
-};
-
-// Composant Carte Avantage
-const AdvantageCard = ({ advantage, index, controls }) => {
-  const theme = useTheme();
-  return (
-    <Grid item xs={12} sm={6} md={4} >
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={controls}
-        variants={{
-          visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-              duration: 0.7,
-              delay: 0.2 + index * 0.1,
-              ease: [0.16, 1, 0.3, 1],
-            },
-          },
-        }}
-        whileHover={{ y: -8 }}
-        transition={{ type: 'spring', stiffness: 250 }}
-        style={{ height: '100%' }}
-      >
-        <Card
-          sx={{
-            height: '100%',
-            p: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            textAlign: 'center',
-            borderRadius: '16px',
-            background: alpha(theme.palette.background.paper, 0.1),
-            backdropFilter: 'blur(8px)',
-            border: `1px solid ${alpha(advantage.color, 0.3)}`,
-            boxShadow: `0 5px 15px ${alpha(theme.palette.common.black, 0.2)}`,
-            transition: 'all 0.3s ease',
-             '&:hover': {
-               borderColor: alpha(advantage.color, 0.8),
-               background: alpha(theme.palette.background.paper, 0.2),
-               boxShadow: `0 0 20px ${alpha(advantage.color, 0.3)}, 0 8px 25px ${alpha(theme.palette.common.black, 0.3)}`,
-             }
-          }}
-        >
-          <Avatar sx={{ width: 60, height: 60, bgcolor: alpha(advantage.color, 0.2), color: advantage.color, mb: 2, boxShadow: `0 0 15px ${alpha(advantage.color, 0.4)}` }}>
-            {advantage.icon}
-          </Avatar>
-          <Typography variant="h6" component="h3" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
-            {advantage.title}
-          </Typography>
-          <Typography variant="body2" sx={{ color: alpha(theme.palette.text.secondary, 0.9), flexGrow: 1 }}>
-            {advantage.description}
-          </Typography>
-        </Card>
-      </motion.div>
-    </Grid>
-  );
-}
-
 // --- Nouvelle Section: Exemples de Chat Animés --- //
 
 // Composant pour un seul message dans le chat avec design amélioré
@@ -1970,91 +1789,94 @@ const DeploymentSection = () => {
         {/* Visualisation du déploiement */}
         <Box sx={{ height: { xs: 500, md: 650 }, position: 'relative', perspective: '1500px' }}>
           {/* Noyau central représentant le modèle IA */}
-           <motion.div
-                ref={centerRef} // Référence pour les lignes de connexion
-                initial={{ opacity: 0, scale: 0.3 }}
-                animate={controls}
-                variants={{ visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3, ease: 'backOut' } } }}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%) translateZ(0px)',
-                  width: 140,
-                  height: 140,
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(191, 0, 255, 0.4) 100%)',
-                  boxShadow: `0 0 30px ${alpha('#bf00ff', 0.6)}, 0 0 50px ${alpha('#00d4ff', 0.4)}`,
-                  zIndex: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
-                }}
-              >
-                <HubIcon sx={{ fontSize: 70, color: '#fff', opacity: 0.8 }} />
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-                  style={{
-                    position: 'absolute',
-                    width: '110%',
-                    height: '110%',
-                    border: '2px dashed rgba(255,255,255,0.2)',
-                    borderRadius: '50%'
-                  }}
+          <motion.div
+            ref={centerRef}
+            initial={{ opacity: 0, scale: 0.3 }}
+            animate={controls}
+            variants={{ visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3, ease: 'backOut' } } }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%) translateZ(0px)',
+              width: 140,
+              height: 140,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(191, 0, 255, 0.4) 100%)',
+              boxShadow: `0 0 30px ${alpha('#bf00ff', 0.6)}, 0 0 50px ${alpha('#00d4ff', 0.4)}`,
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+            }}
+          >
+            <HubIcon sx={{ fontSize: 70, color: '#fff', opacity: 0.8 }} />
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+              style={{
+                position: 'absolute',
+                width: '110%',
+                height: '110%',
+                border: '2px dashed rgba(255,255,255,0.2)',
+                borderRadius: '50%'
+              }}
+            />
+          </motion.div>
+
+          {/* Plateformes cibles flottantes */}
+          <Box sx={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 2 }}>
+            {targetPlatforms.map((platform, index) => (
+              <Box key={index} sx={{ display: 'inline-block', px: { xs: 2, md: 4 } }}>
+                <FloatingIcon
+                  icon={platform.icon}
+                  label={platform.label}
+                  color={platform.color}
+                  initialPos={platform.initialPos}
+                  delay={platform.delay}
+                  isIALogo={false}
+                  ref={platformRefs[index]}
+                  aiCenterRef={centerRef}
                 />
-             </motion.div>
+              </Box>
+            ))}
+          </Box>
 
-             {/* Plateformes cibles flottantes */}
-             {targetPlatforms.map((platform, index) => (
-               <FloatingIcon
-                 key={index}
-                 icon={platform.icon}
-                 label={platform.label}
-                 color={platform.color}
-                 initialPos={platform.initialPos}
-                 delay={platform.delay}
-                 isIALogo={false}
-                 ref={platformRefs[index]}
-                 aiCenterRef={centerRef}
-               />
-             ))}
+          {/* Lignes de connexion animées depuis le centre */}
+          {targetPlatforms.map((platform, index) => {
+            if (index < platformRefs.length) {
+              return (
+                <NeonConnectionLine
+                  key={`line-${index}`}
+                  startRef={centerRef}
+                  endRef={platformRefs[index]}
+                  color={platform.color}
+                  delay={platform.delay + 0.2}
+                  thickness={2}
+                />
+              );
+            }
+            return null;
+          })}
 
-              {/* Lignes de connexion animées depuis le centre */}
-             {targetPlatforms.map((platform, index) => {
-                if (index < platformRefs.length) {
-                  return (
-                    <NeonConnectionLine
-                      key={`line-${index}`}
-                      startRef={centerRef}
-                      endRef={platformRefs[index]}
-                      color={platform.color}
-                      delay={platform.delay + 0.2}
-                      thickness={2}
-                    />
-                  );
-                }
-                return null;
-             })}
-             
-             {/* Légende des catégories */}
-             <Box sx={{ position: 'absolute', bottom: 10, width: '100%', textAlign: 'center', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
-               {['API', 'Web', 'Automatisation', 'Appareils', 'Cloud', 'Réseaux Sociaux', 'Messageries', 'CRM'].map((category, index) => (
-                 <Chip 
-                   key={category}
-                   label={category}
-                   size="small"
-                   sx={{ 
-                     background: alpha(theme.palette.primary.main, 0.1), 
-                     backdropFilter: 'blur(5px)',
-                     border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                     color: 'text.secondary',
-                     '& .MuiChip-label': { fontWeight: 500 }
-                   }}
-                 />
-               ))}
-             </Box>
+          {/* Légende des catégories */}
+          <Box sx={{ position: 'absolute', bottom: 10, width: '100%', textAlign: 'center', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
+            {['API', 'Web', 'Automatisation', 'Appareils', 'Cloud', 'Réseaux Sociaux', 'Messageries', 'CRM'].map((category, index) => (
+              <Chip 
+                key={category}
+                label={category}
+                size="small"
+                sx={{ 
+                  background: alpha(theme.palette.primary.main, 0.1), 
+                  backdropFilter: 'blur(5px)',
+                  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                  color: 'text.secondary',
+                  '& .MuiChip-label': { fontWeight: 500 }
+                }}
+              />
+            ))}
+          </Box>
         </Box>
       </Container>
     </Box>
@@ -2067,13 +1889,111 @@ const LandingPage = () => {
       <Box sx={{ minHeight: '100vh', background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)` }}>
         <Navbar />
         <Hero />
+        {/* Section vidéo de présentation */}
+        <Box sx={{
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          background: 'transparent',
+          py: { xs: 2, md: 4 },
+        }}>
+          <Box sx={{
+            width: '100%',
+            maxWidth: 900,
+            boxShadow: 3,
+            borderRadius: 4,
+            overflow: 'hidden',
+            background: 'rgba(0,0,0,0.04)',
+          }}>
+            <video
+              src="/assets/videos/presentation_landing.webm"
+              autoPlay
+              loop
+              muted
+              playsInline
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block',
+                borderRadius: 'inherit',
+                background: '#000',
+              }}
+            />
+          </Box>
+        </Box>
         <IntroductionSection />
         <ProcessSection />
         <ChatExamplesSection />
         <DeploymentSection /> {/* Maintenant placé juste après les chats */}
         <UseCasesSection />
-        <AdvantagesSection />
         <FinalCTASection />
+        {/* Section Tarification Pay-as-you-go */}
+        <Box sx={{
+          py: { xs: 10, md: 16 },
+          background: 'linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%)',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+        }}>
+          <Container maxWidth="md">
+            <Box sx={{ textAlign: 'center', mb: 6 }}>
+              <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: 'primary.main' }}>
+                Tarification Pay-as-you-go
+              </Typography>
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                Les 10 000 premiers caractères sont <b>gratuits</b> chaque mois. Ensuite, chaque caractère supplémentaire coûte <b>0,000365€</b>.
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Payez uniquement pour ce que vous consommez. Aucun engagement, aucun abonnement obligatoire.
+              </Typography>
+            </Box>
+            <Grid container spacing={4} justifyContent="center">
+              {[
+                { label: '20 000 caractères', chars: 20000 },
+                { label: '50 000 caractères', chars: 50000 },
+                { label: '100 000 caractères', chars: 100000 },
+              ].map((ex, idx) => {
+                const free = 10000;
+                const paid = Math.max(0, ex.chars - free);
+                const cost = paid * 0.000365;
+                return (
+                  <Grid item xs={12} sm={4} key={ex.label}>
+                    <Box sx={{
+                      p: 4,
+                      borderRadius: 4,
+                      boxShadow: 3,
+                      background: '#fff',
+                      textAlign: 'center',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                    }}>
+                      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                        {ex.label}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {ex.chars.toLocaleString()} caractères traités ce mois
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main', mb: 1 }}>
+                        {cost === 0 ? 'Gratuit' : `${cost.toFixed(2)} €`}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {cost === 0 ? 'Inclus dans l'offre gratuite' : `10 000 gratuits, puis ${paid.toLocaleString()} x 0,000365€`}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                );
+              })}
+            </Grid>
+            <Box sx={{ textAlign: 'center', mt: 6 }}>
+              <Typography variant="body2" color="text.secondary">
+                Exemple : 50 000 caractères = 10 000 gratuits + 40 000 x 0,000365€ = <b>14,60€</b>
+              </Typography>
+              <Typography variant="caption" color="text.disabled">
+                Les prix sont HT. Facturation mensuelle, sans engagement.
+              </Typography>
+            </Box>
+          </Container>
+        </Box>
         <Footer />
       </Box>
     </PageTransition>

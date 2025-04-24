@@ -103,3 +103,5 @@ fintune-platform/
 
 # Certificats SSL
 frontend/certs
+
+backend/app/api/example_limiter_usage.py
