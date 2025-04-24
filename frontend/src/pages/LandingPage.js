@@ -975,9 +975,9 @@ const ProcessSection = () => {
           </motion.svg>
         </Box>
         {/* Ajout du CTA ici */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={controls} 
+           <motion.div
+             initial={{ opacity: 0, y: 20 }}
+             animate={controls}
           variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.8 } } }}
           style={{ marginTop: theme.spacing(6), textAlign: 'center' }}
         >
@@ -988,7 +988,7 @@ const ProcessSection = () => {
               color="secondary"
               size="large"
               endIcon={<RocketLaunchIcon />}
-              sx={{
+                   sx={{
                 py: { xs: 1.5, sm: 2 },
                 px: { xs: 3, sm: 5 },
                 fontSize: { xs: '1rem', md: '1.2rem' },
@@ -997,7 +997,7 @@ const ProcessSection = () => {
             >
               Lancez votre premier projet
             </Button>
-        </motion.div>
+               </motion.div>
       </Container>
     </Box>
   );
@@ -1561,14 +1561,14 @@ const DeploymentSection = () => {
         {/* Titres (inchangés) */}
         <Box sx={{ mb: 12, textAlign: 'center' }}>
              {/* ... Titres ... */}
-             <Typography
+            <Typography
               variant="h6"
               component="p"
               sx={{ color: "#84fab0", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #84fab0' }}
             >
               Intégration Universelle
             </Typography>
-             <Typography
+            <Typography
               variant="h2"
               component="h2"
               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #84fab0, #5ee7df)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(132, 250, 176, 0.4)' }}
@@ -1588,37 +1588,37 @@ const DeploymentSection = () => {
         <Grid container spacing={6} alignItems="center" sx={{position: 'relative'}} ref={gridContainerRef}>
           {/* Colonne Gauche: Module Central */}
           <Grid item xs={12} md={5} sx={{ display: 'flex', justifyContent: 'center' }}>
-              <motion.div
-                ref={centerRef}
-                initial={{ opacity: 0, scale: 0.3 }}
-                animate={controls}
-                variants={{ visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3, ease: 'backOut' } } }}
-                style={{
+          <motion.div
+            ref={centerRef}
+            initial={{ opacity: 0, scale: 0.3 }}
+            animate={controls}
+            variants={{ visible: { opacity: 1, scale: 1, transition: { duration: 1, delay: 0.3, ease: 'backOut' } } }}
+            style={{
                   position: 'relative', // Rendre relatif pour le flux normal
                   width: 200, // Taille ajustée
                   height: 200,
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(191, 0, 255, 0.4) 100%)',
-                  boxShadow: `0 0 30px ${alpha('#bf00ff', 0.6)}, 0 0 50px ${alpha('#00d4ff', 0.4)}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
-                }}
-              >
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(191, 0, 255, 0.4) 100%)',
+              boxShadow: `0 0 30px ${alpha('#bf00ff', 0.6)}, 0 0 50px ${alpha('#00d4ff', 0.4)}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+            }}
+          >
                 <HubIcon sx={{ fontSize: 90, color: '#fff', opacity: 0.8 }} />
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-                  style={{
-                    position: 'absolute',
-                    width: '110%',
-                    height: '110%',
-                    border: '2px dashed rgba(255,255,255,0.2)',
-                    borderRadius: '50%'
-                  }}
-                />
-              </motion.div>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+              style={{
+                position: 'absolute',
+                width: '110%',
+                height: '110%',
+                border: '2px dashed rgba(255,255,255,0.2)',
+                borderRadius: '50%'
+              }}
+            />
+          </motion.div>
           </Grid>
 
           {/* Colonne Droite: Icônes Simplifiées */}
@@ -1642,7 +1642,7 @@ const DeploymentSection = () => {
                           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                             {platform.label}
                           </Typography>
-                        </Box>
+              </Box>
                        </motion.div>
                     </Grid>
                 ))}
@@ -1652,15 +1652,15 @@ const DeploymentSection = () => {
           
           {/* Lignes de connexion - passage de containerRef */}
           {platformRefs.map((platformRef, index) => (
-            <NeonConnectionLine
+                <NeonConnectionLine
               key={`line-${simplifiedPlatforms[index].label}`}
-              startRef={centerRef} 
+                  startRef={centerRef}
               endRef={platformRef}
               containerRef={gridContainerRef} // Passage de la ref du conteneur
               color={simplifiedPlatforms[index].color}
               delay={simplifiedPlatforms[index].delay + 0.2}
-              thickness={2}
-            />
+                  thickness={2}
+                />
           ))}
         </Grid>
         {/* Ajout du CTA ici */}
@@ -1725,7 +1725,7 @@ const FAQSection = () => {
   ];
   return (
     <Box id="faq-section"
-      sx={{
+                sx={{ 
         py: { xs: 7, md: 11 }, // Réduction du padding
         background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
         borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
@@ -1740,7 +1740,7 @@ const FAQSection = () => {
           <Typography variant="h6" color={theme.palette.text.secondary}>
             Questions fréquentes sur FineTuner et l'IA personnalisée
           </Typography>
-        </Box>
+          </Box>
         {faqs.map((faq, idx) => (
           <Accordion 
             key={idx} 
