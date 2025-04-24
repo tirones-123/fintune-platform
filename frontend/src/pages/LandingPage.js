@@ -1692,117 +1692,6 @@ const FAQSection = () => {
   );
 };
 
-// Section Tarification Pay-as-you-go
-const PricingSection = () => { // Renommer pour clarté si besoin, mais l'ID suffit
-  const theme = useTheme(); 
-  return (
-    <Box id="pricing-section"
-      py: { xs: 10, md: 16 },
-      background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
-      borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-      borderColor: 'divider',
-    >
-      <Container maxWidth="md">
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: theme.palette.primary.main }}>
-            Tarification Pay-as-you-go
-          </Typography>
-          <Typography variant="h6" color={theme.palette.text.secondary} sx={{ mb: 2 }}>
-            Flexible et transparente. Payez uniquement pour ce que vous consommez.
-          </Typography>
-        </Box>
-        
-        {/* Grande carte de tarification */}
-        <Box
-          sx={{
-            p: { xs: 3, md: 5 },
-            borderRadius: 4, // Consistent with theme shape
-            background: alpha(theme.palette.background.paper, 0.7),
-            backdropFilter: 'blur(12px)',
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-            boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.1)}`,
-            textAlign: 'center',
-          }}
-        >
-          <Grid container spacing={4} alignItems="center">
-            {/* Colonne Gauche: Explication */}
-            <Grid item xs={12} md={7} sx={{ textAlign: { xs: 'center', md: 'left' } }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 3, color: theme.palette.primary.dark }}>
-                Comment ça marche ?
-              </Typography>
-              <Stack spacing={2.5} sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.dark }}>
-                    <CheckCircleOutlineIcon fontSize="small" />
-                  </Avatar>
-                  <Typography variant="body1" color={theme.palette.text.secondary}>
-                    Les <b>10 000 premiers caractères</b> traités chaque mois sont <b>GRATUITS</b>.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                   <Avatar sx={{ bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.dark }}>
-                     <AttachMoneyIcon fontSize="small" />
-                  </Avatar>
-                  <Typography variant="body1" color={theme.palette.text.secondary}>
-                    Au-delà, chaque caractère supplémentaire coûte seulement <b>0,000365 € HT</b>.
-                  </Typography>
-                </Box>
-                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                   <Avatar sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: theme.palette.warning.dark }}>
-                     <CalculateIcon fontSize="small" />
-                   </Avatar>
-                  <Typography variant="body1" color={theme.palette.text.secondary}>
-                    Exemple : <b>50 000</b> caractères = 10k gratuits + 40k * 0,000365€ = <b>14,60 € HT</b>.
-                  </Typography>
-                </Box>
-              </Stack>
-            </Grid> {/* Correction: Fermeture de la Grid gauche */}
-            
-            {/* Colonne Droite: Prix */}
-            <Grid item xs={12} md={5}>
-              <Box sx={{ 
-                p: 3,
-                borderRadius: 3,
-                background: alpha(theme.palette.primary.main, 0.05),
-                border: `1px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
-              }}>
-                <Typography variant="overline" color={theme.palette.text.secondary} display="block">
-                  Prix par caractère
-                </Typography>
-                <Typography variant="h2" sx={{ fontWeight: 800, color: theme.palette.primary.main, my: 1, letterSpacing: -1 }}>
-                  0,000365<Box component="span" sx={{ fontSize: '1.5rem' }}> €</Box>
-                </Typography>
-                 <Typography variant="caption" color={theme.palette.text.secondary} display="block">
-                  (Après les 10 000 gratuits / mois)
-                </Typography>
-              </Box>
-              <Button
-                  component={RouterLink}
-                  to="/register"
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                  startIcon={<RocketLaunchIcon />}
-                  sx={{
-                    mt: 3,
-                    py: 1.5,
-                  }}
-                >
-                  Commencer Gratuitement
-                </Button>
-            </Grid> {/* Correction: Fermeture de la Grid droite */}
-          </Grid> {/* Correction: Fermeture de la Grid container */}
-        </Box>
-  
-        {/* Supprimer l'ancienne grid et le texte d'exemple */}
-        {/* <Grid container spacing={4} justifyContent="center"> ... </Grid> */}
-        {/* <Box sx={{ textAlign: 'center', mt: 6 }}> ... </Box> */}
-        
-      </Container>
-    </Box>
-  );
-};
-
 const LandingPage = () => {
   const theme = useTheme(); // Déclarer useTheme ici pour l'accès global dans le composant
   return (
@@ -1847,16 +1736,6 @@ const LandingPage = () => {
         <ProcessSection />
         <ChatExamplesSection />
         <DeploymentSection /> 
-        <Box id="pricing-section"
-          sx={{
-            py: { xs: 10, md: 16 },
-            background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
-            borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-            borderColor: 'divider',
-          }}
-        >
-          {/* ... Contenu de la section Tarification ... */}
-        </Box>
         <FAQSection />
         <FinalCTASection />
         <Footer />
