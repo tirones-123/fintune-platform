@@ -40,3 +40,4 @@ readability-lxml==0.8.1
 Authlib>=1.0.0
 itsdangerous==2.1.2
 premailer==3.10.0
+slowapi==0.1.8

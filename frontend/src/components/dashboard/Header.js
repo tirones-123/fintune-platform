@@ -40,6 +40,10 @@ const Header = ({ onDrawerToggle }) => {
   const [totalUnread, setTotalUnread] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const pollingIntervalRef = useRef(null);
+  // Nouvel état pour suivre les échecs consécutifs
+  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
+  // Référence pour stocker le délai actuel
+  const currentDelayRef = useRef(60000); // 60 secondes par défaut
 
   // Fonction pour charger les notifications
   const fetchNotifications = async () => {
@@ -54,6 +58,13 @@ const Header = ({ onDrawerToggle }) => {
       
       setNotifications(newNotifications);
       setTotalUnread(currentUnreadCount);
+
+      // Réinitialiser le compteur d'échecs et le délai après un succès
+      if (consecutiveFailures > 0) {
+        setConsecutiveFailures(0);
+        currentDelayRef.current = 60000; // Réinitialiser à 60 secondes
+        console.log("Connexion rétablie, polling réinitialisé à 60 secondes");
+      }
 
       // Déclencher l'événement si de nouvelles notifications de succès FT sont arrivées
       if (currentUnreadCount > previousUnreadCount) {
@@ -72,19 +83,33 @@ const Header = ({ onDrawerToggle }) => {
 
     } catch (error) {
       console.error("Erreur chargement notifications:", error);
+      
+      // Incrémenter le compteur d'échecs consécutifs
+      const newFailureCount = consecutiveFailures + 1;
+      setConsecutiveFailures(newFailureCount);
+      
+      // Calculer le nouveau délai avec backoff exponentiel (max 5 minutes)
+      // Formula: min(baseDelay * 2^failures, maxDelay)
+      const baseDelay = 60000; // 60 secondes
+      const maxDelay = 300000; // 5 minutes
+      const newDelay = Math.min(baseDelay * Math.pow(1.5, newFailureCount), maxDelay);
+      currentDelayRef.current = newDelay;
+      
+      console.log(`Échec #${newFailureCount} de chargement des notifications. Prochain essai dans ${newDelay/1000} secondes.`);
     }
+    
+    // Planifier la prochaine vérification selon le délai actuel (avec backoff si échec)
+    pollingIntervalRef.current = setTimeout(fetchNotifications, currentDelayRef.current);
   };
 
-  // Polling des notifications
+  // Polling des notifications avec backoff exponentiel
   useEffect(() => {
     fetchNotifications(); // Charger au montage
     
-    pollingIntervalRef.current = setInterval(fetchNotifications, 60000); // Polling toutes les 60 secondes
-
-    // Nettoyer l'intervalle au démontage
+    // Nettoyage à la désinscription
     return () => {
       if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
+        clearTimeout(pollingIntervalRef.current);
       }
     };
   }, []);

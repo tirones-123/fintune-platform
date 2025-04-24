@@ -1385,7 +1385,7 @@ const OnboardingPage = () => {
           <Box>
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                Importez ici les contenus que votre assistant devra connaître : documents, pages web ou vidéos. Plus vous ajoutez de contenu pertinent, plus l'assistant sera précis et utile dans ses réponses.<br />Les recommandations sont alignées sur l’objectif que vous avez défini pour votre assistant.
+                Importez ici les contenus que votre assistant devra connaître : documents, pages web ou vidéos. Plus vous ajoutez de contenu pertinent, plus l'assistant sera précis et utile dans ses réponses.<br />Les recommandations sont alignées sur l'objectif que vous avez défini pour votre assistant.
                 <br /><br /> Les 10 000 premiers caractères sont offerts.
               </Typography>
             </Alert>
@@ -1688,7 +1688,7 @@ const OnboardingPage = () => {
                   variant="contained"
                   onClick={handleAddYouTubeUrl}
                   disabled={youtubeUploading || !youtubeUrl.trim()}
-                  sx={{ mt: 2 }}
+                  sx={{ mt: 2, width: { xs: '100%', sm: 'auto' } }}
                 >
                   {youtubeUploading ? <CircularProgress size={20} /> : "Ajouter la vidéo"}
                 </Button>
@@ -1715,7 +1715,13 @@ const OnboardingPage = () => {
                           </Typography>
                         )}
                       </Box>
-                      <IconButton onClick={() => handleDeleteYouTube(video.id)}>
+                      <IconButton 
+                        onClick={() => handleDeleteYouTube(video.id)} 
+                        sx={{ 
+                          p: { xs: 1.5, sm: 1 },
+                          '& svg': { fontSize: { xs: 24, sm: 20 } }
+                        }}
+                      >
                         <DeleteIcon />
                       </IconButton>
                     </Box>
@@ -1993,7 +1999,13 @@ const OnboardingPage = () => {
             
             {/* Boutons de navigation - seulement visibles sur les étapes intermédiaires */}
             {activeStep < steps.length - 1 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 5 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' }, 
+                justifyContent: 'space-between', 
+                mt: 5,
+                gap: { xs: 2, sm: 0 }  
+              }}>
                 <Button
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
@@ -2003,12 +2015,6 @@ const OnboardingPage = () => {
                 >
                   Retour
                 </Button>
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  {completionError && activeStep === 2 && (
-                    <Typography variant="caption" color="error" sx={{ mb: 1 }}>
-                      {completionError}
-                    </Typography>
-                  )}
                 <Button
                   variant="contained"
                   onClick={handleNext}
@@ -2035,7 +2041,6 @@ const OnboardingPage = () => {
                 >
                     {activeStep === steps.length - 2 ? (isCompleting ? 'Traitement en cours...' : 'Terminer') : 'Suivant'}
                 </Button>
-                </Box>
               </Box>
             )}
           </Paper>

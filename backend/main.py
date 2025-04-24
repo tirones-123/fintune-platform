@@ -8,9 +8,12 @@ from pathlib import Path
 import stripe
 from celery_app import celery_app
 from loguru import logger
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.errors import RateLimitExceeded
 
 from app.api.router import api_router
 from app.core.config import settings
+from app.core.limiter import limiter, rate_limit_exceeded_handler
 from app.db.session import engine, Base, SessionLocal
 from app.db.init_db import init_db
 
@@ -35,6 +38,10 @@ app = FastAPI(
     redoc_url="/api/redoc",
 )
 
+# Configurer le limiteur de taux
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
 # === Ajouter SessionMiddleware AVANT les autres middlewares/routes si possible ===
 # Utiliser la SECRET_KEY déjà définie dans settings
 app.add_middleware(
@@ -48,6 +55,9 @@ app.add_middleware(
     path="/" # Ajout du chemin pour s'assurer que le cookie est valide pour tout le site
     # L'argument 'domain' est retiré car non supporté
 )
+
+# Ajouter le middleware SlowAPI pour le rate limiting
+app.add_middleware(SlowAPIMiddleware)
 
 # Configure CORS
 app.add_middleware(
