@@ -65,7 +65,7 @@ const Footer = () => {
     {
       title: 'Produit',
       links: [
-'('        { name: 'Accueil', path: '/' },
+         { name: 'Accueil', path: '/' },
         { name: 'Comment ça marche', path: '/#how-it-works' },
         { name: 'Tarifs', path: '/#pricing' },
         { name: 'FAQ', path: '/#faq' },

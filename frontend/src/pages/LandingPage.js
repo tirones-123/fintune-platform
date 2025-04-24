@@ -754,7 +754,7 @@ const IntroductionSection = () => {
                   textShadow: '0 0 15px rgba(0, 212, 255, 0.4)',
                 }}
               >
-                Qu'est-ce que FinTune ?
+                Qu'est-ce que FineTuner ?
               </Typography>
 
               <Box sx={{ ...glassmorphismStyle }}>
@@ -767,7 +767,7 @@ const IntroductionSection = () => {
                     fontWeight: 400,
                   }}
                 >
-                  FinTune est votre passerelle vers une IA véritablement personnalisée. En quelques clics, transformez vos contenus uniques (textes, PDF, vidéos YouTube...) en modèles d'IA surpuissants type ChatGPT ou Claude.
+                  FineTuner est votre passerelle vers une IA véritablement personnalisée. En quelques clics, transformez vos contenus uniques (textes, PDF, vidéos YouTube...) en modèles d'IA surpuissants type ChatGPT ou Claude.
                 </Typography>
                 <Typography
                   variant="body1"
@@ -1586,7 +1586,7 @@ const FinalCTASection = () => {
                   variant="h6"
                   sx={{ mb: 5, maxWidth: 650, mx: 'auto', color: alpha(theme.palette.text.secondary, 0.9), lineHeight: 1.7 }}
                 >
-                  FinTune orchestre tout : conversion, préparation, entraînement. Vous vous concentrez sur l'essentiel : uploader votre contenu et voir votre IA prendre vie.
+                  FineTunet orchestre tout : conversion, préparation, entraînement. Vous vous concentrez sur l'essentiel : uploader votre contenu et voir votre IA prendre vie.
                 </Typography>
             </motion.div>
 
@@ -1887,12 +1887,12 @@ const DeploymentSection = () => {
 const FAQSection = () => {
   const faqs = [
     {
-      question: "Qu'est-ce que FinTune ?",
-      answer: "FinTune est une plateforme qui permet de transformer vos contenus (PDF, vidéos, textes, etc.) en assistants IA personnalisés, déployables partout, sans expertise technique."
+      question: "Qu'est-ce que FineTuner ?",
+      answer: "FineTuner est une plateforme qui permet de transformer vos contenus (PDF, vidéos, textes, etc.) en assistants IA personnalisés, déployables partout, sans expertise technique."
     },
     {
       question: "Dois-je avoir un compte OpenAI ou Anthropic ?",
-      answer: "Oui, pour entraîner et déployer votre propre modèle fine-tuné, vous devez connecter votre compte OpenAI ou Anthropic. FinTune orchestre tout le processus pour vous."
+      answer: "Oui, pour entraîner et déployer votre propre modèle fine-tuné, vous devez connecter votre compte OpenAI ou Anthropic. FineTuner orchestre tout le processus pour vous."
     },
     {
       question: "Quels types de contenus puis-je importer ?",
@@ -1928,7 +1928,7 @@ const FAQSection = () => {
             FAQ
           </Typography>
           <Typography variant="h6" color="text.secondary">
-            Questions fréquentes sur FinTune et l'IA personnalisée
+            Questions fréquentes sur FineTuner et l'IA personnalisée
           </Typography>
         </Box>
         {faqs.map((faq, idx) => (
@@ -2045,7 +2045,7 @@ const LandingPage = () => {
                         {cost === 0 ? 'Gratuit' : `${cost.toFixed(2)} €`}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {cost === 0 ? 'Inclus dans l'offre gratuite' : `10 000 gratuits, puis ${paid.toLocaleString()} x 0,000365€`}
+                        {cost === 0 ? "Inclus dans l'offre gratuite" : `10 000 gratuits, puis ${paid.toLocaleString()} x 0,000365€`}
                       </Typography>
                     </Box>
                   </Grid>
