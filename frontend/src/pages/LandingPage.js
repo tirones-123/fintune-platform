@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Container, Typography, Button, Grid, Card, CardContent, Avatar, Stack, useTheme, alpha, Chip, IconButton } from '@mui/material';
+import { Box, Container, Typography, Button, Grid, Card, CardContent, Avatar, Stack, useTheme, alpha, Chip, IconButton, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { motion, useScroll, useTransform, useSpring, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -48,6 +48,7 @@ import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import ContactsIcon from '@mui/icons-material/Contacts';
 import SendIcon from '@mui/icons-material/Send';
 import HomeIcon from '@mui/icons-material/Home';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 // Animation variants
 const containerVariants = {
@@ -1883,6 +1884,73 @@ const DeploymentSection = () => {
   );
 };
 
+const FAQSection = () => {
+  const faqs = [
+    {
+      question: "Qu'est-ce que FinTune ?",
+      answer: "FinTune est une plateforme qui permet de transformer vos contenus (PDF, vidéos, textes, etc.) en assistants IA personnalisés, déployables partout, sans expertise technique."
+    },
+    {
+      question: "Dois-je avoir un compte OpenAI ou Anthropic ?",
+      answer: "Oui, pour entraîner et déployer votre propre modèle fine-tuné, vous devez connecter votre compte OpenAI ou Anthropic. FinTune orchestre tout le processus pour vous."
+    },
+    {
+      question: "Quels types de contenus puis-je importer ?",
+      answer: "Vous pouvez importer des PDF, des textes, des transcriptions vidéo (YouTube), des pages web, et bien plus. La plateforme s'occupe de la conversion et du formatage."
+    },
+    {
+      question: "Comment fonctionne la tarification ?",
+      answer: "Les 10 000 premiers caractères sont gratuits chaque mois. Au-delà, chaque caractère supplémentaire coûte 0,000365€. Vous ne payez que ce que vous consommez, sans engagement."
+    },
+    {
+      question: "Puis-je intégrer mon IA sur d'autres plateformes ?",
+      answer: "Oui, votre modèle fine-tuné peut être utilisé via API, sur des applications web, mobiles, CRM, réseaux sociaux, outils no-code, etc."
+    },
+    {
+      question: "Mes données sont-elles sécurisées ?",
+      answer: "Oui, vos données sont traitées de façon sécurisée et ne sont jamais revendues. Vous gardez le contrôle total sur vos contenus et vos modèles."
+    },
+    {
+      question: "Ai-je besoin de compétences techniques ?",
+      answer: "Non, la plateforme est conçue pour être accessible à tous. Aucune compétence technique n'est requise pour créer, entraîner et déployer votre IA."
+    },
+  ];
+  return (
+    <Box sx={{
+      py: { xs: 10, md: 16 },
+      background: 'linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%)',
+      borderTop: '1px solid',
+      borderColor: 'divider',
+    }}>
+      <Container maxWidth="md">
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: 'primary.main' }}>
+            FAQ
+          </Typography>
+          <Typography variant="h6" color="text.secondary">
+            Questions fréquentes sur FinTune et l'IA personnalisée
+          </Typography>
+        </Box>
+        {faqs.map((faq, idx) => (
+          <Accordion key={idx} sx={{ mb: 2, borderRadius: 2, boxShadow: 1, '&:before': { display: 'none' } }}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls={`faq-content-${idx}`}
+              id={`faq-header-${idx}`}
+              sx={{ fontWeight: 700, fontSize: '1.1rem', color: 'primary.main', background: '#f4f7fa' }}
+            >
+              {faq.question}
+            </AccordionSummary>
+            <AccordionDetails sx={{ background: '#fff', color: 'text.secondary', fontSize: '1rem' }}>
+              {faq.answer}
+            </AccordionDetails>
+          </Accordion>
+        ))}
+      </Container>
+    </Box>
+  );
+};
+
 const LandingPage = () => {
   return (
     <PageTransition>
@@ -1994,6 +2062,8 @@ const LandingPage = () => {
             </Box>
           </Container>
         </Box>
+        {/* Section FAQ */}
+        <FAQSection />
         <Footer />
       </Box>
     </PageTransition>

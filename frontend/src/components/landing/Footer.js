@@ -65,37 +65,32 @@ const Footer = () => {
     {
       title: 'Produit',
       links: [
-        { name: 'Fonctionnalités', path: '/#how-it-works' },
+'('        { name: 'Accueil', path: '/' },
+        { name: 'Comment ça marche', path: '/#how-it-works' },
         { name: 'Tarifs', path: '/#pricing' },
-        { name: 'Témoignages', path: '/#testimonials' },
-        { name: 'FAQ', path: '/faq' },
+        { name: 'FAQ', path: '/#faq' },
       ],
     },
     {
       title: 'Ressources',
       links: [
-        { name: 'Documentation', path: '/docs' },
-        { name: 'Tutoriels', path: '/tutorials' },
-        { name: 'Blog', path: '/blog' },
-        { name: 'API', path: '/api' },
+        { name: 'Aide', path: '/help' },
+        { name: 'Playground', path: '/playground' },
+        { name: 'Documentation API', path: 'https://fintune-api-docs-url.com', external: true },
       ],
     },
     {
       title: 'Entreprise',
       links: [
-        { name: 'À propos', path: '/about' },
-        { name: 'Carrières', path: '/careers' },
-        { name: 'Contact', path: '/contact' },
-        { name: 'Partenaires', path: '/partners' },
+        // On ne garde que Contact si une page existe, sinon on retire la section
+        // { name: 'Contact', path: '/contact' },
       ],
     },
     {
       title: 'Légal',
       links: [
-        { name: 'Conditions d\'utilisation', path: '/terms' },
-        { name: 'Politique de confidentialité', path: '/privacy' },
-        { name: 'Cookies', path: '/cookies' },
-        { name: 'Mentions légales', path: '/legal' },
+        { name: 'Politique de confidentialité', path: '/privacy-policy' },
+        { name: 'Conditions d\'utilisation', path: '/terms-of-service' },
       ],
     },
   ];
@@ -381,70 +376,109 @@ const Footer = () => {
 
             {/* Liens */}
             {footerLinks.map((section, index) => (
-              <Grid item xs={6} sm={3} md={2} key={section.title}>
-                <motion.div variants={itemVariants} custom={index}>
-                  <Typography
-                    variant="subtitle1"
-                    color="text.primary"
-                    sx={{ 
-                      fontWeight: 700, 
-                      mb: 3,
-                      position: 'relative',
-                      display: 'inline-block',
-                      '&::after': {
-                        content: '""',
-                        position: 'absolute',
-                        width: '60%',
-                        height: '2px',
-                        bottom: -8,
-                        left: 0,
-                        background: 'linear-gradient(90deg, #7928CA, transparent)',
-                      }
-                    }}
-                  >
-                    {section.title}
-                  </Typography>
-                  <Box component="ul" sx={{ p: 0, m: 0, listStyle: 'none' }}>
-                    {section.links.map((link) => (
-                      <Box component="li" key={link.name} sx={{ mb: 2 }}>
-                        <Link
-                          component={RouterLink}
-                          to={link.path}
-                          underline="none"
-                          color="text.secondary"
-                          sx={{
-                            display: 'inline-block',
-                            fontSize: '0.875rem',
-                            transition: 'all 0.3s ease',
-                            position: 'relative',
-                            '&:hover': {
-                              color: 'primary.main',
-                              transform: 'translateX(5px)',
-                              '&::before': {
-                                opacity: 1,
-                                width: '1rem',
-                              }
-                            },
-                            '&::before': {
-                              content: '""',
-                              position: 'absolute',
-                              width: '0.5rem',
-                              height: '1px',
-                              opacity: 0,
-                              background: 'primary.main',
-                              left: -15,
-                              top: '50%',
-                              transition: 'all 0.3s ease',
-                            }
-                          }}
-                        >
-                          {link.name}
-                        </Link>
-                      </Box>
-                    ))}
-                  </Box>
-                </motion.div>
-              </Grid>
+              section.links.length > 0 && (
+                <Grid item xs={6} sm={3} md={2} key={section.title}>
+                  <motion.div variants={itemVariants} custom={index}>
+                    <Typography
+                      variant="subtitle1"
+                      color="text.primary"
+                      sx={{ 
+                        fontWeight: 700, 
+                        mb: 3,
+                        position: 'relative',
+                        display: 'inline-block',
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          width: '60%',
+                          height: '2px',
+                          bottom: -8,
+                          left: 0,
+                          background: 'linear-gradient(90deg, #7928CA, transparent)',
+                        }
+                      }}
+                    >
+                      {section.title}
+                    </Typography>
+                    <Box component="ul" sx={{ p: 0, m: 0, listStyle: 'none' }}>
+                      {section.links.map((link) => (
+                        <Box component="li" key={link.name} sx={{ mb: 2 }}>
+                          {link.external ? (
+                            <Link
+                              href={link.path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              underline="none"
+                              color="text.secondary"
+                              sx={{
+                                display: 'inline-block',
+                                fontSize: '0.875rem',
+                                transition: 'all 0.3s ease',
+                                position: 'relative',
+                                '&:hover': {
+                                  color: 'primary.main',
+                                  transform: 'translateX(5px)',
+                                  '&::before': {
+                                    opacity: 1,
+                                    width: '1rem',
+                                  }
+                                },
+                                '&::before': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  width: '0.5rem',
+                                  height: '1px',
+                                  opacity: 0,
+                                  background: 'primary.main',
+                                  left: -15,
+                                  top: '50%',
+                                  transition: 'all 0.3s ease',
+                                }
+                              }}
+                            >
+                              {link.name}
+                            </Link>
+                          ) : (
+                            <Link
+                              component={RouterLink}
+                              to={link.path}
+                              underline="none"
+                              color="text.secondary"
+                              sx={{
+                                display: 'inline-block',
+                                fontSize: '0.875rem',
+                                transition: 'all 0.3s ease',
+                                position: 'relative',
+                                '&:hover': {
+                                  color: 'primary.main',
+                                  transform: 'translateX(5px)',
+                                  '&::before': {
+                                    opacity: 1,
+                                    width: '1rem',
+                                  }
+                                },
+                                '&::before': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  width: '0.5rem',
+                                  height: '1px',
+                                  opacity: 0,
+                                  background: 'primary.main',
+                                  left: -15,
+                                  top: '50%',
+                                  transition: 'all 0.3s ease',
+                                }
+                              }}
+                            >
+                              {link.name}
+                            </Link>
+                          )}
+                        </Box>
+                      ))}
+                    </Box>
+                  </motion.div>
+                </Grid>
+              )
             ))}
           </Grid>
 
@@ -478,7 +512,7 @@ const Footer = () => {
             >
               <Link
                 component={RouterLink}
-                to="/terms"
+                to="/terms-of-service"
                 underline="hover"
                 color="text.secondary"
                 variant="body2"
@@ -493,7 +527,7 @@ const Footer = () => {
               </Link>
               <Link
                 component={RouterLink}
-                to="/privacy"
+                to="/privacy-policy"
                 underline="hover"
                 color="text.secondary"
                 variant="body2"
@@ -505,21 +539,6 @@ const Footer = () => {
                 }}
               >
                 Politique de confidentialité
-              </Link>
-              <Link
-                component={RouterLink}
-                to="/cookies"
-                underline="hover"
-                color="text.secondary"
-                variant="body2"
-                sx={{
-                  transition: 'color 0.2s ease',
-                  '&:hover': {
-                    color: 'primary.main',
-                  }
-                }}
-              >
-                Cookies
               </Link>
             </Box>
           </Box>
