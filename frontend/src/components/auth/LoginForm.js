@@ -23,10 +23,12 @@ import * as Yup from 'yup';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import GoogleIcon from '@mui/icons-material/Google';
+import { useTranslation } from 'react-i18next';
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -38,10 +40,10 @@ const LoginForm = () => {
     },
     validationSchema: Yup.object({
       email: Yup.string()
-        .email('Adresse email invalide')
-        .required('L\'email est requis'),
+        .email(t('login.validation.invalidEmail'))
+        .required(t('login.validation.emailRequired')),
       password: Yup.string()
-        .required('Le mot de passe est requis'),
+        .required(t('login.validation.passwordRequired')),
     }),
     onSubmit: async (values, { setSubmitting }) => {
       try {
@@ -50,7 +52,7 @@ const LoginForm = () => {
         navigate('/dashboard');
       } catch (error) {
         console.error('Login error:', error);
-        setErrorMessage(error.message || 'Identifiants incorrects. Veuillez réessayer.');
+        setErrorMessage(t('login.error.invalidCredentials', 'Identifiants incorrects. Veuillez réessayer.'));
       } finally {
         setSubmitting(false);
       }
@@ -65,11 +67,11 @@ const LoginForm = () => {
     <Card sx={{ maxWidth: 480, mx: 'auto', boxShadow: 5 }}>
       <CardContent sx={{ p: 4 }}>
         <Typography variant="h4" align="center" gutterBottom>
-          Connexion
+          {t('login.title')}
         </Typography>
         
         <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 4 }}>
-          Accédez à votre compte FineTuner
+          {t('login.subtitle')}
         </Typography>
 
         {errorMessage && (
@@ -92,12 +94,12 @@ const LoginForm = () => {
           startIcon={<GoogleIcon />}
           onClick={() => window.location.href = 'https://api.finetuner.io/api/auth/google/login'}
         >
-          Continuer avec Google
+          {t('login.googleCta')}
         </Button>
 
         <Divider sx={{ my: 3 }}>
           <Typography variant="body2" color="text.secondary">
-            OU
+            {t('common.orDivider')}
           </Typography>
         </Divider>
 
@@ -105,7 +107,7 @@ const LoginForm = () => {
           <Stack spacing={3}>
             <TextField
               fullWidth
-              label="Adresse email"
+              label={t('login.emailLabel')}
               name="email"
               type="email"
               value={formik.values.email}
@@ -117,7 +119,7 @@ const LoginForm = () => {
 
             <TextField
               fullWidth
-              label="Mot de passe"
+              label={t('login.passwordLabel')}
               name="password"
               type={showPassword ? 'text' : 'password'}
               value={formik.values.password}
@@ -129,6 +131,7 @@ const LoginForm = () => {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
+                      aria-label={t('login.togglePasswordVisibility')}
                       onClick={handleClickShowPassword}
                       edge="end"
                     >
@@ -157,7 +160,7 @@ const LoginForm = () => {
                   color="primary"
                 />
               }
-              label="Se souvenir de moi"
+              label={t('login.rememberMe')}
             />
             <Link
               href="#"
@@ -166,7 +169,7 @@ const LoginForm = () => {
               underline="hover"
               sx={{ cursor: 'pointer' }}
             >
-              Mot de passe oublié?
+              {t('login.forgotPassword')}
             </Link>
           </Box>
 
@@ -178,18 +181,18 @@ const LoginForm = () => {
             loading={formik.isSubmitting}
             sx={{ mt: 2, mb: 3, py: 1.5 }}
           >
-            Se connecter
+            {t('login.submitButton')}
           </LoadingButton>
 
           <Typography variant="body2" align="center">
-            Vous n'avez pas de compte?{' '}
+            {t('login.noAccount')}{' '}
             <Link
               variant="subtitle2"
               component="span"
               onClick={() => navigate('/register')}
               sx={{ cursor: 'pointer' }}
             >
-              Créer un compte
+              {t('login.createAccountLink')}
             </Link>
           </Typography>
         </form>

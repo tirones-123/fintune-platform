@@ -24,10 +24,12 @@ import * as Yup from 'yup';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import GoogleIcon from '@mui/icons-material/Google';
+import { useTranslation, Trans } from 'react-i18next';
 
 const RegisterForm = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -41,27 +43,27 @@ const RegisterForm = () => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .required('Le nom est requis'),
+        .required(t('register.validation.nameRequired')),
       email: Yup.string()
-        .email('Adresse email invalide')
-        .required('L\'email est requis'),
+        .email(t('register.validation.invalidEmail'))
+        .required(t('register.validation.emailRequired')),
       password: Yup.string()
-        .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
-        .required('Le mot de passe est requis'),
+        .min(8, t('register.validation.passwordMinLength'))
+        .required(t('register.validation.passwordRequired')),
       terms: Yup.boolean()
-        .oneOf([true], 'Vous devez accepter les conditions d\'utilisation')
-        .required('Vous devez accepter les conditions d\'utilisation'),
+        .oneOf([true], t('register.validation.termsRequired'))
+        .required(t('register.validation.termsRequired')),
     }),
     onSubmit: async (values, { setSubmitting, resetForm }) => {
       try {
         setErrorMessage('');
         await register(values.email, values.password, values.name);
-        setSuccessMessage('Compte créé avec succès ! Redirection vers l\'onboarding...');
+        setSuccessMessage(t('register.successMessage'));
         resetForm();
         // La redirection est gérée par la fonction register dans AuthContext
       } catch (error) {
         console.error('Register error:', error);
-        setErrorMessage(error.message || 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.');
+        setErrorMessage(t('register.error.generic', 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.'));
       } finally {
         setSubmitting(false);
       }
@@ -76,11 +78,11 @@ const RegisterForm = () => {
     <Card sx={{ maxWidth: 480, mx: 'auto', boxShadow: 5 }}>
       <CardContent sx={{ p: 4 }}>
         <Typography variant="h4" align="center" gutterBottom>
-          Créer un compte
+          {t('register.title')}
         </Typography>
         
         <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 4 }}>
-          Rejoignez FineTuner et commencez à créer vos datasets
+          {t('register.subtitle')}
         </Typography>
 
         {errorMessage && (
@@ -109,12 +111,12 @@ const RegisterForm = () => {
           startIcon={<GoogleIcon />}
           onClick={() => window.location.href = 'https://api.finetuner.io/api/auth/google/login'}
         >
-          S'inscrire avec Google
+          {t('register.googleCta')}
         </Button>
 
         <Divider sx={{ my: 3 }}>
           <Typography variant="body2" color="text.secondary">
-            OU
+            {t('common.orDivider')}
           </Typography>
         </Divider>
 
@@ -122,7 +124,7 @@ const RegisterForm = () => {
           <Stack spacing={3}>
             <TextField
               fullWidth
-              label="Nom complet"
+              label={t('register.nameLabel')}
               name="name"
               value={formik.values.name}
               onChange={formik.handleChange}
@@ -133,7 +135,7 @@ const RegisterForm = () => {
 
             <TextField
               fullWidth
-              label="Adresse email"
+              label={t('register.emailLabel')}
               name="email"
               type="email"
               value={formik.values.email}
@@ -145,7 +147,7 @@ const RegisterForm = () => {
 
             <TextField
               fullWidth
-              label="Mot de passe"
+              label={t('register.passwordLabel')}
               name="password"
               type={showPassword ? 'text' : 'password'}
               value={formik.values.password}
@@ -157,6 +159,7 @@ const RegisterForm = () => {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
+                      aria-label={t('register.togglePasswordVisibility')}
                       onClick={handleClickShowPassword}
                       edge="end"
                     >
@@ -178,14 +181,9 @@ const RegisterForm = () => {
               }
               label={
                 <Typography variant="body2">
-                  J'accepte les{' '}
-                  <Link component={RouterLink} to="/terms-of-service" underline="hover">
-                    Conditions d{"'"}utilisation
-                  </Link>{' '}
-                  et la{' '}
-                  <Link component={RouterLink} to="/privacy-policy" underline="hover">
-                    Politique de confidentialité
-                  </Link>
+                  <Trans i18nKey="register.termsAcceptance">
+                    J'accepte les <Link component={RouterLink} to="/terms-of-service" underline="hover">Conditions d{''}utilisation</Link> et la <Link component={RouterLink} to="/privacy-policy" underline="hover">Politique de confidentialité</Link>
+                  </Trans>
                 </Typography>
               }
             />
@@ -204,18 +202,18 @@ const RegisterForm = () => {
             loading={formik.isSubmitting}
             sx={{ mt: 3, mb: 3, py: 1.5 }}
           >
-            Créer mon compte
+            {t('register.submitButton')}
           </LoadingButton>
 
           <Typography variant="body2" align="center">
-            Vous avez déjà un compte?{' '}
+            {t('register.alreadyAccount')}{' '}
             <Link
               variant="subtitle2"
               component="span"
               onClick={() => navigate('/login')}
               sx={{ cursor: 'pointer' }}
             >
-              Se connecter
+              {t('register.loginLink')}
             </Link>
           </Typography>
         </form>

@@ -1,0 +1,52 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "orDivider": "OR"
+  },
+  "login": {
+    "title": "Login",
+    "subtitle": "Access your FineTuner account",
+    "googleCta": "Continue with Google",
+    "emailLabel": "Email address",
+    "passwordLabel": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "submitButton": "Login",
+    "noAccount": "Don't have an account?",
+    "createAccountLink": "Create account",
+    "togglePasswordVisibility": "Toggle password visibility",
+    "validation": {
+      "invalidEmail": "Invalid email address",
+      "emailRequired": "Email is required",
+      "passwordRequired": "Password is required"
+    },
+    "error": {
+      "invalidCredentials": "Incorrect credentials. Please try again."
+    }
+  },
+  "register": {
+    "title": "Create an account",
+    "subtitle": "Join FineTuner and start creating your datasets",
+    "googleCta": "Sign up with Google",
+    "nameLabel": "Full name",
+    "emailLabel": "Email address",
+    "passwordLabel": "Password",
+    "togglePasswordVisibility": "Toggle password visibility",
+    "termsAcceptance": "I accept the <0>Terms of Service</0> and the <1>Privacy Policy</1>",
+    "submitButton": "Create my account",
+    "alreadyAccount": "Already have an account?",
+    "loginLink": "Login",
+    "successMessage": "Account created successfully! Redirecting to onboarding...",
+    "validation": {
+      "nameRequired": "Name is required",
+      "invalidEmail": "Invalid email address",
+      "emailRequired": "Email is required",
+      "passwordMinLength": "Password must be at least 8 characters long",
+      "passwordRequired": "Password is required",
+      "termsRequired": "You must accept the terms and conditions"
+    },
+    "error": {
+      "generic": "An error occurred during registration. Please try again."
+    }
+  }
+} 

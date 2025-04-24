@@ -1,0 +1,52 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "orDivider": "OU"
+  },
+  "login": {
+    "title": "Connexion",
+    "subtitle": "Accédez à votre compte FineTuner",
+    "googleCta": "Continuer avec Google",
+    "emailLabel": "Adresse email",
+    "passwordLabel": "Mot de passe",
+    "rememberMe": "Se souvenir de moi",
+    "forgotPassword": "Mot de passe oublié ?",
+    "submitButton": "Se connecter",
+    "noAccount": "Vous n'avez pas de compte ?",
+    "createAccountLink": "Créer un compte",
+    "togglePasswordVisibility": "Afficher/Masquer le mot de passe",
+    "validation": {
+      "invalidEmail": "Adresse email invalide",
+      "emailRequired": "L'email est requis",
+      "passwordRequired": "Le mot de passe est requis"
+    },
+    "error": {
+      "invalidCredentials": "Identifiants incorrects. Veuillez réessayer."
+    }
+  },
+  "register": {
+    "title": "Créer un compte",
+    "subtitle": "Rejoignez FineTuner et commencez à créer vos datasets",
+    "googleCta": "S'inscrire avec Google",
+    "nameLabel": "Nom complet",
+    "emailLabel": "Adresse email",
+    "passwordLabel": "Mot de passe",
+    "togglePasswordVisibility": "Afficher/Masquer le mot de passe",
+    "termsAcceptance": "J'accepte les <0>Conditions d{\\'}utilisation</0> et la <1>Politique de confidentialité</1>",
+    "submitButton": "Créer mon compte",
+    "alreadyAccount": "Vous avez déjà un compte ?",
+    "loginLink": "Se connecter",
+    "successMessage": "Compte créé avec succès ! Redirection vers l'onboarding...",
+    "validation": {
+      "nameRequired": "Le nom est requis",
+      "invalidEmail": "Adresse email invalide",
+      "emailRequired": "L'email est requis",
+      "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
+      "passwordRequired": "Le mot de passe est requis",
+      "termsRequired": "Vous devez accepter les conditions d'utilisation"
+    },
+    "error": {
+      "generic": "Une erreur est survenue lors de l'inscription. Veuillez réessayer."
+    }
+  }
+} 

@@ -980,7 +980,7 @@ const ProcessSection = () => {
              animate={controls}
           variants={{ visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.8 } } }}
           style={{ marginTop: theme.spacing(6), textAlign: 'center' }}
-        >
+           >
            <Button
               component={RouterLink}
               to="/register"
@@ -993,8 +993,8 @@ const ProcessSection = () => {
                 px: { xs: 3, sm: 5 },
                 fontSize: { xs: '1rem', md: '1.2rem' },
                 borderRadius: '50px',
-              }}
-            >
+                   }}
+                 >
               Lancez votre premier projet
             </Button>
                </motion.div>
@@ -1645,11 +1645,11 @@ const DeploymentSection = () => {
               </Box>
                        </motion.div>
                     </Grid>
-                ))}
+            ))}
               </Grid>
             </motion.div>
           </Grid>
-          
+
           {/* Lignes de connexion - passage de containerRef */}
           {platformRefs.map((platformRef, index) => (
                 <NeonConnectionLine
