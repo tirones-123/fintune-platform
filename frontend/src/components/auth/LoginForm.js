@@ -69,7 +69,7 @@ const LoginForm = () => {
         </Typography>
         
         <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 4 }}>
-          Accédez à votre compte FinTune
+          Accédez à votre compte FineTuner
         </Typography>
 
         {errorMessage && (

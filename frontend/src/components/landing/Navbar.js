@@ -113,7 +113,7 @@ const Navbar = () => {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          FinTune
+          FineTuner
         </Typography>
       </Box>
       <List>
@@ -218,7 +218,7 @@ const Navbar = () => {
                     WebkitTextFillColor: 'transparent',
                   }}
                 >
-                  FinTune
+                  FineTuner
                 </Typography>
               </motion.div>
 

@@ -15,14 +15,14 @@ const TermsOfServicePage = () => {
 
       <h2>1. Acceptance of Terms</h2>
       <p>
-        By accessing or using the FinTuner platform (the "Service"), provided by Maxime Marsal Consulting
+        By accessing or using the FineTuner platform (the "Service"), provided by Maxime Marsal Consulting
         ("we," "us," or "our"), located at 48 Avenue Verdier, 92120 Montrouge, France, you agree to be bound by
         these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use the Service.
       </p>
 
       <h2>2. Service Description</h2>
       <p>
-        FinTuner is a SaaS platform that allows users to create custom AI assistants by fine-tuning language
+        FineTuner is a SaaS platform that allows users to create custom AI assistants by fine-tuning language
         models using their own data. Key features include project management, content import (PDF, text, YouTube,
         websites), dataset creation, model fine-tuning, and a chat interface for testing models.
       </p>

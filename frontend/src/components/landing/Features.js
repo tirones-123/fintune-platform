@@ -48,7 +48,7 @@ const Features = () => {
             Fonctionnalités principales
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 800, mx: 'auto' }}>
-            Découvrez comment FinTune simplifie chaque étape du processus de fine-tuning
+            Découvrez comment FineTuner simplifie chaque étape du processus de fine-tuning
           </Typography>
         </Box>
 

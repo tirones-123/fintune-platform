@@ -22,15 +22,15 @@ function HelpPage() {
     <PageTransition>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
-          <HelpOutlineIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Centre d'Aide FinTune
+          <HelpOutlineIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Centre d'Aide FineTuner
         </Typography>
 
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2, mb: 4 }}>
           <Typography variant="h5" gutterBottom>
-            Comment fonctionne FinTune Platform ?
+            Comment fonctionne FineTuner Platform ?
           </Typography>
           <Typography paragraph>
-            FinTune vous permet de créer des assistants IA personnalisés en fine-tunant des modèles de langage sur vos propres données. Le processus général est le suivant :
+            FineTuner vous permet de créer des assistants IA personnalisés en fine-tunant des modèles de langage sur vos propres données. Le processus général est le suivant :
           </Typography>
           <List dense>
             <ListItem>
@@ -73,7 +73,7 @@ function HelpPage() {
                   border: 'none'
                 }}
                 src="https://www.youtube.com/embed/VIDEO_ID_PLACEHOLDER"
-                title="Tutoriel FinTune Platform"
+                title="Tutoriel FineTuner Platform"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               ></iframe>
@@ -95,10 +95,10 @@ function HelpPage() {
 
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              <ApiIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Via l'API FinTune (Recommandé)
+              <ApiIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Via l'API FineTuner (Recommandé)
             </Typography>
             <Typography paragraph>
-              Nous fournirons bientôt un endpoint API dédié pour interagir facilement avec vos modèles fine-tunés hébergés sur FinTune. Cela simplifiera l'intégration et la gestion.
+              Nous fournirons bientôt un endpoint API dédié pour interagir facilement avec vos modèles fine-tunés hébergés sur FineTuner. Cela simplifiera l'intégration et la gestion.
             </Typography>
             <Typography variant="body2" color="text.secondary">
               *(Cette fonctionnalité est en cours de développement)*

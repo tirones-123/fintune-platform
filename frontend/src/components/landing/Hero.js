@@ -114,7 +114,7 @@ const Hero = () => {
                   maxWidth: '90%'
                 }}
               >
-                FinTune simplifie la création de datasets personnalisés et le fine-tuning des modèles d'IA. Importez votre contenu, générez des données d'entraînement et déployez votre modèle en quelques minutes.
+                FineTuner simplifie la création de datasets personnalisés et le fine-tuning des modèles d'IA. Importez votre contenu, générez des données d'entraînement et déployez votre modèle en quelques minutes.
               </Typography>
               
               <Box sx={{ mt: 5, display: 'flex', gap: 3, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
@@ -215,7 +215,7 @@ const Hero = () => {
                 <Box
                   component="img"
                   src="/static/images/hero-illustration.svg"
-                  alt="FinTune Platform Illustration"
+                  alt="FineTuner Platform Illustration"
                   sx={{
                     width: '100%',
                     maxWidth: 550,

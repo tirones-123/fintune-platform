@@ -42,7 +42,7 @@ const LoadingScreen = ({ message = 'Chargement...' }) => {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            FinTune
+            FineTune
           </Typography>
           
           <CircularProgress 

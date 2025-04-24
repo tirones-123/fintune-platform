@@ -24,7 +24,7 @@ const LoginPage = () => {
       >
         <Link component={RouterLink} to="/" underline="none">
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-            FinTune
+            FineTuner
           </Typography>
         </Link>
         <Typography variant="body2">
@@ -49,7 +49,7 @@ const LoginPage = () => {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          © {new Date().getFullYear()} FinTune. Tous droits réservés.
+          © {new Date().getFullYear()} FineTuner. Tous droits réservés.
         </Typography>
       </Box>
     </Box>

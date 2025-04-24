@@ -14,9 +14,9 @@ const PrivacyPolicyPage = () => {
       <p>Last Updated: {lastUpdatedDate}</p>
 
       <p>
-        Welcome to FinTuner! This Privacy Policy explains how Maxime Marsal Consulting ("we," "us," or "our")
+        Welcome to FineTuner! This Privacy Policy explains how Maxime Marsal Consulting ("we," "us," or "our")
         collects, uses, discloses, and protects your personal information when you use our SaaS platform
-        FinTuner (the "Service"). We are committed to protecting your privacy and ensuring the security of your
+        FineTuner (the "Service"). We are committed to protecting your privacy and ensuring the security of your
         personal data.
       </p>
 
@@ -113,7 +113,7 @@ const PrivacyPolicyPage = () => {
 
       <h2>9. Children's Privacy</h2>
       <p>
-        FinTuner is not intended for use by individuals under the age of 18 (or the age of legal majority in your jurisdiction). We do not knowingly collect personal information from children. If we become aware that we have collected personal data from a child without parental consent, we will take steps to delete that information.
+        FineTuner is not intended for use by individuals under the age of 18 (or the age of legal majority in your jurisdiction). We do not knowingly collect personal information from children. If we become aware that we have collected personal data from a child without parental consent, we will take steps to delete that information.
       </p>
 
       <h2>10. Changes to This Privacy Policy</h2>

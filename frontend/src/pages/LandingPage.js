@@ -49,6 +49,9 @@ import ContactsIcon from '@mui/icons-material/Contacts';
 import SendIcon from '@mui/icons-material/Send';
 import HomeIcon from '@mui/icons-material/Home';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CalculateIcon from '@mui/icons-material/Calculate';
 
 // Animation variants
 const containerVariants = {
@@ -1668,6 +1671,29 @@ const DeploymentSection = () => {
     platformRef15, platformRef16, platformRef17
   ];
 
+  // Calcul des positions circulaires
+  const radiusX = 38; // Rayon horizontal en %
+  const radiusY = 35; // Rayon vertical en %
+  const centerX = 50; // Centre X en %
+  const centerY = 50; // Centre Y en %
+  const totalPlatforms = targetPlatforms.length;
+
+  const calculatedPlatforms = targetPlatforms.map((platform, index) => {
+    const angle = (index / totalPlatforms) * 2 * Math.PI + Math.PI / 4; // + PI/4 pour décaler le départ
+    const left = centerX + radiusX * Math.cos(angle);
+    const top = centerY + radiusY * Math.sin(angle);
+    const z = platform.initialPos.z || 0; // Conserver le z existant ou 0 par défaut
+
+    return {
+      ...platform,
+      calculatedPos: { 
+        top: `${top}%`, 
+        left: `${left}%`, 
+        z: z 
+      },
+    };
+  });
+
   useEffect(() => {
     if (inView) controls.start('visible');
   }, [controls, inView]);
@@ -1716,33 +1742,6 @@ const DeploymentSection = () => {
         background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)`, 
       }}
     >
-      {/* Effet de "warp speed" ou tunnel lumineux */}
-      <Box sx={{ position: 'absolute', inset: 0, zIndex: 0, perspective: '500px' }}>
-        {[...Array(50)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0 }}
-            animate={controls}
-            variants={{ visible: { opacity: [0, 1, 0] } }}
-            transition={{
-              duration: Math.random() * 2 + 1,
-              repeat: Infinity,
-              delay: Math.random() * 2 + 0.5, // Délais variés
-            }}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              width: '2px',
-              height: '50%', // Lignes partant du centre
-              background: `linear-gradient(to top, transparent, ${i % 3 === 0 ? '#00d4ff' : i % 3 === 1 ? '#bf00ff' : '#ffffff'}, transparent)`,
-              transformOrigin: 'top center',
-              transform: `translateX(-50%) translateY(-50%) rotate(${i * (360 / 50)}deg) translateZ(${Math.random() * -200 - 50}px) scaleY(2)`,
-            }}
-          />
-        ))}
-      </Box>
-
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
         {/* Titres */}
         <Box sx={{ mb: 12, textAlign: 'center' }}>
@@ -1828,13 +1827,13 @@ const DeploymentSection = () => {
 
           {/* Plateformes cibles flottantes */}
           <Box sx={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 2 }}>
-            {targetPlatforms.map((platform, index) => (
+            {calculatedPlatforms.map((platform, index) => (
               <Box key={index} sx={{ display: 'inline-block', px: { xs: 2, md: 4 } }}>
                 <FloatingIcon
                   icon={platform.icon}
                   label={platform.label}
                   color={platform.color}
-                  initialPos={platform.initialPos}
+                  initialPos={platform.calculatedPos} // Utiliser les positions calculées
                   delay={platform.delay}
                   isIALogo={false}
                   ref={platformRefs[index]}
@@ -1845,7 +1844,7 @@ const DeploymentSection = () => {
           </Box>
 
           {/* Lignes de connexion animées depuis le centre */}
-          {targetPlatforms.map((platform, index) => {
+          {calculatedPlatforms.map((platform, index) => {
             if (index < platformRefs.length) {
               return (
                 <NeonConnectionLine
@@ -1862,7 +1861,7 @@ const DeploymentSection = () => {
           })}
 
           {/* Légende des catégories */}
-          <Box sx={{ position: 'absolute', bottom: 10, width: '100%', textAlign: 'center', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
+          <Box sx={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', width: '90%', textAlign: 'center', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1.5 }}>
             {['API', 'Web', 'Automatisation', 'Appareils', 'Cloud', 'Réseaux Sociaux', 'Messageries', 'CRM'].map((category, index) => (
               <Chip 
                 key={category}
@@ -1885,6 +1884,7 @@ const DeploymentSection = () => {
 };
 
 const FAQSection = () => {
+  const theme = useTheme();
   const faqs = [
     {
       question: "Qu'est-ce que FineTuner ?",
@@ -1918,30 +1918,61 @@ const FAQSection = () => {
   return (
     <Box sx={{
       py: { xs: 10, md: 16 },
-      background: 'linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%)',
-      borderTop: '1px solid',
+      background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+      borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
       borderColor: 'divider',
     }}>
       <Container maxWidth="md">
         <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: 'primary.main' }}>
+          <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: theme.palette.primary.main }}>
             FAQ
           </Typography>
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" color={theme.palette.text.secondary}>
             Questions fréquentes sur FineTuner et l'IA personnalisée
           </Typography>
         </Box>
         {faqs.map((faq, idx) => (
-          <Accordion key={idx} sx={{ mb: 2, borderRadius: 2, boxShadow: 1, '&:before': { display: 'none' } }}>
+          <Accordion 
+            key={idx} 
+            sx={{
+              mb: 2, 
+              borderRadius: 3, // Consistent with theme shape
+              boxShadow: 'none',
+              '&:before': { display: 'none' },
+              background: alpha(theme.palette.background.paper, 0.6),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                borderColor: alpha(theme.palette.primary.main, 0.3),
+                background: alpha(theme.palette.background.paper, 0.7),
+              },
+            }}
+          >
             <AccordionSummary
               expandIcon={<ExpandMoreIcon />}
               aria-controls={`faq-content-${idx}`}
               id={`faq-header-${idx}`}
-              sx={{ fontWeight: 700, fontSize: '1.1rem', color: 'primary.main', background: '#f4f7fa' }}
+              sx={{
+                fontWeight: 700, 
+                fontSize: '1.1rem', 
+                color: theme.palette.text.primary,
+                // Remove background for glassmorphism
+                py: 1, // Add some padding
+              }}
             >
               {faq.question}
             </AccordionSummary>
-            <AccordionDetails sx={{ background: '#fff', color: 'text.secondary', fontSize: '1rem' }}>
+            <AccordionDetails 
+              sx={{
+                // Remove background, inherit from Accordion
+                color: theme.palette.text.secondary, 
+                fontSize: '1rem',
+                pt: 0, // Adjust padding
+                pb: 2,
+                px: 2,
+              }}
+            >
               {faq.answer}
             </AccordionDetails>
           </Accordion>
@@ -1999,67 +2030,109 @@ const LandingPage = () => {
         {/* Section Tarification Pay-as-you-go */}
         <Box sx={{
           py: { xs: 10, md: 16 },
-          background: 'linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%)',
-          borderTop: '1px solid',
+          background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+          borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
           borderColor: 'divider',
         }}>
           <Container maxWidth="md">
             <Box sx={{ textAlign: 'center', mb: 6 }}>
-              <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: 'primary.main' }}>
+              <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: theme.palette.primary.main }}>
                 Tarification Pay-as-you-go
               </Typography>
-              <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                Les 10 000 premiers caractères sont <b>gratuits</b> chaque mois. Ensuite, chaque caractère supplémentaire coûte <b>0,000365€</b>.
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Payez uniquement pour ce que vous consommez. Aucun engagement, aucun abonnement obligatoire.
+              <Typography variant="h6" color={theme.palette.text.secondary} sx={{ mb: 2 }}>
+                Flexible et transparente. Payez uniquement pour ce que vous consommez.
               </Typography>
             </Box>
-            <Grid container spacing={4} justifyContent="center">
-              {[
-                { label: '20 000 caractères', chars: 20000 },
-                { label: '50 000 caractères', chars: 50000 },
-                { label: '100 000 caractères', chars: 100000 },
-              ].map((ex, idx) => {
-                const free = 10000;
-                const paid = Math.max(0, ex.chars - free);
-                const cost = paid * 0.000365;
-                return (
-                  <Grid item xs={12} sm={4} key={ex.label}>
-                    <Box sx={{
-                      p: 4,
-                      borderRadius: 4,
-                      boxShadow: 3,
-                      background: '#fff',
-                      textAlign: 'center',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                    }}>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-                        {ex.label}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {ex.chars.toLocaleString()} caractères traités ce mois
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main', mb: 1 }}>
-                        {cost === 0 ? 'Gratuit' : `${cost.toFixed(2)} €`}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {cost === 0 ? "Inclus dans l'offre gratuite" : `10 000 gratuits, puis ${paid.toLocaleString()} x 0,000365€`}
+            
+            {/* Grande carte de tarification */}
+            <Box
+              sx={{
+                p: { xs: 3, md: 5 },
+                borderRadius: 4, // Consistent with theme shape
+                background: alpha(theme.palette.background.paper, 0.7),
+                backdropFilter: 'blur(12px)',
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.1)}`,
+                textAlign: 'center',
+              }}
+            >
+              <Grid container spacing={4} alignItems="center">
+                {/* Colonne Gauche: Explication */}
+                <Grid item xs={12} md={7} sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+                  <Typography variant="h4" sx={{ fontWeight: 700, mb: 3, color: theme.palette.primary.dark }}>
+                    Comment ça marche ?
+                  </Typography>
+                  <Stack spacing={2.5} sx={{ mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.dark }}>
+                        <CheckCircleOutlineIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="body1" color={theme.palette.text.secondary}>
+                        Les <b>10 000 premiers caractères</b> traités chaque mois sont <b>GRATUITS</b>.
                       </Typography>
                     </Box>
-                  </Grid>
-                );
-              })}
-            </Grid>
-            <Box sx={{ textAlign: 'center', mt: 6 }}>
-              <Typography variant="body2" color="text.secondary">
-                Exemple : 50 000 caractères = 10 000 gratuits + 40 000 x 0,000365€ = <b>14,60€</b>
-              </Typography>
-              <Typography variant="caption" color="text.disabled">
-                Les prix sont HT. Facturation mensuelle, sans engagement.
-              </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                       <Avatar sx={{ bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.dark }}>
+                         <AttachMoneyIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="body1" color={theme.palette.text.secondary}>
+                        Au-delà, chaque caractère supplémentaire coûte seulement <b>0,000365 € HT</b>.
+                      </Typography>
+                    </Box>
+                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                       <Avatar sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), color: theme.palette.warning.dark }}>
+                         <CalculateIcon fontSize="small" />
+                       </Avatar>
+                      <Typography variant="body1" color={theme.palette.text.secondary}>
+                        Exemple : <b>50 000</b> caractères = 10k gratuits + 40k * 0,000365€ = <b>14,60 € HT</b>.
+                      </Typography>
+                    </Box>
+                  </Stack>
+                  <Typography variant="body2" color={theme.palette.text.disabled} sx={{ mb: 3 }}>
+                    Facturation mensuelle, sans engagement. Annulez à tout moment.
+                  </Typography>
+                </Grid> {/* Correction: Fermeture de la Grid gauche */}
+                
+                {/* Colonne Droite: Prix */}
+                <Grid item xs={12} md={5}>
+                  <Box sx={{ 
+                    p: 3,
+                    borderRadius: 3,
+                    background: alpha(theme.palette.primary.main, 0.05),
+                    border: `1px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
+                  }}>
+                    <Typography variant="overline" color={theme.palette.text.secondary} display="block">
+                      Prix par caractère
+                    </Typography>
+                    <Typography variant="h2" sx={{ fontWeight: 800, color: theme.palette.primary.main, my: 1, letterSpacing: -1 }}>
+                      0,000365<Box component="span" sx={{ fontSize: '1.5rem' }}> €</Box>
+                    </Typography>
+                     <Typography variant="caption" color={theme.palette.text.secondary} display="block">
+                      (Après les 10 000 gratuits / mois)
+                    </Typography>
+                  </Box>
+                  <Button
+                      component={RouterLink}
+                      to="/register"
+                      variant="contained"
+                      size="large"
+                      fullWidth
+                      startIcon={<RocketLaunchIcon />}
+                      sx={{
+                        mt: 3,
+                        py: 1.5,
+                      }}
+                    >
+                      Commencer Gratuitement
+                    </Button>
+                </Grid> {/* Correction: Fermeture de la Grid droite */}
+              </Grid> {/* Correction: Fermeture de la Grid container */}
             </Box>
+  
+            {/* Supprimer l'ancienne grid et le texte d'exemple */}
+            {/* <Grid container spacing={4} justifyContent="center"> ... </Grid> */}
+            {/* <Box sx={{ textAlign: 'center', mt: 6 }}> ... </Box> */}
+            
           </Container>
         </Box>
         {/* Section FAQ */}

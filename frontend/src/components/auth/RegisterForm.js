@@ -80,7 +80,7 @@ const RegisterForm = () => {
         </Typography>
         
         <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 4 }}>
-          Rejoignez FinTune et commencez à créer vos datasets
+          Rejoignez FineTuner et commencez à créer vos datasets
         </Typography>
 
         {errorMessage && (

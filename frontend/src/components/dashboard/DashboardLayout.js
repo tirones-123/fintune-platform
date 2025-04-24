@@ -94,7 +94,7 @@ const DashboardLayout = () => {
         >
           <CelebrationIcon color="primary" />
           <Typography variant="h6" component="span" fontWeight={700}>
-            Bienvenue sur FinTune Platform&nbsp;!
+            Bienvenue sur FineTuner Platform&nbsp;!
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>

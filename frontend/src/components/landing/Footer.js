@@ -76,7 +76,7 @@ const Footer = () => {
       links: [
         { name: 'Aide', path: '/help' },
         { name: 'Playground', path: '/playground' },
-        { name: 'Documentation API', path: 'https://fintune-api-docs-url.com', external: true },
+        { name: 'Documentation API', path: 'https://finetuner.io/docs', external: true },
       ],
     },
     {
@@ -97,10 +97,10 @@ const Footer = () => {
 
   // Définition des couleurs pour les icônes de réseaux sociaux avec effet néon
   const socialIcons = [
-    { Icon: TwitterIcon, href: "https://twitter.com/fintune", color: "#1DA1F2", label: "Twitter" },
-    { Icon: LinkedInIcon, href: "https://linkedin.com/company/fintune", color: "#0A66C2", label: "LinkedIn" },
-    { Icon: GitHubIcon, href: "https://github.com/fintune", color: theme.palette.mode === 'dark' ? '#ffffff' : '#24292e', label: "GitHub" },
-    { Icon: FacebookIcon, href: "https://facebook.com/fintune", color: "#1877F2", label: "Facebook" },
+    { Icon: TwitterIcon, href: "https://twitter.com/finetuner", color: "#1DA1F2", label: "Twitter" },
+    { Icon: LinkedInIcon, href: "https://linkedin.com/company/finetunre", color: "#0A66C2", label: "LinkedIn" },
+    { Icon: GitHubIcon, href: "https://github.com/finetuner", color: theme.palette.mode === 'dark' ? '#ffffff' : '#24292e', label: "GitHub" },
+    { Icon: FacebookIcon, href: "https://facebook.com/finetuner", color: "#1877F2", label: "Facebook" },
   ];
 
   return (
@@ -324,7 +324,7 @@ const Footer = () => {
                     fontFamily: "'Orbitron', sans-serif",
                   }}
                 >
-                  FinTune
+                  FineTuner
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 320, lineHeight: 1.7 }}>
                   Transformez vos contenus en IA fine-tunée en quelques clics. La technologie d'IA la plus simple et la plus puissante pour créer votre assistant sur-mesure.
@@ -500,7 +500,7 @@ const Footer = () => {
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              © {currentYear} FinTune. Tous droits réservés.
+              © {currentYear} FineTuner. Tous droits réservés.
             </Typography>
             <Box
               sx={{
