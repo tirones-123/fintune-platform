@@ -92,7 +92,7 @@ async def generate_system_content(
         5. Enterprise Chatbot (Internal Knowledge)
 
         Assistant description:
-        """{request.purpose}"""
+        \"\"\"{request.purpose}\"\"\"
         """
         
         # Obtenir la catégorie (avec await)
