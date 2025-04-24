@@ -149,7 +149,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
                       selected={isSelected}
                       sx={{
                         borderRadius: 3,
-                        py: 1.2,
+                        py: { xs: 2, sm: 1.2 },
                         transition: 'all 0.3s ease',
                         '&.Mui-selected': {
                           backgroundColor: (theme) => 

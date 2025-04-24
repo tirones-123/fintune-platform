@@ -230,7 +230,13 @@ const Navbar = () => {
                     aria-label="open drawer"
                     edge="end"
                     onClick={handleDrawerToggle}
-                    sx={{ ml: 1 }}
+                    sx={{ 
+                      ml: 1,
+                      p: { xs: 1.5, sm: 1 },
+                      '& .MuiSvgIcon-root': { 
+                        fontSize: { xs: 28, sm: 24 }
+                      }
+                    }}
                   >
                     <MenuIcon />
                   </IconButton>

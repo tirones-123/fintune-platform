@@ -181,7 +181,17 @@ const Header = ({ onDrawerToggle }) => {
 
           {/* User Menu */}
           <Tooltip title="Options du compte">
-            <IconButton onClick={handleOpenUserMenu} sx={{ ml: 1 }}>
+            <IconButton 
+              onClick={handleOpenUserMenu} 
+              sx={{
+                ml: 1,
+                p: { xs: 1, sm: 0.75 },
+                '& .MuiAvatar-root': {
+                  width: { xs: 42, sm: 38 },
+                  height: { xs: 42, sm: 38 },
+                }
+              }}
+            >
               <Avatar
                 alt={user?.displayName || 'User'}
                 src={user?.photoURL}

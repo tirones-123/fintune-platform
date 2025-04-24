@@ -537,8 +537,8 @@ const FloatingIcon = React.forwardRef(({ icon: Icon, label, color, initialPos, d
     >
       <Box
         sx={{
-          width: isIALogo ? 80 : 60,
-          height: isIALogo ? 80 : 60,
+          width: { xs: 70, sm: isIALogo ? 80 : 60 }, // Plus grand sur mobile
+          height: { xs: 70, sm: isIALogo ? 80 : 60 }, // Plus grand sur mobile
           borderRadius: isIALogo ? '20px' : '50%',
           display: 'flex',
           alignItems: 'center',
@@ -551,7 +551,7 @@ const FloatingIcon = React.forwardRef(({ icon: Icon, label, color, initialPos, d
           transition: 'all 0.3s ease',
         }}
       >
-        <Icon sx={{ fontSize: isIALogo ? 45 : 30, color: color }} />
+        <Icon sx={{ fontSize: { xs: isIALogo ? 50 : 35, sm: isIALogo ? 45 : 30 }, color: color }} />
       </Box>
       <Typography
         variant="caption"
