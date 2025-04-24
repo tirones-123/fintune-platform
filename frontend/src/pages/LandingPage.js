@@ -323,7 +323,7 @@ const Hero = () => {
                     p: 3,
                   }}
                 >
-                  Transformez instantanément vos contenus PDF, YouTube et sites web en assistants IA ultra-performants type <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span> ou <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>. Aucune expertise requise.
+                  Transformez instantanément vos contenus PDF, YouTube et sites web en assistants IA ultra-performants type <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span> ou <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>. <br></br> Aucune expertise requise.
                 </Typography>
               </motion.div>
 
@@ -1362,6 +1362,7 @@ const FinalCTASection = () => {
       }}
     >
       {/* Effet de "warp speed" ou tunnel lumineux */}
+      {/*
       <Box sx={{ position: 'absolute', inset: 0, zIndex: 0, perspective: '500px' }}>
         {[...Array(50)].map((_, i) => (
           <motion.div
@@ -1387,6 +1388,7 @@ const FinalCTASection = () => {
           />
         ))}
       </Box>
+      */}
 
       <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
         <motion.div
