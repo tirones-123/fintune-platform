@@ -302,7 +302,7 @@ const Hero = () => {
                   Votre Contenu,
                   <br />
                   Votre IA.
-                  <Box component="span" sx={{ color: '#00d4ff' }}> Amplifiée.</Box>
+                  <Box component="span" sx={{ color: '#00d4ff' }}> </Box>
                 </Typography>
               </motion.div>
 
