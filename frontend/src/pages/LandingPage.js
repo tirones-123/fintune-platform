@@ -822,8 +822,7 @@ const ProcessSection = () => {
     <Box id="process-section"
       ref={ref}
       sx={{
--        py: { xs: 12, md: 20 },
-+        py: { xs: 8, md: 14 }, // Réduction du padding
+        py: { xs: 8, md: 14 }, // Réduction du padding
         position: "relative",
         overflow: "hidden",
         background: `linear-gradient(rgba(5, 2, 36, 0.98), rgba(5, 2, 36, 0.98)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M50 0 L100 50 L50 100 Z" fill="${alpha('#00d4ff', 0.02)}"/><circle cx="50" cy="50" r="10" fill="${alpha('#bf00ff', 0.03)}"/></svg>')`,
@@ -1200,8 +1199,7 @@ const ChatExamplesSection = () => {
     <Box
       ref={ref}
       sx={{
--        py: { xs: 12, md: 20 },
-+        py: { xs: 8, md: 14 }, // Réduction du padding
+        py: { xs: 8, md: 14 }, // Réduction du padding
         position: 'relative',
         overflow: 'hidden',
         background: `linear-gradient(rgba(10, 4, 60, 0.9), rgba(10, 4, 60, 0.99)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="30" fill="none" stroke="${alpha('#00d4ff', 0.05)}" stroke-width="1"/><circle cx="50" cy="50" r="45" fill="none" stroke="${alpha('#bf00ff', 0.05)}" stroke-width="1"/></svg>')`,
@@ -1303,8 +1301,7 @@ const FinalCTASection = () => {
     <Box
       ref={ref}
       sx={{
--        py: { xs: 14, md: 22 },
-+        py: { xs: 10, md: 16 }, // Réduction du padding
+        py: { xs: 10, md: 16 }, // Réduction du padding
         position: 'relative',
         overflow: 'hidden',
         background: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M0 0 H100 V100 H0 Z" fill="url(%23gradCTA)"/><defs><radialGradient id="gradCTA" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${encodeURIComponent(alpha('#0a043c', 1))}"/><stop offset="100%" stop-color="${encodeURIComponent(alpha('#03001e', 1))}"/></radialGradient></defs></svg>')`,
@@ -1483,9 +1480,9 @@ const DeploymentSection = () => {
   return (
     <Box
       ref={ref}
+      data-section-container="deployment"
       sx={{
--        py: { xs: 14, md: 22 },
-+        py: { xs: 10, md: 16 }, // Réduction du padding
+        py: { xs: 10, md: 16 }, // Padding déjà réduit
         position: 'relative',
         overflow: 'hidden',
         background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)`, 
@@ -1630,8 +1627,7 @@ const FAQSection = () => {
   return (
     <Box id="faq-section"
       sx={{
--        py: { xs: 10, md: 16 },
-+        py: { xs: 7, md: 11 }, // Réduction du padding
+        py: { xs: 7, md: 11 }, // Réduction du padding
         background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
         borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
         borderColor: 'divider',
@@ -1741,6 +1737,15 @@ const LandingPage = () => {
         <ProcessSection />
         <ChatExamplesSection />
         <DeploymentSection /> 
+        <Box id="pricing-section"
+          sx={{
+            py: { xs: 7, md: 11 }, // Réduction du padding - Correction ici aussi
+            background: `linear-gradient(180deg, ${alpha(theme.palette.background.default, 0.8)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+            // ...
+          }}
+        >
+          {/* ... Contenu Pricing ... */}
+        </Box>
         <FAQSection />
         <FinalCTASection />
         <Footer />
