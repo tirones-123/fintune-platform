@@ -1643,7 +1643,7 @@ const DeploymentSection = () => {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
   const centerRef = useRef(null);
   
-  // Création des refs en dehors des callbacks - correctement au niveau du composant
+  // Création des refs pour chaque plateforme
   const platformRef0 = useRef(null);
   const platformRef1 = useRef(null);
   const platformRef2 = useRef(null);
@@ -1671,18 +1671,50 @@ const DeploymentSection = () => {
     platformRef15, platformRef16, platformRef17
   ];
 
+  // Définir la liste des plateformes AVANT de calculer les positions
+  const targetPlatforms = [
+    // APIs & Web
+    { icon: ApiIcon, label: "API REST", color: '#ff9a8b', delay: 0.5, category: 'API' },
+    { icon: WebIcon, label: "Applications Web", color: '#a18cd1', delay: 0.7, category: 'Web' },
+    // Automatisation / No-code
+    { icon: AutoFixHighIcon, label: "Make", color: '#84fab0', delay: 0.9, category: 'Automatisation' }, // Label simplifié
+    { icon: ElectricBoltIcon, label: "Zapier", color: '#ff7eb3', delay: 1.1, category: 'Automatisation' },
+    { icon: SettingsEthernetIcon, label: "n8n", color: '#5ee7df', delay: 1.3, category: 'Automatisation' },
+    // Appareils
+    { icon: SmartphoneIcon, label: "Apps Mobiles", color: '#fbc2eb', delay: 1.2, category: 'Appareils' },
+    { icon: HomeIcon, label: "Objets Connectés", color: '#adda83', delay: 1.4, category: 'Appareils' },
+    // Cloud
+    { icon: CloudQueueIcon, label: "Cloud", color: '#00d4ff', delay: 1.0, category: 'Cloud' }, // Label simplifié
+    // Réseaux sociaux
+    { icon: FacebookIcon, label: "Facebook", color: '#1877f2', delay: 1.5, category: 'Réseaux Sociaux' },
+    { icon: TwitterIcon, label: "Twitter", color: '#1da1f2', delay: 1.6, category: 'Réseaux Sociaux' },
+    { icon: InstagramIcon, label: "Instagram", color: '#e1306c', delay: 1.7, category: 'Réseaux Sociaux' },
+    { icon: LinkedInIcon, label: "LinkedIn", color: '#0077b5', delay: 1.8, category: 'Réseaux Sociaux' },
+    // Messageries
+    { icon: WhatsAppIcon, label: "WhatsApp", color: '#25d366', delay: 1.9, category: 'Messageries' },
+    { icon: ChatIcon, label: "Slack", color: '#4a154b', delay: 2.0, category: 'Messageries' },
+    { icon: ForumIcon, label: "Discord", color: '#5865f2', delay: 2.1, category: 'Messageries' },
+    // CRM
+    { icon: BusinessCenterIcon, label: "Salesforce", color: '#00a1e0', delay: 2.2, category: 'CRM' },
+    { icon: ContactsIcon, label: "HubSpot", color: '#ff7a59', delay: 2.3, category: 'CRM' },
+    // Ajouter une 18e pour équilibrer si besoin visuel
+    { icon: SyncAltIcon, label: "Autre API", color: theme.palette.grey[500], delay: 2.4, category: 'API' },
+  ];
+
   // Calcul des positions circulaires
   const radiusX = 38; // Rayon horizontal en %
   const radiusY = 35; // Rayon vertical en %
   const centerX = 50; // Centre X en %
   const centerY = 50; // Centre Y en %
   const totalPlatforms = targetPlatforms.length;
+  const zDepthVariance = 40; // Amplitude de la variation Z
 
   const calculatedPlatforms = targetPlatforms.map((platform, index) => {
     const angle = (index / totalPlatforms) * 2 * Math.PI + Math.PI / 4; // + PI/4 pour décaler le départ
     const left = centerX + radiusX * Math.cos(angle);
     const top = centerY + radiusY * Math.sin(angle);
-    const z = platform.initialPos.z || 0; // Conserver le z existant ou 0 par défaut
+    // Calculer un Z qui varie pour l'effet 3D, par ex. basé sur l'angle
+    const z = Math.sin(angle * 2) * zDepthVariance; // Fait varier Z entre -variance et +variance
 
     return {
       ...platform,
@@ -1697,40 +1729,6 @@ const DeploymentSection = () => {
   useEffect(() => {
     if (inView) controls.start('visible');
   }, [controls, inView]);
-
-  // Ajout de nombreuses plateformes organisées par catégories
-  const targetPlatforms = [
-    // APIs & Web
-    { icon: ApiIcon, label: "API REST", color: '#ff9a8b', initialPos: { top: '10%', left: '20%', z: -30 }, delay: 0.5, category: 'API' },
-    { icon: WebIcon, label: "Applications Web", color: '#a18cd1', initialPos: { top: '25%', right: '15%', z: -10 }, delay: 0.7, category: 'Web' },
-    
-    // Automatisation / No-code
-    { icon: AutoFixHighIcon, label: "Make (Integromat)", color: '#84fab0', initialPos: { top: '45%', left: '8%', z: -20 }, delay: 0.9, category: 'Automatisation' },
-    { icon: ElectricBoltIcon, label: "Zapier", color: '#ff7eb3', initialPos: { bottom: '35%', right: '10%', z: -40 }, delay: 1.1, category: 'Automatisation' },
-    { icon: SettingsEthernetIcon, label: "n8n", color: '#5ee7df', initialPos: { top: '5%', right: '30%', z: -15 }, delay: 1.3, category: 'Automatisation' },
-    
-    // Appareils
-    { icon: SmartphoneIcon, label: "Apps Mobiles", color: '#fbc2eb', initialPos: { bottom: '15%', left: '25%', z: -35 }, delay: 1.2, category: 'Appareils' },
-    { icon: HomeIcon, label: "Objets Connectés", color: '#adda83', initialPos: { top: '60%', right: '20%', z: -45 }, delay: 1.4, category: 'Appareils' },
-    
-    // Cloud
-    { icon: CloudQueueIcon, label: "Services Cloud", color: '#00d4ff', initialPos: { bottom: '5%', right: '35%', z: -25 }, delay: 1.0, category: 'Cloud' },
-    
-    // Réseaux sociaux
-    { icon: FacebookIcon, label: "Facebook", color: '#1877f2', initialPos: { top: '20%', left: '7%', z: -50 }, delay: 1.5, category: 'Réseaux Sociaux' },
-    { icon: TwitterIcon, label: "Twitter", color: '#1da1f2', initialPos: { bottom: '25%', right: '22%', z: -30 }, delay: 1.6, category: 'Réseaux Sociaux' },
-    { icon: InstagramIcon, label: "Instagram", color: '#e1306c', initialPos: { top: '15%', right: '8%', z: -40 }, delay: 1.7, category: 'Réseaux Sociaux' },
-    { icon: LinkedInIcon, label: "LinkedIn", color: '#0077b5', initialPos: { bottom: '20%', left: '17%', z: -45 }, delay: 1.8, category: 'Réseaux Sociaux' },
-    
-    // Messageries
-    { icon: WhatsAppIcon, label: "WhatsApp", color: '#25d366', initialPos: { top: '35%', left: '15%', z: -15 }, delay: 1.9, category: 'Messageries' },
-    { icon: ChatIcon, label: "Slack", color: '#4a154b', initialPos: { top: '50%', right: '12%', z: -35 }, delay: 2.0, category: 'Messageries' },
-    { icon: ForumIcon, label: "Discord", color: '#5865f2', initialPos: { bottom: '45%', left: '12%', z: -20 }, delay: 2.1, category: 'Messageries' },
-    
-    // CRM
-    { icon: BusinessCenterIcon, label: "Salesforce", color: '#00a1e0', initialPos: { bottom: '10%', right: '15%', z: -30 }, delay: 2.2, category: 'CRM' },
-    { icon: ContactsIcon, label: "HubSpot", color: '#ff7a59', initialPos: { top: '55%', left: '25%', z: -25 }, delay: 2.3, category: 'CRM' },
-  ];
 
   return (
     <Box
