@@ -722,25 +722,38 @@ const IntroductionSection = () => {
 
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
         <Grid container spacing={6} alignItems="center">
-          {/* Colonne Visuelle (peut-être une autre animation 3D simple) */}
+          {/* Colonne Visuelle (maintenant avec la vidéo) */}
           <Grid item xs={12} md={5}>
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               animate={controls}
               variants={{ visible: { opacity: 1, x: 0, transition: { duration: 0.8, delay: 0.3, ease: 'easeOut' } } }}
             >
-              {/* Placeholder pour un visuel futuriste simple */}
               <Box sx={{
                 height: { xs: 300, md: 400 },
                 borderRadius: '24px',
-                background: 'linear-gradient(145deg, rgba(0, 212, 255, 0.1), rgba(191, 0, 255, 0.1))' ,
+                overflow: 'hidden', // Important pour les coins arrondis de la vidéo
+                background: 'rgba(0,0,0,0.1)', // Fond sombre si la vidéo charge lentement
                 border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxShadow: '0 0 40px rgba(0, 212, 255, 0.2)',
               }}>
-                <SmartToyIcon sx={{ fontSize: 100, color: '#00d4ff', opacity: 0.5 }} />
+                 <video
+                  src="/assets/videos/presentation_landing.webm" // Chemin vers votre vidéo
+                  autoPlay
+                  loop
+                  muted
+                  playsInline // Important pour l'autoplay sur mobile
+                  style={{
+                    width: '100%',
+                    height: '100%', // Fait en sorte que la vidéo remplisse la Box
+                    objectFit: 'cover', // Assure que la vidéo couvre l'espace sans se déformer
+                    display: 'block',
+                    borderRadius: 'inherit', // Hérite du border radius du parent
+                  }}
+                />
               </Box>
             </motion.div>
           </Grid>
@@ -1826,7 +1839,8 @@ const LandingPage = () => {
       <Box sx={{ minHeight: '100vh', background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)` }}>
         <Navbar />
         <Hero />
-        {/* Section vidéo de présentation */}
+        {/* Section vidéo de présentation (supprimée) */}
+        {/* 
         <Box sx={{
           width: '100%',
           display: 'flex',
@@ -1859,6 +1873,7 @@ const LandingPage = () => {
             />
           </Box>
         </Box>
+        */}
         <IntroductionSection />
         <ProcessSection />
         <ChatExamplesSection />
