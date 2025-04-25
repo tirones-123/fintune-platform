@@ -39,6 +39,14 @@ const NewFineTuningFlowPage = () => {
   const { enqueueSnackbar } = useSnackbar();
   const { t } = useTranslation();
   
+  // Define steps array here where t is available
+  const steps = [
+    t('newFineTuning.steps.defineAssistant'),
+    t('newFineTuning.steps.addContent'),
+    t('newFineTuning.steps.configureModel'),
+    t('newFineTuning.steps.launchJob'),
+  ];
+
   const [activeStep, setActiveStep] = useState(0);
   const [project, setProject] = useState(null);
   const [loadingProject, setLoadingProject] = useState(true);

@@ -103,15 +103,6 @@ const stepVariants = {
   }
 };
 
-// Étapes de l'onboarding - Already translated using t() in previous steps
-// The function call needs to happen inside the component or where t is available
-// const steps = [
-//   t('onboarding.steps.define'),
-//   t('onboarding.steps.import'),
-//   t('onboarding.steps.finetune'),
-//   t('onboarding.steps.completed')
-// ];
-
 // Prix par caractère
 const PRICE_PER_CHARACTER = 0.000365;
 // Quota gratuit (caractères gratuits)
@@ -127,15 +118,6 @@ const USAGE_THRESHOLDS = {
   education: { min: 8000, optimal: 80000, max: 300000 },
   other: { min: 5000, optimal: 30000, max: 100000 }
 };
-
-// Descriptions des niveaux de qualité - Will be initialized inside component with t()
-// const QUALITY_DESCRIPTIONS = {
-//   insufficient: "Données insuffisantes: Le modèle aura du mal à générer des réponses cohérentes.",
-//   minimal: "Qualité minimale: Réponses basiques avec contexte limité.",
-//   good: "Bonne qualité: Réponses précises et bien contextualisées.",
-//   optimal: "Qualité optimale: Réponses détaillées et très personnalisées.",
-//   excessive: "Données au-delà de l'optimal: Les bénéfices supplémentaires peuvent diminuer."
-// };
 
 // Couleurs pour les niveaux de qualité
 const QUALITY_COLORS = {
@@ -1619,13 +1601,13 @@ const OnboardingPage = () => {
                       />
                     </Typography>
                   )}
-                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minRecommended &&
+                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended &&
                     (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended * 4 && (
                       <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
                          <Trans i18nKey="onboarding.step1.success.minReached" components={{ 0: <CheckCircleIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} /> }} />
                       </Typography>
                     )}
-                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minRecommended && (
+                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && (
                     <Typography variant="caption" color={(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? 'primary.main' : 'text.secondary'} sx={{ display: 'block', mt: 0.5 }}>
                       {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? (
                         <Trans i18nKey="onboarding.step1.info.excellent" components={{ 0: <StarsIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} /> }} />
