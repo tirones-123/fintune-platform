@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import PageTransition from '../components/common/PageTransition';
 import ContentManager from '../components/fine-tuning-flow/ContentManager';
 import ConfigManager from '../components/fine-tuning-flow/ConfigManager';
@@ -32,12 +33,11 @@ const providerModels = {
   anthropic: [],
 };
 
-const steps = ['Définir l\'Assistant', 'Ajouter/Sélectionner Contenu', 'Configurer Modèle & Clé API', 'Lancer le Job'];
-
 const NewFineTuningFlowPage = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation();
   
   const [activeStep, setActiveStep] = useState(0);
   const [project, setProject] = useState(null);
@@ -65,14 +65,14 @@ const NewFineTuningFlowPage = () => {
         const data = await projectService.getById(projectId);
         setProject(data);
       } catch (err) {
-        enqueueSnackbar("Erreur chargement projet", { variant: 'error' });
+        enqueueSnackbar(t('newFineTuning.errors.loadProject'), { variant: 'error' });
         navigate('/dashboard'); // Rediriger si projet non trouvé
       } finally {
         setLoadingProject(false);
       }
     };
     fetchProject();
-  }, [projectId, navigate, enqueueSnackbar]);
+  }, [projectId, navigate, enqueueSnackbar, t]);
 
   // Callbacks
   const handleContentChange = useCallback((ids) => setSelectedContentIds(ids), []);
@@ -99,7 +99,7 @@ const NewFineTuningFlowPage = () => {
     let isLoadingNext = false;
     if (activeStep === 0) {
       if (!assistantPurpose.trim()) {
-        enqueueSnackbar("Veuillez décrire le but de votre assistant.", { variant: 'warning' });
+        enqueueSnackbar(t('newFineTuning.warnings.purposeRequired'), { variant: 'warning' });
         return;
       }
       isLoadingNext = true;
@@ -114,7 +114,7 @@ const NewFineTuningFlowPage = () => {
         setActiveStep((prev) => prev + 1);
       } catch (error) {
         console.error("Erreur génération system prompt:", error);
-        enqueueSnackbar(`Erreur: ${error.message || 'Impossible de générer le system prompt'}`, { variant: 'error' });
+        enqueueSnackbar(t('newFineTuning.errors.generateSystemPrompt', { error: error.message || t('common.unknown') }), { variant: 'error' });
       } finally {
         setIsGeneratingSystemContent(false);
       }
@@ -122,15 +122,15 @@ const NewFineTuningFlowPage = () => {
     }
     
     if (activeStep === 1 && selectedContentIds.length === 0) { 
-      enqueueSnackbar("Veuillez sélectionner au moins un contenu.", { variant: 'warning' });
+      enqueueSnackbar(t('newFineTuning.warnings.contentRequired'), { variant: 'warning' });
       return;
     }
     if (activeStep === 1 && isContentProcessing) {
-        enqueueSnackbar("Veuillez attendre la fin du traitement des contenus.", { variant: 'warning' });
+        enqueueSnackbar(t('newFineTuning.warnings.contentProcessing'), { variant: 'warning' });
         return;
     }
     if (activeStep === 2 && !isApiKeyValid) { 
-        enqueueSnackbar("Veuillez valider votre clé API avant de continuer.", { variant: 'warning' });
+        enqueueSnackbar(t('newFineTuning.warnings.apiKeyInvalid'), { variant: 'warning' });
         return;
     }
     setActiveStep((prev) => prev + 1);
@@ -173,22 +173,22 @@ const NewFineTuningFlowPage = () => {
         console.log("Réponse de l'API:", response.data);
 
         if (response.data.status === "pending_payment" && response.data.checkout_url) {
-            enqueueSnackbar("Paiement requis. Redirection vers Stripe...", { variant: 'info' });
+            enqueueSnackbar(t('newFineTuning.snackbar.paymentRequired'), { variant: 'info' });
             window.location.href = response.data.checkout_url;
         } else if (response.data.status === "processing_started" && response.data.redirect_url) {
-            enqueueSnackbar("Fine-tuning lancé avec succès !", { variant: 'success' });
+            enqueueSnackbar(t('newFineTuning.snackbar.launchSuccess'), { variant: 'success' });
             // Utiliser navigate pour la redirection relative
             const relativeRedirectUrl = response.data.redirect_url.replace(process.env.REACT_APP_FRONTEND_URL || '', ''); // Obtenir le chemin relatif
             navigate(relativeRedirectUrl || '/dashboard'); // Naviguer
         } else {
-             throw new Error(response.data.message || "Réponse inattendue de l'API");
+             throw new Error(response.data.message || t('newFineTuning.errors.unexpectedApi'));
         }
 
     } catch (error) {
         console.error("Erreur lancement fine-tuning job:", error);
-        const errorMsg = error.response?.data?.detail || error.message || "Erreur inconnue";
+        const errorMsg = error.response?.data?.detail || error.message || t('common.unknownError');
         setLaunchError(errorMsg);
-        enqueueSnackbar(`Erreur: ${errorMsg}`, { variant: 'error' });
+        enqueueSnackbar(t('newFineTuning.errors.launchFailed', { error: errorMsg }), { variant: 'error' });
     } finally {
         setIsLaunching(false);
     }
@@ -202,18 +202,17 @@ const NewFineTuningFlowPage = () => {
           <Box>
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-              Indiquez le rôle de votre assistant IA, son ton (formel, amical, humoristique...)
-              et les types de tâches qu'il doit accomplir.
+                {t('newFineTuning.step0.infoAlert')}
               </Typography>
             </Alert>
             <TextField
               fullWidth
               multiline
               rows={5}
-              label="Objectif de votre assistant IA"
+              label={t('newFineTuning.step0.purposeLabel')}
               value={assistantPurpose}
               onChange={(e) => setAssistantPurpose(e.target.value)}
-              placeholder={`Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.`}
+              placeholder={t('newFineTuning.step0.purposePlaceholder')}
               inputProps={{ maxLength: 1000 }}
               sx={{
                 '& .MuiInputBase-input::placeholder': {
@@ -254,19 +253,19 @@ const NewFineTuningFlowPage = () => {
             <Box>
                 <Alert severity="info" sx={{ mb: 3 }}>
                   <Typography variant="body2">
-                    Vérifiez les détails du fine-tuning et lancez le traitement. Une fois votre modèle entrainé, vous pourrez l'utiliser pour interagir avec votre assistant personnalisé.
+                    {t('newFineTuning.step3.infoAlert')}
                   </Typography>
                 </Alert>
                 
-                <Typography variant="h6" gutterBottom>Récapitulatif et Lancement</Typography>
+                <Typography variant="h6" gutterBottom>{t('newFineTuning.step3.summaryTitle')}</Typography>
                 <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography><strong>Projet:</strong> {project?.name}</Typography>
-                    <Typography><strong>Contenus sélectionnés:</strong> {selectedContentIds.length}</Typography>
-                    <Typography><strong>Caractères estimés/comptés:</strong> {characterCount.toLocaleString()}</Typography>
+                    <Typography><strong>{t('newFineTuning.step3.projectLabel')}:</strong> {project?.name}</Typography>
+                    <Typography><strong>{t('newFineTuning.step3.contentLabel')}:</strong> {selectedContentIds.length}</Typography>
+                    <Typography><strong>{t('newFineTuning.step3.charsLabel')}:</strong> {characterCount.toLocaleString()}</Typography>
                     <Divider sx={{ my: 1 }} />
-                    <Typography><strong>Fournisseur:</strong> {fineTuningConfig.provider}</Typography>
-                    <Typography><strong>Modèle:</strong> {fineTuningConfig.model}</Typography>
-                    <Typography><strong>System Prompt:</strong> {systemPrompt || "(Par défaut)"}</Typography>
+                    <Typography><strong>{t('newFineTuning.step3.providerLabel')}:</strong> {fineTuningConfig.provider}</Typography>
+                    <Typography><strong>{t('newFineTuning.step3.modelLabel')}:</strong> {fineTuningConfig.model}</Typography>
+                    <Typography><strong>{t('newFineTuning.step3.systemPromptLabel')}:</strong> {systemPrompt || t('common.default')}</Typography>
                 </Paper>
                  <CharacterEstimator 
                     selectedContentIds={selectedContentIds} 
@@ -283,7 +282,7 @@ const NewFineTuningFlowPage = () => {
                     disabled={isLaunching}
                     startIcon={isLaunching ? <CircularProgress size={20} color="inherit" /> : <PsychologyIcon />}
                 >
-                   {isLaunching ? 'Lancement en cours...' : 'Lancer le Fine-tuning'}
+                   {isLaunching ? t('newFineTuning.step3.launchingButton') : t('newFineTuning.step3.launchButton')}
                 </Button>
             </Box>
         );
@@ -300,7 +299,7 @@ const NewFineTuningFlowPage = () => {
     <PageTransition>
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Typography variant="h4" gutterBottom>
-          Nouveau Fine-tuning pour "{project?.name}"
+          {t('newFineTuning.pageTitle', { projectName: project?.name || '...' })}
         </Typography>
         
         <Paper sx={{ p: { xs: 2, md: 4 } }}>
@@ -321,7 +320,7 @@ const NewFineTuningFlowPage = () => {
                     disabled={activeStep === 0}
                     onClick={handleBack}
                 >
-                    Précédent
+                    {t('common.backButton')}
                 </Button>
                 {activeStep < steps.length - 1 ? (
                     <Button 
@@ -334,7 +333,7 @@ const NewFineTuningFlowPage = () => {
                             (activeStep === 2 && !isApiKeyValid) 
                         } 
                     >
-                        {isGeneratingSystemContent ? 'Génération...' : 'Suivant'}
+                        {isGeneratingSystemContent ? t('common.generatingButton') : t('common.nextButton')}
                     </Button>
                 ) : null}
              </Box>

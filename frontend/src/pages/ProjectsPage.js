@@ -24,26 +24,28 @@ import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import FolderIcon from '@mui/icons-material/Folder';
+import { useTranslation } from 'react-i18next';
 import { projectService, contentService, datasetService, fineTuningService } from '../services/apiService';
 
 // Fonction helper pour déterminer le statut agrégé et la couleur
-const getProjectAggregateStatus = (projectId, projectStatuses) => {
+const getProjectAggregateStatus = (projectId, projectStatuses, t) => {
   const statusInfo = projectStatuses[projectId];
-  if (!statusInfo) return { text: 'Actif', color: 'default', progress: null };
+  if (!statusInfo) return { text: t('projectsPage.status.active'), color: 'default', progress: null };
 
   switch (statusInfo.status) {
-    case 'transcribing': return { text: 'Transcription Contenu...', color: 'info', progress: null };
-    case 'generating_dataset': return { text: 'Génération Dataset...', color: 'info', progress: null };
-    case 'preparing_finetune': return { text: 'Préparation Fine-tune...', color: 'warning', progress: null };
-    case 'training_finetune': return { text: `Entraînement (${statusInfo.progress?.toFixed(0) ?? 0}%)`, color: 'warning', progress: statusInfo.progress };
-    case 'error': return { text: 'Erreur', color: 'error', progress: null };
-    default: return { text: 'Actif', color: 'success', progress: null };
+    case 'transcribing': return { text: t('projectsPage.status.transcribing'), color: 'info', progress: null };
+    case 'generating_dataset': return { text: t('projectsPage.status.generatingDataset'), color: 'info', progress: null };
+    case 'preparing_finetune': return { text: t('projectsPage.status.preparingFinetune'), color: 'warning', progress: null };
+    case 'training_finetune': return { text: t('projectsPage.status.trainingFinetune', { progress: statusInfo.progress?.toFixed(0) ?? 0 }), color: 'warning', progress: statusInfo.progress };
+    case 'error': return { text: t('projectsPage.status.error'), color: 'error', progress: null };
+    default: return { text: t('projectsPage.status.active'), color: 'success', progress: null };
   }
 };
 
 const ProjectsPage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { t } = useTranslation();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -138,11 +140,11 @@ const ProjectsPage = () => {
       setError(null);
     } catch (err) {
       console.error('Error fetching projects:', err);
-      setError('Impossible de récupérer les projets. Veuillez réessayer.');
+      setError(t('projectsPage.errors.fetchFailed'));
     } finally {
       setLoading(false);
     }
-  }, [updateAllProjectStatuses]);
+  }, [updateAllProjectStatuses, t]);
 
   useEffect(() => {
     fetchProjects();
@@ -194,7 +196,7 @@ const ProjectsPage = () => {
       setProjects(prevProjects => prevProjects.filter(project => project.id !== projectId));
     } catch (err) {
       console.error('Error deleting project:', err);
-      setError('Impossible de supprimer le projet. Veuillez réessayer.');
+      setError(t('projectsPage.errors.deleteFailed'));
     }
     handleMenuClose();
   };
@@ -214,10 +216,10 @@ const ProjectsPage = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Mes projets
+            {t('projectsPage.title')}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Gérez vos projets de fine-tuning et leurs contenus associés.
+            {t('projectsPage.subtitle')}
           </Typography>
         </Box>
         <Button
@@ -225,7 +227,7 @@ const ProjectsPage = () => {
           startIcon={<AddIcon />}
           onClick={() => navigate('/dashboard/projects/new')}
         >
-          Nouveau projet
+          {t('projectsPage.newProjectButton')}
         </Button>
       </Box>
 
@@ -242,24 +244,24 @@ const ProjectsPage = () => {
           <CardContent>
             <FolderIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
-              Aucun projet trouvé
+              {t('projectsPage.noProjects.title')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Commencez par créer votre premier projet de fine-tuning.
+              {t('projectsPage.noProjects.description')}
             </Typography>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => navigate('/dashboard/projects/new')}
             >
-              Créer un projet
+              {t('projectsPage.noProjects.createButton')}
             </Button>
           </CardContent>
         </Card>
       ) : (
         <Grid container spacing={3}>
           {projects.map((project) => {
-            const { text: statusText, color: statusColor, progress } = getProjectAggregateStatus(project.id, projectStatuses);
+            const { text: statusText, color: statusColor, progress } = getProjectAggregateStatus(project.id, projectStatuses, t);
             
             return (
             <Grid item xs={12} md={6} lg={4} key={project.id}>
@@ -301,7 +303,7 @@ const ProjectsPage = () => {
                   </Box>
                   
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1, minHeight: 40 }}>
-                    {project.description || 'Aucune description'}
+                    {project.description || t('projectsPage.noDescription')}
                   </Typography>
                   
                    <Box sx={{ mt: 'auto', pt: 1.5, borderTop: `1px dashed ${theme.palette.divider}` }}>
@@ -313,7 +315,7 @@ const ProjectsPage = () => {
                         variant={statusColor === 'default' || statusColor === 'success' ? 'outlined' : 'filled'}
                       />
                       <Typography variant="caption" color="text.secondary">
-                        Modifié le {formatDate(project.updated_at || project.created_at)}
+                        {t('projectsPage.modifiedOn', { date: formatDate(project.updated_at || project.created_at) })}
                       </Typography>
                     </Box>
                      {progress !== null && (
@@ -340,14 +342,14 @@ const ProjectsPage = () => {
         onClose={handleMenuClose}
       >
         <MenuItem onClick={() => selectedProject && handleViewProject(selectedProject.id)}>
-          Voir les détails
+          {t('projectsPage.menu.viewDetails')}
         </MenuItem>
         <Divider />
         <MenuItem 
           onClick={() => selectedProject && handleDeleteProject(selectedProject.id)}
           sx={{ color: 'error.main' }}
         >
-          Supprimer
+          {t('common.delete')}
         </MenuItem>
       </Menu>
     </Container>

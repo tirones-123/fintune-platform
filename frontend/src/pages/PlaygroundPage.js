@@ -19,6 +19,7 @@ import {
   ListSubheader
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
+import { useTranslation } from 'react-i18next';
 import { fineTuningService, helperService, datasetService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
@@ -36,6 +37,7 @@ const standardOpenAIModels = [
 function PlaygroundPage() {
   const theme = useTheme();
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   // États pour les modèles
   const [fineTunedModels, setFineTunedModels] = useState([]);
@@ -85,7 +87,7 @@ function PlaygroundPage() {
     } finally {
       setLoadingModels(false);
     }
-  }, []);
+  }, [t]);
 
   // Charger les modèles au montage initial
   useEffect(() => {
@@ -140,35 +142,34 @@ function PlaygroundPage() {
             console.log(`Dataset ID trouvé: ${ftDetails.dataset_id}. Récupération du dataset...`);
             // 2. Récupérer les détails du dataset
             const dsDetails = await datasetService.getById(ftDetails.dataset_id);
-            const prompt = dsDetails.system_content || 'You are a helpful assistant.';
+            const prompt = dsDetails.system_content || t('common.defaultSystemPrompt');
             setSystemMessage(prompt);
             console.log(`System prompt chargé pour ${selectedModel}:`, prompt);
           } else {
             console.warn(`Impossible de récupérer le dataset_id pour le fine-tuning ${modelDetails.internalId}`);
-            setSystemMessage('You are a helpful assistant.'); // Fallback
+            setSystemMessage(t('common.defaultSystemPrompt'));
           }
         } catch (err) {
           console.error("Erreur lors de la récupération du system prompt:", err);
-          setError("Erreur chargement du system prompt.");
-          setSystemMessage('You are a helpful assistant.'); // Fallback en cas d'erreur
+          setError(t('playground.errors.loadSystemPrompt'));
+          setSystemMessage(t('common.defaultSystemPrompt'));
         }
       } else {
         // Modèle standard
-        // Mettre à jour le system prompt même si le modèle standard n'a pas changé (ex: retour depuis un FT)
-        setSystemMessage('You are a helpful assistant.');
+        setSystemMessage(t('common.defaultSystemPrompt'));
         console.log(`System prompt réinitialisé pour modèle standard: ${selectedModel}`);
       }
     };
 
     loadSystemPrompt();
 
-  }, [selectedModel, allModels]); // Les dépendances restent les mêmes
+  }, [selectedModel, allModels, t]);
   // --- FIN MODIFICATION ---
 
   // Gérer l'envoi du prompt
   const handleSendPrompt = async () => {
     if (!selectedModel || !prompt.trim()) {
-      setError('Veuillez sélectionner un modèle et entrer un prompt.');
+      setError(t('playground.errors.modelAndPromptRequired'));
       return;
     }
     setLoadingResponse(true);
@@ -202,9 +203,9 @@ function PlaygroundPage() {
 
     } catch (err) {
       console.error("Erreur lors de la génération de la complétion:", err);
-      setError(err.message || 'Une erreur est survenue lors de la communication avec le modèle.');
+      setError(err.message || t('playground.errors.completionError'));
       // Optionnel: Ajouter un message d'erreur à la conversation
-      // const errorMessage = { role: 'assistant', content: `Erreur: ${err.message}` };
+      // const errorMessage = { role: 'assistant', content: t('playground.errors.completionErrorUser', { error: err.message }) };
       // setConversation(prev => [...prev, errorMessage]);
     } finally {
       setLoadingResponse(false);
@@ -216,34 +217,34 @@ function PlaygroundPage() {
     <PageTransition>
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4, height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
         <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
-          Playground IA
+          {t('playground.title')}
         </Typography>
 
         <Grid container spacing={3} sx={{ flexGrow: 1, overflow: 'hidden' }}>
           {/* Colonne de gauche: Configuration */}
           <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column' }}>
             <Paper elevation={2} sx={{ p: 2.5, borderRadius: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Configuration</Typography>
+              <Typography variant="h6" sx={{ mb: 2 }}>{t('playground.configTitle')}</Typography>
               
               <FormControl fullWidth sx={{ mb: 2.5 }}>
                 <InputLabel id="model-select-label">
-                  Modèle {loadingModels && <CircularProgress size={14} sx={{ ml: 1 }} />}
+                  {t('playground.modelLabel')} {loadingModels && <CircularProgress size={14} sx={{ ml: 1 }} />}
                 </InputLabel>
                 <Select
                   labelId="model-select-label"
                   value={selectedModel}
-                  label="Modèle"
+                  label={t('playground.modelLabel')}
                   onChange={(e) => setSelectedModel(e.target.value)}
                   disabled={loadingModels}
                   MenuProps={{ PaperProps: { sx: { maxHeight: 400 } } }}
                 >
-                  <ListSubheader>Modèles Standards (OpenAI)</ListSubheader>
+                  <ListSubheader>{t('playground.standardModelsHeader')}</ListSubheader>
                   {standardOpenAIModels.map((model) => (
                     <MenuItem key={model.id} value={model.id}>
                       {model.name}
                     </MenuItem>
                   ))}
-                  {fineTunedModels.length > 0 && <ListSubheader>Vos Modèles Fine-Tunés</ListSubheader>}
+                  {fineTunedModels.length > 0 && <ListSubheader>{t('playground.fineTunedModelsHeader')}</ListSubheader>}
                   {fineTunedModels.map((model) => (
                     <MenuItem key={model.id} value={model.id}>
                       {model.name}
@@ -257,10 +258,10 @@ function PlaygroundPage() {
                 multiline
                 rows={4}
                 variant="outlined"
-                label="System Message"
+                label={t('playground.systemMessageLabel')}
                 value={systemMessage}
                 onChange={(e) => setSystemMessage(e.target.value)}
-                placeholder="Décrivez le comportement souhaité..."
+                placeholder={t('playground.systemMessagePlaceholder')}
                 sx={{ mb: 2.5 }}
               />
               
@@ -283,7 +284,7 @@ function PlaygroundPage() {
                        <Avatar sx={{ width: 60, height: 60, mb: 2, bgcolor: 'primary.light' }}>
                          <ChatIcon fontSize="large" />
                        </Avatar>
-                       <Typography variant="h6">La conversation apparaîtra ici</Typography>
+                       <Typography variant="h6">{t('playground.conversationPlaceholder')}</Typography>
                      </Box>
                   )}
                   {conversation.map((msg, index) => (
@@ -346,7 +347,7 @@ function PlaygroundPage() {
                    <TextField
                      fullWidth
                      variant="outlined"
-                     placeholder="Discutez avec votre modèle..."
+                     placeholder={t('playground.inputPlaceholder')}
                      value={prompt}
                      onChange={(e) => setPrompt(e.target.value)}
                      onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { handleSendPrompt(); e.preventDefault(); } }}

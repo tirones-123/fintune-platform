@@ -29,7 +29,12 @@
     "sizeUnitKB": "KB",
     "sizeUnitMB": "MB",
     "sizeUnitGB": "GB",
-    "defaultSystemPrompt": "You are a helpful assistant."
+    "defaultSystemPrompt": "You are a helpful assistant.",
+    "copyright": "© {{year}} FineTuner. All rights reserved.",
+    "backButton": "Back",
+    "nextButton": "Next",
+    "unknownError": "Unknown error",
+    "default": "(Default)"
   },
   "login": {
     "title": "Login",
@@ -51,6 +56,10 @@
     "error": {
       "invalidCredentials": "Incorrect credentials. Please try again."
     }
+  },
+  "loginPage": {
+    "noAccountPrompt": "Don't have an account yet?",
+    "registerLink": "Sign up"
   },
   "register": {
     "title": "Create an account",
@@ -388,7 +397,7 @@
       "titleLine1": "Your Content,",
       "titleLine2": "Your AI.",
       "subtitle": {
-        "part1": "Instantly transform PDF, YouTube, and websites into powerful AI assistants like ",
+        "part1": "Instantly transform PDF, YouTube, and websites into powerful AI assistants ",
         "part2": " or ",
         "part3": ". No expertise required."
       },
@@ -967,5 +976,314 @@
       "downloadError": "Download error: {{message}}"
     },
     "noInfoFound": "No information found for this fine-tuning."
+  },
+  "newFineTuning": {
+    "pageTitle": "New Fine-tuning for \"{{projectName}}\"",
+    "steps": {
+      "defineAssistant": "Define Assistant",
+      "addContent": "Add/Select Content",
+      "configureModel": "Configure Model & API Key",
+      "launchJob": "Launch Job"
+    },
+    "errors": {
+      "loadProject": "Error loading project",
+      "generateSystemPrompt": "Error generating system prompt: {{error}}",
+      "unexpectedApi": "Unexpected API response",
+      "launchFailed": "Error launching fine-tuning: {{error}}"
+    },
+    "warnings": {
+      "purposeRequired": "Please describe the purpose of your assistant.",
+      "contentRequired": "Please select at least one content item.",
+      "contentProcessing": "Please wait for content processing to finish.",
+      "apiKeyInvalid": "Please validate your API key before continuing."
+    },
+    "snackbar": {
+      "paymentRequired": "Payment required. Redirecting to Stripe...",
+      "launchSuccess": "Fine-tuning launched successfully!"
+    },
+    "step0": {
+      "infoAlert": "Specify the role of your AI assistant, its tone (formal, friendly, humorous...) and the types of tasks it should perform.",
+      "purposeLabel": "Purpose of your AI assistant",
+      "purposePlaceholder": "Examples:\n- An AI that talks like Michael Scott, Harry Potter, Gollum, etc.\n- A customer support assistant for an e-commerce store that answers questions about orders, returns, and products.\n- A legal expert explaining US labor law simply.\n- A sports coach offering personalized advice and training programs."
+    },
+    "step3": {
+      "infoAlert": "Review the fine-tuning details and launch the process. Once your model is trained, you can use it to interact with your personalized assistant.",
+      "summaryTitle": "Summary and Launch",
+      "projectLabel": "Project",
+      "contentLabel": "Selected Content",
+      "charsLabel": "Estimated/Counted Characters",
+      "providerLabel": "Provider",
+      "modelLabel": "Model",
+      "systemPromptLabel": "System Prompt",
+      "launchingButton": "Launching...",
+      "launchButton": "Launch Fine-tuning"
+    }
+  },
+  "newProject": {
+    "breadcrumbs": {
+      "dashboard": "Dashboard",
+      "projects": "Projects",
+      "newProject": "New project"
+    },
+    "title": "Create a new project",
+    "subtitle": "A project helps you organize your content and datasets for fine-tuning.",
+    "nameLabel": "Project name",
+    "namePlaceholder": "Ex: Sales assistant, Automated FAQ...",
+    "descriptionLabel": "Description (optional)",
+    "descriptionPlaceholder": "Describe the purpose of this project and the type of content you will use...",
+    "descriptionHelper": "A good description will help you easily find this project later.",
+    "validation": {
+      "nameRequired": "Project name is required"
+    },
+    "snackbar": {
+      "createSuccess": "Project created successfully"
+    },
+    "errors": {
+      "createFailed": "Error creating project"
+    },
+    "creatingButton": "Creating...",
+    "createButton": "Create project"
+  },
+  "playground": {
+    "title": "AI Playground",
+    "configTitle": "Configuration",
+    "modelLabel": "Model",
+    "standardModelsHeader": "Standard Models (OpenAI)",
+    "fineTunedModelsHeader": "Your Fine-Tuned Models",
+    "systemMessageLabel": "System Message",
+    "systemMessagePlaceholder": "Describe the desired behavior...",
+    "conversationPlaceholder": "Conversation will appear here",
+    "inputPlaceholder": "Chat with your model...",
+    "errors": {
+      "loadSystemPrompt": "Error loading system prompt.",
+      "modelAndPromptRequired": "Please select a model and enter a prompt.",
+      "completionError": "An error occurred while communicating with the model.",
+      "completionErrorUser": "Error: {{error}}"
+    }
+  },
+  "projectsPage": {
+    "status": {
+      "active": "Active",
+      "transcribing": "Transcribing Content...",
+      "generatingDataset": "Generating Dataset...",
+      "preparingFinetune": "Preparing Fine-tune...",
+      "trainingFinetune": "Training ({{progress}}%)",
+      "error": "Error"
+    },
+    "title": "My Projects",
+    "subtitle": "Manage your fine-tuning projects and their associated content.",
+    "newProjectButton": "New Project",
+    "noProjects": {
+      "title": "No projects found",
+      "description": "Start by creating your first fine-tuning project.",
+      "createButton": "Create a Project"
+    },
+    "noDescription": "No description",
+    "modifiedOn": "Modified on {{date}}",
+    "menu": {
+      "viewDetails": "View Details"
+    },
+    "errors": {
+      "fetchFailed": "Could not fetch projects. Please try again.",
+      "deleteFailed": "Could not delete project. Please try again."
+    }
+  },
+  "registerPage": {
+    "alreadyRegisteredPrompt": "Already registered?",
+    "loginLink": "Login"
+  },
+  "projectDetail": {
+    "breadcrumb": {
+      "projects": "Projects"
+    },
+    "error": {
+      "fetchData": "Could not retrieve project data. Please try again."
+    },
+    "noDescription": "No description",
+    "createdOn": "Created on {{date}}",
+    "status": {
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "editButton": "Edit",
+    "launchFineTuningButton": "✨ Launch a new Fine-tuning",
+    "tabs": {
+      "contents": "Contents",
+      "fineTunings": "Fine-tunings",
+      "ariaLabel": "project tabs"
+    },
+    "contents": {
+      "title": "Contents ({{count}})",
+      "noContent": {
+        "title": "No Content",
+        "description": "Use the \"Launch a new Fine-tuning\" button above to add content."
+      },
+      "item": {
+        "noDescription": "No description",
+        "errorPrefix": "Error",
+        "typeLabel": "Type",
+        "sizeLabel": "Size",
+        "addedOnLabel": "Added on",
+        "downloadTooltip": "Download",
+        "deleteTooltip": "Delete"
+      },
+      "deleteConfirm": "Are you sure you want to delete this content?"
+    },
+    "fineTunings": {
+      "title": "Fine-tunings ({{count}})",
+      "noFineTunings": {
+        "title": "No Fine-tuning",
+        "description": "Use the \"Launch a new Fine-tuning\" button above to get started."
+      },
+      "item": {
+        "modelLabel": "Model",
+        "providerLabel": "Provider",
+        "createdOnLabel": "Created on",
+        "testButton": "Test"
+      }
+    },
+    "contentMenu": {
+      "viewDetails": "View Details"
+    },
+    "datasetMenu": {
+      "viewDetails": "View Details",
+      "fineTune": "Fine-tune this dataset",
+      "download": "Download dataset"
+    },
+    "fineTuningMenu": {
+      "viewDetails": "View Details",
+      "testModel": "Test Model",
+      "downloadDataset": "Download dataset"
+    },
+    "editDialog": {
+      "title": "Edit Project",
+      "nameLabel": "Name",
+      "descriptionLabel": "Description"
+    },
+    "deleteDialog": {
+      "title": "Delete Project",
+      "confirmText": "Are you sure you want to delete this project?"
+    },
+    "statusLabels": {
+      "processed": "Processed",
+      "processing": "Processing",
+      "ready": "Ready",
+      "generating": "Generating",
+      "error": "Error",
+      "queued": "Queued",
+      "preparing": "Preparing",
+      "training": "Training",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "snackbar": {
+      "contentDeleteSuccess": "Content deleted successfully",
+      "contentDeleteError": "Error deleting content",
+      "datasetDeleteSuccess": "Dataset deleted successfully",
+      "datasetDeleteError": "Error deleting dataset",
+      "datasetDeleteFailed": "Could not delete dataset. Please try again.",
+      "downloadPreparing": "Preparing download...",
+      "datasetDownloadError": "Download error: {{message}}",
+      "projectUpdateSuccess": "Project updated successfully",
+      "projectUpdateError": "Error updating project",
+      "projectDeleteSuccess": "Project deleted successfully",
+      "projectDeleteError": "Error deleting project",
+      "contentDownloadWarning": "This content cannot be downloaded (not a file)",
+      "contentDownloadError": "Download error: {{message}}"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "profile": "Profile",
+      "apiKeys": "API Keys",
+      "usageBilling": "Usage & Billing",
+      "security": "Security",
+      "ariaLabel": "settings tabs"
+    },
+    "profile": {
+      "title": "Profile Information",
+      "nameLabel": "Name",
+      "emailLabel": "Email",
+      "saveButton": "Save Changes",
+      "updateSuccess": "Profile updated successfully",
+      "updateError": "Error updating profile"
+    },
+    "apiKeys": {
+      "title": "API Key Management",
+      "description": "Add the API keys for the AI providers you want to use for fine-tuning.",
+      "providerLabel": "Provider",
+      "newKeyLabel": "New API Key",
+      "verifyButton": "Verify",
+      "addButton": "Add / Update",
+      "verificationResult": {
+        "success": "API key is valid and added/updated.",
+        "error": "Invalid API key or communication error.",
+        "credits": "(Available Credits: {{credits}})"
+      },
+      "registeredKeysTitle": "Registered Keys",
+      "noKeys": "No API keys registered.",
+      "keySecondaryText": "Key: ****{{lastKeyPart}} - Added on: {{date}}",
+      "deleteTooltip": "Delete",
+      "deleteMenuLabel": "Delete key for {{provider}}",
+      "deleteConfirmDialog": {
+        "title": "Confirm Deletion",
+        "text": "Are you sure you want to delete the API key for {{provider}}? You will no longer be able to launch fine-tuning jobs with this provider until a new key is added."
+      },
+      "addSuccess": "API key for {{provider}} added/updated",
+      "addError": "Error adding API key",
+      "deleteSuccess": "API key for {{provider}} deleted",
+      "deleteError": "Error deleting API key",
+      "verifyError": "Error verifying API key",
+      "missingKeyWarning": "Please enter an API key and choose a provider"
+    },
+    "usageBilling": {
+      "usageTitle": "Character Usage",
+      "loadingError": "Could not load usage statistics.",
+      "freeRemaining": "Free Credits Remaining",
+      "totalUsed": "Total Used",
+      "totalPurchased": "Total Purchased",
+      "transactionsTitle": "Transaction History",
+      "noTransactions": "No transactions.",
+      "transactionItem": "Date: {{date}} | Amount: {{amount}} characters {{price}}",
+      "transactionAmount": "{{prefix}}{{count, number}} characters"
+    },
+    "security": {
+      "title": "Account Security",
+      "changePasswordTitle": "Change Password",
+      "currentPasswordLabel": "Current Password",
+      "newPasswordLabel": "New Password",
+      "confirmPasswordLabel": "Confirm New Password",
+      "changePasswordButton": "Change Password",
+      "changingPasswordButton": "Changing...",
+      "passwordErrorRequired": "Please fill in all fields",
+      "passwordErrorMatch": "Passwords do not match",
+      "changePasswordSuccess": "Password changed successfully",
+      "changePasswordError": "Error changing password",
+      "dangerZoneTitle": "Danger Zone",
+      "deleteAccountButton": "Delete My Account",
+      "deletingAccountButton": "Deleting...",
+      "deleteAccountWarning": "Warning: This action is irreversible and will permanently delete your account and all associated data (projects, content, datasets, fine-tunings).",
+      "deleteAccountConfirmDialog": {
+        "title": "Permanent Account Deletion",
+        "warning": "Warning!",
+        "irreversible": "This action is irreversible.",
+        "lossDescription": "Deleting your account will result in the permanent loss of:",
+        "lostItemProfile": "Your profile information",
+        "lostItemProjects": "All your projects",
+        "lostItemContents": "All your content (files, videos, websites)",
+        "lostItemDatasets": "All your generated datasets",
+        "lostItemModels": "All your fine-tuned models",
+        "lostItemApiKeys": "Your registered API keys",
+        "lostItemHistory": "Your transaction history",
+        "finalConfirm": "Are you absolutely sure you want to continue?",
+        "confirmButton": "Confirm Deletion"
+      },
+      "deleteAccountSuccess": "Account deleted successfully. You will be logged out.",
+      "deleteAccountError": "Error deleting account"
+    },
+    "error": {
+      "loadData": "Error loading data."
+    }
   }
 }

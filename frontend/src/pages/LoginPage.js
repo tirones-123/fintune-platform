@@ -1,9 +1,12 @@
 import React from 'react';
 import { Box, Container, Typography, Link } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import LoginForm from '../components/auth/LoginForm';
 
 const LoginPage = () => {
+  const { t } = useTranslation();
+
   return (
     <Box
       sx={{
@@ -28,9 +31,9 @@ const LoginPage = () => {
           </Typography>
         </Link>
         <Typography variant="body2">
-          Pas encore de compte?{' '}
+          {t('loginPage.noAccountPrompt')} {' '}
           <Link component={RouterLink} to="/register" variant="subtitle2">
-            S'inscrire
+            {t('loginPage.registerLink')}
           </Link>
         </Typography>
       </Box>
@@ -49,7 +52,7 @@ const LoginPage = () => {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          © {new Date().getFullYear()} FineTuner. Tous droits réservés.
+          {t('common.copyright', { year: new Date().getFullYear() })}
         </Typography>
       </Box>
     </Box>

@@ -19,10 +19,12 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import { projectService } from '../services/apiService';
 
 const NewProjectPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,7 +37,7 @@ const NewProjectPage = () => {
     
     // Validation
     if (!name.trim()) {
-      setNameError('Le nom du projet est requis');
+      setNameError(t('newProject.validation.nameRequired'));
       return;
     }
     
@@ -49,11 +51,11 @@ const NewProjectPage = () => {
         description,
       });
       
-      enqueueSnackbar('Projet créé avec succès', { variant: 'success' });
+      enqueueSnackbar(t('newProject.snackbar.createSuccess'), { variant: 'success' });
       navigate(`/dashboard/projects/${newProject.id}`);
     } catch (err) {
       console.error('Error creating project:', err);
-      setError(err.message || 'Erreur lors de la création du projet');
+      setError(err.message || t('newProject.errors.createFailed'));
       setLoading(false);
     }
   };
@@ -66,20 +68,20 @@ const NewProjectPage = () => {
         sx={{ mb: 3 }}
       >
         <Link component={RouterLink} to="/dashboard" color="inherit">
-          Dashboard
+          {t('newProject.breadcrumbs.dashboard')}
         </Link>
         <Link component={RouterLink} to="/dashboard/projects" color="inherit">
-          Projets
+          {t('newProject.breadcrumbs.projects')}
         </Link>
-        <Typography color="text.primary">Nouveau projet</Typography>
+        <Typography color="text.primary">{t('newProject.breadcrumbs.newProject')}</Typography>
       </Breadcrumbs>
 
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom>
-          Créer un nouveau projet
+          {t('newProject.title')}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Un projet vous permet d{"'"}organiser vos contenus et datasets pour le fine-tuning.
+          {t('newProject.subtitle')}
         </Typography>
       </Box>
 
@@ -88,7 +90,7 @@ const NewProjectPage = () => {
           <form onSubmit={handleSubmit}>
             <FormControl fullWidth sx={{ mb: 3 }}>
               <TextField
-                label="Nom du projet"
+                label={t('newProject.nameLabel')}
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
@@ -99,21 +101,21 @@ const NewProjectPage = () => {
                 error={!!nameError}
                 helperText={nameError}
                 required
-                placeholder="Ex: Assistant commercial, FAQ automatique..."
+                placeholder={t('newProject.namePlaceholder')}
               />
             </FormControl>
 
             <FormControl fullWidth sx={{ mb: 3 }}>
               <TextField
-                label="Description (optionnelle)"
+                label={t('newProject.descriptionLabel')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 multiline
                 rows={4}
-                placeholder="Décrivez l'objectif de ce projet et le type de contenu que vous allez utiliser..."
+                placeholder={t('newProject.descriptionPlaceholder')}
               />
               <FormHelperText>
-                Une bonne description vous aidera à retrouver facilement ce projet plus tard.
+                {t('newProject.descriptionHelper')}
               </FormHelperText>
             </FormControl>
 
@@ -130,7 +132,7 @@ const NewProjectPage = () => {
                 variant="outlined"
                 onClick={() => navigate('/dashboard/projects')}
               >
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -138,7 +140,7 @@ const NewProjectPage = () => {
                 disabled={loading}
                 startIcon={loading ? <CircularProgress size={20} /> : null}
               >
-                {loading ? 'Création en cours...' : 'Créer le projet'}
+                {loading ? t('newProject.creatingButton') : t('newProject.createButton')}
               </Button>
             </Box>
           </form>

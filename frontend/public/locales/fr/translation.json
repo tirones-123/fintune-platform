@@ -14,7 +14,13 @@
     "sizeUnitGB": "Go",
     "defaultSystemPrompt": "Vous êtes un assistant utile.",
     "status": "Statut",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "copyright": "© {{year}} FineTuner. Tous droits réservés.",
+    "backButton": "Précédent",
+    "nextButton": "Suivant",
+    "generatingButton": "Génération...",
+    "unknownError": "Erreur inconnue",
+    "default": "(Par défaut)"
   },
   "login": {
     "title": "Connexion",
@@ -36,6 +42,10 @@
     "error": {
       "invalidCredentials": "Identifiants incorrects. Veuillez réessayer."
     }
+  },
+  "loginPage": {
+    "noAccountPrompt": "Pas encore de compte?",
+    "registerLink": "S'inscrire"
   },
   "register": {
     "title": "Créer un compte",
@@ -952,5 +962,314 @@
       "downloadError": "Erreur téléchargement: {{message}}"
     },
     "noInfoFound": "Aucune information trouvée pour ce fine-tuning."
+  },
+  "newFineTuning": {
+    "pageTitle": "Nouveau Fine-tuning pour \"{{projectName}}\"",
+    "steps": {
+      "defineAssistant": "Définir l'Assistant",
+      "addContent": "Ajouter/Sélectionner Contenu",
+      "configureModel": "Configurer Modèle & Clé API",
+      "launchJob": "Lancer le Job"
+    },
+    "errors": {
+      "loadProject": "Erreur lors du chargement du projet",
+      "generateSystemPrompt": "Erreur génération system prompt: {{error}}",
+      "unexpectedApi": "Réponse inattendue de l'API",
+      "launchFailed": "Erreur lancement fine-tuning: {{error}}"
+    },
+    "warnings": {
+      "purposeRequired": "Veuillez décrire le but de votre assistant.",
+      "contentRequired": "Veuillez sélectionner au moins un contenu.",
+      "contentProcessing": "Veuillez attendre la fin du traitement des contenus.",
+      "apiKeyInvalid": "Veuillez valider votre clé API avant de continuer."
+    },
+    "snackbar": {
+      "paymentRequired": "Paiement requis. Redirection vers Stripe...",
+      "launchSuccess": "Fine-tuning lancé avec succès !"
+    },
+    "step0": {
+      "infoAlert": "Indiquez le rôle de votre assistant IA, son ton (formel, amical, humoristique...) et les types de tâches qu'il doit accomplir.",
+      "purposeLabel": "Objectif de votre assistant IA",
+      "purposePlaceholder": "Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc\n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement."
+    },
+    "step3": {
+      "infoAlert": "Vérifiez les détails du fine-tuning et lancez le traitement. Une fois votre modèle entrainé, vous pourrez l'utiliser pour interagir avec votre assistant personnalisé.",
+      "summaryTitle": "Récapitulatif et Lancement",
+      "projectLabel": "Projet",
+      "contentLabel": "Contenus sélectionnés",
+      "charsLabel": "Caractères estimés/comptés",
+      "providerLabel": "Fournisseur",
+      "modelLabel": "Modèle",
+      "systemPromptLabel": "System Prompt",
+      "launchingButton": "Lancement en cours...",
+      "launchButton": "Lancer le Fine-tuning"
+    }
+  },
+  "newProject": {
+    "breadcrumbs": {
+      "dashboard": "Dashboard",
+      "projects": "Projets",
+      "newProject": "Nouveau projet"
+    },
+    "title": "Créer un nouveau projet",
+    "subtitle": "Un projet vous permet d'organiser vos contenus et datasets pour le fine-tuning.",
+    "nameLabel": "Nom du projet",
+    "namePlaceholder": "Ex: Assistant commercial, FAQ automatique...",
+    "descriptionLabel": "Description (optionnelle)",
+    "descriptionPlaceholder": "Décrivez l'objectif de ce projet et le type de contenu que vous allez utiliser...",
+    "descriptionHelper": "Une bonne description vous aidera à retrouver facilement ce projet plus tard.",
+    "validation": {
+      "nameRequired": "Le nom du projet est requis"
+    },
+    "snackbar": {
+      "createSuccess": "Projet créé avec succès"
+    },
+    "errors": {
+      "createFailed": "Erreur lors de la création du projet"
+    },
+    "creatingButton": "Création en cours...",
+    "createButton": "Créer le projet"
+  },
+  "playground": {
+    "title": "Playground IA",
+    "configTitle": "Configuration",
+    "modelLabel": "Modèle",
+    "standardModelsHeader": "Modèles Standards (OpenAI)",
+    "fineTunedModelsHeader": "Vos Modèles Fine-Tunés",
+    "systemMessageLabel": "System Message",
+    "systemMessagePlaceholder": "Décrivez le comportement souhaité...",
+    "conversationPlaceholder": "La conversation apparaîtra ici",
+    "inputPlaceholder": "Discutez avec votre modèle...",
+    "errors": {
+      "loadSystemPrompt": "Erreur chargement du system prompt.",
+      "modelAndPromptRequired": "Veuillez sélectionner un modèle et entrer un prompt.",
+      "completionError": "Une erreur est survenue lors de la communication avec le modèle.",
+      "completionErrorUser": "Erreur: {{error}}"
+    }
+  },
+  "projectsPage": {
+    "status": {
+      "active": "Actif",
+      "transcribing": "Transcription Contenu...",
+      "generatingDataset": "Génération Dataset...",
+      "preparingFinetune": "Préparation Fine-tune...",
+      "trainingFinetune": "Entraînement ({{progress}}%)",
+      "error": "Erreur"
+    },
+    "title": "Mes projets",
+    "subtitle": "Gérez vos projets de fine-tuning et leurs contenus associés.",
+    "newProjectButton": "Nouveau projet",
+    "noProjects": {
+      "title": "Aucun projet trouvé",
+      "description": "Commencez par créer votre premier projet de fine-tuning.",
+      "createButton": "Créer un projet"
+    },
+    "noDescription": "Aucune description",
+    "modifiedOn": "Modifié le {{date}}",
+    "menu": {
+      "viewDetails": "Voir les détails"
+    },
+    "errors": {
+      "fetchFailed": "Impossible de récupérer les projets. Veuillez réessayer.",
+      "deleteFailed": "Impossible de supprimer le projet. Veuillez réessayer."
+    }
+  },
+  "registerPage": {
+    "alreadyRegisteredPrompt": "Déjà inscrit?",
+    "loginLink": "Se connecter"
+  },
+  "projectDetail": {
+    "breadcrumb": {
+      "projects": "Projets"
+    },
+    "error": {
+      "fetchData": "Impossible de récupérer les données du projet. Veuillez réessayer."
+    },
+    "noDescription": "Aucune description",
+    "createdOn": "Créé le {{date}}",
+    "status": {
+      "active": "Actif",
+      "archived": "Archivé"
+    },
+    "editButton": "Modifier",
+    "launchFineTuningButton": "✨ Lancer un nouveau Fine-tuning",
+    "tabs": {
+      "contents": "Contenus",
+      "fineTunings": "Fine-tunings",
+      "ariaLabel": "onglets du projet"
+    },
+    "contents": {
+      "title": "Contenus ({{count}})",
+      "noContent": {
+        "title": "Aucun contenu",
+        "description": "Utilisez le bouton \"Lancer un nouveau Fine-tuning\" ci-dessus pour ajouter du contenu."
+      },
+      "item": {
+        "noDescription": "Aucune description",
+        "errorPrefix": "Erreur",
+        "typeLabel": "Type",
+        "sizeLabel": "Taille",
+        "addedOnLabel": "Ajouté le",
+        "downloadTooltip": "Télécharger",
+        "deleteTooltip": "Supprimer"
+      },
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce contenu ?"
+    },
+    "fineTunings": {
+      "title": "Fine-tunings ({{count}})",
+      "noFineTunings": {
+        "title": "Aucun fine-tuning",
+        "description": "Utilisez le bouton \"Lancer un nouveau Fine-tuning\" ci-dessus pour commencer."
+      },
+      "item": {
+        "modelLabel": "Modèle",
+        "providerLabel": "Provider",
+        "createdOnLabel": "Créé le",
+        "testButton": "Tester"
+      }
+    },
+    "contentMenu": {
+      "viewDetails": "Voir les détails"
+    },
+    "datasetMenu": {
+      "viewDetails": "Voir les détails",
+      "fineTune": "Fine-tuner ce dataset",
+      "download": "Télécharger le dataset"
+    },
+    "fineTuningMenu": {
+      "viewDetails": "Voir les détails",
+      "testModel": "Tester le modèle",
+      "downloadDataset": "Télécharger le dataset"
+    },
+    "editDialog": {
+      "title": "Modifier le projet",
+      "nameLabel": "Nom",
+      "descriptionLabel": "Description"
+    },
+    "deleteDialog": {
+      "title": "Supprimer le projet",
+      "confirmText": "Êtes-vous sûr de vouloir supprimer ce projet ?"
+    },
+    "statusLabels": {
+      "processed": "Traité",
+      "processing": "En traitement",
+      "ready": "Prêt",
+      "generating": "En génération",
+      "error": "Erreur",
+      "queued": "En attente",
+      "preparing": "En préparation",
+      "training": "En entraînement",
+      "completed": "Terminé",
+      "cancelled": "Annulé"
+    },
+    "snackbar": {
+      "contentDeleteSuccess": "Contenu supprimé avec succès",
+      "contentDeleteError": "Erreur lors de la suppression du contenu",
+      "datasetDeleteSuccess": "Dataset supprimé avec succès",
+      "datasetDeleteError": "Erreur lors de la suppression du dataset",
+      "datasetDeleteFailed": "Impossible de supprimer le dataset. Veuillez réessayer.",
+      "downloadPreparing": "Préparation du téléchargement...",
+      "datasetDownloadError": "Erreur téléchargement: {{message}}",
+      "projectUpdateSuccess": "Projet mis à jour avec succès",
+      "projectUpdateError": "Erreur lors de la mise à jour du projet",
+      "projectDeleteSuccess": "Projet supprimé avec succès",
+      "projectDeleteError": "Erreur lors de la suppression du projet",
+      "contentDownloadWarning": "Ce contenu ne peut pas être téléchargé (pas un fichier)",
+      "contentDownloadError": "Erreur téléchargement: {{message}}"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "tabs": {
+      "profile": "Profil",
+      "apiKeys": "Clés API",
+      "usageBilling": "Utilisation & Facturation",
+      "security": "Sécurité",
+      "ariaLabel": "onglets paramètres"
+    },
+    "profile": {
+      "title": "Informations du profil",
+      "nameLabel": "Nom",
+      "emailLabel": "Email",
+      "saveButton": "Enregistrer les modifications",
+      "updateSuccess": "Profil mis à jour avec succès",
+      "updateError": "Erreur lors de la mise à jour du profil"
+    },
+    "apiKeys": {
+      "title": "Gestion des Clés API",
+      "description": "Ajoutez les clés API des fournisseurs IA que vous souhaitez utiliser pour le fine-tuning.",
+      "providerLabel": "Fournisseur",
+      "newKeyLabel": "Nouvelle Clé API",
+      "verifyButton": "Vérifier",
+      "addButton": "Ajouter / Mettre à jour",
+      "verificationResult": {
+        "success": "Clé API valide et ajoutée/mise à jour.",
+        "error": "Clé API invalide ou erreur de communication.",
+        "credits": "(Crédits disponibles: {{credits}})"
+      },
+      "registeredKeysTitle": "Clés enregistrées",
+      "noKeys": "Aucune clé API enregistrée.",
+      "keySecondaryText": "Clé: ****{{lastKeyPart}} - Ajoutée le: {{date}}",
+      "deleteTooltip": "Supprimer",
+      "deleteMenuLabel": "Supprimer la clé pour {{provider}}",
+      "deleteConfirmDialog": {
+        "title": "Confirmer la suppression",
+        "text": "Êtes-vous sûr de vouloir supprimer la clé API pour {{provider}} ? Vous ne pourrez plus lancer de fine-tuning avec ce fournisseur tant qu'une nouvelle clé ne sera pas ajoutée."
+      },
+      "addSuccess": "Clé API pour {{provider}} ajoutée/mise à jour",
+      "addError": "Erreur lors de l'ajout de la clé API",
+      "deleteSuccess": "Clé API pour {{provider}} supprimée",
+      "deleteError": "Erreur lors de la suppression de la clé API",
+      "verifyError": "Erreur lors de la vérification de la clé API",
+      "missingKeyWarning": "Veuillez saisir une clé API et choisir un fournisseur"
+    },
+    "usageBilling": {
+      "usageTitle": "Utilisation des Caractères",
+      "loadingError": "Impossible de charger les statistiques d'utilisation.",
+      "freeRemaining": "Crédits gratuits restants",
+      "totalUsed": "Total utilisé",
+      "totalPurchased": "Total acheté",
+      "transactionsTitle": "Historique des Transactions",
+      "noTransactions": "Aucune transaction.",
+      "transactionItem": "Date: {{date}} | Montant: {{amount}} caractères {{price}}",
+      "transactionAmount": "{{prefix}}{{count, number}} caractères"
+    },
+    "security": {
+      "title": "Sécurité du Compte",
+      "changePasswordTitle": "Changer le mot de passe",
+      "currentPasswordLabel": "Mot de passe actuel",
+      "newPasswordLabel": "Nouveau mot de passe",
+      "confirmPasswordLabel": "Confirmer le nouveau mot de passe",
+      "changePasswordButton": "Changer le mot de passe",
+      "changingPasswordButton": "Modification...",
+      "passwordErrorRequired": "Veuillez remplir tous les champs",
+      "passwordErrorMatch": "Les mots de passe ne correspondent pas",
+      "changePasswordSuccess": "Mot de passe changé avec succès",
+      "changePasswordError": "Erreur lors de la modification du mot de passe",
+      "dangerZoneTitle": "Zone Dangereuse",
+      "deleteAccountButton": "Supprimer mon compte",
+      "deletingAccountButton": "Suppression...",
+      "deleteAccountWarning": "Attention : Cette action est irréversible et supprimera définitivement votre compte et toutes les données associées (projets, contenus, datasets, fine-tunings).",
+      "deleteAccountConfirmDialog": {
+        "title": "Suppression Définitive du Compte",
+        "warning": "Attention !",
+        "irreversible": "Cette action est irréversible.",
+        "lossDescription": "La suppression de votre compte entraînera la perte définitive de :",
+        "lostItemProfile": "Vos informations de profil",
+        "lostItemProjects": "Tous vos projets",
+        "lostItemContents": "Tous vos contenus (fichiers, vidéos, sites web)",
+        "lostItemDatasets": "Tous vos datasets générés",
+        "lostItemModels": "Tous vos modèles fine-tunés",
+        "lostItemApiKeys": "Vos clés API enregistrées",
+        "lostItemHistory": "Votre historique de transactions",
+        "finalConfirm": "Êtes-vous absolument sûr de vouloir continuer ?",
+        "confirmButton": "Confirmer la Suppression"
+      },
+      "deleteAccountSuccess": "Compte supprimé avec succès. Vous allez être déconnecté.",
+      "deleteAccountError": "Erreur lors de la suppression du compte"
+    },
+    "error": {
+      "loadData": "Erreur lors du chargement des données."
+    }
   }
 }

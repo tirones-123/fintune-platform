@@ -1,9 +1,12 @@
 import React from 'react';
 import { Box, Container, Typography, Link } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import RegisterForm from '../components/auth/RegisterForm';
 
 const RegisterPage = () => {
+  const { t } = useTranslation();
+
   return (
     <Box
       sx={{
@@ -28,9 +31,9 @@ const RegisterPage = () => {
           </Typography>
         </Link>
         <Typography variant="body2">
-          Déjà inscrit?{' '}
+          {t('registerPage.alreadyRegisteredPrompt')}
           <Link component={RouterLink} to="/login" variant="subtitle2">
-            Se connecter
+            {t('registerPage.loginLink')}
           </Link>
         </Typography>
       </Box>
@@ -49,7 +52,7 @@ const RegisterPage = () => {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          © {new Date().getFullYear()} FineTuner. Tous droits réservés.
+          {t('common.copyright', { year: new Date().getFullYear() })}
         </Typography>
       </Box>
     </Box>

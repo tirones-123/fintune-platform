@@ -45,6 +45,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import SecurityIcon from '@mui/icons-material/Security';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import { apiKeyService, userService, characterService } from '../services/apiService';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
@@ -53,6 +54,7 @@ import LoadingScreen from '../components/common/LoadingScreen';
 const SettingsPage = () => {
   const { user, updateUser, logout } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
+  const { t, i18n } = useTranslation();
   const [name, setName] = useState(user?.name || '');
   const [email] = useState(user?.email || '');
   const [apiKeys, setApiKeys] = useState([]);
@@ -97,14 +99,14 @@ const SettingsPage = () => {
 
       } catch (error) {
         console.error("Erreur chargement données Settings:", error);
-        enqueueSnackbar("Erreur lors du chargement des données.", { variant: 'error' });
+        enqueueSnackbar(t('settings.error.loadData'), { variant: 'error' });
       } finally {
         setLoading(false);
         setLoadingUsage(false);
       }
     };
     fetchData();
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, t]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -117,15 +119,15 @@ const SettingsPage = () => {
   const handleUpdateProfile = async () => {
     try {
       await updateUser({ name });
-      enqueueSnackbar('Profil mis à jour avec succès', { variant: 'success' });
+      enqueueSnackbar(t('settings.profile.updateSuccess'), { variant: 'success' });
     } catch (error) {
-      enqueueSnackbar('Erreur lors de la mise à jour du profil', { variant: 'error' });
+      enqueueSnackbar(t('settings.profile.updateError'), { variant: 'error' });
     }
   };
 
   const handleAddApiKey = async () => {
     if (!newApiKey || !newProvider) {
-      enqueueSnackbar('Veuillez saisir une clé API et choisir un fournisseur', { variant: 'warning' });
+      enqueueSnackbar(t('settings.apiKeys.missingKeyWarning'), { variant: 'warning' });
       return;
     }
     try {
@@ -134,9 +136,9 @@ const SettingsPage = () => {
       // Recharger les clés
       const keys = await apiKeyService.getKeys();
       setApiKeys(keys || []);
-      enqueueSnackbar(`Clé API pour ${newProvider} ajoutée/mise à jour`, { variant: 'success' });
+      enqueueSnackbar(t('settings.apiKeys.addSuccess', { provider: newProvider }), { variant: 'success' });
     } catch (error) {
-      enqueueSnackbar("Erreur lors de l'ajout de la clé API", { variant: 'error' });
+      enqueueSnackbar(t('settings.apiKeys.addError'), { variant: 'error' });
     }
   };
 
@@ -167,9 +169,9 @@ const SettingsPage = () => {
       // Recharger les clés
       const keys = await apiKeyService.getKeys();
       setApiKeys(keys || []);
-      enqueueSnackbar(`Clé API pour ${apiKeyToDelete.provider} supprimée`, { variant: 'success' });
+      enqueueSnackbar(t('settings.apiKeys.deleteSuccess', { provider: apiKeyToDelete.provider }), { variant: 'success' });
     } catch (error) {
-      enqueueSnackbar("Erreur lors de la suppression de la clé API", { variant: 'error' });
+      enqueueSnackbar(t('settings.apiKeys.deleteError'), { variant: 'error' });
     } finally {
       closeDeleteConfirm();
     }
@@ -177,7 +179,7 @@ const SettingsPage = () => {
 
   const handleVerifyKey = async () => {
     if (!newApiKey || !newProvider) {
-      enqueueSnackbar('Veuillez saisir une clé API et choisir un fournisseur', { variant: 'warning' });
+      enqueueSnackbar(t('settings.apiKeys.missingKeyWarning'), { variant: 'warning' });
       return;
     }
     setLoadingVerification(true);
@@ -190,10 +192,12 @@ const SettingsPage = () => {
         // Recharger les clés
         const keys = await apiKeyService.getKeys();
         setApiKeys(keys || []);
-        enqueueSnackbar(`Clé API pour ${newProvider} ajoutée/mise à jour`, { variant: 'success' });
+        enqueueSnackbar(t('settings.apiKeys.addSuccess', { provider: newProvider }), { variant: 'success' });
+      } else {
+        // Handle invalid key scenario (optional, depends on how much info you want to show)
       }
     } catch (error) {
-      enqueueSnackbar("Erreur lors de la vérification de la clé API", { variant: 'error' });
+      enqueueSnackbar(t('settings.apiKeys.verifyError'), { variant: 'error' });
     } finally {
       setLoadingVerification(false);
     }
@@ -201,23 +205,23 @@ const SettingsPage = () => {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('Veuillez remplir tous les champs');
+      setPasswordError(t('settings.security.passwordErrorRequired'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('Les mots de passe ne correspondent pas');
+      setPasswordError(t('settings.security.passwordErrorMatch'));
       return;
     }
     setChangingPassword(true);
     try {
       await userService.changePassword(currentPassword, newPassword);
-      enqueueSnackbar('Mot de passe changé avec succès', { variant: 'success' });
+      enqueueSnackbar(t('settings.security.changePasswordSuccess'), { variant: 'success' });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setPasswordError('');
     } catch (error) {
-      enqueueSnackbar('Erreur lors de la modification du mot de passe', { variant: 'error' });
+      enqueueSnackbar(t('settings.security.changePasswordError'), { variant: 'error' });
     } finally {
       setChangingPassword(false);
     }
@@ -229,12 +233,12 @@ const SettingsPage = () => {
     try {
       // Appeler le service (qui appellera DELETE /api/users/me)
       await userService.deleteAccount(); 
-      enqueueSnackbar("Compte supprimé avec succès. Vous allez être déconnecté.", { variant: 'success' });
+      enqueueSnackbar(t('settings.security.deleteAccountSuccess'), { variant: 'success' });
       // Utiliser le logout du contexte pour nettoyer et rediriger
       logout(); 
     } catch (error) {
       console.error("Erreur lors de la suppression du compte:", error);
-      enqueueSnackbar(error.message || "Erreur lors de la suppression du compte", { variant: 'error' });
+      enqueueSnackbar(error.message || t('settings.security.deleteAccountError'), { variant: 'error' });
       setDeletingAccount(false); // Réactiver le bouton si erreur
       setDeleteAccountConfirmOpen(false); // Fermer le dialogue d'erreur
     }
@@ -245,7 +249,7 @@ const SettingsPage = () => {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return new Date(dateString).toLocaleDateString('fr-FR', options);
+    return new Date(dateString).toLocaleDateString(i18n.language, options);
   };
 
   if (loading) {
@@ -256,15 +260,15 @@ const SettingsPage = () => {
     <PageTransition>
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Paramètres
+        {t('settings.title')}
       </Typography>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
-            <Tab label="Profil" icon={<AccountCircleIcon />} iconPosition="start" id="tab-0" />
-            <Tab label="Clés API" icon={<KeyIcon />} iconPosition="start" id="tab-1" />
-            <Tab label="Utilisation & Facturation" icon={<NotificationsIcon />} iconPosition="start" id="tab-2" />
-            <Tab label="Sécurité" icon={<SecurityIcon />} iconPosition="start" id="tab-3" />
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label={t('settings.tabs.ariaLabel')}>
+            <Tab label={t('settings.tabs.profile')} icon={<AccountCircleIcon />} iconPosition="start" id="tab-0" />
+            <Tab label={t('settings.tabs.apiKeys')} icon={<KeyIcon />} iconPosition="start" id="tab-1" />
+            <Tab label={t('settings.tabs.usageBilling')} icon={<NotificationsIcon />} iconPosition="start" id="tab-2" />
+            <Tab label={t('settings.tabs.security')} icon={<SecurityIcon />} iconPosition="start" id="tab-3" />
         </Tabs>
       </Box>
 
@@ -272,16 +276,16 @@ const SettingsPage = () => {
         <Box role="tabpanel" hidden={tabValue !== 0}>
       {tabValue === 0 && (
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>Informations du profil</Typography>
+              <Typography variant="h6" gutterBottom>{t('settings.profile.title')}</Typography>
               <TextField
-                label="Nom"
+                label={t('settings.profile.nameLabel')}
                 value={name}
                 onChange={handleNameChange}
                 fullWidth
                 margin="normal"
               />
               <TextField
-                label="Email"
+                label={t('settings.profile.emailLabel')}
                 value={email}
                 fullWidth
                 margin="normal"
@@ -293,7 +297,7 @@ const SettingsPage = () => {
                 sx={{ mt: 2 }}
                 disabled={name === user?.name}
               >
-                Enregistrer les modifications
+                {t('settings.profile.saveButton')}
                       </Button>
             </Paper>
                       )}
@@ -303,18 +307,18 @@ const SettingsPage = () => {
         <Box role="tabpanel" hidden={tabValue !== 1}>
           {tabValue === 1 && (
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>Gestion des Clés API</Typography>
+              <Typography variant="h6" gutterBottom>{t('settings.apiKeys.title')}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Ajoutez les clés API des fournisseurs IA que vous souhaitez utiliser pour le fine-tuning.
+                {t('settings.apiKeys.description')}
                     </Typography>
                     
               <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'flex-start' }}>
                  <FormControl sx={{ minWidth: 150 }}>
-                    <InputLabel id="provider-select-label">Fournisseur</InputLabel>
+                    <InputLabel id="provider-select-label">{t('settings.apiKeys.providerLabel')}</InputLabel>
                     <Select
                         labelId="provider-select-label"
                         value={newProvider}
-                        label="Fournisseur"
+                        label={t('settings.apiKeys.providerLabel')}
                         onChange={(e) => setNewProvider(e.target.value)}
                         size="small"
                     >
@@ -324,7 +328,7 @@ const SettingsPage = () => {
                     </Select>
                  </FormControl>
                 <TextField
-                  label="Nouvelle Clé API"
+                  label={t('settings.apiKeys.newKeyLabel')}
                   value={newApiKey}
                   onChange={(e) => setNewApiKey(e.target.value)}
                   type="password"
@@ -338,7 +342,7 @@ const SettingsPage = () => {
                   disabled={!newApiKey || loadingVerification}
                   sx={{ ml: 1 }}
                 >
-                   {loadingVerification ? <CircularProgress size={20}/> : 'Vérifier'}
+                   {loadingVerification ? <CircularProgress size={20}/> : t('settings.apiKeys.verifyButton')}
                       </Button>
                         <Button
                   variant="contained" 
@@ -346,7 +350,7 @@ const SettingsPage = () => {
                   disabled={!newApiKey}
                   sx={{ ml: 1 }}
                 >
-                  Ajouter / Mettre à jour
+                  {t('settings.apiKeys.addButton')}
                         </Button>
                     </Box>
               
@@ -358,13 +362,13 @@ const SettingsPage = () => {
                     onClose={() => setVerificationResult(null)} // Permet de fermer l'alerte
                  >
                      {verificationResult.message}
-                     {verificationResult.valid && verificationResult.credits !== undefined && ` (Crédits disponibles: ${verificationResult.credits ?? 'N/A'})`}
+                     {verificationResult.valid && verificationResult.credits !== undefined && t('settings.apiKeys.verificationResult.credits', { credits: verificationResult.credits ?? 'N/A' })}
                  </Alert>
               )}
 
-              <Typography variant="subtitle1" gutterBottom>Clés enregistrées</Typography>
+              <Typography variant="subtitle1" gutterBottom>{t('settings.apiKeys.registeredKeysTitle')}</Typography>
               {apiKeys.length === 0 ? (
-                <Typography>Aucune clé API enregistrée.</Typography>
+                <Typography>{t('settings.apiKeys.noKeys')}</Typography>
               ) : (
                 <List dense>
                   {apiKeys.map((key) => (
@@ -372,10 +376,10 @@ const SettingsPage = () => {
                       <ListItemIcon sx={{ minWidth: 36 }}><KeyIcon /></ListItemIcon>
                       <ListItemText 
                         primary={key.provider.toUpperCase()} 
-                        secondary={`Clé: ****${key.key.slice(-4)} - Ajoutée le: ${formatDate(key.created_at)}`}
+                        secondary={t('settings.apiKeys.keySecondaryText', { lastKeyPart: key.key.slice(-4), date: formatDate(key.created_at) })}
                       />
                       <ListItemSecondaryAction>
-                        <IconButton edge="end" onClick={(e) => handleOpenApiKeyMenu(e, key)} title="Supprimer">
+                        <IconButton edge="end" onClick={(e) => handleOpenApiKeyMenu(e, key)} title={t('settings.apiKeys.deleteTooltip')}>
                           <DeleteIcon />
                         </IconButton>
                       </ListItemSecondaryAction>
@@ -391,24 +395,24 @@ const SettingsPage = () => {
         <Box role="tabpanel" hidden={tabValue !== 2}>
           {tabValue === 2 && (
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>Utilisation des Caractères</Typography>
+              <Typography variant="h6" gutterBottom>{t('settings.usageBilling.usageTitle')}</Typography>
               {loadingUsage ? (
                 <CircularProgress />
               ) : usageStats ? (
                 <Box sx={{ mb: 3 }}>
-                    <Typography>Crédits gratuits restants: <strong>{usageStats.free_characters_remaining?.toLocaleString() || '0'}</strong></Typography>
-                    <Typography>Total utilisé: <strong>{usageStats.total_characters_used?.toLocaleString() || '0'}</strong></Typography>
-                    <Typography>Total acheté: <strong>{usageStats.total_characters_purchased?.toLocaleString() || '0'}</strong></Typography>
+                    <Typography>{t('settings.usageBilling.freeRemaining')}: <strong>{usageStats.free_characters_remaining?.toLocaleString() || '0'}</strong></Typography>
+                    <Typography>{t('settings.usageBilling.totalUsed')}: <strong>{usageStats.total_characters_used?.toLocaleString() || '0'}</strong></Typography>
+                    <Typography>{t('settings.usageBilling.totalPurchased')}: <strong>{usageStats.total_characters_purchased?.toLocaleString() || '0'}</strong></Typography>
                 </Box>
               ) : (
-                 <Typography>Impossible de charger les statistiques d'utilisation.</Typography>
+                 <Typography>{t('settings.usageBilling.loadingError')}</Typography>
               )}
 
-              <Typography variant="h6" gutterBottom sx={{ mt: 3}}>Historique des Transactions</Typography>
+              <Typography variant="h6" gutterBottom sx={{ mt: 3}}>{t('settings.usageBilling.transactionsTitle')}</Typography>
                {loadingUsage ? (
                  <CircularProgress />
                ) : transactions.length === 0 ? (
-                 <Typography>Aucune transaction.</Typography>
+                 <Typography>{t('settings.usageBilling.noTransactions')}</Typography>
                ) : (
                  <List dense>
                    {transactions.map(tx => (
@@ -416,7 +420,11 @@ const SettingsPage = () => {
                        <ListItemText
                          primary={tx.description}
                          secondary={
-                           `Date: ${formatDate(tx.created_at)} | Montant: ${tx.amount > 0 ? '+' : ''}${tx.amount.toLocaleString()} caractères ${tx.total_price ? `(${tx.total_price.toFixed(2)}$)` : ''}`
+                           t('settings.usageBilling.transactionItem', {
+                             date: formatDate(tx.created_at),
+                             amount: t('settings.usageBilling.transactionAmount', { prefix: tx.amount > 0 ? '+' : '', count: tx.amount }),
+                             price: tx.total_price ? `(${tx.total_price.toFixed(2)}$)` : ''
+                           })
                          }
                        />
                      </ListItem>
@@ -431,12 +439,12 @@ const SettingsPage = () => {
         <Box role="tabpanel" hidden={tabValue !== 3}>
           {tabValue === 3 && (
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>Sécurité du Compte</Typography>
+              <Typography variant="h6" gutterBottom>{t('settings.security.title')}</Typography>
               {/* Section Changement de Mot de Passe */}
               <Box sx={{ mt: 3 }}>
-                 <Typography variant="subtitle1" gutterBottom>Changer le mot de passe</Typography>
+                 <Typography variant="subtitle1" gutterBottom>{t('settings.security.changePasswordTitle')}</Typography>
                  <TextField
-                   label="Mot de passe actuel"
+                   label={t('settings.security.currentPasswordLabel')}
                    type="password"
                    fullWidth
                    margin="normal"
@@ -445,7 +453,7 @@ const SettingsPage = () => {
                    error={!!passwordError}
                  />
                  <TextField
-                   label="Nouveau mot de passe"
+                   label={t('settings.security.newPasswordLabel')}
                    type="password"
                    fullWidth
                    margin="normal"
@@ -454,7 +462,7 @@ const SettingsPage = () => {
                    error={!!passwordError}
                  />
                  <TextField
-                   label="Confirmer le nouveau mot de passe"
+                   label={t('settings.security.confirmPasswordLabel')}
                    type="password"
                    fullWidth
                    margin="normal"
@@ -469,7 +477,7 @@ const SettingsPage = () => {
                    sx={{ mt: 2 }}
                    disabled={!currentPassword || !newPassword || !confirmPassword || changingPassword}
                  >
-                   {changingPassword ? <CircularProgress size={24} /> : 'Changer le mot de passe'}
+                   {changingPassword ? <CircularProgress size={24} /> : t('settings.security.changePasswordButton')}
                       </Button>
               </Box>
                {/* Section Email (Lecture seule pour l'instant) */}
@@ -488,7 +496,7 @@ const SettingsPage = () => {
               {/* Section Suppression de Compte */}
               <Box sx={{ mt: 5, borderTop: '1px solid', borderColor: 'divider', pt: 3 }}>
                 <Typography variant="subtitle1" color="error" gutterBottom>
-                  Zone Dangereuse
+                  {t('settings.security.dangerZoneTitle')}
                 </Typography>
                         <Button
                   variant="contained" 
@@ -496,10 +504,10 @@ const SettingsPage = () => {
                   onClick={() => setDeleteAccountConfirmOpen(true)}
                   disabled={deletingAccount}
                         >
-                   {deletingAccount ? <CircularProgress size={24} color="inherit" /> : 'Supprimer mon compte'}
+                   {deletingAccount ? <CircularProgress size={24} color="inherit" /> : t('settings.security.deleteAccountButton')}
                         </Button>
                 <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
-                  Attention : Cette action est irréversible et supprimera définitivement votre compte et toutes les données associées (projets, contenus, datasets, fine-tunings).
+                  {t('settings.security.deleteAccountWarning')}
                 </Typography>
                     </Box>
             </Paper>
@@ -513,48 +521,48 @@ const SettingsPage = () => {
           onClose={handleCloseApiKeyMenu}
         >
           <MenuItem onClick={openDeleteConfirm} sx={{ color: 'error.main' }}>
-            Supprimer la clé pour {apiKeyToDelete?.provider}
+            {t('settings.apiKeys.deleteMenuLabel', { provider: apiKeyToDelete?.provider })}
           </MenuItem>
         </Menu>
 
          {/* Dialogue de confirmation de suppression */}
         <Dialog open={deleteConfirmOpen} onClose={closeDeleteConfirm}>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogTitle>{t('settings.apiKeys.deleteConfirmDialog.title')}</DialogTitle>
             <DialogContent>
                 <DialogContentText>
-                    Êtes-vous sûr de vouloir supprimer la clé API pour {apiKeyToDelete?.provider} ? 
-                    Vous ne pourrez plus lancer de fine-tuning avec ce fournisseur tant qu'une nouvelle clé ne sera pas ajoutée.
+                    {t('settings.apiKeys.deleteConfirmDialog.text', { provider: apiKeyToDelete?.provider })}
                 </DialogContentText>
             </DialogContent>
             <DialogActions>
-                <Button onClick={closeDeleteConfirm}>Annuler</Button>
-                <Button onClick={handleDeleteApiKey} color="error">Supprimer</Button>
+                <Button onClick={closeDeleteConfirm}>{t('common.cancel')}</Button>
+                <Button onClick={handleDeleteApiKey} color="error">{t('common.delete')}</Button>
             </DialogActions>
         </Dialog>
 
          {/* Dialogue de confirmation de suppression de compte */}
         <Dialog open={deleteAccountConfirmOpen} onClose={() => setDeleteAccountConfirmOpen(false)}>
             <DialogTitle sx={{ bgcolor: 'error.main', color: 'error.contrastText' }}>
-                Suppression Définitive du Compte
+                {t('settings.security.deleteAccountConfirmDialog.title')}
             </DialogTitle>
             <DialogContent>
-                <DialogContentText sx={{ mt: 2 }}>
-                    <strong>Attention !</strong> Cette action est irréversible.
-                    La suppression de votre compte entraînera la perte définitive de :
+                <DialogContentText component="div" sx={{ mt: 2 }}>
+                    <strong>{t('settings.security.deleteAccountConfirmDialog.warning')}</strong> {t('settings.security.deleteAccountConfirmDialog.irreversible')}
+                    <br/>
+                    {t('settings.security.deleteAccountConfirmDialog.lossDescription')}
                     <ul>
-                        <li>Vos informations de profil</li>
-                        <li>Tous vos projets</li>
-                        <li>Tous vos contenus (fichiers, vidéos, sites web)</li>
-                        <li>Tous vos datasets générés</li>
-                        <li>Tous vos modèles fine-tunés</li>
-                        <li>Vos clés API enregistrées</li>
-                        <li>Votre historique de transactions</li>
+                        <li>{t('settings.security.deleteAccountConfirmDialog.lostItemProfile')}</li>
+                        <li>{t('settings.security.deleteAccountConfirmDialog.lostItemProjects')}</li>
+                        <li>{t('settings.security.deleteAccountConfirmDialog.lostItemContents')}</li>
+                        <li>{t('settings.security.deleteAccountConfirmDialog.lostItemDatasets')}</li>
+                        <li>{t('settings.security.deleteAccountConfirmDialog.lostItemModels')}</li>
+                        <li>{t('settings.security.deleteAccountConfirmDialog.lostItemApiKeys')}</li>
+                        <li>{t('settings.security.deleteAccountConfirmDialog.lostItemHistory')}</li>
                     </ul>
-                    Êtes-vous absolument sûr de vouloir continuer ?
+                    {t('settings.security.deleteAccountConfirmDialog.finalConfirm')}
                 </DialogContentText>
             </DialogContent>
             <DialogActions sx={{ p: 2 }}>
-                <Button onClick={() => setDeleteAccountConfirmOpen(false)} disabled={deletingAccount}>Annuler</Button>
+                <Button onClick={() => setDeleteAccountConfirmOpen(false)} disabled={deletingAccount}>{t('common.cancel')}</Button>
                 <Button 
                     onClick={handleDeleteAccount} 
                     color="error" 
@@ -562,7 +570,7 @@ const SettingsPage = () => {
                     disabled={deletingAccount}
                     startIcon={deletingAccount ? <CircularProgress size={18} color="inherit" /> : null}
                 >
-                    {deletingAccount ? 'Suppression...' : 'Confirmer la Suppression'}
+                    {deletingAccount ? t('settings.security.deletingAccountButton') : t('settings.security.deleteAccountConfirmDialog.confirmButton')}
                 </Button>
             </DialogActions>
         </Dialog>

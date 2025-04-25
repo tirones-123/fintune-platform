@@ -46,11 +46,13 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import { projectService, contentService, datasetService, fineTuningService } from '../services/apiService';
 
 const ProjectDetailPage = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [project, setProject] = useState(null);
   const [contents, setContents] = useState([]);
   const [datasets, setDatasets] = useState([]);
@@ -120,7 +122,7 @@ const ProjectDetailPage = () => {
       setError(null);
     } catch (err) {
       console.error('Error fetching project data:', err);
-      setError('Impossible de récupérer les données du projet. Veuillez réessayer.');
+      setError(t('projectDetail.error.fetchData'));
     } finally {
       setLoading(false);
     }
@@ -128,7 +130,7 @@ const ProjectDetailPage = () => {
 
   useEffect(() => {
     fetchProjectData();
-  }, [projectId]);
+  }, [projectId, t]);
 
   // Fonction pour mettre à jour un fine-tuning spécifique dans l'état
   const updateFineTuningState = (updatedFineTuning) => {
@@ -243,7 +245,7 @@ const ProjectDetailPage = () => {
       console.log('Suppression du contenu:', contentId);
       
       // Demander confirmation avant suppression
-      if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) {
+      if (!window.confirm(t('projectDetail.contents.deleteConfirm'))) {
         return;
       }
       
@@ -253,10 +255,10 @@ const ProjectDetailPage = () => {
       // Mettre à jour l'état local pour refléter la suppression
       setContents(prevContents => prevContents.filter(content => content.id !== contentId));
       
-      enqueueSnackbar('Contenu supprimé avec succès', { variant: 'success' });
+      enqueueSnackbar(t('projectDetail.snackbar.contentDeleteSuccess'), { variant: 'success' });
     } catch (err) {
       console.error('Error deleting content:', err);
-      enqueueSnackbar('Erreur lors de la suppression du contenu', { variant: 'error' });
+      enqueueSnackbar(t('projectDetail.snackbar.contentDeleteError'), { variant: 'error' });
     }
     handleContentMenuClose();
   };
@@ -282,11 +284,11 @@ const ProjectDetailPage = () => {
       // Mettre à jour l'état local pour refléter la suppression
       setDatasets(prevDatasets => prevDatasets.filter(dataset => dataset.id !== datasetId));
       
-      enqueueSnackbar('Dataset supprimé avec succès', { variant: 'success' });
+      enqueueSnackbar(t('projectDetail.snackbar.datasetDeleteSuccess'), { variant: 'success' });
     } catch (err) {
       console.error('Error deleting dataset:', err);
-      setError('Impossible de supprimer le dataset. Veuillez réessayer.');
-      enqueueSnackbar('Erreur lors de la suppression du dataset', { variant: 'error' });
+      setError(t('projectDetail.snackbar.datasetDeleteFailed'));
+      enqueueSnackbar(t('projectDetail.snackbar.datasetDeleteError'), { variant: 'error' });
     }
     handleDatasetMenuClose();
   };
@@ -308,7 +310,7 @@ const ProjectDetailPage = () => {
     
     handleDatasetMenuClose(); // Fermer le menu
     handleFineTuningMenuClose(); // Fermer aussi l'autre menu si ouvert
-    enqueueSnackbar("Préparation du téléchargement...", { variant: 'info' });
+    enqueueSnackbar(t('projectDetail.snackbar.downloadPreparing'), { variant: 'info' });
 
     try {
       // Appeler le service pour obtenir le blob et le nom de fichier
@@ -334,14 +336,14 @@ const ProjectDetailPage = () => {
 
     } catch (error) {
       console.error('Erreur lors du téléchargement du dataset:', error);
-      enqueueSnackbar(`Erreur téléchargement: ${error.message}`, { variant: 'error' });
+      enqueueSnackbar(t('projectDetail.snackbar.datasetDownloadError', { message: error.message }), { variant: 'error' });
     }
   };
 
   // Formatage de la date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString(i18n.language, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -352,9 +354,9 @@ const ProjectDetailPage = () => {
 
   // Formatage de la taille
   const formatSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return t('common.sizeBytesZero');
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = [t('common.sizeUnitBytes'), t('common.sizeUnitKB'), t('common.sizeUnitMB'), t('common.sizeUnitGB')];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
@@ -396,30 +398,9 @@ const ProjectDetailPage = () => {
 
   // Obtenir le libellé du statut
   const getStatusLabel = (status) => {
-    switch (status) {
-      case 'processed':
-        return 'Traité';
-      case 'processing':
-        return 'En traitement';
-      case 'ready':
-        return 'Prêt';
-      case 'generating':
-        return 'En génération';
-      case 'error':
-        return 'Erreur';
-      case 'queued':
-        return 'En attente';
-      case 'preparing':
-        return 'En préparation';
-      case 'training':
-        return 'En entraînement';
-      case 'completed':
-        return 'Terminé';
-      case 'cancelled':
-        return 'Annulé';
-      default:
-        return status;
-    }
+    const statusKey = `projectDetail.statusLabels.${status}`;
+    // Fallback to the status itself if key doesn't exist (should not happen)
+    return t(statusKey, status);
   };
 
   // Fonction pour mettre à jour le projet
@@ -433,10 +414,10 @@ const ProjectDetailPage = () => {
       
       setProject(updatedProject);
       setEditDialogOpen(false);
-      enqueueSnackbar('Projet mis à jour avec succès', { variant: 'success' });
+      enqueueSnackbar(t('projectDetail.snackbar.projectUpdateSuccess'), { variant: 'success' });
     } catch (err) {
       console.error('Error updating project:', err);
-      enqueueSnackbar('Erreur lors de la mise à jour du projet', { variant: 'error' });
+      enqueueSnackbar(t('projectDetail.snackbar.projectUpdateError'), { variant: 'error' });
     }
   };
 
@@ -447,23 +428,23 @@ const ProjectDetailPage = () => {
       await projectService.delete(projectId);
       
       setDeleteDialogOpen(false);
-      enqueueSnackbar('Projet supprimé avec succès', { variant: 'success' });
+      enqueueSnackbar(t('projectDetail.snackbar.projectDeleteSuccess'), { variant: 'success' });
       navigate('/dashboard');
     } catch (err) {
       console.error('Error deleting project:', err);
-      enqueueSnackbar('Erreur lors de la suppression du projet', { variant: 'error' });
+      enqueueSnackbar(t('projectDetail.snackbar.projectDeleteError'), { variant: 'error' });
     }
   };
 
   // Ajouter cette fonction pour le téléchargement des contenus
   const handleDownloadContent = async (content) => {
     if (!content.file_path) {
-      enqueueSnackbar('Ce contenu ne peut pas être téléchargé (pas un fichier)', { variant: 'warning' });
+      enqueueSnackbar(t('projectDetail.snackbar.contentDownloadWarning'), { variant: 'warning' });
       return;
     }
     
     handleContentMenuClose(); // Fermer le menu si ouvert
-    enqueueSnackbar("Préparation du téléchargement...", { variant: 'info' });
+    enqueueSnackbar(t('projectDetail.snackbar.downloadPreparing'), { variant: 'info' });
     
     try {
       // Utiliser le nouveau service
@@ -487,7 +468,7 @@ const ProjectDetailPage = () => {
       
     } catch (error) {
       console.error('Erreur lors du téléchargement du contenu:', error);
-      enqueueSnackbar(`Erreur téléchargement: ${error.message}`, { variant: 'error' });
+      enqueueSnackbar(t('projectDetail.snackbar.contentDownloadError', { message: error.message }), { variant: 'error' });
     }
   };
 
@@ -499,10 +480,10 @@ const ProjectDetailPage = () => {
         sx={{ mb: 3 }}
       >
         <Link component={RouterLink} to="/dashboard" color="inherit">
-          Projets
+          {t('projectDetail.breadcrumb.projects')}
         </Link>
         <Typography color="text.primary">
-          {loading ? 'Chargement...' : project?.name}
+          {loading ? t('common.loading') : project?.name}
         </Typography>
       </Breadcrumbs>
 
@@ -524,14 +505,14 @@ const ProjectDetailPage = () => {
                     {project.name}
                   </Typography>
                   <Typography variant="body1" color="text.secondary" paragraph>
-                    {project.description || 'Aucune description'}
+                    {project.description || t('projectDetail.noDescription')}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
-                      Créé le {formatDate(project.created_at)}
+                      {t('projectDetail.createdOn', { date: formatDate(project.created_at) })}
                     </Typography>
                     <Chip 
-                      label={project.status === 'active' ? 'Actif' : 'Archivé'} 
+                      label={project.status === 'active' ? t('projectDetail.status.active') : t('projectDetail.status.archived')} 
                       size="small"
                       color={project.status === 'active' ? 'success' : 'default'}
                     />
@@ -546,7 +527,7 @@ const ProjectDetailPage = () => {
                     setEditDialogOpen(true);
                   }}
                 >
-                  Modifier
+                  {t('projectDetail.editButton')}
                 </Button>
               </Box>
             </CardContent>
@@ -561,15 +542,15 @@ const ProjectDetailPage = () => {
               onClick={() => navigate(`/dashboard/projects/${projectId}/new-fine-tuning`)}
               sx={{ py: 1.5, px: 4, borderRadius: 3 }}
             >
-              ✨ Lancer un nouveau Fine-tuning
+              {t('projectDetail.launchFineTuningButton')}
             </Button>
           </Box>
           {/* --- FIN NOUVEAU BOUTON PRINCIPAL --- */}
 
           <Box sx={{ mb: 4 }}>
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="project tabs">
-              <Tab label="Contenus" id="tab-0" />
-              <Tab label="Finetune" id="tab-1" />
+            <Tabs value={tabValue} onChange={handleTabChange} aria-label={t('projectDetail.tabs.ariaLabel')}>
+              <Tab label={t('projectDetail.tabs.contents')} id="tab-0" />
+              <Tab label={t('projectDetail.tabs.fineTunings')} id="tab-1" />
             </Tabs>
           </Box>
 
@@ -578,7 +559,7 @@ const ProjectDetailPage = () => {
               <>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Typography variant="h5">
-                    Contenus ({contents.length})
+                    {t('projectDetail.contents.title', { count: contents.length })}
                   </Typography>
                 </Box>
 
@@ -586,10 +567,10 @@ const ProjectDetailPage = () => {
                   <Paper sx={{ p: 4, textAlign: 'center' }}>
                     <TextSnippetIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
                     <Typography variant="h6" gutterBottom>
-                      Aucun contenu
+                      {t('projectDetail.contents.noContent.title')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                       Utilisez le bouton "Lancer un nouveau Fine-tuning" ci-dessus pour ajouter du contenu.
+                      {t('projectDetail.contents.noContent.description')}
                     </Typography>
                   </Paper>
                 ) : (
@@ -617,24 +598,24 @@ const ProjectDetailPage = () => {
                             secondary={
                               <>
                                 <Typography variant="body2" component="span" color="text.secondary">
-                                  {content.description || 'Aucune description'}
+                                  {content.description || t('projectDetail.contents.item.noDescription')}
                                 </Typography>
                                 {content.status === 'error' && content.error_message && (
                                   <Typography variant="body2" color="error.main" sx={{ mt: 1 }}>
-                                    Erreur: {content.error_message}
+                                    {t('projectDetail.contents.item.errorPrefix')}: {content.error_message}
                                   </Typography>
                                 )}
                                 <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                                   <Typography variant="caption" color="text.secondary">
-                                    Type: {content.type.toUpperCase()}
+                                    {t('projectDetail.contents.item.typeLabel')}: {content.type.toUpperCase()}
                                   </Typography>
                                   {content.size > 0 && (
                                     <Typography variant="caption" color="text.secondary">
-                                      Taille: {formatSize(content.size)}
+                                      {t('projectDetail.contents.item.sizeLabel')}: {formatSize(content.size)}
                                     </Typography>
                                   )}
                                   <Typography variant="caption" color="text.secondary">
-                                    Ajouté le: {formatDate(content.created_at)}
+                                    {t('projectDetail.contents.item.addedOnLabel')}: {formatDate(content.created_at)}
                                   </Typography>
                                 </Box>
                               </>
@@ -646,7 +627,7 @@ const ProjectDetailPage = () => {
                                 <IconButton 
                                   edge="end" 
                                   onClick={() => handleDownloadContent(content)}
-                                  title="Télécharger"
+                                  title={t('projectDetail.contents.item.downloadTooltip')}
                                 >
                                   <DownloadIcon />
                                 </IconButton>
@@ -654,7 +635,7 @@ const ProjectDetailPage = () => {
                               <IconButton 
                                 edge="end" 
                                 onClick={() => handleDeleteContent(content.id)}
-                                title="Supprimer"
+                                title={t('projectDetail.contents.item.deleteTooltip')}
                                 sx={{ ml: 1 }}
                               >
                                 <DeleteIcon />
@@ -676,7 +657,7 @@ const ProjectDetailPage = () => {
               <>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Typography variant="h5">
-                    Fine-tunings ({fineTunings.length})
+                    {t('projectDetail.fineTunings.title', { count: fineTunings.length })}
                   </Typography>
                 </Box>
 
@@ -684,10 +665,10 @@ const ProjectDetailPage = () => {
                   <Paper sx={{ p: 4, textAlign: 'center' }}>
                     <PsychologyIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
                     <Typography variant="h6" gutterBottom>
-                      Aucun fine-tuning
+                      {t('projectDetail.fineTunings.noFineTunings.title')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                       Utilisez le bouton "Lancer un nouveau Fine-tuning" ci-dessus pour commencer.
+                      {t('projectDetail.fineTunings.noFineTunings.description')}
                     </Typography>
                   </Paper>
                 ) : (
@@ -727,13 +708,13 @@ const ProjectDetailPage = () => {
                                   )}
                                   <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                                     <Typography variant="caption" color="text.secondary">
-                                      Modèle: {fineTuning.model}
+                                      {t('projectDetail.fineTunings.item.modelLabel')}: {fineTuning.model}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                      Provider: {fineTuning.provider}
+                                      {t('projectDetail.fineTunings.item.providerLabel')}: {fineTuning.provider}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                      Créé le: {formatDate(fineTuning.created_at)}
+                                      {t('projectDetail.fineTunings.item.createdOnLabel')}: {formatDate(fineTuning.created_at)}
                                     </Typography>
                                   </Box>
                                 </>
@@ -750,7 +731,7 @@ const ProjectDetailPage = () => {
                                   }}
                                   sx={{ mr: 1 }}
                                 >
-                                  Tester
+                                  {t('projectDetail.fineTunings.item.testButton')}
                                 </Button>
                               )}
                               <IconButton
@@ -783,14 +764,14 @@ const ProjectDetailPage = () => {
         onClose={handleContentMenuClose}
       >
         <MenuItem onClick={() => handleViewContent(selectedContent?.id)}>
-          Voir les détails
+          {t('projectDetail.contentMenu.viewDetails')}
         </MenuItem>
         <Divider />
         <MenuItem 
           onClick={() => handleDeleteContent(selectedContent?.id)}
           sx={{ color: 'error.main' }}
         >
-          Supprimer
+          {t('common.delete')}
         </MenuItem>
       </Menu>
 
@@ -801,22 +782,22 @@ const ProjectDetailPage = () => {
         onClose={handleDatasetMenuClose}
       >
         <MenuItem onClick={() => handleViewDataset(selectedDataset?.id)}>
-          Voir les détails
+          {t('projectDetail.datasetMenu.viewDetails')}
         </MenuItem>
         {selectedDataset?.status === 'ready' && (
           <MenuItem onClick={() => handleFineTuneDataset(selectedDataset?.id)}>
-            Fine-tuner ce dataset
+            {t('projectDetail.datasetMenu.fineTune')}
           </MenuItem>
         )}
         <MenuItem onClick={() => handleDownloadDataset(selectedDataset?.id)}>
-          Télécharger le dataset
+          {t('projectDetail.datasetMenu.download')}
         </MenuItem>
         <Divider />
         <MenuItem 
           onClick={() => handleDeleteDataset(selectedDataset?.id)}
           sx={{ color: 'error.main' }}
         >
-          Supprimer
+          {t('common.delete')}
         </MenuItem>
       </Menu>
       
@@ -827,16 +808,16 @@ const ProjectDetailPage = () => {
         onClose={handleFineTuningMenuClose}
       >
         <MenuItem onClick={() => handleViewFineTuning(selectedFineTuning?.id)}>
-          Voir les détails
+          {t('projectDetail.fineTuningMenu.viewDetails')}
         </MenuItem>
         {selectedFineTuning?.status === 'completed' && (
           <MenuItem onClick={() => handleChatWithFineTuning(selectedFineTuning?.id)}>
-            Tester le modèle
+            {t('projectDetail.fineTuningMenu.testModel')}
           </MenuItem>
         )}
         {selectedFineTuning?.dataset && (
           <MenuItem onClick={() => handleDownloadDataset(selectedFineTuning.dataset.id)}>
-            Télécharger le dataset
+            {t('projectDetail.fineTuningMenu.downloadDataset')}
           </MenuItem>
         )}
       </Menu>
@@ -845,17 +826,16 @@ const ProjectDetailPage = () => {
       <Dialog
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
+        aria-labelledby="edit-project-dialog-title"
       >
-        <DialogTitle id="alert-dialog-title">{"Modifier le projet"}</DialogTitle>
+        <DialogTitle id="edit-project-dialog-title">{t('projectDetail.editDialog.title')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
+          <DialogContentText component="div">
             <TextField
               autoFocus
               margin="dense"
               id="name"
-              label="Nom"
+              label={t('projectDetail.editDialog.nameLabel')}
               type="text"
               fullWidth
               value={editName}
@@ -864,7 +844,7 @@ const ProjectDetailPage = () => {
             <TextField
               margin="dense"
               id="description"
-              label="Description"
+              label={t('projectDetail.editDialog.descriptionLabel')}
               type="text"
               fullWidth
               value={editDescription}
@@ -873,8 +853,8 @@ const ProjectDetailPage = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Annuler</Button>
-          <Button onClick={handleUpdateProject}>Modifier</Button>
+          <Button onClick={() => setEditDialogOpen(false)}>{t('common.cancel')}</Button>
+          <Button onClick={handleUpdateProject}>{t('projectDetail.editButton')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -882,18 +862,17 @@ const ProjectDetailPage = () => {
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
+        aria-labelledby="delete-project-dialog-title"
       >
-        <DialogTitle id="alert-dialog-title">{"Supprimer le projet"}</DialogTitle>
+        <DialogTitle id="delete-project-dialog-title">{t('projectDetail.deleteDialog.title')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Êtes-vous sûr de vouloir supprimer ce projet ?
+            {t('projectDetail.deleteDialog.confirmText')}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
-          <Button onClick={handleDeleteProject} color="error">Supprimer</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>{t('common.cancel')}</Button>
+          <Button onClick={handleDeleteProject} color="error">{t('common.delete')}</Button>
         </DialogActions>
       </Dialog>
     </Container>
