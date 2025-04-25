@@ -7,7 +7,18 @@
     "delete": "Delete",
     "remove": "Remove",
     "untitled": "Untitled",
-    "status": "Status",
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "processing": "Processing",
+      "ready": "Ready",
+      "error": "Error",
+      "queued": "Queued",
+      "preparing": "Preparing",
+      "training": "Training",
+      "cancelled": "Cancelled",
+      "generating": "Generating"
+    },
     "characters": "Characters",
     "calculating": "Calculating",
     "type": "Type",
@@ -34,7 +45,11 @@
     "backButton": "Back",
     "nextButton": "Next",
     "unknownError": "Unknown error",
-    "default": "(Default)"
+    "default": "(Default)",
+    "unknownStep": "Unknown step",
+    "nameLabel": "Name",
+    "idLabel": "ID",
+    "statusLabel": "Status"
   },
   "login": {
     "title": "Login",
@@ -414,8 +429,8 @@
     },
     "introduction": {
       "title": "What is FineTuner?",
-      "paragraph1": "FineTuner is your gateway to truly personalized AI. In just a few clicks, transform your unique content (texts, PDFs, YouTube videos...) into powerful AI models like ChatGPT or Claude.",
-      "paragraph2": "Everything happens directly on <0>your own OpenAI or Anthropic account</0>. Forget complex manual configuration: you retrieve a fine-tuned model, ready to be integrated and reflect the DNA of your brand or project.",
+      "paragraph1": "FineTuner is your gateway to truly personalized AI. In just a few clicks, transform your unique content (texts, PDFs, YouTube videos...) into powerful AI models, ChatGPT or Claude.",
+      "paragraph2": "Everything happens directly on your own OpenAI or Anthropic account. Forget complex manual configuration: you retrieve a fine-tuned model, ready to be integrated and reflect the DNA of your brand or project.",
       "ctaButton": "Try FineTuner for Free"
     }
   },
@@ -1004,7 +1019,8 @@
     "step0": {
       "infoAlert": "Specify the role of your AI assistant, its tone (formal, friendly, humorous...) and the types of tasks it should perform.",
       "purposeLabel": "Purpose of your AI assistant",
-      "purposePlaceholder": "Examples:\n- An AI that talks like Michael Scott, Harry Potter, Gollum, etc.\n- A customer support assistant for an e-commerce store that answers questions about orders, returns, and products.\n- A legal expert explaining US labor law simply.\n- A sports coach offering personalized advice and training programs."
+      "purposePlaceholder": "Examples:\n- An AI that talks like Michael Scott, Harry Potter, Gollum, etc.\n- A customer support assistant for an e-commerce store that answers questions about orders, returns, and products.\n- A legal expert explaining US labor law simply.\n- A sports coach offering personalized advice and training programs.",
+      "purposeHelper": "Be specific about the domain of expertise, the tone to adopt, and the desired capabilities."
     },
     "step3": {
       "infoAlert": "Review the fine-tuning details and launch the process. Once your model is trained, you can use it to interact with your personalized assistant.",
@@ -1284,6 +1300,170 @@
     },
     "error": {
       "loadData": "Error loading data."
+    }
+  },
+  "onboarding": {
+    "steps": {
+      "define": "Define your assistant",
+      "import": "Import content",
+      "finetune": "Fine-tune a model",
+      "completed": "Completed"
+    },
+    "step0": {
+      "infoAlert": "Specify the role of your AI assistant, its tone (formal, friendly, humorous...) and the types of tasks it should perform.",
+      "purposeLabel": "Purpose of your AI assistant",
+      "purposePlaceholder": "Examples:\n- An AI that talks like Michael Scott, Harry Potter, Gollum, etc.\n- A customer support assistant for an e-commerce store that answers questions about orders, returns, and products.\n- A legal expert explaining US labor law simply.\n- A sports coach offering personalized advice and training programs.",
+      "purposeHelper": "Be specific about the domain of expertise, the tone to adopt, and the desired capabilities.",
+      "error": {
+        "generateFailed": "Error: {{error}}",
+        "generateGeneric": "Error during system content generation"
+      }
+    },
+    "step1": {
+      "infoAlert": "Import the content your assistant needs to know here: documents, web pages, or videos. The more relevant content you add, the more accurate and helpful the assistant's responses will be.\\nThe recommendations are aligned with the goal you set for your assistant.\\n\\nThe first 10,000 characters are free.",
+      "status": {
+        "processing": "Processing content...",
+        "exactCount": "Exact character count",
+        "estimatedCount": "Estimated character count",
+        "noContent": "No content added"
+      },
+      "charsCounted": "Characters counted: <1>{{count}}</1>",
+      "charsEstimated": "Estimated characters: <1>{{estimated}}</1> (including {{counted}} counted)",
+      "charsEstimatedZero": "Estimated characters: <1>0</1>",
+      "cost": "${{cost}}",
+      "costFreeEstimate": "Free (estimate)",
+      "costEstimate": "~${{cost}} (estimate)",
+      "progressTitle": "Dataset Progress",
+      "progressChars": "{{count}} characters",
+      "tooltip": {
+        "freeCredits": "Free credits included",
+        "minRecommended": "Minimum recommended for your training goal",
+        "optimal": "Optimal level for high-quality results",
+        "intermediate": "Intermediate level"
+      },
+      "progressLabel": {
+        "free": "10,000 chars",
+        "min": "Min: {{count}}",
+        "optimal": "Optimal: {{count}}",
+        "intermediateValue": "{{count}}"
+      },
+      "warning": {
+        "missingChars": "<0>InfoOutlinedIcon</0>You are missing <1>{{count}}</1> characters to reach the minimum recommended for your training goal."
+      },
+      "success": {
+        "minReached": "<0>CheckCircleIcon</0>You have reached the minimum recommended for this assistant category."
+      },
+      "info": {
+        "excellent": "<0>StarsIcon</0>Excellent! Your dataset has exceeded the optimal size for top-quality results.",
+        "addMore": "The more content you add, the better the fine-tuning quality will be.",
+        "processingUpdate": "Processing files, the count will update automatically"
+      },
+      "snackbar": {
+        "urlAdded": "URL added successfully",
+        "youtubeDeleteError": "Error deleting YouTube video",
+        "webDeleteError": "Error deleting website",
+        "contentDeleteSuccess": "Content deleted successfully",
+        "contentDeleteError": "Error: {{error}}",
+        "contentDeleteErrorDefault": "Deletion failed"
+      },
+      "youtube": {
+        "placeholder": "Enter URL",
+        "listTitle": "Added YouTube videos:",
+        "estimatedChars": "~{{count}} estimated characters",
+        "transcriptionStatus": "Transcription: {{status}}"
+      },
+      "web": {
+        "placeholder": "Enter website URL",
+        "addButton": "Add URL",
+        "listTitle": "Added websites:",
+        "charsCount": "{{count}} characters"
+      }
+    },
+    "step2": {
+      "configureTitle": "Configure your model for fine-tuning.",
+      "provider": {
+        "openai": "OpenAI",
+        "anthropicComingSoon": "Anthropic (Coming soon)"
+      },
+      "models": {
+          "openai": {
+              "gpt-4o": "GPT-4o (Most capable and recent model)",
+              "gpt-4o-mini": "GPT-4o Mini (Good price/performance ratio)",
+              "gpt-3.5-turbo": "GPT-3.5 Turbo (Cost-effective, good performance)",
+              "gpt-4.1-mini": "GPT-4.1 Mini (Compact version of GPT-4.1)",
+              "gpt-4.1": "GPT-4.1 (High performance, more costly)"
+          },
+          "anthropic": {
+              "claude-3-sonnet-20240229": "Claude 3 Sonnet (Coming soon)",
+              "claude-3-haiku-20240307": "Claude 3 Haiku (Coming soon)"
+          }
+      },
+      "validateApiKeyButton": "Validate API Key",
+      "apiKeyValidatedMessage": "API key validated successfully",
+      "datasetCreatedTitle": "Dataset created successfully",
+      "datasetInfo": {
+          "name": "<0>Name:</0> {{name}}",
+          "id": "<0>ID:</0> {{id}}",
+          "status": "<0>Status:</0> {{status}}"
+      },
+      "datasetProcessingText": "The dataset is being prepared. This step may take a few minutes...",
+      "finetuningInfo": {
+          "name": "<0>Name:</0> {{name}}",
+          "id": "<0>ID:</0> {{id}}",
+          "status": "<0>Status:</0> {{status}}"
+      },
+      "finetuningProcessingText": "Fine-tuning is processing and may take several hours. You can proceed to the next step.",
+      "error": {
+        "connectionError": "Connection error. Please try again.",
+        "projectNotCreated": "The project has not been created yet",
+        "datasetCreationFailed": "Error creating dataset",
+        "datasetGenerationFailed": "Error generating dataset: {{error}}",
+        "datasetNotCreated": "Please create a dataset first"
+      },
+      "snackbar": {
+          "apiKeyValidationError": "Error: {{error}}",
+          "datasetCreateError": "Error: {{error}}",
+          "datasetReady": "Dataset ready for fine-tuning"
+      }
+    },
+    "apiKeyHelpDialog": {
+      "whyPara1": "To fine-tune your model, we need to access the {{providerName}} API using your own key. This allows us to:",
+      "whyItem1": "Create a personalized fine-tuned model that belongs to you",
+      "whyItem2": "Ensure the confidentiality of your data",
+      "whyItem3": "Allow you to use this model in your own applications",
+      "whereOpenAITitle": "How to get your OpenAI API key",
+      "securityPara": "We never store your API key in plaintext. It is encrypted in our database and only used for the fine-tuning operations you initiate.",
+      "goToOpenAIButton": "Go to OpenAI"
+    },
+    "error": {
+      "projectCreateFailed": "Error: {{error}}",
+      "projectCreateFailedDefault": "Project creation failed",
+      "completionGeneric": "An error occurred during finalization",
+      "unexpectedResponse": "Unexpected response format. Please contact support."
+    },
+    "snackbar": {
+      "completionSuccess": "Your onboarding is successfully completed!",
+      "completionError": "Error finalizing onboarding: {{error}}"
+    },
+    "video": {
+      "defaultTitle": "YouTube Video - {{timestamp}}",
+      "pendingDescription": "YouTube video awaiting transcription. Duration: {{duration}} min (estimate)."
+    },
+    "web": {
+      "defaultTitle": "Web Content - {{timestamp}}"
+    },
+    "defaultProjectName": "My first project",
+    "defaultProjectDescription": "Project created during onboarding",
+    "defaultDatasetName": "Default Dataset",
+    "defaultDatasetDescription": "Dataset automatically generated during onboarding",
+    "finishButton": "Finish",
+    "paymentDescription": "Fine-tuning a {{provider}} model ({{model}}) with {{count}} characters (including {{freeCount}} free). The AI model will be trained on the data you imported and customized to become the desired AI assistant.",
+    "qualityDescription": {
+      "insufficient": "Insufficient data: The model will struggle to generate consistent answers.",
+      "minimal": "Minimal quality: Basic answers with limited context.",
+      "good": "Good quality: Accurate and well-contextualized answers.",
+      "optimal": "Optimal quality: Detailed and highly personalized answers.",
+      "excessive": "Data beyond optimal: Additional benefits may diminish."
     }
   }
 }

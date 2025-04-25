@@ -76,3 +76,5 @@ Lorsque vous demandez la traduction d'un fichier ou d'un composant, veuillez sui
 > "Peux-tu traduire le composant `frontend/src/components/auth/LoginForm.js` en anglais en suivant les instructions de `TRANSLATION_GUIDE.md` ?"
 
 **Note :** L'anglais (`en`) est la langue principale. Les clés doivent être ajoutées en premier dans `en/translation.json`. 
+
+**Note :** Ajouter uniqument des nouveles clés de traductions, ne jamais en supprimer.

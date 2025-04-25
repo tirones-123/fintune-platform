@@ -13,14 +13,29 @@
     "sizeUnitMB": "Mo",
     "sizeUnitGB": "Go",
     "defaultSystemPrompt": "Vous êtes un assistant utile.",
-    "status": "Statut",
+    "status": {
+      "pending": "En attente",
+      "completed": "Terminé",
+      "processing": "En traitement",
+      "ready": "Prêt",
+      "error": "Erreur",
+      "queued": "En attente",
+      "preparing": "En préparation",
+      "training": "En entraînement",
+      "cancelled": "Annulé",
+      "generating": "En génération"
+    },
     "cancel": "Annuler",
     "copyright": "© {{year}} FineTuner. Tous droits réservés.",
     "backButton": "Précédent",
     "nextButton": "Suivant",
     "generatingButton": "Génération...",
     "unknownError": "Erreur inconnue",
-    "default": "(Par défaut)"
+    "default": "(Par défaut)",
+    "unknownStep": "Étape inconnue",
+    "nameLabel": "Nom",
+    "idLabel": "ID",
+    "statusLabel": "Statut"
   },
   "login": {
     "title": "Connexion",
@@ -401,7 +416,7 @@
     "introduction": {
       "title": "Qu'est-ce que FineTuner ?",
       "paragraph1": "FineTuner est votre passerelle vers une IA véritablement personnalisée. En quelques clics, transformez vos contenus uniques (textes, PDF, vidéos YouTube...) en modèles d'IA surpuissants type ChatGPT ou Claude.",
-      "paragraph2": "Le tout s'opère directement sur <0>votre propre compte OpenAI ou Anthropic</0>. Oubliez la configuration manuelle complexe : vous récupérez un modèle fine-tuné, prêt à être intégré et à refléter l'ADN de votre marque ou projet.",
+      "paragraph2": "Le tout s'opère directement sur votre propre compte OpenAI ou Anthropic. Oubliez la configuration manuelle complexe : vous récupérez un modèle fine-tuné, prêt à être intégré et à refléter l'ADN de votre marque ou projet.",
       "ctaButton": "Essayer FineTuner Gratuitement"
     }
   },
@@ -990,7 +1005,12 @@
     "step0": {
       "infoAlert": "Indiquez le rôle de votre assistant IA, son ton (formel, amical, humoristique...) et les types de tâches qu'il doit accomplir.",
       "purposeLabel": "Objectif de votre assistant IA",
-      "purposePlaceholder": "Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc\n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement."
+      "purposePlaceholder": "Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc\n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.",
+      "purposeHelper": "Soyez précis sur le domaine d'expertise, le ton à adopter et les capacités souhaitées.",
+      "error": {
+        "generateFailed": "Erreur : {{error}}",
+        "generateGeneric": "Erreur lors de la génération du system content"
+      }
     },
     "step3": {
       "infoAlert": "Vérifiez les détails du fine-tuning et lancez le traitement. Une fois votre modèle entrainé, vous pourrez l'utiliser pour interagir avec votre assistant personnalisé.",
@@ -1271,5 +1291,169 @@
     "error": {
       "loadData": "Erreur lors du chargement des données."
     }
+  },
+  "onboarding": {
+    "steps": {
+      "define": "Définir votre assistant",
+      "import": "Importer du contenu",
+      "finetune": "Fine-tuner un modèle",
+      "completed": "Terminé"
+    },
+    "step0": {
+      "infoAlert": "Indiquez le rôle de votre assistant IA, son ton (formel, amical, humoristique...) et les types de tâches qu'il doit accomplir.",
+      "purposeLabel": "Objectif de votre assistant IA",
+      "purposePlaceholder": "Exemples :\\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc\\n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\\n- Un expert juridique qui explique le droit du travail américain de façon simple.\\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.",
+      "purposeHelper": "Soyez précis sur le domaine d'expertise, le ton à adopter et les capacités souhaitées.",
+      "error": {
+        "generateFailed": "Erreur : {{error}}",
+        "generateGeneric": "Erreur lors de la génération du system content"
+      }
+    },
+    "step1": {
+      "infoAlert": "Importez ici les contenus que votre assistant devra connaître : documents, pages web ou vidéos. Plus vous ajoutez de contenu pertinent, plus l'assistant sera précis et utile dans ses réponses.\\nLes recommandations sont alignées sur l'objectif que vous avez défini pour votre assistant.\\n\\nLes 10 000 premiers caractères sont offerts.",
+      "status": {
+        "processing": "Traitement des contenus en cours...",
+        "exactCount": "Comptage exact des caractères",
+        "estimatedCount": "Estimation du nombre de caractères",
+        "noContent": "Aucun contenu ajouté"
+      },
+      "charsCounted": "Caractères comptés : <1>{{count}}</1>",
+      "charsEstimated": "Caractères estimés : <1>{{estimated}}</1> (dont {{counted}} comptés)",
+      "charsEstimatedZero": "Caractères estimés : <1>0</1>",
+      "cost": "{{cost}}€",
+      "costFreeEstimate": "Gratuit (estimation)",
+      "costEstimate": "~{{cost}}€ (estimation)",
+      "progressTitle": "Progression de votre dataset",
+      "progressChars": "{{count}} caractères",
+      "tooltip": {
+        "freeCredits": "Crédits gratuits inclus",
+        "minRecommended": "Minimum recommandé pour votre objectif d'entraînement",
+        "optimal": "Niveau optimal pour des résultats de qualité supérieure",
+        "intermediate": "Niveau intermédiaire"
+      },
+      "progressLabel": {
+        "free": "10 000 car.",
+        "min": "Min : {{count}}",
+        "optimal": "Optimal : {{count}}",
+        "intermediateValue": "{{count}}"
+      },
+      "warning": {
+        "missingChars": "<0>InfoOutlinedIcon</0>Il vous manque <1>{{count}}</1> caractères pour atteindre le minimum recommandé pour votre objectif d'entraînement."
+      },
+      "success": {
+        "minReached": "<0>CheckCircleIcon</0>Vous avez atteint le minimum recommandé pour cette catégorie d'assistant."
+      },
+      "info": {
+        "excellent": "<0>StarsIcon</0>Excellent ! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.",
+        "addMore": "Plus vous ajoutez de contenu, meilleure sera la qualité du fine-tuning.",
+        "processingUpdate": "Traitement des fichiers en cours, le comptage sera mis à jour automatiquement"
+      },
+      "snackbar": {
+        "urlAdded": "URL ajoutée avec succès",
+        "youtubeDeleteError": "Erreur lors de la suppression de la vidéo YouTube",
+        "webDeleteError": "Erreur lors de la suppression du site web",
+        "contentDeleteSuccess": "Contenu supprimé avec succès",
+        "contentDeleteError": "Erreur : {{error}}",
+        "contentDeleteErrorDefault": "Échec de la suppression"
+      },
+      "youtube": {
+        "placeholder": "Entrez l'URL",
+        "listTitle": "Vidéos YouTube ajoutées :",
+        "estimatedChars": "~{{count}} caractères estimés",
+        "transcriptionStatus": "Transcription : {{status}}"
+      },
+      "web": {
+        "placeholder": "Entrez l'URL du site",
+        "addButton": "Ajouter l'URL",
+        "listTitle": "Sites Web ajoutés :",
+        "charsCount": "{{count}} caractères"
+      }
+    },
+    "step2": {
+      "configureTitle": "Configurez votre modèle pour le fine-tuning.",
+      "provider": {
+        "openai": "OpenAI",
+        "anthropicComingSoon": "Anthropic (Bientôt disponible)"
+      },
+      "models": {
+          "openai": {
+              "gpt-4o": "GPT-4o (Modèle le plus performant et récent)",
+              "gpt-4o-mini": "GPT-4o Mini (Bon rapport qualité/prix)",
+              "gpt-3.5-turbo": "GPT-3.5 Turbo (Économique, bonne performance)",
+              "gpt-4.1-mini": "GPT-4.1 Mini (Version compacte de GPT-4.1)",
+              "gpt-4.1": "GPT-4.1 (Haute performance, plus coûteux)"
+          },
+          "anthropic": {
+              "claude-3-sonnet-20240229": "Claude 3 Sonnet (Bientôt disponible)",
+              "claude-3-haiku-20240307": "Claude 3 Haiku (Bientôt disponible)"
+          }
+      },
+      "validateApiKeyButton": "Valider la clé API",
+      "apiKeyValidatedMessage": "Clé API validée avec succès",
+      "datasetCreatedTitle": "Dataset créé avec succès",
+      "datasetInfo": {
+          "name": "<0>Nom :</0> {{name}}",
+          "id": "<0>ID :</0> {{id}}",
+          "status": "<0>Statut :</0> {{status}}"
+      },
+      "datasetProcessingText": "Le dataset est en cours de préparation. Cette étape peut prendre quelques minutes...",
+      "finetuningInfo": {
+          "name": "<0>Nom :</0> {{name}}",
+          "id": "<0>ID :</0> {{id}}",
+          "status": "<0>Statut :</0> {{status}}"
+      },
+      "finetuningProcessingText": "Le fine-tuning est en cours de traitement et peut prendre plusieurs heures. Vous pouvez passer à l'étape suivante.",
+      "error": {
+        "connectionError": "Erreur de connexion. Veuillez réessayer.",
+        "projectNotCreated": "Le projet n'a pas encore été créé",
+        "datasetCreationFailed": "Erreur lors de la création du dataset",
+        "datasetGenerationFailed": "Erreur lors de la génération du dataset : {{error}}",
+        "datasetNotCreated": "Veuillez d'abord créer un dataset"
+      },
+      "snackbar": {
+          "apiKeyValidationError": "Erreur : {{error}}",
+          "datasetCreateError": "Erreur : {{error}}",
+          "datasetReady": "Dataset prêt pour le fine-tuning"
+      }
+    },
+    "apiKeyHelpDialog": {
+      "whyPara1": "Pour réaliser le fine-tuning de votre modèle, nous devons accéder à l'API {{providerName}} en utilisant votre propre clé. Cela permet de :",
+      "whyItem1": "Créer un modèle fine-tuné personnalisé qui vous appartient",
+      "whyItem2": "Garantir la confidentialité de vos données",
+      "whyItem3": "Vous permettre d'utiliser ce modèle dans vos propres applications",
+      "whereOpenAITitle": "Comment obtenir votre clé API OpenAI",
+      "securityPara": "Nous ne stockons jamais votre clé API en clair. Elle est chiffrée dans notre base de données et utilisée uniquement pour les opérations de fine-tuning que vous initiez.",
+      "goToOpenAIButton": "Accéder à OpenAI"
+    },
+    "error": {
+      "projectCreateFailed": "Erreur : {{error}}",
+      "projectCreateFailedDefault": "Échec de la création du projet",
+      "completionGeneric": "Une erreur est survenue lors de la finalisation",
+      "unexpectedResponse": "Format de réponse inattendu. Veuillez contacter le support."
+    },
+    "snackbar": {
+      "completionSuccess": "Votre onboarding est terminé avec succès !",
+      "completionError": "Erreur lors de la finalisation de l'onboarding : {{error}}"
+    },
+    "video": {
+      "defaultTitle": "Vidéo YouTube - {{timestamp}}",
+      "pendingDescription": "Vidéo YouTube en attente de transcription. Durée : {{duration}} min (estimation)."
+    },
+    "web": {
+      "defaultTitle": "Contenu web - {{timestamp}}"
+    },
+    "defaultProjectName": "Mon premier projet",
+    "defaultProjectDescription": "Projet créé pendant l'onboarding",
+    "defaultDatasetName": "Dataset par défaut",
+    "defaultDatasetDescription": "Dataset généré automatiquement pendant l'onboarding",
+    "finishButton": "Terminer",
+    "paymentDescription": "Fine-tuning d'un modèle {{provider}} ({{model}}) avec {{count}} caractères (dont {{freeCount}} gratuits). Le modèle IA sera entraîné selon les données que vous avez importées et personnalisé pour devenir l'assistant IA souhaité."
+  },
+  "qualityDescription": {
+    "insufficient": "Données insuffisantes: Le modèle aura du mal à générer des réponses cohérentes.",
+    "minimal": "Qualité minimale: Réponses basiques avec contexte limité.",
+    "good": "Bonne qualité: Réponses précises et bien contextualisées.",
+    "optimal": "Qualité optimale: Réponses détaillées et très personnalisées.",
+    "excessive": "Données au-delà de l'optimal: Les bénéfices supplémentaires peuvent diminuer."
   }
 }

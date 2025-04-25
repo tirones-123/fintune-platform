@@ -53,11 +53,11 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { useAuth } from '../context/AuthContext';
 import PageTransition from '../components/common/PageTransition';
-import { 
-  subscriptionService, 
-  projectService, 
-  contentService, 
-  datasetService, 
+import {
+  subscriptionService,
+  projectService,
+  contentService,
+  datasetService,
   fineTuningService,
   apiKeyService,
   videoService,
@@ -80,35 +80,37 @@ import DialogActions from '@mui/material/DialogActions';
 import CloseIcon from '@mui/icons-material/Close';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Link from '@mui/material/Link';
+import { useTranslation, Trans } from 'react-i18next'; // Import useTranslation and Trans
 
 // Variantes d'animation pour les étapes
 const stepVariants = {
   hidden: { opacity: 0, x: 50 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     x: 0,
-    transition: { 
+    transition: {
       duration: 0.5,
       ease: [0.4, 0, 0.2, 1],
     }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     x: -50,
-    transition: { 
+    transition: {
       duration: 0.3,
       ease: [0.4, 0, 0.2, 1],
     }
   }
 };
 
-// Étapes de l'onboarding
-const steps = [
-  'Définir votre assistant',
-  'Importer du contenu',
-  'Fine-tuner un modèle',
-  'Terminé'
-];
+// Étapes de l'onboarding - Already translated using t() in previous steps
+// The function call needs to happen inside the component or where t is available
+// const steps = [
+//   t('onboarding.steps.define'),
+//   t('onboarding.steps.import'),
+//   t('onboarding.steps.finetune'),
+//   t('onboarding.steps.completed')
+// ];
 
 // Prix par caractère
 const PRICE_PER_CHARACTER = 0.000365;
@@ -126,14 +128,14 @@ const USAGE_THRESHOLDS = {
   other: { min: 5000, optimal: 30000, max: 100000 }
 };
 
-// Descriptions des niveaux de qualité
-const QUALITY_DESCRIPTIONS = {
-  insufficient: "Données insuffisantes: Le modèle aura du mal à générer des réponses cohérentes.",
-  minimal: "Qualité minimale: Réponses basiques avec contexte limité.",
-  good: "Bonne qualité: Réponses précises et bien contextualisées.",
-  optimal: "Qualité optimale: Réponses détaillées et très personnalisées.",
-  excessive: "Données au-delà de l'optimal: Les bénéfices supplémentaires peuvent diminuer."
-};
+// Descriptions des niveaux de qualité - Will be initialized inside component with t()
+// const QUALITY_DESCRIPTIONS = {
+//   insufficient: "Données insuffisantes: Le modèle aura du mal à générer des réponses cohérentes.",
+//   minimal: "Qualité minimale: Réponses basiques avec contexte limité.",
+//   good: "Bonne qualité: Réponses précises et bien contextualisées.",
+//   optimal: "Qualité optimale: Réponses détaillées et très personnalisées.",
+//   excessive: "Données au-delà de l'optimal: Les bénéfices supplémentaires peuvent diminuer."
+// };
 
 // Couleurs pour les niveaux de qualité
 const QUALITY_COLORS = {
@@ -149,13 +151,32 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation(); // Initialize useTranslation
+
+  // Initialize steps array here where t is available
+  const steps = [
+    t('onboarding.steps.define'),
+    t('onboarding.steps.import'),
+    t('onboarding.steps.finetune'),
+    t('onboarding.steps.completed')
+  ];
+
+  // Initialize quality descriptions here
+  const QUALITY_DESCRIPTIONS = {
+    insufficient: t('onboarding.qualityDescription.insufficient'),
+    minimal: t('onboarding.qualityDescription.minimal'),
+    good: t('onboarding.qualityDescription.good'),
+    optimal: t('onboarding.qualityDescription.optimal'),
+    excessive: t('onboarding.qualityDescription.excessive')
+  };
+
   const [activeStep, setActiveStep] = useState(0);
-  
+
   // Ajouter des refs pour stocker les données réelles sans dépendre de l'état React
   const youtubeVideosRef = useRef([]);
   const webSitesRef = useRef([]);
   const totalCharCountRef = useRef(0);
-  
+
   // État pour le system content
   const [assistantPurpose, setAssistantPurpose] = useState('');
   const [systemContent, setSystemContent] = useState('');
@@ -163,14 +184,14 @@ const OnboardingPage = () => {
   const [systemContentError, setSystemContentError] = useState(null);
   const [fineTuningCategory, setFineTuningCategory] = useState('');
   const [minCharactersRecommended, setMinCharactersRecommended] = useState(0);
-  
-  // Données du projet (créé automatiquement)
-  const [projectName] = useState("Mon premier projet");
-  const [projectDescription] = useState("Projet créé pendant l'onboarding");
+
+  // Données du projet (créé automatiquement) - Initialize with t()
+  const [projectName] = useState(t('onboarding.defaultProjectName'));
+  const [projectDescription] = useState(t('onboarding.defaultProjectDescription'));
   const [createdProject, setCreatedProject] = useState(null);
   const [creatingProject, setCreatingProject] = useState(false);
   const [projectError, setProjectError] = useState(null);
-  
+
   // Données du contenu
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [uploadedUrls, setUploadedUrls] = useState([]);
@@ -179,26 +200,26 @@ const OnboardingPage = () => {
   const [newUrlName, setNewUrlName] = useState('');
   const [uploadError, setUploadError] = useState(null);
   const fileInputRef = React.useRef(null);
-  
+
   // Ajout de l'état pour le comptage réel des caractères
   const [actualCharacterCount, setActualCharacterCount] = useState(0);
   const [isEstimated, setIsEstimated] = useState(true);
-  
-  // Données du dataset (créé automatiquement)
-  const [datasetName, setDatasetName] = useState("Dataset par défaut");
+
+  // Données du dataset (créé automatiquement) - Initialize with t()
+  const [datasetName, setDatasetName] = useState(t('onboarding.defaultDatasetName'));
   const [creatingDataset, setCreatingDataset] = useState(false);
   const [createdDataset, setCreatedDataset] = useState(null);
   const [datasetError, setDatasetError] = useState(null);
   const [datasetLoading, setDatasetLoading] = useState(false);
   const [datasetReady, setDatasetReady] = useState(false);
-  
+
   // Données du fine-tuning
   const [provider, setProvider] = useState('openai');
   const [model, setModel] = useState('gpt-4o');
   const [creatingFineTuning, setCreatingFineTuning] = useState(false);
   const [createdFineTuning, setCreatedFineTuning] = useState(null);
   const [fineTuningError, setFineTuningError] = useState(null);
-  
+
   // Modèles disponibles par fournisseur
   const providerModels = {
     openai: [
@@ -219,12 +240,12 @@ const OnboardingPage = () => {
   const [savingApiKey, setSavingApiKey] = useState(false);
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [apiKeyError, setApiKeyError] = useState(null);
-  
+
   // Ajout d'un état pour gérer la soumission du formulaire de finalisation
   const [isCompleting, setIsCompleting] = useState(false);
   const [completionError, setCompletionError] = useState(null);
   const [processingFineTuning, setProcessingFineTuning] = useState(false);
-  
+
   // Définition du cas d'utilisation (useCase)
   const [useCase, setUseCase] = useState('other');
 
@@ -261,8 +282,8 @@ const OnboardingPage = () => {
     
     try {
       const projectData = {
-        name: projectName,
-        description: projectDescription
+        name: projectName, // Already using translated state
+        description: projectDescription // Already using translated state
       };
       
       // Appel API pour créer le projet
@@ -272,8 +293,9 @@ const OnboardingPage = () => {
       return true;
     } catch (error) {
       console.error('Erreur lors de la création du projet:', error);
-      setProjectError(error.message || "Erreur lors de la création du projet");
-      enqueueSnackbar(`Erreur: ${error.message || "Échec de la création du projet"}`, { variant: 'error' });
+      const defaultError = t('onboarding.error.projectCreateFailedDefault');
+      setProjectError(error.message || defaultError);
+      enqueueSnackbar(t('onboarding.error.projectCreateFailed', { error: error.message || defaultError }), { variant: 'error' });
       return false;
     } finally {
       setCreatingProject(false);
@@ -283,7 +305,7 @@ const OnboardingPage = () => {
   // Fonction pour générer le system content à partir de l'entrée utilisateur
   const generateSystemContent = async () => {
     if (!assistantPurpose.trim()) {
-      setSystemContentError("Veuillez décrire le but de votre assistant");
+      setSystemContentError(t('systemPromptGenerator.error.purposeRequired'));
       return false;
     }
     
@@ -304,7 +326,7 @@ const OnboardingPage = () => {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Erreur lors de la génération du system content");
+        throw new Error(errorData.detail || t('onboarding.step0.error.generateGeneric')); // Translate fallback error
       }
       
       const data = await response.json();
@@ -330,8 +352,9 @@ const OnboardingPage = () => {
       return true;
     } catch (error) {
       console.error('Erreur lors de la génération du system content:', error);
-      setSystemContentError(error.message || "Erreur lors de la génération du system content");
-      enqueueSnackbar(`Erreur: ${error.message || "Échec de la génération du system content"}`, { variant: 'error' });
+      const defaultError = t('onboarding.step0.error.generateGeneric');
+      setSystemContentError(error.message || defaultError);
+      enqueueSnackbar(t('onboarding.step0.error.generateFailed', { error: error.message || defaultError }), { variant: 'error' });
       return false;
     } finally {
       setGeneratingSystemContent(false);
@@ -349,17 +372,18 @@ const OnboardingPage = () => {
         setUploadedUrls(prev => prev.filter(url => url.id !== content.id));
       }
       
-      enqueueSnackbar('Contenu supprimé avec succès', { variant: 'success' });
+      enqueueSnackbar(t('onboarding.snackbar.contentDeleteSuccess'), { variant: 'success' }); // Key was incorrect, corrected
     } catch (error) {
       console.error('Erreur lors de la suppression du contenu:', error);
-      enqueueSnackbar(`Erreur: ${error.message || "Échec de la suppression"}`, { variant: 'error' });
+      const defaultError = t('onboarding.snackbar.contentDeleteErrorDefault');
+      enqueueSnackbar(t('onboarding.snackbar.contentDeleteError', { error: error.message || defaultError }), { variant: 'error' });
     }
   };
 
   // Fonction pour ajouter une clé API
   const saveApiKey = async () => {
     if (!apiKey) {
-      setApiKeyError("Une clé API est requise pour le fine-tuning");
+      setApiKeyError(t('configManager.error.apiKeyRequired'));
       return false;
     }
     
@@ -376,12 +400,12 @@ const OnboardingPage = () => {
       const { valid, credits, message } = verificationResponse.data;
       
       if (!valid) {
-        setApiKeyError(message || "La clé API n'est pas valide");
+        setApiKeyError(message || t('configManager.error.invalidApiKey'));
         return false;
       }
       
       if (credits === 0) {
-        setApiKeyError("Votre compte ne dispose pas de crédits suffisants pour le fine-tuning. Veuillez recharger votre compte API.");
+        setApiKeyError(t('configManager.error.noCredits'));
         return false;
       }
       
@@ -395,12 +419,13 @@ const OnboardingPage = () => {
       
       // Messages d'erreur spécifiques selon le type d'erreur
       if (error.response) {
-        setApiKeyError(error.response.data?.detail || "Erreur lors de la vérification de la clé API");
+        setApiKeyError(error.response.data?.detail || t('configManager.error.validationFailed'));
       } else {
-        setApiKeyError("Erreur de connexion. Veuillez réessayer.");
+        setApiKeyError(t('onboarding.step2.error.connectionError'));
       }
       
-      enqueueSnackbar(`Erreur: ${error.message || "Échec de la validation de la clé API"}`, { variant: 'error' });
+      const defaultError = t('configManager.error.validationFailed');
+      enqueueSnackbar(t('onboarding.step2.snackbar.apiKeyValidationError', { error: error.message || defaultError }), { variant: 'error' });
       return false;
     } finally {
       setSavingApiKey(false);
@@ -410,13 +435,13 @@ const OnboardingPage = () => {
   // Fonction pour créer un dataset
   const createDataset = async () => {
     if (!createdProject) {
-      setDatasetError("Le projet n'a pas encore été créé");
+      setDatasetError(t('onboarding.step2.error.projectNotCreated'));
       return false;
     }
     
     const allContents = [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb];
     if (allContents.length === 0) {
-      setDatasetError("Veuillez d'abord ajouter du contenu");
+      setDatasetError(t('newFineTuning.warnings.contentRequired'));
       return false;
     }
     
@@ -425,12 +450,12 @@ const OnboardingPage = () => {
     
     try {
       const datasetData = {
-        name: datasetName,
+        name: datasetName, // Already translated state
         project_id: createdProject.id,
         content_ids: allContents.map(content => content.id),
         model: 'gpt-3.5-turbo',
-        description: `Dataset généré automatiquement pendant l'onboarding`,
-        system_content: systemContent || "You are a helpful assistant."
+        description: t('onboarding.defaultDatasetDescription'),
+        system_content: systemContent || t('common.defaultSystemPrompt')
       };
       
       // Appel API pour créer le dataset
@@ -445,8 +470,9 @@ const OnboardingPage = () => {
       
     } catch (error) {
       console.error('Erreur lors de la création du dataset:', error);
-      setDatasetError(error.message || "Erreur lors de la création du dataset");
-      enqueueSnackbar(`Erreur: ${error.message || "Échec de la création du dataset"}`, { variant: 'error' });
+      const defaultError = t('onboarding.step2.error.datasetCreationFailed');
+      setDatasetError(error.message || defaultError);
+      enqueueSnackbar(t('onboarding.step2.snackbar.datasetCreateError', { error: error.message || defaultError }), { variant: 'error' });
       return false;
     } finally {
       setCreatingDataset(false);
@@ -468,7 +494,7 @@ const OnboardingPage = () => {
       if (dataset.status === "ready") {
         setDatasetReady(true);
         setDatasetLoading(false);
-        enqueueSnackbar('Dataset prêt pour le fine-tuning', { variant: 'success' });
+        enqueueSnackbar(t('onboarding.step2.snackbar.datasetReady'), { variant: 'success' });
 
         // Lancer automatiquement le fine-tuning si le dataset est prêt et qu'aucun fine-tuning n'existe
         if (!createdFineTuning) {
@@ -483,7 +509,7 @@ const OnboardingPage = () => {
         return true;
       } else if (dataset.status === "error") {
         setDatasetLoading(false);
-        setDatasetError(`Erreur lors de la génération du dataset: ${dataset.error_message || 'Erreur inconnue'}`);
+        setDatasetError(t('onboarding.step2.error.datasetGenerationFailed', { error: dataset.error_message || t('common.unknownError') }));
         return false;
       } else {
         // Continuer la vérification si le dataset est toujours en traitement
@@ -500,7 +526,7 @@ const OnboardingPage = () => {
   // Fonction pour créer un fine-tuning
   const createFineTuning = async () => {
     if (!createdDataset) {
-      setFineTuningError("Veuillez d'abord créer un dataset");
+      setFineTuningError(t('onboarding.step2.error.datasetNotCreated'));
       return false;
     }
     
@@ -513,7 +539,7 @@ const OnboardingPage = () => {
       const apiModelId = selectedModel?.apiId || model;
       
       const fineTuningData = {
-        name: `Fine-tuning de ${datasetName}`,
+        name: t('onboarding.defaultFineTuningName', { datasetName: datasetName }), // Use translation
         dataset_id: createdDataset.id,
         model: apiModelId,
         provider: provider,
@@ -529,8 +555,9 @@ const OnboardingPage = () => {
       return true;
     } catch (error) {
       console.error('Erreur lors de la création du fine-tuning:', error);
-      setFineTuningError(error.message || "Erreur lors de la création du fine-tuning");
-      enqueueSnackbar(`Erreur: ${error.message || "Échec du lancement du fine-tuning"}`, { variant: 'error' });
+      const defaultError = t('newFineTuning.errors.launchFailedDefault');
+      setFineTuningError(error.message || defaultError);
+      enqueueSnackbar(t('newFineTuning.errors.launchFailed', { error: error.message || defaultError }), { variant: 'error' });
       return false;
     } finally {
       setCreatingFineTuning(false);
@@ -553,7 +580,7 @@ const OnboardingPage = () => {
     switch (activeStep) {
       case 0: // Après étape définition de l'assistant
         if (!assistantPurpose.trim()) {
-          enqueueSnackbar("Veuillez décrire le but de votre assistant.", { variant: 'warning' });
+          enqueueSnackbar(t('systemPromptGenerator.error.purposeRequired'), { variant: 'warning' });
           return;
         }
         // Ne plus utiliser isLoadingNext ici
@@ -570,11 +597,11 @@ const OnboardingPage = () => {
       case 1: // Après étape import de contenu
         const hasAnyContent = uploadedFiles.length > 0 || uploadedUrls.length > 0 || uploadedYouTube.length > 0 || uploadedWeb.length > 0;
         if (!hasAnyContent) {
-          enqueueSnackbar("Veuillez ajouter au moins un contenu.", { variant: 'warning' });
+          enqueueSnackbar(t('newFineTuning.warnings.contentRequired'), { variant: 'warning' });
           return;
         }
         if (isProcessingCheck) { 
-            enqueueSnackbar("Veuillez attendre la fin du traitement des contenus.", { variant: 'warning' });
+            enqueueSnackbar(t('newFineTuning.warnings.contentProcessing'), { variant: 'warning' });
             return;
         }
         break; // On continue vers setActiveStep à la fin
@@ -637,7 +664,12 @@ const OnboardingPage = () => {
         provider: provider,
         model: apiModelId,
         system_content: systemContent,
-        description_payment: `Fine-tuning d'un modèle ${provider === 'openai' ? 'OpenAI' : 'Anthropic'} (${model}) avec ${actualCharacterCount.toLocaleString()} caractères (dont 10 000 gratuits). Le modèle IA sera entraîné selon les données que vous avez importées et personnalisé pour devenir l'assistant IA souhaité.`
+        description_payment: t('onboarding.paymentDescription', {
+          provider: provider === 'openai' ? 'OpenAI' : 'Anthropic',
+          model: model,
+          count: actualCharacterCount.toLocaleString(),
+          freeCount: FREE_CHARACTER_QUOTA.toLocaleString()
+        })
       });
 
       console.log("Réponse de l'API session:", response);
@@ -667,7 +699,7 @@ const OnboardingPage = () => {
         // L'AuthContext rechargera l'utilisateur avec le bon statut.
         
         // Afficher une notification de succès
-        enqueueSnackbar('Votre onboarding est terminé avec succès!', { variant: 'success' });
+        enqueueSnackbar(t('onboarding.snackbar.completionSuccess'), { variant: 'success' });
         
         // Rediriger vers le dashboard après un court délai pour que la notification soit visible
         setTimeout(() => {
@@ -677,11 +709,12 @@ const OnboardingPage = () => {
       }
       
       // Si on arrive ici, c'est un cas non géré
-      throw new Error("Format de réponse inattendu. Veuillez contacter le support.");
+      throw new Error(t('onboarding.error.unexpectedResponse'));
     } catch (error) {
       console.error("Erreur lors de la finalisation de l'onboarding:", error);
-      setCompletionError(error.message || "Une erreur est survenue lors de la finalisation");
-      enqueueSnackbar(error.message || "Erreur lors de la finalisation de l'onboarding", { variant: 'error' });
+      const defaultError = t('onboarding.error.completionGeneric');
+      setCompletionError(error.message || defaultError);
+      enqueueSnackbar(t('onboarding.snackbar.completionError', { error: error.message || defaultError }), { variant: 'error' });
     } finally {
       setProcessingFineTuning(false);
     }
@@ -1048,7 +1081,7 @@ const OnboardingPage = () => {
   const handleAddYouTubeUrl = async () => {
     if (!youtubeUrl.trim() || youtubeUploading) return;
     if (!createdProject) {
-      setYoutubeUploadError("Veuillez d'abord créer un projet");
+      setYoutubeUploadError(t('onboarding.step2.error.projectNotCreated'));
       return;
     }
     
@@ -1061,7 +1094,7 @@ const OnboardingPage = () => {
     const videoId = match && match[1];
     
     if (!videoId) {
-      setYoutubeUploadError("URL YouTube invalide. Veuillez fournir une URL valide.");
+      setYoutubeUploadError(t('contentManager.error.invalidYoutubeUrl'));
       setYoutubeUploading(false);
       return;
     }
@@ -1116,7 +1149,7 @@ const OnboardingPage = () => {
           if (secondaryData && secondaryData.video_length) {
             // Mapper les champs pour une structure cohérente
             videoInfo = {
-              title: secondaryData.title || `Vidéo YouTube - ${new Date().toLocaleString()}`,
+              title: secondaryData.title || t('onboarding.video.defaultTitle', { timestamp: new Date().toLocaleString() }),
               lengthSeconds: secondaryData.video_length // 'video_length' contient la durée
               // On peut ajouter d'autres champs si nécessaire
             };
@@ -1133,7 +1166,7 @@ const OnboardingPage = () => {
 
       // --- Traitement du résultat ou de l'erreur finale ---
       if (videoInfo && videoInfo.lengthSeconds) {
-        const videoTitle = videoInfo.title || `Vidéo YouTube - ${new Date().toLocaleString()}`;
+        const videoTitle = videoInfo.title || t('onboarding.video.defaultTitle', { timestamp: new Date().toLocaleString() });
         const durationSeconds = parseInt(videoInfo.lengthSeconds); // Assurer que c'est un nombre
         const durationMinutes = Math.round(durationSeconds / 60);
         const estimatedCharacters = Math.round((durationSeconds / 60) * 400);
@@ -1145,7 +1178,7 @@ const OnboardingPage = () => {
           url: youtubeUrl,
           name: videoTitle,
           type: 'youtube',
-          description: `Vidéo YouTube en attente de transcription. Durée: ${durationMinutes} min (estimation).`
+          description: t('onboarding.video.pendingDescription', { duration: durationMinutes })
         };
         const backendResponse = await contentService.addUrl(urlContentPayload);
         console.log("Réponse Backend (Création Contenu):", backendResponse);
@@ -1172,17 +1205,21 @@ const OnboardingPage = () => {
 
       } else {
         // Les deux APIs ont échoué ou n'ont pas retourné de durée
-        throw primaryError || new Error("Impossible de récupérer la durée de la vidéo via les services disponibles.");
+        throw primaryError || new Error(t('contentManager.error.youtubeDurationFailed'));
       }
 
     } catch (error) {
       // Gérer l'erreur finale (si les deux APIs échouent ou autre erreur)
       console.error('Erreur finale ajout URL YouTube:', error);
-      let errorMessage = "Impossible d'ajouter la vidéo YouTube";
+      let errorMessage = t('contentManager.error.youtubeAddFailed');
       if (error.response) {
-         errorMessage = `Erreur API: ${error.response.data?.detail || error.response.data?.message || error.message}`;
+         errorMessage = t('chatPage.error.apiError', { message: error.response.data?.detail || error.response.data?.message || error.message });
       } else if (error.message) {
-         errorMessage = `Erreur: ${error.message}`;
+         if (error.message === t('contentManager.error.youtubeDurationFailed')) {
+            errorMessage = error.message;
+         } else {
+            errorMessage = t('common.errorLabel', { error: error.message });
+         }
       }
       setYoutubeUploadError(errorMessage);
     } finally {
@@ -1194,7 +1231,7 @@ const OnboardingPage = () => {
   const handleScrapeUrl = async () => {
     if (!scrapeUrl.trim() || scrapeLoading) return;
     if (!createdProject) {
-      setScrapeError("Veuillez d'abord créer un projet");
+      setScrapeError(t('onboarding.step2.error.projectNotCreated'));
       return;
     }
     
@@ -1213,7 +1250,7 @@ const OnboardingPage = () => {
       const urlContent = {
         project_id: createdProject.id,
         url: scrapeUrl,
-        name: scrapedData.title || `Contenu web - ${new Date().toLocaleString()}`,
+        name: scrapedData.title || t('onboarding.web.defaultTitle', { timestamp: new Date().toLocaleString() }),
         type: 'website',
         description: scrapedText
       };
@@ -1255,7 +1292,7 @@ const OnboardingPage = () => {
       
     } catch (error) {
       console.error('Erreur lors du scraping de l\'URL Web:', error);
-      setScrapeError(error.message || 'Erreur lors du scraping de l\'URL Web');
+      setScrapeError(error.message || t('contentManager.error.scrapeFailed'));
     } finally {
       setScrapeLoading(false);
     }
@@ -1294,11 +1331,11 @@ const OnboardingPage = () => {
         });
         
         // Notification
-        enqueueSnackbar("Vidéo YouTube supprimée avec succès", { variant: 'success' });
+        enqueueSnackbar(t('contentManager.snackbar.youtubeRemoved'), { variant: 'success' });
       })
       .catch(err => {
         console.error("Erreur lors de la suppression de la vidéo YouTube:", err);
-        enqueueSnackbar("Erreur lors de la suppression de la vidéo", { variant: 'error' });
+        enqueueSnackbar(t('onboarding.step1.snackbar.youtubeDeleteError'), { variant: 'error' }); // Key was incorrect, corrected
       });
   };
 
@@ -1335,11 +1372,11 @@ const OnboardingPage = () => {
         });
         
         // Notification
-        enqueueSnackbar("Site web supprimé avec succès", { variant: 'success' });
+        enqueueSnackbar(t('contentManager.snackbar.websiteRemoved'), { variant: 'success' });
       })
       .catch(err => {
         console.error("Erreur lors de la suppression du site web:", err);
-        enqueueSnackbar("Erreur lors de la suppression du site", { variant: 'error' });
+        enqueueSnackbar(t('onboarding.step1.snackbar.webDeleteError'), { variant: 'error' }); // Key was incorrect, corrected
       });
   };
 
@@ -1356,26 +1393,26 @@ const OnboardingPage = () => {
           <Box>
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-              Indiquez le rôle de votre assistant IA, son ton (formel, amical, humoristique...)
-              et les types de tâches qu'il doit accomplir.
+                {t('onboarding.step0.infoAlert')}
               </Typography>
             </Alert>
             
             <FormControl fullWidth sx={{ mb: 3 }}>
               <TextField
-                label="Objectif de votre assistant IA"
+                label={t('onboarding.step0.purposeLabel')}
                 value={assistantPurpose}
                 onChange={(e) => setAssistantPurpose(e.target.value)}
                 multiline
                 rows={5}
-                placeholder={`Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc \n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.es clients.\n`}
+                placeholder={t('onboarding.step0.purposePlaceholder')}
                 error={!!systemContentError}
-                helperText={systemContentError}
+                helperText={systemContentError || t('onboarding.step0.purposeHelper')} // Show helper or error
                 inputProps={{ maxLength: 1000 }}
               />
-              <FormHelperText>
-                Soyez précis sur le domaine d'expertise, le ton à adopter et les capacités souhaitées.
-              </FormHelperText>
+              {/* Remove redundant helper text if error is shown in helperText */}
+              {/* <FormHelperText>
+                {t('onboarding.step0.purposeHelper')}
+              </FormHelperText> */}
             </FormControl>
           </Box>
         );
@@ -1384,14 +1421,12 @@ const OnboardingPage = () => {
         return (
           <Box>
             <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="body2">
-                Importez ici les contenus que votre assistant devra connaître : documents, pages web ou vidéos. Plus vous ajoutez de contenu pertinent, plus l'assistant sera précis et utile dans ses réponses.<br />Les recommandations sont alignées sur l'objectif que vous avez défini pour votre assistant.
-                <br /><br /> Les 10 000 premiers caractères sont offerts.
-              </Typography>
+              {/* Use dangerouslySetInnerHTML for the line breaks in the translation key */}
+              <Typography variant="body2" dangerouslySetInnerHTML={{ __html: t('onboarding.step1.infoAlert').replace(/\\n/g, '<br />') }} />
             </Alert>
-            
-            <Paper 
-              elevation={0} 
+
+            <Paper
+              elevation={0}
               sx={{
                 p: 2, 
                 mb: 3, 
@@ -1412,44 +1447,54 @@ const OnboardingPage = () => {
 
                 let titleText = "";
                 if (isProcessingAnyContent) {
-                  titleText = "Traitement des contenus en cours...";
+                  titleText = t('onboarding.step1.status.processing');
                 } else if (!isEstimated && hasAnyContent) {
-                  titleText = "Comptage exact des caractères";
+                  titleText = t('onboarding.step1.status.exactCount');
                 } else if (hasAnyContent) {
-                  titleText = "Estimation du nombre de caractères";
+                  titleText = t('onboarding.step1.status.estimatedCount');
                 } else {
-                  titleText = "Aucun contenu ajouté";
+                  titleText = t('onboarding.step1.status.noContent');
                 }
 
                 let countText = "";
                 if (isProcessingAnyContent) {
-                  countText = <Box sx={{ display: 'flex', alignItems: 'center' }}><CircularProgress size={16} sx={{ mr: 1 }} />Calcul en cours...</Box>;
+                  countText = <Box sx={{ display: 'flex', alignItems: 'center' }}><CircularProgress size={16} sx={{ mr: 1 }} />{t('common.calculating')}</Box>;
                 } else if (!isEstimated && actualCharacterCount > 0) {
-                  countText = <>Caractères comptés: <strong>{actualCharacterCount.toLocaleString()}</strong></>;
+                  // Use Trans component for embedded <strong>
+                  countText = <Trans i18nKey="onboarding.step1.charsCounted" values={{ count: actualCharacterCount.toLocaleString() }} components={{ strong: <strong /> }} />;
                 } else if (hasAnyContent && isEstimated) {
-                  countText = <>Caractères estimés: <strong>{estimateCharacterCount().toLocaleString()}</strong>{actualCharacterCount > 0 && ` (dont ${actualCharacterCount.toLocaleString()} comptés)`}</>;
+                   if (actualCharacterCount > 0) {
+                    // Use Trans component for embedded <strong>
+                    countText = <Trans i18nKey="onboarding.step1.charsEstimated" values={{ estimated: estimateCharacterCount().toLocaleString(), counted: actualCharacterCount.toLocaleString() }} components={{ strong: <strong /> }} />;
+                   } else {
+                    // Use Trans component for embedded <strong>
+                    countText = <Trans i18nKey="onboarding.step1.charsEstimated" values={{ estimated: estimateCharacterCount().toLocaleString(), counted: '0' }} components={{ strong: <strong /> }} />; // Fallback counted
+                   }
                 } else {
-                  countText = <>Caractères estimés: <strong>0</strong></>;
+                  // Use Trans component for embedded <strong>
+                  countText = <Trans i18nKey="onboarding.step1.charsEstimatedZero" components={{ strong: <strong /> }} />;
                 }
-                
+
                 let costText = "";
                 if (isProcessingAnyContent) {
-                    costText = 'Calcul en cours...';
+                    costText = t('common.calculating');
                 } else if (!isEstimated && actualCharacterCount <= FREE_CHARACTER_QUOTA) {
-                    costText = 'Gratuit';
+                    costText = t('common.free');
                 } else if (!isEstimated && actualCharacterCount > FREE_CHARACTER_QUOTA) {
-                    costText = `$${getEstimatedCost(actualCharacterCount).toFixed(2)}`;
+                    // Use translation for cost format if needed, assuming $ for now
+                    costText = t('onboarding.step1.cost', { cost: getEstimatedCost(actualCharacterCount).toFixed(2) });
                 } else if (estimateCharacterCount() <= FREE_CHARACTER_QUOTA) {
-                    costText = 'Gratuit (estimation)';
+                    costText = t('onboarding.step1.costFreeEstimate');
                 } else {
-                    costText = `~$${getEstimatedCost(estimateCharacterCount()).toFixed(2)} (estimation)`;
+                    // Use translation for cost estimate format if needed, assuming ~$ for now
+                    costText = t('onboarding.step1.costEstimate', { cost: getEstimatedCost(estimateCharacterCount()).toFixed(2) });
                 }
 
                 return (
                   <>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                       {titleText}
-                      {hasAnyContent && ` (${completedFiles}/${totalFiles} traités)`}
+                      {hasAnyContent && ` (${completedFiles}/${totalFiles} ${t('onboarding.step1.filesProcessed')})`}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
                       <Box sx={{ flexGrow: 1 }}>
@@ -1459,7 +1504,8 @@ const OnboardingPage = () => {
                       </Box>
                       <Box>
                         <Typography variant="body2" color="text.secondary">
-                          Coût estimé: <strong>{costText}</strong>
+                           {/* Use Trans component for embedded <strong> */}
+                          <Trans i18nKey="characterEstimator.estimatedCostLabel" components={{ strong: <strong /> }} />: <strong>{costText}</strong>
                         </Typography>
                       </Box>
                     </Box>
@@ -1467,19 +1513,19 @@ const OnboardingPage = () => {
                 );
               })()}
               {/* --- FIN MODIFICATION --- */}
-              
+
               {/* Comparaison avec le minimum recommandé */}
               {minCharactersRecommended > 0 && (
                 <Box sx={{ mt: 1, width: '100%', maxWidth: '100%' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="body2" fontWeight="medium" color="text.primary">
-                      Progression de votre dataset
+                      {t('onboarding.step1.progressTitle')}
                     </Typography>
                     <Typography variant="body2" color="primary.main" fontWeight="medium">
-                      {(isEstimated ? estimateCharacterCount() : actualCharacterCount).toLocaleString()} caractères
+                      {t('onboarding.step1.progressChars', { count: (isEstimated ? estimateCharacterCount() : actualCharacterCount).toLocaleString() })}
                     </Typography>
                   </Box>
-                  
+
                   {/* Barre de progression simple et sans erreur */}
                   <Box sx={{ mt: 3, mb: 3, position: 'relative', height: 48 }}>
                     {/* Barre principale */}
@@ -1501,10 +1547,10 @@ const OnboardingPage = () => {
                     {/* 10K */}
                     <Box sx={{ position: 'absolute', left: '25%', top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translateX(-50%)' }}>
                       <Box sx={{ width: 2, height: 12, bgcolor: 'grey.400' }} />
-                      <Tooltip title="Crédits gratuits inclus" arrow placement="top">
+                      <Tooltip title={t('onboarding.step1.tooltip.freeCredits')} arrow placement="top">
                         <Box>
                           <Typography variant="caption" sx={{ mt: 0.5, color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                            10 000 car.
+                            {t('onboarding.step1.progressLabel.free')}
                           </Typography>
                         </Box>
                       </Tooltip>
@@ -1513,10 +1559,10 @@ const OnboardingPage = () => {
                     {/* Min */}
                     <Box sx={{ position: 'absolute', left: '50%', top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translateX(-50%)' }}>
                       <Box sx={{ width: 2, height: 12, bgcolor: 'warning.main' }} />
-                      <Tooltip title="Minimum recommandé pour votre objectif d'entraînement" arrow placement="top">
+                      <Tooltip title={t('onboarding.step1.tooltip.minRecommended')} arrow placement="top">
                         <Box>
                           <Typography variant="caption" sx={{ mt: 0.5, color: 'warning.main', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                            Min: {minCharactersRecommended ? minCharactersRecommended.toLocaleString() : '0'}
+                            {t('onboarding.step1.progressLabel.min', { count: minCharactersRecommended ? minCharactersRecommended.toLocaleString() : '0' })}
                           </Typography>
                         </Box>
                       </Tooltip>
@@ -1525,10 +1571,10 @@ const OnboardingPage = () => {
                     {/* Optimal */}
                     <Box sx={{ position: 'absolute', left: `${Math.min(95, 50 + (4 - 1) * (50 / 3))}%`, top: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translateX(-50%)' }}>
                       <Box sx={{ width: 2, height: 12, bgcolor: 'primary.main' }} />
-                      <Tooltip title="Niveau optimal pour des résultats de qualité supérieure" arrow placement="top">
+                      <Tooltip title={t('onboarding.step1.tooltip.optimal')} arrow placement="top">
                         <Box>
                           <Typography variant="caption" sx={{ mt: 0.5, color: 'primary.main', fontWeight: 'medium', whiteSpace: 'nowrap' }}>
-                            Optimal: {minCharactersRecommended ? (minCharactersRecommended * 4).toLocaleString() : '0'}
+                            {t('onboarding.step1.progressLabel.optimal', { count: minCharactersRecommended ? (minCharactersRecommended * 4).toLocaleString() : '0' })}
                           </Typography>
                         </Box>
                       </Tooltip>
@@ -1543,8 +1589,8 @@ const OnboardingPage = () => {
                         <Box key={index} sx={{ position: 'absolute', left: `${leftPosition}%`, top: 14, transform: 'translateX(-50%)' }}>
                           <Box sx={{ width: 1, height: 8, bgcolor: 'grey.300' }} />
                           {index === 1 && ( // Afficher uniquement pour 2x
-                            <Tooltip title={`Niveau intermédiaire`} arrow placement="top">
-                              <Typography variant="caption" sx={{ 
+                            <Tooltip title={t('onboarding.step1.tooltip.intermediate')} arrow placement="top">
+                              <Typography variant="caption" sx={{
                                 position: 'absolute',
                                 mt: 1,
                                 left: '50%',
@@ -1554,7 +1600,7 @@ const OnboardingPage = () => {
                                 fontSize: '0.7rem',
                                 opacity: 0.8
                               }}>
-                                {charCount.toLocaleString()}
+                                {t('onboarding.step1.progressLabel.intermediateValue', { count: charCount.toLocaleString() })}
                               </Typography>
                             </Tooltip>
                           )}
@@ -1562,45 +1608,44 @@ const OnboardingPage = () => {
                       );
                     })}
                   </Box>
-                
-                  {/* Messages d'état */}
+
+                  {/* Messages d'état - Use Trans component */}
                   {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended && (
                     <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 0.5 }}>
-                      <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                      Il vous manque <strong>{(minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString()}</strong> caractères pour atteindre le minimum recommandé pour votre objectif d'entraînement.
+                      <Trans
+                        i18nKey="onboarding.step1.warning.missingChars"
+                        values={{ count: (minCharactersRecommended - (isEstimated ? estimateCharacterCount() : actualCharacterCount)).toLocaleString() }}
+                        components={{ 0: <InfoOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />, 1: <strong /> }}
+                      />
                     </Typography>
                   )}
-                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && 
+                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minRecommended &&
                     (isEstimated ? estimateCharacterCount() : actualCharacterCount) < minCharactersRecommended * 4 && (
                       <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
-                        <CheckCircleIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                        Vous avez atteint le minimum recommandé pour cette catégorie d'assistant.
+                         <Trans i18nKey="onboarding.step1.success.minReached" components={{ 0: <CheckCircleIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} /> }} />
                       </Typography>
                     )}
-                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended && (
+                  {minCharactersRecommended > 0 && (isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minRecommended && (
                     <Typography variant="caption" color={(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? 'primary.main' : 'text.secondary'} sx={{ display: 'block', mt: 0.5 }}>
                       {(isEstimated ? estimateCharacterCount() : actualCharacterCount) >= minCharactersRecommended * 4 ? (
-                        <>
-                          <StarsIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                          Excellent! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.
-                        </>
+                        <Trans i18nKey="onboarding.step1.info.excellent" components={{ 0: <StarsIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} /> }} />
                       ) : (
-                        <>Plus vous ajoutez de contenu, meilleure sera la qualité du fine-tuning.</>
+                        t('onboarding.step1.info.addMore')
                       )}
                     </Typography>
                   )}
-                  
+
                   {isEstimated && [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => c.status !== 'completed' && c.status !== 'error' && c.status !== 'awaiting_transcription') && (
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                       <CircularProgress size={16} sx={{ mr: 1 }} />
                       <Typography variant="caption" color="text.secondary">
-                        Traitement des fichiers en cours, le comptage sera mis à jour automatiquement
+                        {t('onboarding.step1.info.processingUpdate')}
                       </Typography>
                     </Box>
                   )}
                 </Box>
               )}
-              
+
               {/* Le composant FileUpload affiche déjà les fichiers sous forme de chips */}
               {createdProject && (
                 <Box sx={{ mb: 1 }}>
@@ -1620,7 +1665,7 @@ const OnboardingPage = () => {
                             }
                             return [...prev, uploadedContent];
                           });
-                          enqueueSnackbar(`Fichier "${uploadedContent.name}" uploadé avec succès`, { variant: 'success' });
+                          enqueueSnackbar(t('fileUpload.snackbar.uploadSuccess', { fileName: uploadedContent.name }), { variant: 'success' });
                         } 
                         // Si c'est une URL
                         else if (uploadedContent.url) {
@@ -1631,7 +1676,7 @@ const OnboardingPage = () => {
                             }
                             return [...prev, uploadedContent];
                           });
-                          enqueueSnackbar('URL ajoutée avec succès', { variant: 'success' });
+                          enqueueSnackbar(t('onboarding.step1.snackbar.urlAdded'), { variant: 'success' });
                         }
                         
                         // Forcer la récupération des métadonnées après un délai
@@ -1668,18 +1713,18 @@ const OnboardingPage = () => {
                   />
                 </Box>
               )}
-              
+
               {/* Ajout du module pour les vidéos YouTube */}
               <Box sx={{ mb: 2, p: 2, border: '1px dashed', borderColor: 'grey.300', borderRadius: 2 }}>
                 <Typography variant="h6" sx={{ mb: 2 }}>
-                  Ajouter une vidéo YouTube
+                  {t('contentManager.addYoutubeTitle')}
                 </Typography>
                 <TextField
-                  label="URL de la vidéo YouTube"
+                  label={t('contentManager.youtubeUrlLabel')}
                   value={youtubeUrl}
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   fullWidth
-                  placeholder="Entrez l'URL"
+                  placeholder={t('onboarding.step1.youtube.placeholder')}
                   InputProps={{ startAdornment: <YouTubeIcon color="error" sx={{ mr: 1 }} /> }}
                   error={!!youtubeUploadError}
                   helperText={youtubeUploadError}
@@ -1690,14 +1735,14 @@ const OnboardingPage = () => {
                   disabled={youtubeUploading || !youtubeUrl.trim()}
                   sx={{ mt: 2, width: { xs: '100%', sm: 'auto' } }}
                 >
-                  {youtubeUploading ? <CircularProgress size={20} /> : "Ajouter la vidéo"}
+                  {youtubeUploading ? <CircularProgress size={20} /> : t('contentManager.addVideoButton')}
                 </Button>
               </Box>
-                  
+
               {/* Affichage des vidéos YouTube ajoutées */}
               {uploadedYouTube.length > 0 && (
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Vidéos YouTube ajoutées :</Typography>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>{t('onboarding.step1.youtube.listTitle')}</Typography>
                   {uploadedYouTube.map(video => (
                     <Box key={video.id} sx={{ display: 'flex', alignItems: 'center', p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
                       <YouTubeIcon color="error" sx={{ mr: 2 }} />
@@ -1706,18 +1751,18 @@ const OnboardingPage = () => {
                         {video.status === 'awaiting_transcription' ? (
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="caption" color="text.secondary">
-                              ~{video.estimated_characters?.toLocaleString() || '4000'} caractères estimés
+                              {t('onboarding.step1.youtube.estimatedChars', { count: video.estimated_characters?.toLocaleString() || '4000' })}
                             </Typography>
                           </Box>
                         ) : (
                           <Typography variant="caption" color="text.secondary">
-                            Transcription: {video.source || 'terminée'}
+                            {t('onboarding.step1.youtube.transcriptionStatus', { status: video.source || t('common.status.completed') })}
                           </Typography>
                         )}
                       </Box>
-                      <IconButton 
-                        onClick={() => handleDeleteYouTube(video.id)} 
-                        sx={{ 
+                      <IconButton
+                        onClick={() => handleDeleteYouTube(video.id)}
+                        sx={{
                           p: { xs: 1.5, sm: 1 },
                           '& svg': { fontSize: { xs: 24, sm: 20 } }
                         }}
@@ -1728,18 +1773,18 @@ const OnboardingPage = () => {
                   ))}
                 </Box>
               )}
-              
+
               {/* Module pour scraping d'URL Web */}
               <Box sx={{ mb: 3, p: 2, border: '1px dashed', borderColor: 'grey.300', borderRadius: 2 }}>
                 <Typography variant="h6" sx={{ mb: 2 }}>
-                  Ajouter une URL Web
+                  {t('contentManager.addWebsiteTitle')}
                 </Typography>
                 <TextField
-                  label="URL du site"
+                  label={t('contentManager.websiteUrlLabel')}
                   value={scrapeUrl}
                   onChange={(e) => setScrapeUrl(e.target.value)}
                   fullWidth
-                  placeholder="Entrez l'URL du site"
+                  placeholder={t('onboarding.step1.web.placeholder')}
                   InputProps={{ startAdornment: <InsertLinkIcon sx={{ mr: 1 }} /> }}
                   error={!!scrapeError}
                   helperText={scrapeError}
@@ -1750,20 +1795,20 @@ const OnboardingPage = () => {
                   disabled={scrapeLoading || !scrapeUrl.trim()}
                   sx={{ mt: 2 }}
                 >
-                  {scrapeLoading ? <CircularProgress size={20} /> : "Ajouter l'URL"}
+                  {scrapeLoading ? <CircularProgress size={20} /> : t('onboarding.step1.web.addButton')}
                 </Button>
               </Box>
 
               {uploadedWeb.length > 0 && (
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Sites Web ajoutés :</Typography>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>{t('onboarding.step1.web.listTitle')}</Typography>
                   {uploadedWeb.map(item => (
                     <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
                       <InsertLinkIcon sx={{ mr: 2 }} />
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="body1">{item.name}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {item.character_count?.toLocaleString() || '0'} caractères
+                          {t('onboarding.step1.web.charsCount', { count: item.character_count?.toLocaleString() || '0' })}
                         </Typography>
                       </Box>
                       <IconButton onClick={() => handleDeleteWeb(item.id)}>
@@ -1773,7 +1818,7 @@ const OnboardingPage = () => {
                   ))}
                 </Box>
               )}
-              
+
               {uploadError && (
                 <Alert severity="error" sx={{ mt: 2 }}>
                   {uploadError}
@@ -1788,17 +1833,17 @@ const OnboardingPage = () => {
           <Box>
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                Choisissez le modèle que vous souhaitez utiliser et ajoutez votre clé API pour lancer l'entraînement de votre assistant à partir des contenus importés.
+                {t('configManager.infoAlert')}
               </Typography>
             </Alert>
-            
+
             <Typography variant="body1" paragraph>
-              Configurez votre modèle pour le fine-tuning.
+              {t('onboarding.step2.configureTitle')}
             </Typography>
-            
+
             <Box sx={{ mb: 3 }}>
               <FormControl fullWidth margin="normal">
-                <InputLabel id="provider-select-label">Fournisseur</InputLabel>
+                <InputLabel id="provider-select-label">{t('configManager.providerLabel')}</InputLabel>
                 <Select
                   labelId="provider-select-label"
                   value={provider}
@@ -1810,53 +1855,54 @@ const OnboardingPage = () => {
                       setModel(providerModels[newProvider][0].id);
                     }
                   }}
-                  label="Fournisseur"
+                  label={t('configManager.providerLabel')}
                   disabled={createdDataset !== null}
                 >
-                  <MenuItem value="openai">OpenAI</MenuItem>
-                  <MenuItem value="anthropic" disabled>Anthropic (Coming soon)</MenuItem>
+                  <MenuItem value="openai">{t('onboarding.step2.provider.openai')}</MenuItem>
+                  <MenuItem value="anthropic" disabled>{t('onboarding.step2.provider.anthropicComingSoon')}</MenuItem>
                 </Select>
               </FormControl>
-              
+
               <FormControl fullWidth margin="normal">
-                <InputLabel id="model-select-label">Modèle</InputLabel>
+                <InputLabel id="model-select-label">{t('configManager.modelLabel')}</InputLabel>
                 <Select
                   labelId="model-select-label"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  label="Modèle"
+                  label={t('configManager.modelLabel')}
                   disabled={createdDataset !== null}
                 >
                   {provider && providerModels[provider] && providerModels[provider].map((modelOption) => (
-                    <MenuItem 
-                      key={modelOption.id} 
+                    <MenuItem
+                      key={modelOption.id}
                       value={modelOption.id}
-                      disabled={modelOption.name.includes("Coming soon")}
+                      disabled={modelOption.name.includes("Coming soon")} // Check based on original name prop
                     >
-                      {modelOption.name}
+                      {/* Use t() with default value from original name */}
+                      {t(`onboarding.step2.models.${provider}.${modelOption.id}`, modelOption.name)}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
-              
+
               <Box sx={{ mt: 3 }}>
                 <TextField
-                  label={`Clé API ${provider === 'openai' ? 'OpenAI' : 'Anthropic'}`}
+                  label={t('configManager.apiKeyLabel', { providerName: provider === 'openai' ? 'OpenAI' : 'Anthropic' })}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   fullWidth
                   type="password"
                   margin="normal"
-                  placeholder={`Entrez votre clé API ${provider === 'openai' ? 'OpenAI' : 'Anthropic'}`}
+                  placeholder={t('configManager.apiKeyPlaceholder', { providerName: provider === 'openai' ? 'OpenAI' : 'Anthropic' })}
                   error={!!apiKeyError}
                   helperText={apiKeyError}
                   disabled={apiKeySaved}
                   InputProps={{
                     endAdornment: (
-                      <IconButton 
-                        onClick={() => setApiHelpOpen(true)} 
+                      <IconButton
+                        onClick={() => setApiHelpOpen(true)}
                         edge="end"
-                        aria-label="aide sur les clés API"
+                        aria-label={t('configManager.apiKeyHelpAriaLabel')}
                       >
                         <HelpOutlineIcon />
                       </IconButton>
@@ -1864,7 +1910,7 @@ const OnboardingPage = () => {
                   }}
                 />
               </Box>
-              
+
               {!apiKeySaved && (
                 <Button
                   variant="outlined"
@@ -1873,36 +1919,39 @@ const OnboardingPage = () => {
                   sx={{ mt: 2 }}
                 >
                   {savingApiKey ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
-                  Valider la clé API
+                  {t('onboarding.step2.validateApiKeyButton')}
                 </Button>
               )}
             </Box>
-            
+
             {apiKeySaved && (
               <Alert severity="success" sx={{ mt: 2, mb: 3, py: 0.5, fontSize: '0.9rem' }}>
-                Clé API validée avec succès
+                {t('onboarding.step2.apiKeyValidatedMessage')}
               </Alert>
             )}
-            
+
             {createdDataset && (
               <Box sx={{ mt: 3 }}>
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  <AlertTitle>Dataset créé avec succès</AlertTitle>
-                  <Typography variant="body2">
-                    <strong>Nom:</strong> {createdDataset.name}<br />
-                    <strong>ID:</strong> {createdDataset.id}<br />
-                    <strong>Status:</strong> {datasetReady ? "Prêt" : "En préparation..."}
+                  <AlertTitle>{t('onboarding.step2.datasetCreatedTitle')}</AlertTitle>
+                  {/* Use Trans for embedded <strong> tags */}
+                  <Typography component="div" variant="body2">
+                    <Trans i18nKey="onboarding.step2.datasetInfo.name" values={{ name: createdDataset.name }} components={{ 0: <strong /> }} />
+                    <br />
+                    <Trans i18nKey="onboarding.step2.datasetInfo.id" values={{ id: createdDataset.id }} components={{ 0: <strong /> }} />
+                    <br />
+                    <Trans i18nKey="onboarding.step2.datasetInfo.status" values={{ status: t(datasetReady ? 'common.status.ready' : 'common.status.preparing') }} components={{ 0: <strong /> }} />
                   </Typography>
                   {!datasetReady && (
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                       <CircularProgress size={16} sx={{ mr: 1 }} />
                       <Typography variant="caption">
-                        Le dataset est en cours de préparation. Cette étape peut prendre quelques minutes...
+                        {t('onboarding.step2.datasetProcessingText')}
                       </Typography>
                     </Box>
                   )}
                 </Alert>
-                
+
                 {datasetReady && !createdFineTuning && (
                   <Button
                     variant="contained"
@@ -1911,24 +1960,28 @@ const OnboardingPage = () => {
                     sx={{ mt: 2 }}
                   >
                     {creatingFineTuning ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
-                    Lancer le fine-tuning
+                    {t('datasetDetail.startFinetuningButton')}
                   </Button>
                 )}
-                
+
                 {createdFineTuning && (
                   <Alert severity="success" sx={{ mt: 3 }}>
-                    <AlertTitle>Fine-tuning lancé avec succès!</AlertTitle>
-                    <Typography variant="body2">
-                      <strong>Nom:</strong> {createdFineTuning.name}<br />
-                      <strong>ID:</strong> {createdFineTuning.id}<br />
-                      <strong>Statut:</strong> {createdFineTuning.status || "En attente"}
-                    </Typography>
+                    <AlertTitle>{t('newFineTuning.snackbar.launchSuccess')}</AlertTitle>
+                     {/* Use Trans for embedded <strong> tags */}
+                     <Typography component="div" variant="body2">
+                        <Trans i18nKey="onboarding.step2.finetuningInfo.name" values={{ name: createdFineTuning.name }} components={{ 0: <strong /> }} />
+                        <br />
+                        <Trans i18nKey="onboarding.step2.finetuningInfo.id" values={{ id: createdFineTuning.id }} components={{ 0: <strong /> }} />
+                        <br />
+                        {/* Ensure status key exists in common.status */}
+                        <Trans i18nKey="onboarding.step2.finetuningInfo.status" values={{ status: t(createdFineTuning.status ? `common.status.${createdFineTuning.status.toLowerCase()}` : 'common.status.pending') }} components={{ 0: <strong /> }} />
+                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-                      Le fine-tuning est en cours de traitement et peut prendre plusieurs heures. Vous pouvez passer à l'étape suivante.
+                      {t('onboarding.step2.finetuningProcessingText')}
                     </Typography>
                   </Alert>
                 )}
-                
+
                 {fineTuningError && (
                   <Alert severity="error" sx={{ mt: 2 }}>
                     {fineTuningError}
@@ -1938,9 +1991,9 @@ const OnboardingPage = () => {
             )}
           </Box>
         );
-      
+
       default:
-        return 'Étape inconnue';
+        return t('common.unknownStep'); // Use translation for default case
     }
   };
 
@@ -1969,22 +2022,22 @@ const OnboardingPage = () => {
                   : '0 8px 32px rgba(0, 0, 0, 0.1)',
             }}
           >
-            {/* Stepper - seulement visible sur les étapes intermédiaires */}
+            {/* Stepper - Translate labels */}
             {activeStep < steps.length - 1 && (
-              <Stepper 
-                activeStep={activeStep} 
+              <Stepper
+                activeStep={activeStep}
                 alternativeLabel
                 sx={{ mb: 5 }}
               >
                 {steps.map((label) => (
                   <Step key={label}>
-                    <StepLabel>{label}</StepLabel>
+                    <StepLabel>{label}</StepLabel>{/* Label is already translated via steps array */}
                   </Step>
                 ))}
               </Stepper>
             )}
-            
-            {/* Contenu de l'étape */}
+
+            {/* Contenu de l'étape - Already translated */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeStep}
@@ -1996,66 +2049,68 @@ const OnboardingPage = () => {
                 {getStepContent(activeStep)}
               </motion.div>
             </AnimatePresence>
-            
-            {/* Boutons de navigation - seulement visibles sur les étapes intermédiaires */}
+
+            {/* Boutons de navigation - Translate button texts */}
             {activeStep < steps.length - 1 && (
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: { xs: 'column', sm: 'row' }, 
-                justifyContent: 'space-between', 
+              <Box sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
                 mt: 5,
-                gap: { xs: 2, sm: 0 }  
+                gap: { xs: 2, sm: 0 }
               }}>
                 <Button
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
                   sx={{ borderRadius: 3 }}
-                  disabled={activeStep === 0 || uploading || creatingProject || savingApiKey || isCompleting || 
+                  disabled={activeStep === 0 || uploading || creatingProject || savingApiKey || isCompleting ||
                             ([...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => c.status !== 'completed' && c.status !== 'error'))}
                 >
-                  Retour
+                  {t('common.backButton')}
                 </Button>
                 <Button
                   variant="contained"
                   onClick={handleNext}
                     endIcon={activeStep === steps.length - 2 ? null : <ArrowForwardIcon />}
                     startIcon={
-                        (activeStep === 0 && generatingSystemContent) || (activeStep === 2 && isCompleting) 
-                        ? <CircularProgress size={20} color="inherit" /> 
+                        (activeStep === 0 && generatingSystemContent) || (activeStep === 2 && isCompleting)
+                        ? <CircularProgress size={20} color="inherit" />
                         : null
                     }
                   sx={{ borderRadius: 3 }}
-                    disabled={ 
-                      uploading || 
-                      creatingProject || 
-                      savingApiKey || 
-                      isCompleting || 
+                    disabled={
+                      uploading ||
+                      creatingProject ||
+                      savingApiKey ||
+                      isCompleting ||
                       generatingSystemContent || // Désactiver pendant la génération auto
-                      (activeStep === 1 && [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => 
-                        !(c.type === 'youtube' && c.status === 'awaiting_transcription') && 
-                        c.status !== 'completed' && 
+                      (activeStep === 1 && [...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c =>
+                        !(c.type === 'youtube' && c.status === 'awaiting_transcription') &&
+                        c.status !== 'completed' &&
                         c.status !== 'error'
-                      )) || 
+                      )) ||
                       (activeStep === 2 && !apiKeySaved)
                     }
                 >
-                    {activeStep === steps.length - 2 ? (isCompleting ? 'Traitement en cours...' : 'Terminer') : 'Suivant'}
+                    {activeStep === steps.length - 2
+                      ? (isCompleting ? t('payment.processingButton') : t('onboarding.finishButton'))
+                      : t('common.nextButton')}
                 </Button>
               </Box>
             )}
           </Paper>
         </Container>
       </Box>
-      {/* Popup d'aide pour la clé API */}
-      <Dialog 
-        open={apiHelpOpen} 
+      {/* Popup d'aide pour la clé API - Translate dialog content */}
+      <Dialog
+        open={apiHelpOpen}
         onClose={() => setApiHelpOpen(false)}
         maxWidth="md"
       >
         <DialogTitle>
-          Comment obtenir votre clé API {provider === 'openai' ? 'OpenAI' : 'Anthropic'}
+          {t('configManager.apiKeyHelpDialog.title', { providerName: provider === 'openai' ? 'OpenAI' : 'Anthropic' })}
           <IconButton
-            aria-label="fermer"
+            aria-label={t('common.close')} // Translate aria-label
             onClick={() => setApiHelpOpen(false)}
             sx={{
               position: 'absolute',
@@ -2068,81 +2123,92 @@ const OnboardingPage = () => {
         </DialogTitle>
         <DialogContent dividers>
           <Typography variant="h6" gutterBottom>
-            Pourquoi avons-nous besoin de votre clé API ?
+            {t('configManager.apiKeyHelpDialog.whyTitle')}
           </Typography>
           <Typography paragraph>
-            Pour réaliser le fine-tuning de votre modèle, nous devons accéder à l'API {provider === 'openai' ? 'OpenAI' : 'Anthropic'} en utilisant votre propre clé. 
-            Cela permet de:
+            {/* Use translation key for paragraph */}
+            {t('onboarding.apiKeyHelpDialog.whyPara1', { providerName: provider === 'openai' ? 'OpenAI' : 'Anthropic' })}
           </Typography>
           <List>
             <ListItem>
               <ListItemIcon><CheckCircleIcon color="success" /></ListItemIcon>
-              <ListItemText primary="Créer un modèle fine-tuné personnalisé qui vous appartient" />
+              {/* Use translation key for list item */}
+              <ListItemText primary={t('onboarding.apiKeyHelpDialog.whyItem1')} />
             </ListItem>
             <ListItem>
               <ListItemIcon><CheckCircleIcon color="success" /></ListItemIcon>
-              <ListItemText primary="Garantir la confidentialité de vos données" />
+              {/* Use translation key for list item */}
+              <ListItemText primary={t('onboarding.apiKeyHelpDialog.whyItem2')} />
             </ListItem>
             <ListItem>
               <ListItemIcon><CheckCircleIcon color="success" /></ListItemIcon>
-              <ListItemText primary="Vous permettre d'utiliser ce modèle dans vos propres applications" />
+              {/* Use translation key for list item */}
+              <ListItemText primary={t('onboarding.apiKeyHelpDialog.whyItem3')} />
             </ListItem>
           </List>
-          
+
           {provider === 'openai' && (
             <>
               <Typography variant="h6" gutterBottom>
-                Comment obtenir votre clé API OpenAI
+                {/* Use translation key for title */}
+                {t('onboarding.apiKeyHelpDialog.whereOpenAITitle')}
               </Typography>
               <List>
                 <ListItem>
                   <ListItemIcon><Typography variant="body2" color="primary">1</Typography></ListItemIcon>
-                  <ListItemText 
-                    primary="Connectez-vous à votre compte OpenAI" 
+                  <ListItemText
+                    primary={t('configManager.apiKeyHelpDialog.whereOpenAI1')}
                     secondary={<Link href="https://platform.openai.com/login" target="_blank" rel="noopener">https://platform.openai.com/login</Link>}
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemIcon><Typography variant="body2" color="primary">2</Typography></ListItemIcon>
-                  <ListItemText 
-                    primary="Allez dans 'API Keys'" 
-                    secondary="Cliquez sur votre profil en haut à droite, puis sélectionnez 'View API keys'"
+                  <ListItemText
+                    primary={t('configManager.apiKeyHelpDialog.whereOpenAI2')}
+                    secondary={t('configManager.apiKeyHelpDialog.whereOpenAI2Secondary')} // Added separate key for secondary text
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemIcon><Typography variant="body2" color="primary">3</Typography></ListItemIcon>
-                  <ListItemText 
-                    primary="Créez une nouvelle clé API" 
-                    secondary="Cliquez sur 'Create new secret key', donnez-lui un nom et copiez la clé générée"
+                  <ListItemText
+                    primary={t('configManager.apiKeyHelpDialog.whereOpenAI3')}
+                    secondary={t('configManager.apiKeyHelpDialog.whereOpenAI3Secondary')}
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemIcon><Typography variant="body2" color="primary">4</Typography></ListItemIcon>
-                  <ListItemText 
-                    primary="Assurez-vous d'avoir des crédits disponibles" 
-                    secondary="Vérifiez votre solde sous 'Billing' pour vous assurer que vous avez des crédits pour le fine-tuning"
+                  <ListItemText
+                    primary={t('configManager.apiKeyHelpDialog.whereOpenAICredits')}
+                    secondary={
+                        <Trans
+                          i18nKey="configManager.apiKeyHelpDialog.whereOpenAICreditsBillingLink"
+                          components={{ 0: <Link href="https://platform.openai.com/account/billing/overview" target="_blank" rel="noopener" /> }}
+                        />
+                    }
                   />
                 </ListItem>
               </List>
             </>
           )}
-          
+
           <Alert severity="warning" sx={{ mt: 2 }}>
-            <AlertTitle>Important</AlertTitle>
-            Nous ne stockons jamais votre clé API en clair. Elle est chiffrée dans notre base de données et utilisée uniquement pour les opérations de fine-tuning que vous initiez.
+            <AlertTitle>{t('common.important')}</AlertTitle>
+            {/* Use translation key for security paragraph */}
+            {t('onboarding.apiKeyHelpDialog.securityPara')}
           </Alert>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setApiHelpOpen(false)}>Fermer</Button>
+          <Button onClick={() => setApiHelpOpen(false)}>{t('common.close')}</Button>
           {provider === 'openai' && (
-            <Button 
-              variant="contained" 
-              color="primary" 
+            <Button
+              variant="contained"
+              color="primary"
               onClick={() => {
                 window.open('https://platform.openai.com/api-keys', '_blank');
               }}
             >
-              Accéder à OpenAI
+              {/* Use translation key for button */}
+              {t('onboarding.apiKeyHelpDialog.goToOpenAIButton')}
             </Button>
           )}
         </DialogActions>
