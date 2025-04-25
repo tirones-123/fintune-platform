@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CssBaseline } from '@mui/material';
 import { SnackbarProvider } from 'notistack';
@@ -207,7 +207,9 @@ const App = () => {
           autoHideDuration={3000}
         >
           <AuthProvider>
-            <AppRoutes />
+            <Suspense fallback={<LoadingScreen message="Chargement des traductions..." />}>
+              <AppRoutes />
+            </Suspense>
             <Toaster position="bottom-center" toastOptions={{ duration: 4000 }} />
           </AuthProvider>
         </SnackbarProvider>
