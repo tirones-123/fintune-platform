@@ -1706,17 +1706,26 @@ const DeploymentSection = () => {
 
 const FAQSection = () => {
   const theme = useTheme();
-  const { t } = useTranslation(); // Initialize useTranslation
+  // Destructure 'ready' from useTranslation
+  const { t, ready } = useTranslation(); 
 
-  // Structure FAQ pour la traduction - Ensure it defaults to an empty array robustly
-  const faqData = t('landing.faq.questions', { returnObjects: true });
+  // On ne récupère les données que si 'ready' est true
+  const faqData = ready ? t('landing.faq.questions', { returnObjects: true }) : null;
   const faqs = Array.isArray(faqData) ? faqData : []; 
 
-  // Log pour débogage
+  // Log pour débogage (peut être retiré après résolution)
+  console.log('DEBUG: FAQSection - ready:', ready);
   console.log('DEBUG: FAQSection - faqs value:', faqs);
-  console.log('DEBUG: FAQSection - typeof faqs:', typeof faqs);
-  console.log('DEBUG: FAQSection - Array.isArray(faqs):', Array.isArray(faqs));
-  console.log('DEBUG: FAQSection - raw faqData:', faqData); // Voir la valeur brute retournée par t()
+  // console.log('DEBUG: FAQSection - typeof faqs:', typeof faqs); // Moins utile maintenant
+  // console.log('DEBUG: FAQSection - Array.isArray(faqs):', Array.isArray(faqs)); // Moins utile maintenant
+  // console.log('DEBUG: FAQSection - raw faqData:', faqData); // Moins utile maintenant
+
+  // Si les traductions ne sont pas prêtes, on peut afficher un loader ou null
+  if (!ready) {
+    // Optionnel: retourner un indicateur de chargement léger ou simplement null
+    // return <CircularProgress sx={{ display: 'block', margin: 'auto', my: 4 }} />;
+    return null; // Ou retourner null pour ne rien afficher temporairement
+  }
 
   return (
     <Box id="faq-section"
