@@ -226,85 +226,67 @@ class CharacterService:
 
     async def handle_fine_tuning_cost(self, db: Session, user: User, character_count: int) -> dict:
         """
-        Détermine si un paiement est nécessaire pour un job de fine-tuning,
-        en fonction des caractères, des crédits restants et du statut 'has_received_free_credits' de l'utilisateur.
-        
-        Args:
-            db: Session de base de données.
-            user: L'objet User concerné.
-            character_count: Nombre total de caractères pour le job.
-            
-        Returns:
-            Un dictionnaire contenant:
-            - needs_payment: bool
-            - amount_usd: float (montant à payer, 0 si traitement gratuit)
-            - amount_cents: int (montant à payer en cents)
-            - reason: str|None (raison si gratuit: 'first_free_quota', 'already_used_quota', ou 'low_amount')
-            - billable_characters: int (nombre de caractères facturables)
-            - apply_free_credits: bool (Indique si l'endpoint appelant doit marquer les crédits comme reçus)
+        Détermine si un paiement est nécessaire pour un job de fine-tuning selon :
+        1er job : jusqu'à FREE_CHARACTERS gratuit, >FREE_CHARACTERS facturé (applique le quota),
+        jobs suivants : jusqu'à free_characters_remaining gratuit, au-delà facturé.
         """
         try:
-            # L'utilisateur est déjà passé en argument
-            # user = db.query(User).filter(User.id == user_id).first()
-            # if not user:
-            #     logger.error(f"Utilisateur {user.id} non trouvé pour handle_fine_tuning_cost")
-            #     raise ValueError(f"User {user.id} not found")
-
-            # Cas 1: Moins de 10k caractères ET crédits gratuits non encore reçus
-            if character_count <= self.FREE_CHARACTERS and not user.has_received_free_credits:
-                logger.info(f"Job pour User {user.id}: Traitement gratuit (première fois <= {self.FREE_CHARACTERS} caractères).")
+            free_quota = self.FREE_CHARACTERS
+            # Premier job (crédits gratuits non encore utilisés)
+            if not user.has_received_free_credits:
+                # Cas gratuit
+                if character_count <= free_quota:
+                    logger.info(f"1er job pour User {user.id}: gratuit ({character_count} ≤ {free_quota}).")
+                    return {
+                        "needs_payment": False,
+                        "amount_usd": 0.0,
+                        "amount_cents": 0,
+                        "reason": "first_free_quota",
+                        "billable_characters": 0,
+                        "apply_free_credits": True
+                    }
+                # Cas facturation partielle
+                billable = character_count - free_quota
+                amount_usd = self.calculate_price(billable)
+                amount_cents = max(0, round(amount_usd * 100))
+                logger.info(f"1er job pour User {user.id}: facturation de {billable} après {free_quota} gratuits.")
                 return {
-                    "needs_payment": False,
-                    "amount_usd": 0.0,
-                    "amount_cents": 0,
-                    "reason": "first_free_quota",
-                    "billable_characters": 0,
-                    "apply_free_credits": True # Indiquer qu'il faut marquer les crédits
+                    "needs_payment": True,
+                    "amount_usd": amount_usd,
+                    "amount_cents": amount_cents,
+                    "reason": None,
+                    "billable_characters": billable,
+                    "apply_free_credits": True
                 }
-            
-            # Cas 2: Moins de 10k caractères MAIS crédits gratuits déjà reçus
-            elif character_count <= self.FREE_CHARACTERS and user.has_received_free_credits:
-                logger.info(f"Job pour User {user.id}: Traitement gratuit (<= {self.FREE_CHARACTERS} caractères, quota déjà utilisé).")
+
+            # Jobs suivants
+            free_remaining = user.free_characters_remaining
+            # Cas gratuit si dans les crédits restants
+            if character_count <= free_remaining:
+                logger.info(f"Job suivant pour User {user.id}: gratuit ({character_count} ≤ crédits restants {free_remaining}).")
                 return {
                     "needs_payment": False,
                     "amount_usd": 0.0,
                     "amount_cents": 0,
                     "reason": "already_used_quota",
                     "billable_characters": 0,
-                    "apply_free_credits": False # Ne pas marquer à nouveau
+                    "apply_free_credits": False
                 }
-
-            # Cas 3: Plus de 10k caractères
-            else: # character_count > self.FREE_CHARACTERS
-                # Calculer les caractères facturables (au-delà du quota gratuit)
-                billable_characters = character_count - self.FREE_CHARACTERS
-                amount_usd = self.calculate_price(billable_characters)
-                amount_cents = max(0, round(amount_usd * 100))
-                
-                # Vérifier si le montant est suffisant pour Stripe
-                if amount_cents < 60: # Seuil Stripe (ajuster si nécessaire)
-                    logger.info(f"Job pour User {user.id}: Montant trop faible (${amount_usd:.2f}) pour {billable_characters} caractères facturables. Traitement gratuit.")
-                    return {
-                        "needs_payment": False, 
-                        "amount_usd": amount_usd,
-                        "amount_cents": amount_cents,
-                        "reason": "low_amount",
-                        "billable_characters": billable_characters,
-                        "apply_free_credits": False # Les crédits gratuits sont déjà dépassés
-                    }
-                else:
-                    logger.info(f"Job pour User {user.id}: Paiement requis pour {billable_characters} caractères (${amount_usd:.2f}).")
-                    return {
-                        "needs_payment": True, 
-                        "amount_usd": amount_usd,
-                        "amount_cents": int(amount_cents), 
-                        "reason": None,
-                        "billable_characters": billable_characters,
-                        "apply_free_credits": False
-                    }
-
+            # Cas facturation après crédits restants
+            billable = character_count - free_remaining
+            amount_usd = self.calculate_price(billable)
+            amount_cents = max(0, round(amount_usd * 100))
+            logger.info(f"Job suivant pour User {user.id}: facturation de {billable} après crédits restants {free_remaining}.")
+            return {
+                "needs_payment": True,
+                "amount_usd": amount_usd,
+                "amount_cents": amount_cents,
+                "reason": None,
+                "billable_characters": billable,
+                "apply_free_credits": False
+            }
         except Exception as e:
-            logger.error(f"Erreur dans handle_fine_tuning_cost pour user {user.id}: {e}", exc_info=True)
+            logger.error(f"Erreur handle_fine_tuning_cost user {user.id}: {e}", exc_info=True)
             raise
 
 # Créer une instance singleton
