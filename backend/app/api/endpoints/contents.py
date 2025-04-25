@@ -200,6 +200,9 @@ def add_url_content(
         # Cas YouTube : transcription différée
         if content_in.type == "youtube":
             db_content.status = "awaiting_transcription"
+            # Si le front fournit une estimation de caractères, stockons-la
+            if content_in.estimated_characters:
+                db_content.content_metadata["estimated_characters"] = content_in.estimated_characters
 
     db.add(db_content)
     db.commit()

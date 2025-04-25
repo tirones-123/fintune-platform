@@ -267,7 +267,8 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
           url: youtubeUrl,
           name: videoTitle,
           type: 'youtube',
-          description: `Vidéo en attente de transcription. Durée: ${durationMinutes} min (estimation).`
+          description: `Vidéo en attente de transcription. Durée: ${durationMinutes} min (estimation).`,
+          estimated_characters: estimatedCharacters
         };
         const backendResponse = await contentService.addUrl(urlContentPayload);
         console.log("ContentManager: Réponse Backend (Création Contenu):", backendResponse);

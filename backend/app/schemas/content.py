@@ -48,4 +48,6 @@ class URLContent(BaseModel):
     name: str
     description: Optional[str] = None
     url: str
-    type: str = Field(..., description="Type of the content (youtube, webpage, etc.)") 
+    type: str = Field(..., description="Type of the content (youtube, webpage, etc.)")
+    # Nombre de caractères estimés (utile pour YouTube avant transcription)
+    estimated_characters: Optional[int] = None  # Nouveau champ optionnel 
