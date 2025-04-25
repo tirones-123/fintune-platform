@@ -119,7 +119,7 @@ class CharacterService:
             db.rollback()
             return False, 0, 0.0
     
-    def add_character_credits(self, db: Session, user_id: int, character_count: int, payment_id: Optional[int] = None) -> bool:
+    def add_character_credits(self, db: Session, user_id: int, character_count: int, payment_id: Optional[int] = None, description: Optional[str] = None) -> bool:
         """
         Ajoute des crédits de caractères à un utilisateur.
         
@@ -128,6 +128,7 @@ class CharacterService:
             user_id: ID de l'utilisateur.
             character_count: Nombre de caractères à ajouter.
             payment_id: ID du paiement associé (facultatif).
+            description: Description personnalisée pour la transaction (facultatif).
             
         Returns:
             True si l'opération a réussi, False sinon.
@@ -142,11 +143,15 @@ class CharacterService:
             # Calculer le prix total
             price = self.calculate_price(character_count)
             
+            # Utiliser la description fournie ou la description par défaut
+            if description is None:
+                description = f"Achat de {character_count} caractères"
+            
             # Créer une transaction pour les caractères achetés
             transaction = CharacterTransaction(
                 user_id=user_id,
                 amount=character_count,
-                description=f"Achat de {character_count} caractères",
+                description=description,
                 payment_id=payment_id,
                 price_per_character=self.PRICE_PER_CHARACTER,
                 total_price=price

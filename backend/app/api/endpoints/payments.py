@@ -503,7 +503,8 @@ async def _handle_onboarding_payment_success(db: Session, stripe_session: Dict[s
                 amount=-free_chars_to_use,
                 description=f"Utilisation quota gratuit onboarding ({free_chars_to_use} caractères)",
                 price_per_character=0.0,
-                total_price=0.0
+                total_price=0.0,
+                payment_id=None  # Ne pas utiliser d'ID de paiement ici
             )
             db.add(free_tx)
 
@@ -511,13 +512,14 @@ async def _handle_onboarding_payment_success(db: Session, stripe_session: Dict[s
         if billable_characters and billable_characters > 0:
             price_per_char = CharacterService.PRICE_PER_CHARACTER
             total_price = price_per_char * billable_characters
+            # CORRECTION ICI : Ne pas stocker l'ID Stripe directement dans payment_id (qui est un INTEGER)
             paid_tx = CharacterTransaction(
                 user_id=user.id,
                 amount=-billable_characters,
-                description=f"Caractères facturés onboarding ({billable_characters})",
+                description=f"Caractères facturés onboarding ({billable_characters}) - Ref: {payment_intent_id}",
                 price_per_character=price_per_char,
                 total_price=total_price,
-                payment_id=payment_intent_id  # Stocker référence Stripe
+                payment_id=None  # Mettre à None au lieu de payment_intent_id
             )
             db.add(paid_tx)
             user.total_characters_used += billable_characters
@@ -644,8 +646,8 @@ async def _handle_character_purchase_success(db: Session, stripe_session: Dict[s
         db=db, # Laisser add_character_credits gérer son commit/rollback
         user_id=user_id,
         character_count=character_count,
-        payment_id=payment_db_id, # Utiliser l'ID du paiement enregistré
-        description=f"Achat de {character_count} crédits via Stripe ({payment_intent_id})"
+        payment_id=None, # Ne pas utiliser payment_intent_id directement
+        description=f"Achat de {character_count} crédits via Stripe - Ref: {payment_intent_id}"
     )
     
     if success:
@@ -712,7 +714,9 @@ async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
                 user_id=user_id,
                 amount=-free_chars_to_use,
                 description=f"Utilisation de {free_chars_to_use} crédits gratuits pour FT Job (payé)",
-                price_per_character=0.0, total_price=0.0
+                price_per_character=0.0, 
+                total_price=0.0,
+                payment_id=None  # CORRECTION: Ne pas utiliser d'ID de paiement ici
             )
             db.add(free_tx)
             
@@ -722,8 +726,8 @@ async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
             paid_tx = CharacterTransaction(
                 user_id=user_id,
                 amount=-paid_chars,
-                description=f"Utilisation de {paid_chars} crédits payants pour FT Job ({payment_intent_id})",
-                payment_id=None, # TODO: Lier à un enregistrement Payment si créé
+                description=f"Utilisation de {paid_chars} crédits payants pour FT Job - Ref: {payment_intent_id}",
+                payment_id=None,  # CORRECTION: Mettre à None au lieu de payment_intent_id
                 price_per_character=CharacterService.PRICE_PER_CHARACTER, # Utiliser le prix standard
                 total_price=CharacterService().calculate_price(paid_chars)
             )
