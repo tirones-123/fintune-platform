@@ -691,9 +691,10 @@ const IntroductionSection = () => {
         background: `linear-gradient(180deg, ${alpha("#03001e", 1)} 0%, ${alpha("#050224", 1)} 100%)`, // Dégradé légèrement différent
       }}
     >
-      {/* Effet de particules animées */}
+      {/* Effet de particules animées - OPTIMISÉ */}
       <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
-        {[...Array(30)].map((_, i) => (
+        {/* Réduction du nombre de particules de 30 à 10 */}
+        {[...Array(10)].map((_, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, x: Math.random() * 100 + 'vw', y: Math.random() * 100 + 'vh' }}
@@ -714,7 +715,8 @@ const IntroductionSection = () => {
               height: Math.random() * 50 + 20,
               background: `radial-gradient(circle, ${alpha(i % 2 === 0 ? '#00d4ff' : '#bf00ff', 0.1)} 0%, transparent 70%)`,
               borderRadius: '50%',
-              filter: 'blur(5px)',
+              // Suppression du filtre blur qui est coûteux en performance
+              // filter: 'blur(5px)',
             }}
           />
         ))}
@@ -864,8 +866,10 @@ const ProcessSection = () => {
         py: { xs: 8, md: 14 }, // Réduction du padding
         position: "relative",
         overflow: "hidden",
-        background: `linear-gradient(rgba(5, 2, 36, 0.98), rgba(5, 2, 36, 0.98)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M50 0 L100 50 L50 100 Z" fill="${alpha('#00d4ff', 0.02)}"/><circle cx="50" cy="50" r="10" fill="${alpha('#bf00ff', 0.03)}"/></svg>')`,
-        backgroundSize: 'auto, 120px 120px',
+        // Simplification du fond en utilisant une couleur solide au lieu d'un motif complexe
+        background: `linear-gradient(rgba(5, 2, 36, 0.98), rgba(5, 2, 36, 0.98))`,
+        // background: `linear-gradient(rgba(5, 2, 36, 0.98), rgba(5, 2, 36, 0.98)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M50 0 L100 50 L50 100 Z" fill="${alpha('#00d4ff', 0.02)}"/><circle cx="50" cy="50" r="10" fill="${alpha('#bf00ff', 0.03)}"/></svg>')`,
+        // backgroundSize: 'auto, 120px 120px',
       }}
     >
       <Container maxWidth="lg">
@@ -928,7 +932,9 @@ const ProcessSection = () => {
                       borderRadius: '24px',
                       position: 'relative',
                       overflow: 'hidden',
-                      background: `linear-gradient(160deg, ${alpha(theme.palette.background.paper, 0.7)}, ${alpha(theme.palette.background.paper, 0.5)})`,
+                      // Simplification du fond pour améliorer les performances
+                      background: alpha(theme.palette.background.paper, 0.7),
+                      // background: `linear-gradient(160deg, ${alpha(theme.palette.background.paper, 0.7)}, ${alpha(theme.palette.background.paper, 0.5)})`,
                       backdropFilter: 'blur(12px)',
                       border: `1px solid ${alpha(step.color, 0.4)}`,
                       boxShadow: `0 0 25px ${alpha(step.color, 0.2)}, 0 10px 30px ${alpha(theme.palette.common.black, 0.3)}`,
