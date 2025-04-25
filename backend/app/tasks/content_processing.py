@@ -395,6 +395,29 @@ def process_content(content_id: int):
                 return process_text_content(content_id)
         elif content_type == 'youtube':
             return process_youtube_content(content_id)
+        elif content_type == 'website':
+            # Website content should already have text stored.
+            text = content.content_text or content.description or ""
+            char_count = len(text)
+            if char_count == 0:
+                error_msg = "Website content has no text to process"
+                logger.error(error_msg)
+                content.status = "error"
+                content.error_message = error_msg
+                db.commit()
+                return {"status": "error", "message": error_msg}
+
+            # Update metadata
+            if not content.content_metadata:
+                content.content_metadata = {}
+            content.content_metadata["character_count"] = char_count
+            content.content_metadata["is_exact_count"] = True
+            content.status = "completed"
+            flag_modified(content, "content_metadata")
+            db.commit()
+            logger.info(f"Website content {content_id} marked completed with {char_count} characters")
+            return {"status": "success", "content_id": content_id, "character_count": char_count}
+
         else:
             error_msg = f"Unsupported content type: {content_type}"
             logger.error(error_msg)
