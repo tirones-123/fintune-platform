@@ -449,7 +449,7 @@ Ajoute un contenu à partir d'une URL (ex: YouTube, page web).
 }
 ```
 
-**Note pour le type `website`**: Le frontend doit scraper le contenu et l'envoyer dans le champ `description`.
+**Note pour le type `website`**: Le frontend doit scraper le contenu et l'envoyer dans le champ `description`. Le backend devrait idéalement calculer la longueur de cette `description` et la stocker dans `content_metadata` (ex: `{"character_count": ..., "is_exact_count": true}`) pour persistance.
 **Note pour le type `youtube`**: Le backend reçoit l'URL, obtient la durée pour une estimation initiale (via RapidAPI details), et crée l'enregistrement avec un statut comme `processing` ou `awaiting_transcription`. La transcription réelle est effectuée par une tâche Celery en arrière-plan.
 
 **Réponse**

@@ -176,6 +176,15 @@
         "good": "Good Quality",
         "optimal": "Optimal Quality",
         "excessive": "Excessive Data"
+      },
+      "status": {
+        "ready": "Ready",
+        "failed": "Failed",
+        "processing": "Processing",
+        "pending": "Pending",
+        "error": "Error",
+        "readyTranscriptionDelayed": "Ready (Transcription deferred)",
+        "awaiting_transcription": "Awaiting Transcription"
       }
     }
   },
@@ -211,7 +220,7 @@
       "line1": "Your first fine-tuning is now processing!",
       "line2": "Here are a few important points:",
       "listItem1": "The process can take from a few minutes to several hours depending on your dataset size.",
-      "listItem2": "You can monitor the progress in the <strong>Fine-Tunings</strong> tab.",
+      "listItem2": "You can monitor the progress in the Fine-Tunings tab.",
       "listItem3": "You can also check the status directly on the OpenAI dashboard.",
       "closeButton": "Got it!"
     }

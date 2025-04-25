@@ -538,28 +538,39 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                            if (typeof meta === 'string') {
                              try { meta = JSON.parse(meta); } catch(_) { meta = null; }
                            }
-                           
-                           // Priority 1: Check direct character_count property (for newly added websites)
+
+                           // Priority 1: Check direct character_count property (for newly added websites during the session)
                            if (typeof content.character_count === 'number') {
                              return ` | ${t('common.characters')}: ${Number(content.character_count).toLocaleString()}`;
                            }
-                           
-                           // Priority 2: Check metadata character_count
+
+                           // Priority 2: Check metadata character_count (from backend)
                            if (meta?.character_count) {
-                             return ` | ${t('common.characters')}: ${Number(meta.character_count).toLocaleString()}`;
+                             const count = Number(meta.character_count);
+                             if (!isNaN(count)) {
+                               return ` | ${t('common.characters')}: ${count.toLocaleString()}${meta.is_exact_count === false ? ' (est.)' : ''}`;
+                             }
                            }
-                           
+
                            // Priority 3: Check estimated characters (frontend calculated for YouTube initially)
                            if (content.estimated_characters) {
-                              return ` | ${t('common.characters')}: ~${Number(content.estimated_characters).toLocaleString()}`;
+                              const count = Number(content.estimated_characters);
+                              if (!isNaN(count)) {
+                                return ` | ${t('common.characters')}: ~${count.toLocaleString()}`;
+                              }
                            }
-                           
+
                            // Priority 4: Estimate based on YouTube duration if metadata exists
                            if (content.type === 'youtube' && meta?.duration_seconds) {
                              const estChars = Math.round((meta.duration_seconds / 60) * 400);
                              return ` | ${t('common.characters')}: ~${estChars.toLocaleString()}`;
                            }
-                           
+
+                           // Priority 5: Fallback for website using description length (Workaround)
+                           if (content.type === 'website' && content.description?.length) {
+                             return ` | ${t('common.characters')}: ${Number(content.description.length).toLocaleString()}`;
+                           }
+
                            // Fallback: Show calculating or N/A
                            return isProcessingContent ? ` | ${t('common.characters')}: ${t('common.calculating')}...` : ` | ${t('common.characters')}: N/A`;
                          })()}
