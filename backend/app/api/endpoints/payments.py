@@ -70,119 +70,118 @@ async def create_onboarding_session(
         if eligible_for_free_credits:
             logger.info(f"Utilisateur {current_user.id} éligible aux crédits gratuits ({character_count} caractères).")
             try:
-                character_service = CharacterService()
-                success = character_service.add_character_credits(
-                    db=db,
+                # Déduire le quota gratuit initial (ignorer les utilisations antérieures pour onboarding)
+                from app.services.character_service import CharacterService
+                initial_quota = CharacterService.FREE_CHARACTERS
+                used_chars = min(character_count, initial_quota)
+                current_user.free_characters_remaining = initial_quota - used_chars
+                current_user.total_characters_used += used_chars
+                current_user.has_received_free_credits = True
+                db.add(current_user)
+                # Enregistrer la transaction de caractères gratuits pour onboarding
+                from app.models.payment import CharacterTransaction
+                free_tx = CharacterTransaction(
                     user_id=current_user.id,
-                    character_count=character_count,
-                    payment_id=None
+                    amount=-used_chars,
+                    description=f"Utilisation du quota gratuit onboarding ({used_chars} caractères)",
+                    price_per_character=0.0,
+                    total_price=0.0
                 )
-                
-                if success:
-                    logger.info(f"Ajout gratuit de {character_count} caractères réussi pour user {current_user.id}")
-                    # Marquer que l'utilisateur a reçu les crédits
-                    current_user.has_received_free_credits = True
-                    db.add(current_user) # Ajouter l'utilisateur à la session pour sauvegarder le changement
-                    db.commit()
-                    db.refresh(current_user)
+                db.add(free_tx)
+                db.commit()
+                db.refresh(current_user)
 
-                    # Récupérer les contenus et lancer les transcriptions si nécessaire
-                    contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
-                    pending_transcription_ids = [c.id for c in contents if c.type == 'youtube' and c.status != 'completed']
+                # Récupérer les contenus et lancer les transcriptions si nécessaire
+                contents = db.query(Content).filter(Content.id.in_(content_ids)).all()
+                pending_transcription_ids = [c.id for c in contents if c.type == 'youtube' and c.status != 'completed']
 
-                    if pending_transcription_ids:
-                         logger.info(f"Traitement de {len(pending_transcription_ids)} transcriptions en attente (gratuit)")
-                         for content_id in pending_transcription_ids:
-                             content = db.query(Content).get(content_id)
-                             if content and content.type == 'youtube' and content.url:
-                                 content.status = 'processing'
-                                 db.commit() # Commit status change before task launch
-                                 try:
-                                     task = transcribe_youtube_video.delay(content_id=content_id)
-                                     content.task_id = task.id
-                                     db.commit()
-                                     logger.info(f"Tâche de transcription lancée pour contenu {content_id}, tâche ID: {task.id}")
-                                 except Exception as task_error:
-                                     logger.error(f"Erreur lancement transcription pour {content_id}: {task_error}")
-                                     content.status = 'error' # Mark as error if task fails
-                                     db.commit()
-                             else:
-                                  logger.warning(f"Contenu YouTube {content_id} non trouvé ou invalide.")
+                if pending_transcription_ids:
+                     logger.info(f"Traitement de {len(pending_transcription_ids)} transcriptions en attente (gratuit)")
+                     for content_id in pending_transcription_ids:
+                         content = db.query(Content).get(content_id)
+                         if content and content.type == 'youtube' and content.url:
+                             content.status = 'processing'
+                             db.commit() # Commit status change before task launch
+                             try:
+                                 task = transcribe_youtube_video.delay(content_id=content_id)
+                                 content.task_id = task.id
+                                 db.commit()
+                                 logger.info(f"Tâche de transcription lancée pour contenu {content_id}, tâche ID: {task.id}")
+                             except Exception as task_error:
+                                 logger.error(f"Erreur lancement transcription pour {content_id}: {task_error}")
+                                 content.status = 'error' # Mark as error if task fails
+                                 db.commit()
+                         else:
+                              logger.warning(f"Contenu YouTube {content_id} non trouvé ou invalide.")
 
-                    # Création Dataset/FineTuning
-                    project = db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
-                    if project:
-                        # Utiliser les contenus récupérés plus haut
-                        if contents:
-                            dataset_name = request.dataset_name if hasattr(request, 'dataset_name') else "Dataset d'onboarding"
-                            system_content = request.system_content if hasattr(request, 'system_content') else "You are a helpful assistant."
-                            provider = request.provider if hasattr(request, 'provider') else "openai"
-                            model = request.model if hasattr(request, 'model') else "gpt-3.5-turbo"
-                            new_dataset = Dataset(
-                                name=dataset_name,
-                                project_id=project.id,
-                                description="Dataset généré automatiquement après l'onboarding gratuit",
-                                model=model,
-                                status="pending",
-                                system_content=system_content
+                # Création Dataset/FineTuning
+                project = db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).first()
+                if project:
+                    # Utiliser les contenus récupérés plus haut
+                    if contents:
+                        dataset_name = request.dataset_name if hasattr(request, 'dataset_name') else "Dataset d'onboarding"
+                        system_content = request.system_content if hasattr(request, 'system_content') else "You are a helpful assistant."
+                        provider = request.provider if hasattr(request, 'provider') else "openai"
+                        model = request.model if hasattr(request, 'model') else "gpt-3.5-turbo"
+                        new_dataset = Dataset(
+                            name=dataset_name,
+                            project_id=project.id,
+                            description="Dataset généré automatiquement après l'onboarding gratuit",
+                            model=model,
+                            status="pending",
+                            system_content=system_content
+                        )
+                        db.add(new_dataset)
+                        db.flush() # Get ID before adding associations
+                        logger.info(f"Webhook onboarding gratuit: Dataset {new_dataset.id} créé pour user {current_user.id}.")
+                        for content_item in contents: # Utiliser les 'contents' récupérés
+                             dataset_content = DatasetContent(
+                                 dataset_id=new_dataset.id,
+                                 content_id=content_item.id
+                             )
+                             db.add(dataset_content)
+                        db.commit() # Commit dataset and associations
+
+                        try:
+                            from celery_app import celery_app
+                            logger.info(f"Lancement de la tâche de génération pour le dataset {new_dataset.id}")
+                            celery_app.send_task(
+                                "generate_dataset",
+                                args=[new_dataset.id],
+                                queue='dataset_generation'
                             )
-                            db.add(new_dataset)
-                            db.flush() # Get ID before adding associations
-                            logger.info(f"Webhook onboarding gratuit: Dataset {new_dataset.id} créé pour user {current_user.id}.")
-                            for content_item in contents: # Utiliser les 'contents' récupérés
-                                 dataset_content = DatasetContent(
-                                     dataset_id=new_dataset.id,
-                                     content_id=content_item.id
-                                 )
-                                 db.add(dataset_content)
-                            db.commit() # Commit dataset and associations
-
-                            try:
-                                from celery_app import celery_app
-                                logger.info(f"Lancement de la tâche de génération pour le dataset {new_dataset.id}")
-                                celery_app.send_task(
-                                    "generate_dataset",
-                                    args=[new_dataset.id],
-                                    queue='dataset_generation'
+                            time.sleep(1) # Attendre 1 seconde avant de continuer
+                            api_key = db.query(ApiKey).filter(
+                                ApiKey.user_id == current_user.id,
+                                ApiKey.provider == provider
+                            ).first()
+                            if api_key:
+                                fine_tuning = FineTuning(
+                                    dataset_id=new_dataset.id,
+                                    name=f"Fine-tuning de {dataset_name}",
+                                    description="Fine-tuning généré automatiquement après l'onboarding gratuit",
+                                    model=model,
+                                    provider=provider,
+                                    status="pending",
+                                    hyperparameters={"n_epochs": 3}
                                 )
-                                time.sleep(1) # Attendre 1 seconde avant de continuer
-                                api_key = db.query(ApiKey).filter(
-                                    ApiKey.user_id == current_user.id,
-                                    ApiKey.provider == provider
-                                ).first()
-                                if api_key:
-                                    fine_tuning = FineTuning(
-                                        dataset_id=new_dataset.id,
-                                        name=f"Fine-tuning de {dataset_name}",
-                                        description="Fine-tuning généré automatiquement après l'onboarding gratuit",
-                                        model=model,
-                                        provider=provider,
-                                        status="pending",
-                                        hyperparameters={"n_epochs": 3}
-                                    )
-                                    db.add(fine_tuning)
-                                    db.commit() # Commit fine-tuning separately
-                                    logger.info(f"Fine-tuning {fine_tuning.id} créé en attente pour le dataset {new_dataset.id}")
-                                else:
-                                    logger.warning(f"L'utilisateur {current_user.id} n'a pas de clé API pour le provider {provider}, fine-tuning non créé.")
-                            except Exception as task_error:
-                                logger.error(f"Erreur lors du lancement de la tâche de génération ou création fine-tuning: {str(task_error)}")
-                        else:
-                             logger.warning(f"Aucun contenu pertinent trouvé pour créer le dataset pour le projet {project.id} après onboarding gratuit.")
+                                db.add(fine_tuning)
+                                db.commit() # Commit fine-tuning separately
+                                logger.info(f"Fine-tuning {fine_tuning.id} créé en attente pour le dataset {new_dataset.id}")
+                            else:
+                                logger.warning(f"L'utilisateur {current_user.id} n'a pas de clé API pour le provider {provider}, fine-tuning non créé.")
+                        except Exception as task_error:
+                            logger.error(f"Erreur lors du lancement de la tâche de génération ou création fine-tuning: {str(task_error)}")
                     else:
-                         logger.warning(f"Aucun projet trouvé pour l'utilisateur {current_user.id} pour créer le dataset/fine-tuning post-onboarding.")
-
-                    return {
-                        "status": "success",
-                        "free_processing": True,
-                        "redirect_url": f"{settings.FRONTEND_URL}/dashboard?onboarding_completed=true"
-                    }
+                         logger.warning(f"Aucun contenu pertinent trouvé pour créer le dataset pour le projet {project.id} après onboarding gratuit.")
                 else:
-                    logger.error(f"Échec de l'ajout gratuit de {character_count} caractères pour user {current_user.id}")
-                    raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail="Erreur lors de l'attribution des crédits gratuits."
-                    )
+                     logger.warning(f"Aucun projet trouvé pour l'utilisateur {current_user.id} pour créer le dataset/fine-tuning post-onboarding.")
+
+                return {
+                    "status": "success",
+                    "free_processing": True,
+                    "redirect_url": f"{settings.FRONTEND_URL}/dashboard?onboarding_completed=true"
+                }
             except Exception as e:
                 logger.error(f"Erreur lors de l'ajout gratuit de caractères ou lancement tâches: {str(e)}", exc_info=True)
                 db.rollback()
@@ -699,7 +698,7 @@ async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
         new_fine_tuning = FineTuning(
             dataset_id=new_dataset.id,
             name=job_name,
-            description=f"Job payé ({payment_intent_id}) pour projet {project.id}",
+            description=f"Job paid ({payment_intent_id})",
             model=config.model,
             provider=config.provider,
             status="pending",

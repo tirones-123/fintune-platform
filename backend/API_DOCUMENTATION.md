@@ -1069,7 +1069,7 @@ Crée une session de paiement Stripe ou lance le traitement gratuit pour finalis
 ```
 
 **Logique de traitement**
-- Gère le quota gratuit (10k caractères, une seule fois).
+- Déduit correctement le quota gratuit (jusqu'à 10 000 caractères, une seule fois) et crée une transaction négative pour l'utilisation gratuite.
 - Calcule le coût si > 10k caractères.
 - Si coût > seuil Stripe, crée une session de paiement.
 - Si gratuit ou coût < seuil, lance directement les transcriptions/création dataset/fine-tuning.

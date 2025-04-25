@@ -137,7 +137,7 @@ async def create_fine_tuning_job(
                 user_id=current_user.id,
                 db=db,
                 line_item_name="Fine-Tuning Job",
-                line_item_description=f"Fine-tuning job pour projet {request.project_id}",
+                line_item_description=f"Fine-tuning",
                 metadata={
                     "payment_type": "fine_tuning_job",
                     "user_id": str(current_user.id),
@@ -224,7 +224,7 @@ async def create_fine_tuning_job(
             new_fine_tuning = FineTuning(
                 dataset_id=new_dataset.id,
                 name=job_name,
-                description=f"Job lancé via dashboard pour projet {project.id}",
+                description=f"Job launched via dashboard for project {project.id}",
                 model=request.config.model,
                 provider=request.config.provider,
                 status="pending", 
