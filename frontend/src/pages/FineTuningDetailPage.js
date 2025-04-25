@@ -44,13 +44,13 @@ import { useTranslation } from 'react-i18next';
 const FineTuningDetailPage = () => {
   const { fineTuningId } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
   const [fineTuning, setFineTuning] = useState(null);
   const [dataset, setDataset] = useState(null);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation();
 
   // Fonction pour récupérer les données du fine-tuning
   const fetchFineTuningData = async () => {
@@ -71,7 +71,7 @@ const FineTuningDetailPage = () => {
       setError(null);
     } catch (err) {
       console.error('Error fetching fine-tuning data:', err);
-      setError(t('fineTuningDetail.error.loadData'));
+      setError(t('fineTuningDetail.error.fetchData'));
     } finally {
       setLoading(false);
     }
@@ -91,11 +91,11 @@ const FineTuningDetailPage = () => {
     }, 10000);
     
     return () => clearInterval(refreshInterval);
-  }, [fineTuningId, fineTuning?.status, t]);
+  }, [fineTuningId, fineTuning?.status]);
 
   // Formatage de la date
   const formatDate = (dateString) => {
-    if (!dateString) return t('common.na');
+    if (!dateString) return t('common.notAvailable');
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
       year: 'numeric',
@@ -108,9 +108,9 @@ const FineTuningDetailPage = () => {
 
   // Formatage de la taille
   const formatSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return t('common.sizeBytesZero');
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = [t('common.sizeUnitBytes'), t('common.sizeUnitKB'), t('common.sizeUnitMB'), t('common.sizeUnitGB')];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
@@ -135,7 +135,23 @@ const FineTuningDetailPage = () => {
 
   // Obtenir le libellé du statut
   const getStatusLabel = (status) => {
-    return t(`fineTuningsPage.status.${status}`, status);
+    switch (status) {
+      case 'queued':
+        return t('fineTuningDetail.status.queued');
+      case 'preparing':
+        return t('fineTuningDetail.status.preparing');
+      case 'training':
+        return t('fineTuningDetail.status.training');
+      case 'completed':
+        return t('fineTuningDetail.status.completed');
+      case 'cancelled':
+        return t('fineTuningDetail.status.cancelled');
+      case 'failed':
+      case 'error':
+        return t('fineTuningDetail.status.failed');
+      default:
+        return t('common.unknown');
+    }
   };
 
   // Obtenir l'icône du statut
@@ -188,11 +204,11 @@ const FineTuningDetailPage = () => {
   // Modifier handleDownloadDataset pour utiliser le service API
   const handleDownloadDataset = async (datasetId) => {
     if (!datasetId) {
-        enqueueSnackbar(t('fineTuningDetail.error.missingDatasetId'), { variant: 'error' });
+        enqueueSnackbar(t('fineTuningDetail.snackbar.missingDatasetId'), { variant: 'error' });
         return;
     }
     
-    enqueueSnackbar(t('fineTuningDetail.snackbar.preparingDownload'), { variant: 'info' });
+    enqueueSnackbar(t('fineTuningDetail.snackbar.downloadPreparing'), { variant: 'info' });
     
     try {
       // Utiliser le service API pour obtenir le blob
@@ -216,7 +232,7 @@ const FineTuningDetailPage = () => {
 
     } catch (error) {
       console.error('Erreur lors du téléchargement du dataset:', error);
-      enqueueSnackbar(`${t('fineTuningDetail.error.downloadError')}: ${error.message}`, { variant: 'error' });
+      enqueueSnackbar(t('fineTuningDetail.snackbar.downloadError', { message: error.message }), { variant: 'error' });
     }
   };
 
@@ -228,17 +244,17 @@ const FineTuningDetailPage = () => {
         sx={{ mb: 3 }}
       >
         <Link component={RouterLink} to="/dashboard" color="inherit">
-          {t('common.dashboard')}
+          {t('fineTuningDetail.breadcrumb.dashboard')}
         </Link>
         <Link component={RouterLink} to="/dashboard/projects" color="inherit">
-          {t('sidebar.menu.projects')}
+          {t('fineTuningDetail.breadcrumb.projects')}
         </Link>
         {project && (
           <Link component={RouterLink} to={`/dashboard/projects/${project.id}`} color="inherit">
             {project.name}
           </Link>
         )}
-        <Typography color="text.primary">{t('fineTuningDetail.breadcrumb')}</Typography>
+        <Typography color="text.primary">{t('fineTuningDetail.breadcrumb.fineTuning')}</Typography>
       </Breadcrumbs>
 
       {loading ? (
@@ -253,7 +269,7 @@ const FineTuningDetailPage = () => {
                 {fineTuning.name}
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-                {fineTuning.description || t('common.noDescription')}
+                {fineTuning.description || t('fineTuningDetail.noDescription')}
               </Typography>
             </Box>
             
@@ -266,7 +282,7 @@ const FineTuningDetailPage = () => {
                   startIcon={<DownloadIcon />}
                   onClick={() => handleDownloadDataset(dataset.id)}
                 >
-                  {t('fineTuningDetail.downloadDatasetButton')}
+                  {t('fineTuningDetail.button.downloadDataset')}
                 </Button>
               )}
               
@@ -277,7 +293,7 @@ const FineTuningDetailPage = () => {
                   startIcon={<StopIcon />}
                   onClick={handleCancelFineTuning}
                 >
-                  {t('fineTuningDetail.cancelButton')}
+                  {t('common.cancel')}
                 </Button>
               )}
               
@@ -288,7 +304,7 @@ const FineTuningDetailPage = () => {
                   startIcon={<ChatIcon />}
                   onClick={() => navigate(`/dashboard/chat/${fineTuning.id}`)}
                 >
-                  {t('fineTuningDetail.testModelButton')}
+                  {t('fineTuningDetail.button.testModel')}
                 </Button>
               )}
             </Box>
@@ -299,7 +315,7 @@ const FineTuningDetailPage = () => {
             <Box sx={{ mb: 4 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-                  {t('common.progress')}: {Math.round(fineTuning.progress)}%
+                  {t('fineTuningDetail.progressLabel', { progress: Math.round(fineTuning.progress) })}
                 </Typography>
                 <CircularProgress size={20} />
               </Box>
@@ -311,7 +327,7 @@ const FineTuningDetailPage = () => {
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 3, height: '100%' }}>
                 <Typography variant="h6" gutterBottom>
-                  {t('fineTuningDetail.fineTuningInfoTitle')}
+                  {t('fineTuningDetail.infoCard.title')}
                 </Typography>
                 <List>
                   <ListItem>
@@ -320,7 +336,7 @@ const FineTuningDetailPage = () => {
                       secondary={
                         fineTuning.status === 'pending' && dataset?.status === 'processing' ? (
                           <Chip 
-                            label="Génération Dataset..." 
+                            label={t('fineTuningDetail.status.generatingDataset')} 
                             color="info"
                             size="small"
                             icon={<DatasetIcon fontSize="inherit" sx={{ mr: 0.5}}/>}
@@ -340,21 +356,21 @@ const FineTuningDetailPage = () => {
                   </ListItem>
                   <Divider component="li" />
                   <ListItem>
-                    <ListItemText primary={t('common.model')} secondary={fineTuning.model} />
+                    <ListItemText primary={t('fineTuningDetail.infoCard.modelLabel')} secondary={fineTuning.model} />
                   </ListItem>
                   <Divider component="li" />
                   <ListItem>
-                    <ListItemText primary={t('common.provider')} secondary={fineTuning.provider} />
+                    <ListItemText primary={t('fineTuningDetail.infoCard.providerLabel')} secondary={fineTuning.provider} />
                   </ListItem>
                   <Divider component="li" />
                   <ListItem>
-                    <ListItemText primary={t('common.createdOn')} secondary={formatDate(fineTuning.created_at)} />
+                    <ListItemText primary={t('fineTuningDetail.infoCard.createdLabel')} secondary={formatDate(fineTuning.created_at)} />
                   </ListItem>
                   {fineTuning.completed_at && (
                     <>
                       <Divider component="li" />
                       <ListItem>
-                        <ListItemText primary={t('common.completedOn')} secondary={formatDate(fineTuning.completed_at)} />
+                        <ListItemText primary={t('fineTuningDetail.infoCard.completedLabel')} secondary={formatDate(fineTuning.completed_at)} />
                       </ListItem>
                     </>
                   )}
@@ -366,7 +382,7 @@ const FineTuningDetailPage = () => {
               <Paper sx={{ p: 3, height: '100%' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Typography variant="h6" gutterBottom>
-                    {t('fineTuningDetail.associatedDatasetTitle')}
+                    {t('fineTuningDetail.datasetCard.title')}
                   </Typography>
                   {dataset && (
                     <Button
@@ -376,7 +392,7 @@ const FineTuningDetailPage = () => {
                       onClick={() => handleDownloadDataset(dataset.id)}
                       size="small"
                     >
-                      {t('common.download')}
+                      {t('fineTuningDetail.button.download')}
                     </Button>
                   )}
                 </Box>
@@ -384,32 +400,32 @@ const FineTuningDetailPage = () => {
                 {dataset ? (
                   <List>
                     <ListItem>
-                      <ListItemText primary={t('common.name')} secondary={dataset.name} />
+                      <ListItemText primary={t('fineTuningDetail.datasetCard.nameLabel')} secondary={dataset.name} />
                     </ListItem>
                     <Divider component="li" />
                     <ListItem>
-                      <ListItemText primary={t('common.description')} secondary={dataset.description || t('common.noDescription')} />
+                      <ListItemText primary={t('fineTuningDetail.datasetCard.descriptionLabel')} secondary={dataset.description || t('fineTuningDetail.noDescription')} />
                     </ListItem>
                     <Divider component="li" />
                     <ListItem>
-                      <ListItemText primary={t('datasetDetail.pairCountLabel')} secondary={dataset.pairs_count || 0} />
+                      <ListItemText primary={t('fineTuningDetail.datasetCard.pairsLabel')} secondary={dataset.pairs_count || 0} />
                     </ListItem>
                     <Divider component="li" />
                     <ListItem>
-                      <ListItemText primary={t('common.size')} secondary={dataset.size ? formatSize(dataset.size) : t('common.na')} />
+                      <ListItemText primary={t('fineTuningDetail.datasetCard.sizeLabel')} secondary={dataset.size ? formatSize(dataset.size) : t('common.notAvailable')} />
                     </ListItem>
                     <Divider component="li" />
                     <ListItem>
-                      <ListItemText primary={t('common.createdOn')} secondary={formatDate(dataset.created_at)} />
+                      <ListItemText primary={t('fineTuningDetail.infoCard.createdLabel')} secondary={formatDate(dataset.created_at)} />
                     </ListItem>
                     <Divider component="li" />
                     <ListItem>
                       <ListItemText 
-                        primary={t('datasetDetail.systemPromptTitle')}
+                        primary={t('fineTuningDetail.datasetCard.systemPromptLabel')} 
                         secondary={
                           <Paper variant="outlined" sx={{ p: 1, mt: 1, bgcolor: 'background.default' }}>
                             <Typography variant="body2" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                              {dataset.system_content || "You are a helpful assistant."}
+                              {dataset.system_content || t('common.defaultSystemPrompt')}
                             </Typography>
                           </Paper>
                         } 
@@ -418,7 +434,7 @@ const FineTuningDetailPage = () => {
                   </List>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    {t('fineTuningDetail.datasetInfoUnavailable')}
+                    {t('fineTuningDetail.datasetCard.noInfo')}
                   </Typography>
                 )}
               </Paper>
@@ -433,7 +449,7 @@ const FineTuningDetailPage = () => {
               startIcon={<ArrowBackIcon />}
               onClick={() => navigate(`/dashboard/projects/${project.id}`)}
             >
-              {t('fineTuningDetail.backToProjectButton')}
+              {t('fineTuningDetail.button.backToProject')}
             </Button>
             
             <Button
@@ -442,7 +458,7 @@ const FineTuningDetailPage = () => {
               startIcon={<DeleteIcon />}
               onClick={handleDeleteFineTuning}
             >
-              {t('fineTuningDetail.deleteButton')}
+              {t('fineTuningDetail.button.deleteFineTuning')}
             </Button>
           </Box>
         </>

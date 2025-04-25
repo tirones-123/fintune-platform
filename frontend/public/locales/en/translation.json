@@ -22,7 +22,14 @@
     "category": "Category",
     "recommended": "Recommended",
     "cancel": "Cancel",
-    "errorLabel": "Error: {{error}}"
+    "errorLabel": "Error: {{error}}",
+    "notAvailable": "N/A",
+    "sizeBytesZero": "0 Bytes",
+    "sizeUnitBytes": "Bytes",
+    "sizeUnitKB": "KB",
+    "sizeUnitMB": "MB",
+    "sizeUnitGB": "GB",
+    "defaultSystemPrompt": "You are a helpful assistant."
   },
   "login": {
     "title": "Login",
@@ -387,8 +394,135 @@
       },
       "ctaButton": "Start for Free",
       "ctaAriaLabel": "Start using FineTuner for free",
-      "ctaCaption": "Get started in 60 seconds."
+      "ctaCaption": "Get started in 60 seconds. No expertise required.",
+      "visualisation": {
+        "pdfLabel": "PDF",
+        "youtubeLabel": "YouTube",
+        "webLabel": "Web",
+        "openaiLabel": "OpenAI",
+        "claudeLabel": "Claude"
+      }
+    },
+    "introduction": {
+      "title": "What is FineTuner?",
+      "paragraph1": "FineTuner is your gateway to truly personalized AI. In just a few clicks, transform your unique content (texts, PDFs, YouTube videos...) into powerful AI models like ChatGPT or Claude.",
+      "paragraph2": "Everything happens directly on <0>your own OpenAI or Anthropic account</0>. Forget complex manual configuration: you retrieve a fine-tuned model, ready to be integrated and reflect the DNA of your brand or project.",
+      "ctaButton": "Try FineTuner for Free"
     }
+  },
+  "process": {
+    "headline": "Your Path to Personalized AI",
+    "title": "How Does It Work?",
+    "steps": [
+      {
+        "title": "1. Connect Your Content",
+        "description": "Easily import PDFs, texts, video transcripts... The source of your future AI."
+      },
+      {
+        "title": "2. Behind-the-Scenes Magic",
+        "description": "Click \"Launch\". Our platform prepares, formats, and trains the model for you."
+      },
+      {
+        "title": "3. Your Model, Your Ownership",
+        "description": "Retrieve your fine-tuned AI (e.g., \"AI_Marketing_Fun\") on your OpenAI/Anthropic account, ready to use."
+      }
+    ],
+    "ctaButton": "Launch Your First Project"
+  },
+  "chatExamples": {
+    "headline": "See the Magic in Action",
+    "title": "Fine-Tuned AI in Conversation",
+    "description": "Discover how your personalized AI can respond, assist, or even entertain, adopting the tone and knowledge YOU gave it.",
+    "examples": [
+      {
+        "title": "Michael Scott Bot (The Office)",
+        "messages": [
+          { "text": "What do you think of my PowerPoint presentation?" },
+          { "text": "It's... how can I put this... It's like PowerPoint met an episode of \"Threat Level Midnight\". Intense. Unforgettable. That's what she said!" },
+          { "text": "Okay... and for the team building on Friday?" },
+          { "text": "I have a GREAT idea. We're all going to... survive in the forest! Well, the park next door. It'll build bonds. Or lawsuits. We'll see!" }
+        ]
+      },
+      {
+        "title": "Personalized Tech Support",
+        "messages": [
+          { "text": "Hi, I'm having an issue with the API, error 403." },
+          { "text": "Hello! Error 403 indicates an authentication issue. Please ensure your API key is correct and included in the 'Authorization: Bearer YOUR_KEY' header." },
+          { "text": "Ah right, I forgot the \"Bearer\". Thanks!" },
+          { "text": "No problem! Let me know if you have other questions. The key is always checking the details, like Pam does with my expense reports!" }
+        ]
+      },
+      {
+        "title": "Interactive E-Learning Assistant",
+        "messages": [
+          { "text": "Can you explain the concept of fine-tuning simply?" },
+          { "text": "Sure! Imagine a master chef (the base model). Fine-tuning is teaching them YOUR secret recipes (your data) so they cook exactly the way YOU want!" },
+          { "text": "Great analogy! And how does it work here?" },
+          { "text": "You provide the ingredients (PDFs, videos...), we teach the chef (OpenAI/Claude) your recipes (Q&A format), and voilà! You have your own specialized star chef!" }
+        ]
+      }
+    ],
+    "inputPlaceholder": "Your message...",
+    "ctaButton": "See what you can create"
+  },
+  "deployment": {
+    "headline": "Universal Integration",
+    "title": "Deploy Your AI Everywhere",
+    "description": "Your fine-tuned model is ready to integrate with your favorite tools via API.",
+    "platforms": [
+      { "label": "REST API" },
+      { "label": "Web Apps" },
+      { "label": "Mobile Apps" },
+      { "label": "Zapier" },
+      { "label": "Slack" },
+      { "label": "CRM" }
+    ],
+    "ctaButton": "Integrate your AI everywhere"
+  },
+  "faq": {
+    "title": "FAQ",
+    "subtitle": "Frequently asked questions about FineTuner and personalized AI",
+    "questions": [
+      {
+        "question": "What is FineTuner?",
+        "answer": "FineTuner is a SaaS (Software as a Service) platform designed to radically simplify the creation of custom AI assistants. You import your own data (PDF documents, YouTube video transcripts, web pages, knowledge bases, etc.), and our platform transforms it into an optimized dataset. Then, we manage the complex fine-tuning process (specialized re-training) on cutting-edge language models like those from OpenAI (GPT) or Anthropic (Claude). The result is an AI that speaks with your voice, knows your domain, and can be integrated via API into your applications, websites, or internal tools."
+      },
+      {
+        "question": "Do I need an OpenAI or Anthropic account?",
+        "answer": "Yes, it's essential. FineTuner acts as an orchestrator and facilitator. The fine-tuned model is trained and hosted directly on **your own** OpenAI or Anthropic account. This ensures you retain full ownership and control of your specialized AI model. We guide you to securely connect your account via your API keys, and we handle all the technical steps of fine-tuning on their infrastructure."
+      },
+      {
+        "question": "What types of content can I import?",
+        "answer": "FineTuner is very flexible. You can import various formats: PDF files, text documents (.txt, .md), paste raw text, provide web page URLs that we will scrape, or even links to YouTube videos (we automatically extract the transcript). Our system analyzes, cleans, and structures this information to create the best possible dataset for training your AI."
+      },
+      {
+        "question": "How does the pricing work?",
+        "answer": "Our model is based on usage ('Pay-as-you-go') for maximum flexibility. The first 10,000 characters of content you submit for processing (conversion, dataset preparation) are free. Beyond this free quota, each additional character is billed at €0.000365 (excl. tax). There is no fixed monthly subscription or commitment. You only pay for the volume of data you actually process, which is ideal for getting started or for variable needs."
+      },
+      {
+        "question": "Can I integrate my AI on other platforms?",
+        "answer": "Absolutely. Once your model is fine-tuned on your OpenAI/Anthropic account, you get a unique ID for that model. You can then call it via their standard API. This means you can integrate it wherever you want: chatbots on your website, mobile apps, customer support systems, automation tools (Zapier, Make), CRMs, e-learning platforms, and much more. FineTuner provides you with the ready-to-use model; the integration then depends on your tools."
+      },
+      {
+        "question": "Is my data secure?",
+        "answer": "The security and confidentiality of your data are our top priority. Your imported content is used solely for the purpose of creating your dataset and fine-tuning YOUR model, on YOUR provider account (OpenAI/Anthropic). We never resell your data or use your information to train other models. You retain full intellectual property rights over your content and the resulting fine-tuned model."
+      },
+      {
+        "question": "Do I need technical skills?",
+        "answer": "Not at all! That's the whole point of FineTuner. We designed the interface to be intuitive and easy to use, even without any programming or artificial intelligence knowledge. You upload your content, click a few buttons to start the process, and we handle all the technical complexity in the background. You simply retrieve your ready-to-use model ID."
+      }
+    ],
+    "ctaButton": "Ready to start?"
+  },
+  "finalCta": {
+    "headline": "Why Is It So Simple?",
+    "title": {
+      "line1": "We Handle the Complexity.",
+      "line2": "You Unleash Your Creativity."
+    },
+    "description": "FineTuner orchestrates everything: conversion, preparation, training. You focus on the essential: uploading your content and watching your AI come to life.",
+    "ctaButton": "Create Your AI Now",
+    "ctaCaption": "Free registration. Unlimited potential."
   },
   "navbar": {
     "home": "Home",
@@ -725,30 +859,6 @@
           "cancel": "Error cancelling fine-tuning"
       }
   },
-  "fineTuningDetail": {
-      "breadcrumb": "Fine-tuning",
-      "downloadDatasetButton": "Download Dataset",
-      "cancelButton": "Cancel",
-      "testModelButton": "Test Model",
-      "fineTuningInfoTitle": "Fine-tuning Information",
-      "associatedDatasetTitle": "Associated Dataset",
-      "datasetInfoUnavailable": "Dataset information not available",
-      "backToProjectButton": "Back to Project",
-      "deleteButton": "Delete this Fine-tuning",
-      "noInfoFound": "No information found for this fine-tuning.",
-      "error": {
-          "loadData": "Could not retrieve fine-tuning data. Please try again.",
-          "missingDatasetId": "Missing dataset ID",
-          "downloadError": "Download error"
-      },
-      "snackbar": {
-          "cancelSuccess": "Fine-tuning cancelled successfully",
-          "cancelError": "Error cancelling fine-tuning",
-          "deleteSuccess": "Fine-tuning deleted successfully",
-          "deleteError": "Error deleting fine-tuning",
-          "preparingDownload": "Preparing download..."
-      }
-  },
   "helpPage": {
       "title": "FineTuner Help Center",
       "howItWorks": {
@@ -804,116 +914,58 @@
           }
       }
   },
-  "landingPage": {
-    "introduction": {
-      "title": "What is FineTuner?",
-      "paragraph1": "FineTuner is your gateway to truly personalized AI. In just a few clicks, transform your unique content (texts, PDFs, YouTube videos...) into powerful AI models like ChatGPT or Claude.",
-      "paragraph2": {
-        "part1": "Everything happens directly on ",
-        "strong": "your own OpenAI or Anthropic account",
-        "part2": ". Forget complex manual configuration: you get a fine-tuned model, ready to be integrated and reflect the DNA of your brand or project."
-      },
-      "ctaButton": "Try FineTuner for Free"
+  "fineTuningDetail": {
+    "breadcrumb": {
+      "dashboard": "Dashboard",
+      "projects": "Projects",
+      "fineTuning": "Fine-tuning"
     },
-    "process": {
-      "subtitle": "Your Journey to Custom AI",
-      "title": "How Does It Work?",
-      "step1": {
-        "title": "1. Connect Your Content",
-        "description": "Easily import PDFs, texts, video transcripts... The source of your future AI."
-      },
-      "step2": {
-        "title": "2. Technical Magic Behind the Scenes",
-        "description": "Click \"Launch\". Our platform prepares, formats, and trains the model for you."
-      },
-      "step3": {
-        "title": "3. Your Model, Your Property",
-        "description": "Retrieve your fine-tuned AI (e.g., \"AI_Marketing_Fun\") on your OpenAI/Anthropic account, ready to use."
-      },
-      "ctaButton": "Launch your first project"
+    "error": {
+      "fetchData": "Could not retrieve fine-tuning data. Please try again."
     },
-    "chatExamples": {
-      "subtitle": "See the Magic in Action",
-      "title": "Fine-Tuned AI in Conversation",
-      "description": "Discover how your personalized AI can respond, assist, or even entertain, adopting the tone and knowledge YOU gave it.",
-      "inputPlaceholder": "Your message...",
-      "ctaButton": "See what you can create",
-      "example1": {
-        "title": "Michael Scott Bot (The Office)",
-        "user1": "What do you think of my PowerPoint presentation?",
-        "bot1": "It's... how do I put this... It's like PowerPoint met an episode of \"Threat Level Midnight\". Intense. Unforgettable. That's what she said!",
-        "user2": "Okay... and for the team building on Friday?",
-        "bot2": "I have a GREAT idea. We're all going to... survive in the forest! Well, the park next door. It'll build bonds. Or lawsuits. We'll see!"
-      },
-      "example2": {
-        "title": "Customized Technical Support",
-        "user1": "Hi, I'm having an issue with the API, error 403.",
-        "bot1": "Hello! Error 403 indicates an authentication issue. Please verify that your API key is correct and included in the 'Authorization: Bearer YOUR_KEY' header.",
-        "user2": "Ah right, I forgot the \"Bearer\". Thanks!",
-        "bot2": "No problem! Let me know if you have other questions. The key is always to check the details, like Pam does with my expense reports!"
-      },
-      "example3": {
-        "title": "Interactive E-Learning Assistant",
-        "user1": "Can you explain the concept of fine-tuning simply?",
-        "bot1": "Of course! Imagine a master chef (the base model). Fine-tuning is like teaching them YOUR secret recipes (your data) so they cook exactly the way YOU want!",
-        "user2": "Great analogy! And how does it work here?",
-        "bot2": "You provide the ingredients (PDFs, videos...), we teach the chef (OpenAI/Claude) your recipes (Q&A format), and voilà! You get your own specialized star chef!"
-      }
+    "noDescription": "No description",
+    "button": {
+      "downloadDataset": "Download Dataset",
+      "testModel": "Test Model",
+      "download": "Download",
+      "backToProject": "Back to Project",
+      "deleteFineTuning": "Delete this Fine-tuning"
     },
-    "deployment": {
-      "subtitle": "Universal Integration",
-      "title": "Deploy Your AI Everywhere",
-      "description": "Your fine-tuned model is ready to integrate with your favorite tools via API.",
-      "platforms": {
-        "api": "REST API",
-        "web": "Web Apps",
-        "mobile": "Mobile Apps",
-        "zapier": "Zapier",
-        "slack": "Slack",
-        "crm": "CRM"
-      },
-      "ctaButton": "Integrate your AI everywhere"
+    "progressLabel": "Progress: {{progress}}%",
+    "infoCard": {
+      "title": "Fine-tuning Information",
+      "modelLabel": "Model",
+      "providerLabel": "Provider",
+      "createdLabel": "Created on",
+      "completedLabel": "Completed on"
     },
-    "faq": {
-      "title": "FAQ",
-      "subtitle": "Frequently asked questions about FineTuner and custom AI",
-      "ctaButton": "Ready to start?",
-      "q1": {
-        "question": "What is FineTuner?",
-        "answer": "FineTuner is a SaaS (Software as a Service) platform designed to radically simplify the creation of custom AI assistants. You import your own data (PDF documents, YouTube video transcripts, web pages, knowledge bases, etc.) and our platform transforms them into an optimized dataset. Then, we handle the complex fine-tuning process (specialized re-training) on cutting-edge language models like those from OpenAI (GPT) or Anthropic (Claude). The result is an AI that speaks with your voice, knows your domain, and can be integrated via API into your applications, websites, or internal tools."
-      },
-      "q2": {
-        "question": "Do I need an OpenAI or Anthropic account?",
-        "answer": "Yes, it's essential. FineTuner acts as an orchestrator and facilitator. The fine-tuned model is trained and hosted directly on **your own** OpenAI or Anthropic account. This ensures you retain full ownership and control of your specialized AI model. We guide you to securely connect your account via your API keys, and we handle all the technical steps of fine-tuning on their infrastructure."
-      },
-      "q3": {
-        "question": "What types of content can I import?",
-        "answer": "FineTuner is very flexible. You can import various formats: PDF files, text documents (.txt, .md), paste raw text, provide web page URLs that we will scrape, or even links to YouTube videos (we automatically extract the transcript). Our system analyzes, cleans, and structures this information to create the best possible dataset for training your AI."
-      },
-      "q4": {
-        "question": "How does pricing work?",
-        "answer": "Our model is based on usage ('Pay-as-you-go') for maximum flexibility. The first 10,000 characters of content you submit for processing (conversion, dataset preparation) are free. Beyond this free quota, each additional character is billed at €0.000365 excluding tax. There are no fixed monthly subscriptions or commitments. You only pay for the volume of data you actually process, which is ideal for starting out or for variable needs."
-      },
-      "q5": {
-        "question": "Can I integrate my AI on other platforms?",
-        "answer": "Absolutely. Once your model is fine-tuned on your OpenAI/Anthropic account, you get a unique ID for that model. You can then call it via their standard API. This means you can integrate it wherever you want: chatbots on your website, mobile apps, customer support systems, automation tools (Zapier, Make), CRMs, e-learning platforms, and much more. FineTuner provides the ready-to-use model; integration then depends on your tools."
-      },
-      "q6": {
-        "question": "Is my data secure?",
-        "answer": "The security and confidentiality of your data are our top priority. Your imported content is used solely for the purpose of creating your dataset and fine-tuning YOUR model, on YOUR provider account (OpenAI/Anthropic). We never resell your data or use your information to train other models. You retain full intellectual property rights over your content and the resulting fine-tuned model."
-      },
-      "q7": {
-        "question": "Do I need technical skills?",
-        "answer": "Not at all! That's the whole point of FineTuner. We designed the interface to be intuitive and easy to use, even without any knowledge of programming or artificial intelligence. You upload your content, click a few buttons to start the process, and we handle all the technical complexity in the background. You simply retrieve your ready-to-use model ID."
-      }
+    "datasetCard": {
+      "title": "Associated Dataset",
+      "nameLabel": "Name",
+      "descriptionLabel": "Description",
+      "pairsLabel": "Number of Pairs",
+      "sizeLabel": "Size",
+      "systemPromptLabel": "System Prompt",
+      "noInfo": "Dataset information unavailable"
     },
-    "finalCta": {
-      "subtitle": "Why Is It So Simple?",
-      "titleLine1": "We Handle the Complexity.",
-      "titleLine2": "You Unleash Your Creativity.",
-      "description": "FineTuner orchestrates everything: conversion, preparation, training. You focus on what matters: uploading your content and watching your AI come to life.",
-      "ctaButton": "Create Your AI Now",
-      "caption": "Free sign-up. Unlimited potential."
-    }
+    "status": {
+      "queued": "Queued",
+      "preparing": "Preparing",
+      "training": "Training",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "generatingDataset": "Generating Dataset..."
+    },
+    "snackbar": {
+      "cancelSuccess": "Fine-tuning cancelled successfully",
+      "cancelError": "Error cancelling fine-tuning",
+      "deleteSuccess": "Fine-tuning deleted successfully",
+      "deleteError": "Error deleting fine-tuning",
+      "missingDatasetId": "Missing dataset ID",
+      "downloadPreparing": "Preparing download...",
+      "downloadError": "Download error: {{message}}"
+    },
+    "noInfoFound": "No information found for this fine-tuning."
   }
-} 
+}

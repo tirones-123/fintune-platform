@@ -52,6 +52,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CalculateIcon from '@mui/icons-material/Calculate';
+import { useTranslation, Trans } from 'react-i18next'; // Import useTranslation and Trans
 
 // Animation variants
 const containerVariants = {
@@ -185,6 +186,7 @@ const ContentSourceIcon = ({ icon: Icon, label, color, delay }) => {
 // Section Hero
 const Hero = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Initialize useTranslation
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const controls = useAnimation();
@@ -303,9 +305,9 @@ const Hero = () => {
                     letterSpacing: '-1px',
                   }}
                 >
-                  Votre Contenu,
+                  {t('landing.hero.titleLine1')}
                   <br />
-                  Votre IA.
+                  {t('landing.hero.titleLine2')}
                   <Box component="span" sx={{ color: '#00d4ff' }}> </Box>
                 </Typography>
               </motion.div>
@@ -323,7 +325,7 @@ const Hero = () => {
                     p: 3,
                   }}
                 >
-                  Transformez instantanément vos contenus PDF, YouTube et sites web en assistants IA ultra-performants type <span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span> ou <span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>.
+                  {t('landing.hero.subtitle.part1')}<span style={{ color: '#74AA9C', fontWeight: 'bold' }}>ChatGPT</span>{t('landing.hero.subtitle.part2')}<span style={{ color: '#D09A74', fontWeight: 'bold' }}>Claude</span>{t('landing.hero.subtitle.part3')}
                 </Typography>
               </motion.div>
 
@@ -368,11 +370,11 @@ const Hero = () => {
                       },
                     }}
                   >
-                    Démarrez Gratuitement
+                    {t('landing.hero.ctaButton')}
                   </Button>
                 </Stack>
                 <Typography variant="caption" sx={{ display: 'block', mt: 2, color: alpha(theme.palette.text.secondary, 0.7) }}>
-                  Premiers pas en 60 secondes. Aucune expertise requise.
+                  {t('landing.hero.ctaCaption')}
                 </Typography>
               </motion.div>
             </motion.div>
@@ -441,7 +443,7 @@ const Hero = () => {
               <FloatingIcon
                 ref={pdfRef}
                 icon={PictureAsPdfIcon}
-                label="PDF"
+                label={t('landing.hero.visualisation.pdfLabel')}
                 color="#FF6B6B"
                 initialPos={{ top: '15%', left: '10%', z: -50 }}
                 delay={0.8}
@@ -450,7 +452,7 @@ const Hero = () => {
               <FloatingIcon
                 ref={youtubeRef}
                 icon={YouTubeIcon}
-                label="YouTube"
+                label={t('landing.hero.visualisation.youtubeLabel')}
                 color="#FF0000"
                 initialPos={{ top: '40%', left: '0%', z: -20 }}
                 delay={1.0}
@@ -459,7 +461,7 @@ const Hero = () => {
               <FloatingIcon
                 ref={webRef}
                 icon={LanguageIcon}
-                label="Web"
+                label={t('landing.hero.visualisation.webLabel')}
                 color="#4ECDC4"
                 initialPos={{ top: '70%', left: '10%', z: -40 }}
                 delay={1.2}
@@ -470,7 +472,7 @@ const Hero = () => {
               <FloatingIcon
                 ref={openAiRef}
                 icon={SmartToyIcon} // Remplacer par un logo OpenAI si disponible
-                label="OpenAI"
+                label={t('landing.hero.visualisation.openaiLabel')}
                 color="#74AA9C"
                 initialPos={{ top: '30%', right: '5%', z: 80 }}
                 delay={1.4}
@@ -480,7 +482,7 @@ const Hero = () => {
               <FloatingIcon
                 ref={anthropicRef}
                 icon={SmartToyIcon} // Remplacer par un logo Anthropic/Claude si disponible
-                label="Claude"
+                label={t('landing.hero.visualisation.claudeLabel')}
                 color="#D09A74"
                 initialPos={{ top: '65%', right: '15%', z: 60 }}
                 delay={1.6}
@@ -506,6 +508,7 @@ const Hero = () => {
 // --- Nouveau composant pour les icônes flottantes --- //
 const FloatingIcon = React.forwardRef(({ icon: Icon, label, color, initialPos, delay, isIALogo = false, aiCenterRef }, ref) => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Initialize useTranslation here too if needed, or pass t as prop
   const controls = useAnimation();
   const [isVisible, setIsVisible] = useState(false);
 
@@ -661,6 +664,7 @@ const NeonConnectionLine = ({ startRef, endRef, color, delay, thickness = 2, con
 // --- Nouvelle Section: Introduction --- //
 const IntroductionSection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Add useTranslation hook
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
 
@@ -761,7 +765,7 @@ const IntroductionSection = () => {
                   textShadow: '0 0 15px rgba(0, 212, 255, 0.4)',
                 }}
               >
-                Qu'est-ce que FineTuner ?
+                {t('landing.introduction.title')} 
               </Typography>
 
               <Box sx={{ ...glassmorphismStyle }}>
@@ -774,13 +778,16 @@ const IntroductionSection = () => {
                     fontWeight: 400,
                   }}
                 >
-                  FineTuner est votre passerelle vers une IA véritablement personnalisée. En quelques clics, transformez vos contenus uniques (textes, PDF, vidéos YouTube...) en modèles d'IA surpuissants type ChatGPT ou Claude.
+                  {t('landing.introduction.paragraph1')}
                 </Typography>
                 <Typography
                   variant="body1"
                   sx={{ color: alpha(theme.palette.text.secondary, 0.8), lineHeight: 1.7 }}
                 >
-                  Le tout s'opère directement sur <strong style={{ color: theme.palette.primary.light }}>votre propre compte OpenAI ou Anthropic</strong>. Oubliez la configuration manuelle complexe : vous récupérez un modèle fine-tuné, prêt à être intégré et à refléter l'ADN de votre marque ou projet.
+                  {/* Use Trans component for bold formatting */}
+                  <Trans i18nKey="landing.introduction.paragraph2">
+                     The process happens directly on <strong style={{ color: theme.palette.primary.light }}>your own OpenAI or Anthropic account</strong>. Forget complex manual setup: you receive a fine-tuned model, ready to integrate and reflect your brand or project's DNA.
+                  </Trans>
                 </Typography>
               </Box>
               {/* Ajout du CTA ici */}
@@ -793,7 +800,7 @@ const IntroductionSection = () => {
                     endIcon={<ArrowForwardIcon />}
                     sx={{ /* Styles similaires au bouton Hero */ }}
                   >
-                    Essayer FineTuner Gratuitement
+                    {t('landing.introduction.ctaButton')}
                   </Button>
               </motion.div>
             </motion.div>
@@ -807,6 +814,7 @@ const IntroductionSection = () => {
 // --- Nouvelle Section: Processus "Comment ça marche ?" --- //
 const ProcessSection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Add useTranslation hook
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
@@ -817,20 +825,20 @@ const ProcessSection = () => {
   const steps = [
     {
       icon: <CloudUploadIcon sx={{ fontSize: 40 }} />,
-      title: "1. Connectez Votre Contenu",
-      description: "Importez facilement PDF, textes, transcriptions vidéo... La source de votre future IA.",
+      title: t('landing.process.steps.0.title'),
+      description: t('landing.process.steps.0.description'),
       color: '#FF9A8B',
     },
     {
       icon: <SyncAltIcon sx={{ fontSize: 40 }} />,
-      title: "2. Magie Technique en Coulisses",
-      description: "Cliquez sur \"Lancer\". Notre plateforme prépare, formate et entraîne le modèle pour vous.",
+      title: t('landing.process.steps.1.title'),
+      description: t('landing.process.steps.1.description'),
       color: '#a18cd1',
     },
     {
       icon: <SmartToyIcon sx={{ fontSize: 40 }} />,
-      title: "3. Votre Modèle, Votre Propriété",
-      description: "Récupérez votre IA fine-tunée (ex: \"IA_Marketing_Fun\") sur votre compte OpenAI/Anthropic, prête à l'emploi.",
+      title: t('landing.process.steps.2.title'),
+      description: t('landing.process.steps.2.description'),
       color: '#84fab0',
     },
   ];
@@ -859,7 +867,7 @@ const ProcessSection = () => {
               component="p"
               sx={{ color: "#00d4ff", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #00d4ff' }}
             >
-              Votre Parcours vers l'IA Personnalisée
+              {t('landing.process.headline')}
             </Typography>
           </motion.div>
           <motion.div
@@ -872,7 +880,7 @@ const ProcessSection = () => {
               component="h2"
               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #bf00ff, #00d4ff)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(191, 0, 255, 0.4)' }}
             >
-              Comment ça Fonctionne ?
+              {t('landing.process.title')}
             </Typography>
           </motion.div>
         </Box>
@@ -995,7 +1003,7 @@ const ProcessSection = () => {
                 borderRadius: '50px',
                    }}
                  >
-              Lancez votre premier projet
+              {t('landing.process.ctaButton')}
             </Button>
                </motion.div>
       </Container>
@@ -1008,8 +1016,9 @@ const ProcessSection = () => {
 // Composant pour un seul message dans le chat avec design amélioré
 const AnimatedChatMessage = ({ message, isUser, avatar, animationDelay, accentColor }) => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Ensure t is available if needed within this component, though likely passed via message prop
   const controls = useAnimation();
-  const text = message;
+  const text = message; // Assuming message is already translated before being passed
 
   const textVariants = {
     hidden: { opacity: 0 },
@@ -1102,6 +1111,7 @@ const AnimatedChatMessage = ({ message, isUser, avatar, animationDelay, accentCo
 // Composant pour un exemple de conversation complet avec design amélioré
 const ChatExample = ({ title, Icon, messages, initialDelay, accentColor }) => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Initialize t here
   let cumulativeDelay = initialDelay;
 
   return (
@@ -1134,7 +1144,7 @@ const ChatExample = ({ title, Icon, messages, initialDelay, accentColor }) => {
         }}>
           <Icon />
         </Avatar>
-        <Typography variant="h6" sx={{ fontWeight: 600, color: alpha(theme.palette.text.primary, 0.9) }}>{title}</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, color: alpha(theme.palette.text.primary, 0.9) }}>{title}</Typography> {/* Title is passed pre-translated */}
       </Box>
       <Box sx={{ 
         flexGrow: 1, 
@@ -1176,7 +1186,7 @@ const ChatExample = ({ title, Icon, messages, initialDelay, accentColor }) => {
           backgroundColor: alpha(theme.palette.background.default, 0.5)
         }}>
           <Typography variant="body2" sx={{ color: alpha(theme.palette.text.secondary, 0.6), flexGrow: 1 }}>
-            Votre message...
+            {t('landing.chatExamples.inputPlaceholder')}
           </Typography>
           <IconButton size="small" sx={{ color: accentColor || theme.palette.primary.main }}>
             <SendIcon fontSize="small" />
@@ -1189,6 +1199,7 @@ const ChatExample = ({ title, Icon, messages, initialDelay, accentColor }) => {
 
 const ChatExamplesSection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Initialize t here
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
 
@@ -1199,39 +1210,39 @@ const ChatExamplesSection = () => {
   // Exemples de conversations
   const chatExamples = [
     {
-      title: "Michael Scott Bot (The Office)",
+      title: t('landing.chatExamples.examples.0.title'),
       Icon: TheaterComedyIcon,
       initialDelay: 0.5,
       accentColor: '#fbc2eb', // Rose pour le côté fun
       messages: [
-        { text: "Que penses-tu de ma présentation PowerPoint ?", isUser: true, avatar: 'U' },
-        { text: "C'est... comment dire... C'est comme si PowerPoint avait rencontré un épisode de \"Threat Level Midnight\". Intense. Inoubliable. That's what she said!", isUser: false, avatar: 'MS' },
-        { text: "Ok... et pour le team building de vendredi ?", isUser: true, avatar: 'U' },
-        { text: "J'ai une idée GÉNIALE. On va tous... survivre dans la forêt ! Enfin, le parc d'à côté. Ça va créer des liens. Ou des procès. On verra !", isUser: false, avatar: 'MS' }
+        { text: t('landing.chatExamples.examples.0.messages.0.text'), isUser: true, avatar: 'U' },
+        { text: t('landing.chatExamples.examples.0.messages.1.text'), isUser: false, avatar: 'MS' },
+        { text: t('landing.chatExamples.examples.0.messages.2.text'), isUser: true, avatar: 'U' },
+        { text: t('landing.chatExamples.examples.0.messages.3.text'), isUser: false, avatar: 'MS' }
       ]
     },
     {
-      title: "Support Technique Personnalisé",
+      title: t('landing.chatExamples.examples.1.title'),
       Icon: ContactSupportIcon,
       initialDelay: 1.0, // Démarrer un peu après le premier
       accentColor: '#84fab0', // Vert pour le côté assistance
       messages: [
-        { text: "Bonjour, j'ai un problème avec l'API, erreur 403.", isUser: true, avatar: 'D' },
-        { text: "Bonjour ! L'erreur 403 indique un souci d'authentification. Vérifiez que votre clé API est correcte et bien incluse dans l'en-tête 'Authorization: Bearer VOTRE_CLÉ'.", isUser: false, avatar: 'IA' },
-        { text: "Ah oui, j'avais oublié le \"Bearer\". Merci !", isUser: true, avatar: 'D' },
-        { text: "Pas de problème ! N'hésitez pas si vous avez d'autres questions. L'important est de toujours vérifier les détails, comme Pam le fait avec mes notes de frais !", isUser: false, avatar: 'IA' }
+        { text: t('landing.chatExamples.examples.1.messages.0.text'), isUser: true, avatar: 'D' },
+        { text: t('landing.chatExamples.examples.1.messages.1.text'), isUser: false, avatar: 'IA' },
+        { text: t('landing.chatExamples.examples.1.messages.2.text'), isUser: true, avatar: 'D' },
+        { text: t('landing.chatExamples.examples.1.messages.3.text'), isUser: false, avatar: 'IA' }
       ]
     },
     {
-      title: "Assistant E-Learning Interactif",
+      title: t('landing.chatExamples.examples.2.title'),
       Icon: SchoolIcon,
       initialDelay: 1.5,
       accentColor: '#a18cd1', // Mauve pour l'éducation
       messages: [
-        { text: "Peux-tu m'expliquer le concept de fine-tuning simplement ?", isUser: true, avatar: 'A' },
-        { text: "Bien sûr ! Imagine un chef cuistot (le modèle de base). Le fine-tuning, c'est lui apprendre VOS recettes secrètes (vos données) pour qu'il cuisine exactement comme VOUS le voulez !", isUser: false, avatar: '🎓' },
-        { text: "Super analogie ! Et comment ça marche ici ?", isUser: true, avatar: 'A' },
-        { text: "Vous donnez les ingrédients (PDF, vidéos...), on apprend au chef (OpenAI/Claude) vos recettes (format Q/R), et hop ! Vous avez votre propre chef étoilé spécialisé !", isUser: false, avatar: '🎓' }
+        { text: t('landing.chatExamples.examples.2.messages.0.text'), isUser: true, avatar: 'A' },
+        { text: t('landing.chatExamples.examples.2.messages.1.text'), isUser: false, avatar: '🎓' },
+        { text: t('landing.chatExamples.examples.2.messages.2.text'), isUser: true, avatar: 'A' },
+        { text: t('landing.chatExamples.examples.2.messages.3.text'), isUser: false, avatar: '🎓' }
       ]
     }
   ];
@@ -1260,7 +1271,7 @@ const ChatExamplesSection = () => {
                component="p"
                sx={{ color: "#a18cd1", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #a18cd1' }}
              >
-               Voyez la Magie en Action
+               {t('landing.chatExamples.headline')}
              </Typography>
            </motion.div>
            <motion.div
@@ -1273,7 +1284,7 @@ const ChatExamplesSection = () => {
                component="h2"
                sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #a18cd1, #fbc2eb)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(161, 140, 209, 0.4)' }}
              >
-               L'IA Fine-Tunée en Conversation
+               {t('landing.chatExamples.title')}
              </Typography>
            </motion.div>
             <motion.div
@@ -1286,7 +1297,7 @@ const ChatExamplesSection = () => {
               color="text.secondary"
               sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
             >
-              Découvrez comment votre IA personnalisée peut répondre, aider ou même divertir, en adoptant le ton et les connaissances que VOUS lui avez donnés.
+              {t('landing.chatExamples.description')}
             </Typography>
           </motion.div>
          </Box>
@@ -1342,7 +1353,7 @@ const ChatExamplesSection = () => {
                 borderRadius: '50px',
               }}
             >
-              Voir ce que vous pouvez créer
+              {t('landing.chatExamples.ctaButton')}
             </Button>
          </motion.div>
        </Container>
@@ -1353,6 +1364,7 @@ const ChatExamplesSection = () => {
 // --- Nouvelle Section: Appel à l'Action Final (CTA) --- //
 const FinalCTASection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Initialize useTranslation
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
 
@@ -1431,7 +1443,7 @@ const FinalCTASection = () => {
                   component="p"
                   sx={{ color: "#00d4ff", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #00d4ff' }}
                 >
-                  Pourquoi c'est si Simple ?
+                  {t('landing.finalCta.headline')}
                 </Typography>
             </motion.div>
 
@@ -1453,9 +1465,9 @@ const FinalCTASection = () => {
                   textShadow: '0 0 20px rgba(191, 0, 255, 0.4)',
                 }}
               >
-                Nous Gérons la Complexité.
+                {t('landing.finalCta.title.line1')}
                 <br />
-                Vous Libérez Votre Créativité.
+                {t('landing.finalCta.title.line2')}
               </Typography>
             </motion.div>
 
@@ -1468,7 +1480,7 @@ const FinalCTASection = () => {
                   variant="h6"
                   sx={{ mb: 5, maxWidth: 650, mx: 'auto', color: alpha(theme.palette.text.secondary, 0.9), lineHeight: 1.7 }}
                 >
-                  FineTuner orchestre tout : conversion, préparation, entraînement. Vous vous concentrez sur l'essentiel : uploader votre contenu et voir votre IA prendre vie.
+                  {t('landing.finalCta.description')}
                 </Typography>
             </motion.div>
 
@@ -1502,10 +1514,10 @@ const FinalCTASection = () => {
                     },
                   }}
                 >
-                  Créez Votre IA Maintenant
+                  {t('landing.finalCta.ctaButton')}
                 </Button>
                 <Typography variant="caption" sx={{ display: 'block', mt: 2.5, color: alpha(theme.palette.text.secondary, 0.7) }}>
-                  Inscription gratuite. Potentiel illimité.
+                  {t('landing.finalCta.ctaCaption')}
                 </Typography>
             </motion.div>
           </Box>
@@ -1518,6 +1530,7 @@ const FinalCTASection = () => {
 // --- Nouvelle Section: Déploiement Partout --- //
 const DeploymentSection = () => {
   const theme = useTheme();
+  const { t } = useTranslation(); // Initialize useTranslation
   const controls = useAnimation();
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
   const centerRef = useRef(null);
@@ -1526,12 +1539,12 @@ const DeploymentSection = () => {
   // --- Simplification --- 
   // Sélection d'icônes représentatives
   const simplifiedPlatforms = [
-    { icon: ApiIcon, label: "API REST", color: '#ff9a8b', delay: 0.5 },
-    { icon: WebIcon, label: "Web Apps", color: '#a18cd1', delay: 0.7 },
-    { icon: SmartphoneIcon, label: "Mobile Apps", color: '#fbc2eb', delay: 0.9 },
-    { icon: ElectricBoltIcon, label: "Zapier", color: '#ff7eb3', delay: 1.1 },
-    { icon: ChatIcon, label: "Slack", color: '#4a154b', delay: 1.3 },
-    { icon: BusinessCenterIcon, label: "CRM", color: '#00a1e0', delay: 1.5 }, 
+    { icon: ApiIcon, labelKey: "landing.deployment.platforms.0.label", color: '#ff9a8b', delay: 0.5 },
+    { icon: WebIcon, labelKey: "landing.deployment.platforms.1.label", color: '#a18cd1', delay: 0.7 },
+    { icon: SmartphoneIcon, labelKey: "landing.deployment.platforms.2.label", color: '#fbc2eb', delay: 0.9 },
+    { icon: ElectricBoltIcon, labelKey: "landing.deployment.platforms.3.label", color: '#ff7eb3', delay: 1.1 },
+    { icon: ChatIcon, labelKey: "landing.deployment.platforms.4.label", color: '#4a154b', delay: 1.3 },
+    { icon: BusinessCenterIcon, labelKey: "landing.deployment.platforms.5.label", color: '#00a1e0', delay: 1.5 }, 
   ];
   
   // Initialisation individuelle des refs
@@ -1566,21 +1579,21 @@ const DeploymentSection = () => {
               component="p"
               sx={{ color: "#84fab0", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #84fab0' }}
             >
-              Intégration Universelle
+              {t('landing.deployment.headline')}
             </Typography>
             <Typography
               variant="h2"
               component="h2"
               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #84fab0, #5ee7df)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(132, 250, 176, 0.4)' }}
             >
-              Déployez Votre IA Partout
+              {t('landing.deployment.title')}
             </Typography>
             <Typography
               variant="h6"
               color="text.secondary"
               sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
             >
-              Votre modèle fine-tuné est prêt à s'intégrer avec vos outils préférés via API.
+              {t('landing.deployment.description')}
             </Typography>
         </Box>
 
@@ -1630,7 +1643,7 @@ const DeploymentSection = () => {
             >
               <Grid container spacing={3} justifyContent={{ xs: 'center', md: 'flex-start' }}>
                 {simplifiedPlatforms.map((platform, index) => (
-                    <Grid item key={platform.label} xs={6} sm={4} md={4}>
+                    <Grid item key={platform.labelKey} xs={6} sm={4} md={4}>
                       <motion.div 
                         variants={itemVariants} // Appliquer l'animation item par item
                       >
@@ -1640,7 +1653,7 @@ const DeploymentSection = () => {
                             <platform.icon sx={{ fontSize: 30 }} />
                           </Avatar>
                           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                            {platform.label}
+                            {t(platform.labelKey)}
                           </Typography>
               </Box>
                        </motion.div>
@@ -1653,7 +1666,7 @@ const DeploymentSection = () => {
           {/* Lignes de connexion - passage de containerRef */}
           {platformRefs.map((platformRef, index) => (
                 <NeonConnectionLine
-              key={`line-${simplifiedPlatforms[index].label}`}
+              key={`line-${simplifiedPlatforms[index].labelKey}`}
                   startRef={centerRef}
               endRef={platformRef}
               containerRef={gridContainerRef} // Passage de la ref du conteneur
@@ -1683,7 +1696,7 @@ const DeploymentSection = () => {
                 borderRadius: '50px',
               }}
             >
-              Intégrer votre IA partout
+              {t('landing.deployment.ctaButton')}
             </Button>
         </motion.div>
       </Container>
@@ -1693,36 +1706,11 @@ const DeploymentSection = () => {
 
 const FAQSection = () => {
   const theme = useTheme();
-  const faqs = [
-    {
-      question: "Qu'est-ce que FineTuner ?",
-      answer: "FineTuner est une plateforme SaaS (Software as a Service) conçue pour simplifier radicalement la création d'assistants IA personnalisés. Vous importez vos propres données (documents PDF, transcriptions de vidéos YouTube, pages web, bases de connaissances, etc.) et notre plateforme les transforme en un dataset optimisé. Ensuite, nous gérons le processus complexe de fine-tuning (ré-entraînement spécialisé) sur des modèles de langage de pointe comme ceux d'OpenAI (GPT) ou Anthropic (Claude). Le résultat est une IA qui parle avec votre voix, connaît votre domaine et peut être intégrée via API dans vos applications, sites web, ou outils internes."
-    },
-    {
-      question: "Dois-je avoir un compte OpenAI ou Anthropic ?",
-      answer: "Oui, c'est essentiel. FineTuner agit comme un orchestrateur et un facilitateur. Le modèle fine-tuné est entraîné et hébergé directement sur **votre propre compte** OpenAI ou Anthropic. Cela garantit que vous gardez la pleine propriété et le contrôle de votre modèle IA spécialisé. Nous vous guidons pour connecter votre compte de manière sécurisée via vos clés API, et nous nous chargeons de toutes les étapes techniques du fine-tuning sur leur infrastructure."
-    },
-    {
-      question: "Quels types de contenus puis-je importer ?",
-      answer: "FineTuner est très flexible. Vous pouvez importer divers formats : fichiers PDF, documents texte (.txt, .md), coller du texte brut, fournir des URL de pages web que nous allons scraper, ou encore des liens vers des vidéos YouTube (nous extrayons automatiquement la transcription). Notre système analyse, nettoie et structure ces informations pour créer le meilleur dataset possible pour l'entraînement de votre IA."
-    },
-    {
-      question: "Comment fonctionne la tarification ?",
-      answer: "Notre modèle est basé sur l'utilisation ('Pay-as-you-go') pour une flexibilité maximale. Les 10 000 premiers caractères de contenu que vous nous soumettez pour traitement (conversion, préparation du dataset) sont gratuits. Au-delà de ce quota gratuit, chaque caractère supplémentaire est facturé à 0,000365€ HT. Il n'y a aucun abonnement mensuel fixe ni engagement. Vous ne payez que pour le volume de données que vous traitez réellement, ce qui est idéal pour démarrer ou pour des besoins variables."
-    },
-    {
-      question: "Puis-je intégrer mon IA sur d'autres plateformes ?",
-      answer: "Absolument. Une fois votre modèle fine-tuné sur votre compte OpenAI/Anthropic, vous obtenez un identifiant unique pour ce modèle. Vous pouvez ensuite l'appeler via leur API standard. Cela signifie que vous pouvez l'intégrer où vous voulez : chatbots sur votre site web, applications mobiles, systèmes de support client, outils d'automatisation (Zapier, Make), CRM, plateformes d'e-learning, et bien plus encore. FineTuner vous fournit le modèle prêt à l'emploi, l'intégration dépend ensuite de vos outils."
-    },
-    {
-      question: "Mes données sont-elles sécurisées ?",
-      answer: "La sécurité et la confidentialité de vos données sont notre priorité absolue. Vos contenus importés sont utilisés uniquement dans le but de créer votre dataset et de fine-tuner VOTRE modèle, sur VOTRE compte fournisseur (OpenAI/Anthropic). Nous ne revendons jamais vos données et n'utilisons pas vos informations pour entraîner d'autres modèles. Vous conservez la pleine propriété intellectuelle de vos contenus et du modèle fine-tuné résultant."
-    },
-    {
-      question: "Ai-je besoin de compétences techniques ?",
-      answer: "Pas du tout ! C'est tout l'intérêt de FineTuner. Nous avons conçu l'interface pour qu'elle soit intuitive et facile à utiliser, même sans aucune connaissance en programmation ou en intelligence artificielle. Vous téléchargez vos contenus, vous cliquez sur quelques boutons pour lancer le processus, et nous nous occupons de toute la complexité technique en arrière-plan. Vous récupérez simplement l'identifiant de votre modèle prêt à être utilisé."
-    },
-  ];
+  const { t } = useTranslation(); // Initialize useTranslation
+
+  // Structure FAQ pour la traduction
+  const faqs = t('landing.faq.questions', { returnObjects: true });
+
   return (
     <Box id="faq-section"
                 sx={{ 
@@ -1735,10 +1723,10 @@ const FAQSection = () => {
       <Container maxWidth="md">
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: theme.palette.primary.main }}>
-            FAQ
+            {t('landing.faq.title')}
           </Typography>
           <Typography variant="h6" color={theme.palette.text.secondary}>
-            Questions fréquentes sur FineTuner et l'IA personnalisée
+            {t('landing.faq.subtitle')}
           </Typography>
           </Box>
         {faqs.map((faq, idx) => (
@@ -1771,7 +1759,7 @@ const FAQSection = () => {
                 py: 1, // Add some padding
               }}
             >
-              {faq.question}
+              {faq.question} {/* Already translated via t() call */} 
             </AccordionSummary>
             <AccordionDetails 
               sx={{
@@ -1783,7 +1771,7 @@ const FAQSection = () => {
                 px: 2,
               }}
             >
-              {faq.answer}
+              {faq.answer} {/* Already translated via t() call */}
             </AccordionDetails>
           </Accordion>
         ))}
@@ -1807,7 +1795,7 @@ const FAQSection = () => {
                 borderRadius: '50px',
               }}
             >
-              Prêt à commencer ?
+              {t('landing.faq.ctaButton')}
             </Button>
         </motion.div>
       </Container>
