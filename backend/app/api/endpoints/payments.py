@@ -649,12 +649,58 @@ async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
     logger.info(f"Webhook FT Job: Traitement paiement pour User {user_id}, Projet {project_id}, Contenus: {content_ids}")
 
     try:
-        # 1. Enregistrer le paiement (Exemple, à adapter)
-        # payment_record = Payment(user_id=user_id, amount=amount_received/100, ...) 
-        # db.add(payment_record)
-        logger.info(f"Paiement {payment_intent_id} reçu pour FT Job (user {user_id}). Logique d'enregistrement à implémenter.")
+        # 1. Récupérer l'utilisateur et le nombre total de caractères bruts
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            logger.error(f"Webhook FT Job: Utilisateur {user_id} non trouvé.")
+            return
+            
+        try:
+            total_characters_raw = int(metadata.get("total_characters", "0"))
+        except (ValueError, TypeError):
+            logger.error(f"Webhook FT Job: total_characters invalide dans metadata: {metadata.get('total_characters')}")
+            total_characters_raw = 0 # Fallback prudent
+            
+        # 2. Déduire les crédits utilisés (gratuits puis payants)
+        from app.models.payment import CharacterTransaction
         
-        # 2. Créer Dataset & FineTuning
+        free_chars_to_use = min(user.free_characters_remaining, total_characters_raw)
+        paid_chars = total_characters_raw - free_chars_to_use
+        
+        logger.info(f"Webhook FT Job: Décompte pour {total_characters_raw} caractères bruts: {free_chars_to_use} gratuits, {paid_chars} payants.")
+        
+        if free_chars_to_use > 0:
+            user.free_characters_remaining -= free_chars_to_use
+            free_tx = CharacterTransaction(
+                user_id=user_id,
+                amount=-free_chars_to_use,
+                description=f"Utilisation de {free_chars_to_use} crédits gratuits pour FT Job (payé)",
+                price_per_character=0.0, total_price=0.0
+            )
+            db.add(free_tx)
+            
+        if paid_chars > 0:
+            # Créer une transaction négative pour l'utilisation payante
+            # Le prix/coût est géré par Stripe, ici on enregistre juste l'utilisation
+            paid_tx = CharacterTransaction(
+                user_id=user_id,
+                amount=-paid_chars,
+                description=f"Utilisation de {paid_chars} crédits payants pour FT Job ({payment_intent_id})",
+                payment_id=None, # TODO: Lier à un enregistrement Payment si créé
+                price_per_character=CharacterService.PRICE_PER_CHARACTER, # Utiliser le prix standard
+                total_price=CharacterService().calculate_price(paid_chars)
+            )
+            db.add(paid_tx)
+            
+        # Mettre à jour le total utilisé basé sur les caractères bruts
+        user.total_characters_used += total_characters_raw
+        db.add(user)
+        
+        # Commiter les changements sur l'utilisateur et les transactions
+        db.commit()
+        db.refresh(user)
+
+        # 3. Créer Dataset & FineTuning
         project = db.query(Project).filter(Project.id == project_id, Project.user_id == user_id).first()
         if not project:
             logger.error(f"Webhook FT Job: Projet {project_id} non trouvé pour user {user_id}")
@@ -708,7 +754,7 @@ async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
         db.flush()
         logger.info(f"Webhook FT Job: FineTuning {new_fine_tuning.id} créé.")
 
-        # 3. Lancer les tâches
+        # 4. Lancer les tâches
         if pending_transcriptions:
             logger.info(f"Webhook FT Job: Lancement de {len(pending_transcriptions)} transcriptions YouTube.")
             for content_id in pending_transcriptions:
@@ -723,7 +769,8 @@ async def handle_fine_tuning_job_payment(db: Session, event: Dict[str, Any]):
         
         # Log avant commit final FT Job
         logger.info(f"Webhook FT Job: Prêt à commiter Dataset {new_dataset.id}, FineTuning {new_fine_tuning.id} et associations.")
-        db.commit() # Commit final après toutes les opérations DB
+        db.flush() # Assurer que les IDs sont générés avant le commit final
+        db.commit() # Commit final après toutes les opérations DB (User, Transactions, Dataset, FT, Contents...)
         logger.info(f"Webhook FT Job: Commit final terminé.")
         
         # --- AJOUT DELAI ---

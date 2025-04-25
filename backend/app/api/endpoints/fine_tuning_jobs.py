@@ -17,6 +17,7 @@ from app.services.character_service import CharacterService
 from app.services.stripe_service import stripe_service
 from app.core.config import settings
 from celery_app import celery_app
+from app.models.payment import CharacterTransaction
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -132,19 +133,24 @@ async def create_fine_tuning_job(
         # --- FIN LOG ---
         # Créer la session Stripe
         try:
+            # --- AJOUT : Inclure total_characters dans metadata ---
+            metadata = {
+                "payment_type": "fine_tuning_job",
+                "user_id": str(current_user.id),
+                "project_id": str(request.project_id),
+                "content_ids": json.dumps(request.content_ids),
+                "config": request.config.json(),
+                "total_characters": str(total_characters) # <--- AJOUT
+            }
+            # --- FIN AJOUT ---
+            
             checkout_url = await stripe_service.create_checkout_session(
                 amount=cost_result['amount_cents'],
                 user_id=current_user.id,
                 db=db,
                 line_item_name="Fine-Tuning Job",
                 line_item_description=f"Fine-tuning",
-                metadata={
-                    "payment_type": "fine_tuning_job",
-                    "user_id": str(current_user.id),
-                    "project_id": str(request.project_id),
-                    "content_ids": json.dumps(request.content_ids),
-                    "config": request.config.json()
-                }
+                metadata=metadata
             )
             return FineTuningJobResponse(
                 status="pending_payment",
@@ -169,30 +175,45 @@ async def create_fine_tuning_job(
              # Sécurité: si la raison est inconnue mais needs_payment est False
              logger.warning(f"Traitement gratuit pour une raison inconnue: {cost_result.get('reason')}. Lancement des tâches par précaution.")
 
-        # 4. Créer Dataset & FineTuning
+        # 4. Créer Dataset & FineTuning et déduire les crédits
         try:
-            # Vérifier s'il faut appliquer les crédits gratuits (uniquement la première fois)
-            if cost_result.get("apply_free_credits", False):
-                 logger.info(f"Application des crédits gratuits pour l'utilisateur {current_user.id}")
-                 # Utiliser add_character_credits pour enregistrer la transaction gratuite
-                 credit_success = character_service.add_character_credits(
-                     db=db, 
-                     user_id=current_user.id, 
-                     character_count=total_characters, # Le montant total est "gratuit"
-                     payment_id=None, # Pas de paiement
-                     description=f"Utilisation du quota gratuit ({total_characters} caractères) pour Fine-Tuning Job"
-                 )
-                 if credit_success:
-                     current_user.has_received_free_credits = True
-                     db.add(current_user)
-                     db.commit()
-                     db.refresh(current_user)
-                     logger.info(f"Utilisateur {current_user.id} marqué comme ayant reçu les crédits gratuits.")
-                 else:
-                     # Logique d'erreur si l'ajout de crédits échoue
-                     logger.error(f"Échec de l'application des crédits gratuits pour l'utilisateur {current_user.id}")
-                     raise HTTPException(status_code=500, detail="Erreur interne lors de l'application des crédits gratuits.")
+            # Déduire les caractères gratuits utilisés pour ce job
+            apply_first_free_quota = cost_result.get("apply_free_credits", False)
+            free_chars_to_use = min(current_user.free_characters_remaining, total_characters)
             
+            logger.info(f"Job gratuit : Utilisation de {free_chars_to_use} caractères gratuits sur {current_user.free_characters_remaining} restants.")
+            
+            if free_chars_to_use > 0:
+                # Mettre à jour le solde de l'utilisateur
+                current_user.free_characters_remaining -= free_chars_to_use
+                current_user.total_characters_used += total_characters # Total utilisé basé sur brut
+                
+                if apply_first_free_quota:
+                    current_user.has_received_free_credits = True
+                    logger.info(f"Utilisateur {current_user.id} marqué comme ayant reçu les crédits gratuits (via FT job).")
+                
+                db.add(current_user)
+                
+                # Enregistrer la transaction gratuite
+                free_tx = CharacterTransaction(
+                    user_id=current_user.id,
+                    amount=-free_chars_to_use,
+                    description=f"Utilisation de {free_chars_to_use} caractères gratuits pour le Fine-Tuning Job",
+                    price_per_character=0.0,
+                    total_price=0.0
+                )
+                db.add(free_tx)
+                
+                # Commiter les changements utilisateur et transaction
+                db.commit()
+                db.refresh(current_user)
+            else:
+                # Si aucun crédit gratuit n'est utilisé, on met juste à jour le total brut utilisé
+                current_user.total_characters_used += total_characters
+                db.add(current_user)
+                db.commit()
+                db.refresh(current_user)
+
             # La création du Dataset et FineTuning se fait ensuite
             # Générer un nom de dataset par défaut si non fourni
             dataset_name = request.config.dataset_name or f"Dataset_{project.name.replace(' ','_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
