@@ -1712,6 +1712,12 @@ const FAQSection = () => {
   const faqData = t('landing.faq.questions', { returnObjects: true });
   const faqs = Array.isArray(faqData) ? faqData : []; 
 
+  // Log pour débogage
+  console.log('DEBUG: FAQSection - faqs value:', faqs);
+  console.log('DEBUG: FAQSection - typeof faqs:', typeof faqs);
+  console.log('DEBUG: FAQSection - Array.isArray(faqs):', Array.isArray(faqs));
+  console.log('DEBUG: FAQSection - raw faqData:', faqData); // Voir la valeur brute retournée par t()
+
   return (
     <Box id="faq-section"
                 sx={{ 
