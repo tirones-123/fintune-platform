@@ -137,20 +137,15 @@ const FineTuningDetailPage = () => {
   const getStatusLabel = (status) => {
     switch (status) {
       case 'queued':
-        return t('fineTuningDetail.status.queued');
       case 'preparing':
-        return t('fineTuningDetail.status.preparing');
       case 'training':
-        return t('fineTuningDetail.status.training');
       case 'completed':
-        return t('fineTuningDetail.status.completed');
       case 'cancelled':
-        return t('fineTuningDetail.status.cancelled');
-      case 'failed':
       case 'error':
-        return t('fineTuningDetail.status.failed');
+      case 'failed':
+        return t(`common.status.${status}`, status);
       default:
-        return t('common.unknown');
+        return t('common.unknown', status);
     }
   };
 
@@ -163,9 +158,9 @@ const FineTuningDetailPage = () => {
         return <CircularProgress size={16} />;
       case 'completed':
         return <CheckCircleIcon fontSize="small" />;
+      case 'error':
       case 'cancelled':
       case 'failed':
-      case 'error':
         return <ErrorIcon fontSize="small" />;
       default:
         return null;

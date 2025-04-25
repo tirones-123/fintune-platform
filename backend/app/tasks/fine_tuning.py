@@ -48,7 +48,7 @@ def start_fine_tuning(fine_tuning_id: int):
             create_notification(
                 db=db,
                 user_id=user_id,
-                message=f"Échec du lancement du fine-tuning '{fine_tuning.name}': Dataset non trouvé.",
+                message=f"Fine-tuning '{fine_tuning.name}' launch failed: Dataset not found.",
                 type='error',
                 related_id=fine_tuning_id,
                 related_type='fine_tuning'
@@ -95,7 +95,7 @@ def start_fine_tuning(fine_tuning_id: int):
             create_notification(
                 db=db,
                 user_id=user_id,
-                message=f"Échec du lancement du fine-tuning '{fine_tuning.name}': Aucun couple Q/A trouvé dans le dataset.",
+                message=f"Fine-tuning '{fine_tuning.name}' launch failed: No Q/A pairs found in the dataset.",
                 type='error',
                 related_id=fine_tuning_id,
                 related_type='fine_tuning'
@@ -169,7 +169,7 @@ def start_fine_tuning(fine_tuning_id: int):
         create_notification(
             db=db,
             user_id=user_id,
-            message=f"Le fine-tuning '{fine_tuning.name}' a été lancé avec succès.",
+            message=f"Fine-tuning '{fine_tuning.name}' was launched successfully.",
             type='info',
             related_id=fine_tuning_id,
             related_type='fine_tuning'
@@ -201,7 +201,7 @@ def start_fine_tuning(fine_tuning_id: int):
             create_notification(
                 db=db,
                 user_id=user_id,
-                message=f"Erreur lors du lancement du fine-tuning '{fine_tuning.name}': {str(e)}",
+                message=f"Error launching fine-tuning '{fine_tuning.name}': {str(e)}",
                 type='error',
                 related_id=fine_tuning_id,
                 related_type='fine_tuning'
@@ -256,8 +256,8 @@ def check_fine_tuning_status(fine_tuning_id: int):
             fine_tuning.error_message = error_msg
             db.commit()
             # Notifier l'échec dû à la clé manquante
-            if user_id: 
-                create_notification(db=db, user_id=user_id, message=f"Échec du fine-tuning '{fine_tuning.name}': Clé API manquante.", type='error', related_id=fine_tuning_id, related_type='fine_tuning')
+            if user_id:
+                create_notification(db=db, user_id=user_id, message=f"Fine-tuning '{fine_tuning.name}' failed: Missing API key.", type='error', related_id=fine_tuning_id, related_type='fine_tuning')
             return {"status": "error", "message": error_msg}
         # --- FIN CORRECTION ---
         
@@ -290,7 +290,7 @@ def check_fine_tuning_status(fine_tuning_id: int):
             fine_tuning.fine_tuned_model = retrieved_model_id # Utiliser la variable logguée
             logger.info(f"Fine-tuning {fine_tuning_id} completed")
             if previous_status != "completed":
-                notification_message = f"Le fine-tuning '{fine_tuning.name}' est terminé avec succès ! Modèle prêt: {fine_tuning.fine_tuned_model}"
+                notification_message = f"Fine-tuning '{fine_tuning.name}' completed successfully. Model: {fine_tuning.fine_tuned_model}"
                 notification_type = 'success'
                 should_notify = True
 
@@ -299,7 +299,7 @@ def check_fine_tuning_status(fine_tuning_id: int):
             fine_tuning.error_message = status_response.get("details", {}).get("error", "Unknown error")
             logger.error(f"Fine-tuning {fine_tuning_id} failed: {fine_tuning.error_message}")
             if previous_status != "error":
-                notification_message = f"Échec du fine-tuning '{fine_tuning.name}'. Raison: {fine_tuning.error_message}"
+                notification_message = f"Fine-tuning '{fine_tuning.name}' failed: {fine_tuning.error_message}"
                 notification_type = 'error'
                 should_notify = True
             
@@ -308,7 +308,7 @@ def check_fine_tuning_status(fine_tuning_id: int):
             fine_tuning.completed_at = datetime.now().isoformat()
             logger.info(f"Fine-tuning {fine_tuning_id} was cancelled")
             if previous_status != "cancelled":
-                notification_message = f"Le fine-tuning '{fine_tuning.name}' a été annulé."
+                notification_message = f"Fine-tuning '{fine_tuning.name}' was cancelled."
                 notification_type = 'warning'
                 should_notify = True
             
@@ -349,7 +349,7 @@ def check_fine_tuning_status(fine_tuning_id: int):
             create_notification(
                  db=db,
                  user_id=user_id,
-                 message=f"Erreur lors de la vérification du statut du fine-tuning '{fine_tuning.name}'.",
+                 message=f"Error checking status for fine-tuning '{fine_tuning.name}'.",
                  type='error',
                  related_id=fine_tuning_id,
                  related_type='fine_tuning'
@@ -403,7 +403,7 @@ def cancel_fine_tuning(fine_tuning_id: int):
         create_notification(
             db=db,
             user_id=user_id,
-            message=f"Le fine-tuning '{fine_tuning.name}' a été annulé manuellement.",
+            message=f"Fine-tuning '{fine_tuning.name}' was manually cancelled.",
             type='warning',
             related_id=fine_tuning_id,
             related_type='fine_tuning'
@@ -421,7 +421,7 @@ def cancel_fine_tuning(fine_tuning_id: int):
             create_notification(
                  db=db,
                  user_id=user_id,
-                 message=f"Erreur lors de l'annulation du fine-tuning '{fine_tuning.name}': {str(e)}",
+                 message=f"Error cancelling fine-tuning '{fine_tuning.name}': {str(e)}",
                  type='error',
                  related_id=fine_tuning_id,
                  related_type='fine_tuning'
