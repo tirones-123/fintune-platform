@@ -271,7 +271,7 @@ const Header = ({ onDrawerToggle }) => {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/dashboard/profile'); }}>
+        <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/dashboard/settings'); }}>
           <ListItemIcon>
             <AccountCircleIcon fontSize="small" />
           </ListItemIcon>
