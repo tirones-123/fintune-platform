@@ -143,9 +143,9 @@ const FineTuningDetailPage = () => {
       case 'cancelled':
       case 'error':
       case 'failed':
-        return t(`common.status.${status}`, status);
+        return t(`common.status.${status}`) || status;
       default:
-        return t('common.unknown', status);
+        return status || t('common.unknown');
     }
   };
 

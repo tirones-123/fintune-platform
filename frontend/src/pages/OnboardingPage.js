@@ -1955,8 +1955,17 @@ const OnboardingPage = () => {
                         <br />
                         <Trans i18nKey="onboarding.step2.finetuningInfo.id" values={{ id: createdFineTuning.id }} components={{ 0: <strong /> }} />
                         <br />
-                        {/* Ensure status key exists in common.status */}
-                        <Trans i18nKey="onboarding.step2.finetuningInfo.status" values={{ status: t(createdFineTuning.status ? `common.status.${createdFineTuning.status.toLowerCase()}` : 'common.status.pending') }} components={{ 0: <strong /> }} />
+                        <Box>
+                          <Trans 
+                            i18nKey="onboarding.step2.finetuningInfo.status" 
+                            values={{ 
+                              status: createdFineTuning.status 
+                                ? (t(`common.status.${createdFineTuning.status.toLowerCase()}`) || createdFineTuning.status)
+                                : (t('common.status.pending') || 'Pending')
+                            }}
+                            components={{ 0: <strong /> }} 
+                          />
+                        </Box>
                      </Typography>
                     <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
                       {t('onboarding.step2.finetuningProcessingText')}

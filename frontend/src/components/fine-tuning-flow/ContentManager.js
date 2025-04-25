@@ -518,7 +518,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                         <Chip 
                           label={content.type === 'youtube' && content.status === 'awaiting_transcription' 
                                 ? t('contentManager.status.readyTranscriptionDelayed')
-                                : t(`common.status.${content.status}`, content.status || t('common.status.pending', 'Pending'))}
+                                : t(`common.status.${content.status}`) || content.status || 'Pending'}
                           size="small"
                           color={content.type === 'youtube' && content.status === 'awaiting_transcription' ? "success" : "warning"}
                           icon={content.type === 'youtube' && content.status === 'awaiting_transcription' 
@@ -528,7 +528,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                         />
                       ) : (
                          <Typography variant="caption" sx={{ color: content.status === 'error' ? 'error.main' : 'text.secondary' }}>
-                           {`${t('common.status', 'Status')}: ${t(`common.status.${content.status}`, content.status)}`}
+                           {`${t('common.status', 'Status')}: ${t(`common.status.${content.status}`) || content.status || 'Unknown'}`}
                          </Typography>
                       )}
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>

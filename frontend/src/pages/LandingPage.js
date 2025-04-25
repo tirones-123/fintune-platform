@@ -730,7 +730,8 @@ const IntroductionSection = () => {
               variants={{ visible: { opacity: 1, x: 0, transition: { duration: 0.8, delay: 0.3, ease: 'easeOut' } } }}
             >
               <Box sx={{
-                height: { xs: 300, md: 400 },
+                // Removed fixed height to adapt to video aspect ratio
+                width: '100%', // Ensure box takes full width available
                 borderRadius: '24px',
                 overflow: 'hidden', // Important pour les coins arrondis de la vidéo
                 background: 'rgba(0,0,0,0.1)', // Fond sombre si la vidéo charge lentement
@@ -748,8 +749,8 @@ const IntroductionSection = () => {
                   playsInline // Important pour l'autoplay sur mobile
                   style={{
                     width: '100%',
-                    height: '100%', // Fait en sorte que la vidéo remplisse la Box
-                    objectFit: 'cover', // Assure que la vidéo couvre l'espace sans se déformer
+                    height: 'auto', // Let the height be determined by the video's aspect ratio
+                    // objectFit: 'cover', // No longer needed with height: 'auto'
                     display: 'block',
                     borderRadius: 'inherit', // Hérite du border radius du parent
                   }}
