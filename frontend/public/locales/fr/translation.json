@@ -1338,13 +1338,13 @@
         "intermediateValue": "{{count}}"
       },
       "warning": {
-        "missingChars": "<0>InfoOutlinedIcon</0>Il vous manque <1>{{count}}</1> caractères pour atteindre le minimum recommandé pour votre objectif d'entraînement."
+        "missingChars": "Il vous manque <1>{{count}}</1> caractères pour atteindre le minimum recommandé pour votre objectif d'entraînement."
       },
       "success": {
-        "minReached": "<0>CheckCircleIcon</0>Vous avez atteint le minimum recommandé pour cette catégorie d'assistant."
+        "minReached": "Vous avez atteint le minimum recommandé pour cette catégorie d'assistant."
       },
       "info": {
-        "excellent": "<0>StarsIcon</0>Excellent ! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.",
+        "excellent": "Excellent ! Votre dataset a dépassé la taille optimale pour des résultats de qualité supérieure.",
         "addMore": "Plus vous ajoutez de contenu, meilleure sera la qualité du fine-tuning.",
         "processingUpdate": "Traitement des fichiers en cours, le comptage sera mis à jour automatiquement"
       },

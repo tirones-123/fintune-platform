@@ -21,7 +21,7 @@ from app.services.character_service import CharacterService
 from app.api.endpoints.fine_tuning_jobs import FineTuningJobConfig
 from app.tasks.content_processing import transcribe_youtube_video
 from celery_app import celery_app
-from app.models.payment import Payment
+from app.models.payment import Payment, CharacterTransaction
 from app.services.stripe_service import StripeService
 
 # Configure Stripe
@@ -472,27 +472,64 @@ async def _handle_onboarding_payment_success(db: Session, stripe_session: Dict[s
 
         logger.info(f"Webhook onboarding: Traitement pour user {user_id}, projet {project_id}, {character_count} total chars, {billable_characters} facturés, contenu IDs: {content_ids_to_process}.")
 
-        # 1. Enregistrer le paiement ou la transaction de caractères (si billable_characters > 0)
-        if billable_characters > 0:
-            # TODO: Implémenter une logique robuste d'enregistrement du paiement/
-            # transaction, potentiellement dans CharacterService ou ici.
-            # Par exemple, créer/mettre à jour une entrée dans la table Payment.
-            # payment_record = Payment(user_id=user_id, amount=stripe_session.get('amount_total')/100, ...) 
-            # db.add(payment_record)
-            logger.info(f"Paiement {payment_intent_id} reçu pour {billable_characters} caractères facturables (user {user_id}). Logique d'enregistrement à implémenter.")
-        
-        # Marquer l'utilisateur comme ayant utilisé son quota gratuit 
+        # ------------------------------------------------------------------
+        # 1. Mettre à jour le solde de caractères de l'utilisateur et créer
+        #    les transactions correspondantes (gratuites et payées)
+        # ------------------------------------------------------------------
         user = db.query(User).filter(User.id == user_id).first()
-        if user and not user.has_received_free_credits:
-            user.has_received_free_credits = True
-            db.add(user)
+        if not user:
+            logger.error(f"Webhook onboarding: utilisateur {user_id} inexistant.")
+            return
+
+        free_quota = CharacterService.FREE_CHARACTERS
+
+        # Déterminer combien de caractères gratuits doivent être appliqués
+        # MODIFICATION ICI: Pour l'onboarding payant, on déduit toujours les caractères gratuits
+        # quel que soit l'état de has_received_free_credits
+        free_chars_to_use = min(free_quota, character_count)
+
+        # Transactions gratuites
+        if free_chars_to_use > 0:
+            # Si c'est la première utilisation des crédits gratuits, déduire du quota
+            if not user.has_received_free_credits:
+                user.free_characters_remaining = max(0, free_quota - free_chars_to_use)
+            else:
+                # Sinon, déduire du solde restant
+                user.free_characters_remaining = max(0, user.free_characters_remaining - free_chars_to_use)
             
-        # --- AJOUT : Marquer aussi l'onboarding comme terminé --- 
-        if user:
-             user.has_completed_onboarding = True
-             db.add(user)
-             logger.info(f"Webhook onboarding: Utilisateur {user.id} marqué comme ayant terminé l'onboarding.")
-        # --- FIN AJOUT ---
+            user.total_characters_used += free_chars_to_use
+            free_tx = CharacterTransaction(
+                user_id=user.id,
+                amount=-free_chars_to_use,
+                description=f"Utilisation quota gratuit onboarding ({free_chars_to_use} caractères)",
+                price_per_character=0.0,
+                total_price=0.0
+            )
+            db.add(free_tx)
+
+        # Transactions payantes
+        if billable_characters and billable_characters > 0:
+            price_per_char = CharacterService.PRICE_PER_CHARACTER
+            total_price = price_per_char * billable_characters
+            paid_tx = CharacterTransaction(
+                user_id=user.id,
+                amount=-billable_characters,
+                description=f"Caractères facturés onboarding ({billable_characters})",
+                price_per_character=price_per_char,
+                total_price=total_price,
+                payment_id=payment_intent_id  # Stocker référence Stripe
+            )
+            db.add(paid_tx)
+            user.total_characters_used += billable_characters
+
+        # S'assurer que has_received_free_credits est vrai après onboarding
+        if not user.has_received_free_credits:
+            user.has_received_free_credits = True
+
+        # Commit modifications utilisateur & transactions
+        db.commit()
+        db.refresh(user)
+        logger.info(f"Webhook onboarding: Mise à jour du solde caractères pour user {user.id}. Restant: {user.free_characters_remaining}. Gratuits utilisés: {free_chars_to_use}, Payants: {billable_characters}")
 
         # 2. Créer Dataset et FineTuning
         project = db.query(Project).filter(Project.id == project_id, Project.user_id == user_id).first()
