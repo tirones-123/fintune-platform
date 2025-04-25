@@ -1358,13 +1358,13 @@
         "intermediateValue": "{{count}}"
       },
       "warning": {
-        "missingChars": "<0>InfoOutlinedIcon</0>You are missing <1>{{count}}</1> characters to reach the minimum recommended for your training goal."
+        "missingChars": "You are missing <1>{{count}}</1> characters to reach the minimum recommended for your training goal."
       },
       "success": {
-        "minReached": "<0>CheckCircleIcon</0>You have reached the minimum recommended for this assistant category."
+        "minReached": "You have reached the minimum recommended for this assistant category."
       },
       "info": {
-        "excellent": "<0>StarsIcon</0>Excellent! Your dataset has exceeded the optimal size for top-quality results.",
+        "excellent": "Excellent! Your dataset has exceeded the optimal size for top-quality results.",
         "addMore": "The more content you add, the better the fine-tuning quality will be.",
         "processingUpdate": "Processing files, the count will update automatically"
       },
