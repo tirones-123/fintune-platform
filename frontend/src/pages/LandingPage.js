@@ -1708,8 +1708,8 @@ const FAQSection = () => {
   const theme = useTheme();
   const { t } = useTranslation(); // Initialize useTranslation
 
-  // Structure FAQ pour la traduction
-  const faqs = t('landing.faq.questions', { returnObjects: true });
+  // Structure FAQ pour la traduction - Ensure it defaults to an empty array
+  const faqs = t('landing.faq.questions', { returnObjects: true }) || []; 
 
   return (
     <Box id="faq-section"
