@@ -528,7 +528,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                         />
                       ) : (
                          <Typography variant="caption" sx={{ color: content.status === 'error' ? 'error.main' : 'text.secondary' }}>
-                           {`${t('common.status')}: ${t(`content.status.${content.status}`, content.status)}`}
+                           {`${t('common.status')}: ${t(`content.status.${content.status}`)}`}
                          </Typography>
                       )}
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -538,19 +538,29 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                            if (typeof meta === 'string') {
                              try { meta = JSON.parse(meta); } catch(_) { meta = null; }
                            }
+                           
+                           // Priority 1: Check direct character_count property (for newly added websites)
+                           if (typeof content.character_count === 'number') {
+                             return ` | ${t('common.characters')}: ${Number(content.character_count).toLocaleString()}`;
+                           }
+                           
+                           // Priority 2: Check metadata character_count
                            if (meta?.character_count) {
                              return ` | ${t('common.characters')}: ${Number(meta.character_count).toLocaleString()}`;
                            }
+                           
+                           // Priority 3: Check estimated characters (frontend calculated for YouTube initially)
                            if (content.estimated_characters) {
                               return ` | ${t('common.characters')}: ~${Number(content.estimated_characters).toLocaleString()}`;
                            }
+                           
+                           // Priority 4: Estimate based on YouTube duration if metadata exists
                            if (content.type === 'youtube' && meta?.duration_seconds) {
                              const estChars = Math.round((meta.duration_seconds / 60) * 400);
                              return ` | ${t('common.characters')}: ~${estChars.toLocaleString()}`;
                            }
-                           if (content.character_count) {
-                             return ` | ${t('common.characters')}: ${Number(content.character_count).toLocaleString()}`;
-                           }
+                           
+                           // Fallback: Show calculating or N/A
                            return isProcessingContent ? ` | ${t('common.characters')}: ${t('common.calculating')}...` : ` | ${t('common.characters')}: N/A`;
                          })()}
                       </Typography>

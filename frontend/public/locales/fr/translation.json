@@ -1442,6 +1442,7 @@
     "web": {
       "defaultTitle": "Contenu web - {{timestamp}}"
     },
+    "defaultFineTuningName": "Fine-tuning pour {{datasetName}}",
     "defaultProjectName": "Mon premier projet",
     "defaultProjectDescription": "Projet créé pendant l'onboarding",
     "defaultDatasetName": "Dataset par défaut",

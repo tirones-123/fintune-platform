@@ -2045,8 +2045,16 @@ const OnboardingPage = () => {
                   onClick={handleBack}
                   startIcon={<ArrowBackIcon />}
                   sx={{ borderRadius: 3 }}
-                  disabled={activeStep === 0 || uploading || creatingProject || savingApiKey || isCompleting ||
-                            ([...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => c.status !== 'completed' && c.status !== 'error'))}
+                  disabled={ // Modified condition to always enable on Step 2
+                    activeStep === 0 || 
+                    (activeStep !== 2 && 
+                      (uploading || 
+                       creatingProject || 
+                       savingApiKey || 
+                       isCompleting || 
+                       ([...uploadedFiles, ...uploadedUrls, ...uploadedYouTube, ...uploadedWeb].some(c => c.status !== 'completed' && c.status !== 'error')))
+                    )
+                  }
                 >
                   {t('common.backButton')}
                 </Button>

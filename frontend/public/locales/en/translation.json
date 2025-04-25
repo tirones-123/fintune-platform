@@ -1450,7 +1450,8 @@
       "pendingDescription": "YouTube video awaiting transcription. Duration: {{duration}} min (estimate)."
     },
     "web": {
-      "defaultTitle": "Web Content - {{timestamp}}"
+      "defaultTitle": "Web Content - {{timestamp}}",
+      "defaultFineTuningName": "Fine-tuning for {{datasetName}}"
     },
     "defaultProjectName": "My first project",
     "defaultProjectDescription": "Project created during onboarding",
