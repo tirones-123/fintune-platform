@@ -167,34 +167,48 @@ def add_url_content(
             detail="Project not found or not owned by user"
         )
     
-    # Create content
+    # === Création de l'objet Content ===
     db_content = Content(
         name=content_in.name,
-        description=content_in.description if content_in.type != 'website' else None, # Clear description for website type if text is in content_text
         type=content_in.type,
         url=content_in.url,
-        status="processing", # Default status
         project_id=content_in.project_id,
-        content_metadata={"original_url": content_in.url}
     )
-    
-    # Mettre un statut spécifique pour YouTube pour indiquer que la transcription est différée
-    if content_in.type == 'youtube':
-        db_content.status = "awaiting_transcription"
-    
-    # Special handling for website type: text is already scraped by frontend
-    if content_in.type == 'website':
-        db_content.content_text = content_in.description # Store scraped text here
-    
+
+    # Cas particulier : contenu "website" (le texte est déjà scrapé côté frontend)
+    if content_in.type == "website":
+        scraped_text = content_in.description or ""
+        char_count = len(scraped_text)
+
+        # Stocker le texte et les métadonnées directement ; pas besoin de tâche Celery
+        db_content.description = scraped_text  # Conserver le texte comme description également
+        db_content.content_text = scraped_text
+        db_content.size = char_count
+        db_content.status = "completed"
+        db_content.content_metadata = {
+            "original_url": content_in.url,
+            "character_count": char_count,
+            "is_exact_count": True,
+        }
+
+    else:
+        # Comportement par défaut pour les autres types (PDF, texte brut, etc.)
+        db_content.description = content_in.description
+        db_content.status = "processing"
+        db_content.content_metadata = {"original_url": content_in.url}
+
+        # Cas YouTube : transcription différée
+        if content_in.type == "youtube":
+            db_content.status = "awaiting_transcription"
+
     db.add(db_content)
     db.commit()
     db.refresh(db_content)
-    
-    # Trigger processing only if not already completed (i.e., not website type)
-    # ET SI CE N'EST PAS YOUTUBE (la transcription YouTube sera déclenchée plus tard)
-    if db_content.status not in ["completed", "awaiting_transcription"]:
+
+    # Lancer le traitement asynchrone uniquement si nécessaire (PDF, txt, etc.)
+    if db_content.status == "processing":
         process_content.delay(db_content.id)
-    
+
     return db_content
 
 @router.get("/{content_id}", response_model=ContentResponse)

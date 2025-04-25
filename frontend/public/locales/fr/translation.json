@@ -348,8 +348,7 @@
       "processing": "En cours",
       "pending": "En attente",
       "readyTranscriptionDelayed": "Prêt (transcription différée)",
-      "awaiting_transcription": "En attente de transcription",
-      "error": "Erreur" // Add this line
+      "awaiting_transcription": "En attente de transcription"
     },
     "error": {
       "loadProjectContent": "Erreur lors du chargement des contenus du projet",
