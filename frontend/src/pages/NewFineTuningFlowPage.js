@@ -65,6 +65,8 @@ const NewFineTuningFlowPage = () => {
   const [minCharactersRecommended, setMinCharactersRecommended] = useState(0);
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchError, setLaunchError] = useState(null);
+  // Nouvel état pour stocker les objets complets des contenus sélectionnés
+  const [selectedContentObjects, setSelectedContentObjects] = useState([]);
   // Store user's remaining free character quota
   const [freeCharactersRemaining, setFreeCharactersRemaining] = useState(null);
 
@@ -115,6 +117,11 @@ const NewFineTuningFlowPage = () => {
   const handleProcessingStatusChange = useCallback((isProcessing) => setIsContentProcessing(isProcessing), []);
   const handleNewlyAddedContentUpdate = useCallback((newContentLists) => {
       setNewlyAddedContent(newContentLists);
+    }, []);
+
+  // Callback pour recevoir les objets contenus sélectionnés depuis ContentManager
+  const handleSelectedContentObjectsChange = useCallback((objects) => {
+      setSelectedContentObjects(objects || []);
     }, []);
 
   // Logique de navigation
@@ -253,11 +260,12 @@ const NewFineTuningFlowPage = () => {
                     onContentChange={handleContentChange} 
                     onProcessingStatusChange={handleProcessingStatusChange}
                     onNewlyAddedContentUpdate={handleNewlyAddedContentUpdate}
+                    onSelectedContentObjectsChange={handleSelectedContentObjectsChange}
                 />
                  {selectedContentIds.length > 0 && (
                     <CharacterEstimator 
                         selectedContentIds={selectedContentIds} 
-                        newlyAddedContent={newlyAddedContent}
+                        selectedContents={selectedContentObjects}
                         minCharactersRecommended={minCharactersRecommended}
                         freeCharactersRemaining={freeCharactersRemaining}
                         onCharacterCountChange={handleCharacterCountChange}
@@ -293,11 +301,9 @@ const NewFineTuningFlowPage = () => {
                 </Paper>
                  <CharacterEstimator 
                     selectedContentIds={selectedContentIds} 
+                    selectedContents={selectedContentObjects}
                     minCharactersRecommended={minCharactersRecommended}
                     freeCharactersRemaining={freeCharactersRemaining}
-                    newlyAddedFiles={newlyAddedContent.files}
-                    newlyAddedYouTube={newlyAddedContent.youtube}
-                    newlyAddedWebsites={newlyAddedContent.websites}
                  />
                 {launchError && <Alert severity="error" sx={{ mb: 2 }}>{launchError}</Alert>}
                 <Button 
