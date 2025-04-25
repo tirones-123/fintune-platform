@@ -26,20 +26,35 @@ const getEstimatedCost = (characterCount, freeCredits) => {
 
 // Calculate progress value on multi-step bar with dynamic freeCredits
 const calculateProgressValue = (currentCount, minRecommended, freeCredits) => {
-    if (!minRecommended || minRecommended <= 0 || !freeCredits || freeCredits <= 0) return 0;
-    const maxRecommended = minRecommended * 4;
-    let progressValue = 0;
-    if (currentCount <= freeCredits) {
-      progressValue = (currentCount / freeCredits) * 25;
-    } else if (currentCount <= minRecommended) {
-      progressValue = 25 + ((currentCount - freeCredits) / (minRecommended - freeCredits)) * 25;
+  if (!minRecommended || minRecommended <= 0) return 0;
+
+  const maxRecommended = minRecommended * 4;
+
+  // Cas où l'utilisateur n'a plus de crédits gratuits
+  if (!freeCredits || freeCredits <= 0) {
+    if (currentCount <= minRecommended) {
+      // 0 → 50 %
+      return Math.max(0, Math.min(100, (currentCount / minRecommended) * 50));
     } else if (currentCount <= maxRecommended) {
-      progressValue = 50 + ((currentCount - minRecommended) / (maxRecommended - minRecommended)) * 50;
-    } else {
-      progressValue = 100;
+      // 50 → 100 %
+      return 50 + ((currentCount - minRecommended) / (maxRecommended - minRecommended)) * 50;
     }
-    return Math.max(0, Math.min(100, progressValue));
-  };
+    return 100;
+  }
+
+  // Cas normal avec crédits gratuits disponibles (segment 0 → 25 % réservé aux crédits)
+  let progressValue = 0;
+  if (currentCount <= freeCredits) {
+    progressValue = (currentCount / freeCredits) * 25;
+  } else if (currentCount <= minRecommended) {
+    progressValue = 25 + ((currentCount - freeCredits) / (minRecommended - freeCredits)) * 25;
+  } else if (currentCount <= maxRecommended) {
+    progressValue = 50 + ((currentCount - minRecommended) / (maxRecommended - minRecommended)) * 50;
+  } else {
+    progressValue = 100;
+  }
+  return Math.max(0, Math.min(100, progressValue));
+};
 // --- Fin Constantes copiées --- 
 
 const CharacterEstimator = ({ 
@@ -60,6 +75,7 @@ const CharacterEstimator = ({
   const effectiveFreeCredits = (typeof freeCharactersRemaining === 'number' && freeCharactersRemaining >= 0)
     ? freeCharactersRemaining
     : 10000;
+  const hasFreeCredits = effectiveFreeCredits > 0;
 
   // Fonction utilitaire locale pour obtenir le nombre de caractères d'un objet Content
   const getCharCountFromContent = (content) => {
@@ -198,11 +214,13 @@ const CharacterEstimator = ({
                          sx={{ height: 10, borderRadius: 5, '& .MuiLinearProgress-bar': { transition: 'transform .4s linear' } }}
                      />
                      {/* Seuils (simplifié) */}
-                     <Tooltip title={t('characterEstimator.tooltip.freeCredits')} placement="top">
-                         <Box sx={{ position: 'absolute', left: '25%', top: 12 }}>
-                           <Chip label={`${effectiveFreeCredits.toLocaleString()}`} size="small" sx={{ transform: 'translateX(-50%)' }} />
-                         </Box>
-                     </Tooltip>
+                     {hasFreeCredits && (
+                       <Tooltip title={t('characterEstimator.tooltip.freeCredits')} placement="top">
+                           <Box sx={{ position: 'absolute', left: '25%', top: 12 }}>
+                             <Chip label={`${effectiveFreeCredits.toLocaleString()}`} size="small" sx={{ transform: 'translateX(-50%)' }} />
+                           </Box>
+                       </Tooltip>
+                     )}
                      <Tooltip title={t('characterEstimator.tooltip.minRecommended')} placement="top">
                          <Box sx={{ position: 'absolute', left: '50%', top: 12 }}><Chip label={`${t('common.min')} ${minRecommended.toLocaleString()}`} size="small" color="warning" sx={{transform: 'translateX(-50%)'}} /></Box>
                      </Tooltip>

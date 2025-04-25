@@ -249,6 +249,21 @@ class CharacterService:
                 billable = character_count - free_quota
                 amount_usd = self.calculate_price(billable)
                 amount_cents = max(0, round(amount_usd * 100))
+
+                # Si le montant est trop faible (<0.60$), on considère comme gratuit
+                if amount_usd < 0.60:
+                    logger.info(
+                        f"1er job pour User {user.id}: montant trop faible ({amount_usd:.2f}$ < 0.60$). Traitement gratuit sans paiement."
+                    )
+                    return {
+                        "needs_payment": False,
+                        "amount_usd": amount_usd,
+                        "amount_cents": amount_cents,
+                        "reason": "low_amount",
+                        "billable_characters": billable,
+                        "apply_free_credits": True
+                    }
+
                 logger.info(f"1er job pour User {user.id}: facturation de {billable} après {free_quota} gratuits.")
                 return {
                     "needs_payment": True,
@@ -276,6 +291,21 @@ class CharacterService:
             billable = character_count - free_remaining
             amount_usd = self.calculate_price(billable)
             amount_cents = max(0, round(amount_usd * 100))
+
+            # Montant trop faible -> gratuit
+            if amount_usd < 0.60:
+                logger.info(
+                    f"Job suivant pour User {user.id}: montant trop faible ({amount_usd:.2f}$ < 0.60$). Traitement gratuit."
+                )
+                return {
+                    "needs_payment": False,
+                    "amount_usd": amount_usd,
+                    "amount_cents": amount_cents,
+                    "reason": "low_amount",
+                    "billable_characters": billable,
+                    "apply_free_credits": False
+                }
+
             logger.info(f"Job suivant pour User {user.id}: facturation de {billable} après crédits restants {free_remaining}.")
             return {
                 "needs_payment": True,
