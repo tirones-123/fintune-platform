@@ -528,7 +528,7 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                         />
                       ) : (
                          <Typography variant="caption" sx={{ color: content.status === 'error' ? 'error.main' : 'text.secondary' }}>
-                           {`${t('common.status', 'Status')}: ${t(`common.status.${content.status}`) || content.status || 'Unknown'}`}
+                           {`${t('common.status', 'Status')}: ${t(`common.status.${content.status?.toLowerCase()}`, content.status) || content.status || 'Unknown'}`}
                          </Typography>
                       )}
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
