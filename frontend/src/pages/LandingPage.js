@@ -825,20 +825,20 @@ const ProcessSection = () => {
   const steps = [
     {
       icon: <CloudUploadIcon sx={{ fontSize: 40 }} />,
-      title: t('landing.process.steps.0.title'),
-      description: t('landing.process.steps.0.description'),
+      title: t('process.steps.0.title'),
+      description: t('process.steps.0.description'),
       color: '#FF9A8B',
     },
     {
       icon: <SyncAltIcon sx={{ fontSize: 40 }} />,
-      title: t('landing.process.steps.1.title'),
-      description: t('landing.process.steps.1.description'),
+      title: t('process.steps.1.title'),
+      description: t('process.steps.1.description'),
       color: '#a18cd1',
     },
     {
       icon: <SmartToyIcon sx={{ fontSize: 40 }} />,
-      title: t('landing.process.steps.2.title'),
-      description: t('landing.process.steps.2.description'),
+      title: t('process.steps.2.title'),
+      description: t('process.steps.2.description'),
       color: '#84fab0',
     },
   ];
@@ -867,7 +867,7 @@ const ProcessSection = () => {
               component="p"
               sx={{ color: "#00d4ff", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #00d4ff' }}
             >
-              {t('landing.process.headline')}
+              {t('process.headline')}
             </Typography>
           </motion.div>
           <motion.div
@@ -880,7 +880,7 @@ const ProcessSection = () => {
               component="h2"
               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #bf00ff, #00d4ff)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(191, 0, 255, 0.4)' }}
             >
-              {t('landing.process.title')}
+              {t('process.title')}
             </Typography>
           </motion.div>
         </Box>
@@ -1003,7 +1003,7 @@ const ProcessSection = () => {
                 borderRadius: '50px',
                    }}
                  >
-              {t('landing.process.ctaButton')}
+              {t('process.ctaButton')}
             </Button>
                </motion.div>
       </Container>
@@ -1186,7 +1186,7 @@ const ChatExample = ({ title, Icon, messages, initialDelay, accentColor }) => {
           backgroundColor: alpha(theme.palette.background.default, 0.5)
         }}>
           <Typography variant="body2" sx={{ color: alpha(theme.palette.text.secondary, 0.6), flexGrow: 1 }}>
-            {t('landing.chatExamples.inputPlaceholder')}
+            {t('chatExamples.inputPlaceholder')}
           </Typography>
           <IconButton size="small" sx={{ color: accentColor || theme.palette.primary.main }}>
             <SendIcon fontSize="small" />
@@ -1210,39 +1210,39 @@ const ChatExamplesSection = () => {
   // Exemples de conversations
   const chatExamples = [
     {
-      title: t('landing.chatExamples.examples.0.title'),
+      title: t('chatExamples.examples.0.title'),
       Icon: TheaterComedyIcon,
       initialDelay: 0.5,
       accentColor: '#fbc2eb', // Rose pour le côté fun
       messages: [
-        { text: t('landing.chatExamples.examples.0.messages.0.text'), isUser: true, avatar: 'U' },
-        { text: t('landing.chatExamples.examples.0.messages.1.text'), isUser: false, avatar: 'MS' },
-        { text: t('landing.chatExamples.examples.0.messages.2.text'), isUser: true, avatar: 'U' },
-        { text: t('landing.chatExamples.examples.0.messages.3.text'), isUser: false, avatar: 'MS' }
+        { text: t('chatExamples.examples.0.messages.0.text'), isUser: true, avatar: 'U' },
+        { text: t('chatExamples.examples.0.messages.1.text'), isUser: false, avatar: 'MS' },
+        { text: t('chatExamples.examples.0.messages.2.text'), isUser: true, avatar: 'U' },
+        { text: t('chatExamples.examples.0.messages.3.text'), isUser: false, avatar: 'MS' }
       ]
     },
     {
-      title: t('landing.chatExamples.examples.1.title'),
+      title: t('chatExamples.examples.1.title'),
       Icon: ContactSupportIcon,
       initialDelay: 1.0, // Démarrer un peu après le premier
       accentColor: '#84fab0', // Vert pour le côté assistance
       messages: [
-        { text: t('landing.chatExamples.examples.1.messages.0.text'), isUser: true, avatar: 'D' },
-        { text: t('landing.chatExamples.examples.1.messages.1.text'), isUser: false, avatar: 'IA' },
-        { text: t('landing.chatExamples.examples.1.messages.2.text'), isUser: true, avatar: 'D' },
-        { text: t('landing.chatExamples.examples.1.messages.3.text'), isUser: false, avatar: 'IA' }
+        { text: t('chatExamples.examples.1.messages.0.text'), isUser: true, avatar: 'D' },
+        { text: t('chatExamples.examples.1.messages.1.text'), isUser: false, avatar: 'IA' },
+        { text: t('chatExamples.examples.1.messages.2.text'), isUser: true, avatar: 'D' },
+        { text: t('chatExamples.examples.1.messages.3.text'), isUser: false, avatar: 'IA' }
       ]
     },
     {
-      title: t('landing.chatExamples.examples.2.title'),
+      title: t('chatExamples.examples.2.title'),
       Icon: SchoolIcon,
       initialDelay: 1.5,
       accentColor: '#a18cd1', // Mauve pour l'éducation
       messages: [
-        { text: t('landing.chatExamples.examples.2.messages.0.text'), isUser: true, avatar: 'A' },
-        { text: t('landing.chatExamples.examples.2.messages.1.text'), isUser: false, avatar: '🎓' },
-        { text: t('landing.chatExamples.examples.2.messages.2.text'), isUser: true, avatar: 'A' },
-        { text: t('landing.chatExamples.examples.2.messages.3.text'), isUser: false, avatar: '🎓' }
+        { text: t('chatExamples.examples.2.messages.0.text'), isUser: true, avatar: 'A' },
+        { text: t('chatExamples.examples.2.messages.1.text'), isUser: false, avatar: '🎓' },
+        { text: t('chatExamples.examples.2.messages.2.text'), isUser: true, avatar: 'A' },
+        { text: t('chatExamples.examples.2.messages.3.text'), isUser: false, avatar: '🎓' }
       ]
     }
   ];
@@ -1271,7 +1271,7 @@ const ChatExamplesSection = () => {
                component="p"
                sx={{ color: "#a18cd1", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #a18cd1' }}
              >
-               {t('landing.chatExamples.headline')}
+               {t('chatExamples.headline')}
              </Typography>
            </motion.div>
            <motion.div
@@ -1284,7 +1284,7 @@ const ChatExamplesSection = () => {
                component="h2"
                sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #a18cd1, #fbc2eb)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(161, 140, 209, 0.4)' }}
              >
-               {t('landing.chatExamples.title')}
+               {t('chatExamples.title')}
              </Typography>
            </motion.div>
             <motion.div
@@ -1297,7 +1297,7 @@ const ChatExamplesSection = () => {
               color="text.secondary"
               sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
             >
-              {t('landing.chatExamples.description')}
+              {t('chatExamples.description')}
             </Typography>
           </motion.div>
          </Box>
@@ -1353,7 +1353,7 @@ const ChatExamplesSection = () => {
                 borderRadius: '50px',
               }}
             >
-              {t('landing.chatExamples.ctaButton')}
+              {t('chatExamples.ctaButton')}
             </Button>
          </motion.div>
        </Container>
@@ -1443,7 +1443,7 @@ const FinalCTASection = () => {
                   component="p"
                   sx={{ color: "#00d4ff", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #00d4ff' }}
                 >
-                  {t('landing.finalCta.headline')}
+                  {t('finalCta.headline')}
                 </Typography>
             </motion.div>
 
@@ -1465,9 +1465,9 @@ const FinalCTASection = () => {
                   textShadow: '0 0 20px rgba(191, 0, 255, 0.4)',
                 }}
               >
-                {t('landing.finalCta.title.line1')}
+                {t('finalCta.title.line1')}
                 <br />
-                {t('landing.finalCta.title.line2')}
+                {t('finalCta.title.line2')}
               </Typography>
             </motion.div>
 
@@ -1480,7 +1480,7 @@ const FinalCTASection = () => {
                   variant="h6"
                   sx={{ mb: 5, maxWidth: 650, mx: 'auto', color: alpha(theme.palette.text.secondary, 0.9), lineHeight: 1.7 }}
                 >
-                  {t('landing.finalCta.description')}
+                  {t('finalCta.description')}
                 </Typography>
             </motion.div>
 
@@ -1514,10 +1514,10 @@ const FinalCTASection = () => {
                     },
                   }}
                 >
-                  {t('landing.finalCta.ctaButton')}
+                  {t('finalCta.ctaButton')}
                 </Button>
                 <Typography variant="caption" sx={{ display: 'block', mt: 2.5, color: alpha(theme.palette.text.secondary, 0.7) }}>
-                  {t('landing.finalCta.ctaCaption')}
+                  {t('finalCta.ctaCaption')}
                 </Typography>
             </motion.div>
           </Box>
@@ -1539,12 +1539,12 @@ const DeploymentSection = () => {
   // --- Simplification --- 
   // Sélection d'icônes représentatives
   const simplifiedPlatforms = [
-    { icon: ApiIcon, labelKey: "landing.deployment.platforms.0.label", color: '#ff9a8b', delay: 0.5 },
-    { icon: WebIcon, labelKey: "landing.deployment.platforms.1.label", color: '#a18cd1', delay: 0.7 },
-    { icon: SmartphoneIcon, labelKey: "landing.deployment.platforms.2.label", color: '#fbc2eb', delay: 0.9 },
-    { icon: ElectricBoltIcon, labelKey: "landing.deployment.platforms.3.label", color: '#ff7eb3', delay: 1.1 },
-    { icon: ChatIcon, labelKey: "landing.deployment.platforms.4.label", color: '#4a154b', delay: 1.3 },
-    { icon: BusinessCenterIcon, labelKey: "landing.deployment.platforms.5.label", color: '#00a1e0', delay: 1.5 }, 
+    { icon: ApiIcon, labelKey: "deployment.platforms.0.label", color: '#ff9a8b', delay: 0.5 },
+    { icon: WebIcon, labelKey: "deployment.platforms.1.label", color: '#a18cd1', delay: 0.7 },
+    { icon: SmartphoneIcon, labelKey: "deployment.platforms.2.label", color: '#fbc2eb', delay: 0.9 },
+    { icon: ElectricBoltIcon, labelKey: "deployment.platforms.3.label", color: '#ff7eb3', delay: 1.1 },
+    { icon: ChatIcon, labelKey: "deployment.platforms.4.label", color: '#4a154b', delay: 1.3 },
+    { icon: BusinessCenterIcon, labelKey: "deployment.platforms.5.label", color: '#00a1e0', delay: 1.5 }, 
   ];
   
   // Initialisation individuelle des refs
@@ -1579,21 +1579,21 @@ const DeploymentSection = () => {
               component="p"
               sx={{ color: "#84fab0", fontWeight: 700, textTransform: "uppercase", mb: 2, letterSpacing: 2, textShadow: '0 0 8px #84fab0' }}
             >
-              {t('landing.deployment.headline')}
+              {t('deployment.headline')}
             </Typography>
             <Typography
               variant="h2"
               component="h2"
               sx={{ fontWeight: 900, mb: 3, background: 'linear-gradient(145deg, #84fab0, #5ee7df)', WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "'Exo 2', sans-serif", textShadow: '0 0 20px rgba(132, 250, 176, 0.4)' }}
             >
-              {t('landing.deployment.title')}
+              {t('deployment.title')}
             </Typography>
             <Typography
               variant="h6"
               color="text.secondary"
               sx={{ maxWidth: 750, mx: "auto", fontSize: "1.1rem", lineHeight: 1.8, color: alpha(theme.palette.text.secondary, 0.8) }}
             >
-              {t('landing.deployment.description')}
+              {t('deployment.description')}
             </Typography>
         </Box>
 
@@ -1696,7 +1696,7 @@ const DeploymentSection = () => {
                 borderRadius: '50px',
               }}
             >
-              {t('landing.deployment.ctaButton')}
+              {t('deployment.ctaButton')}
             </Button>
         </motion.div>
       </Container>
@@ -1710,7 +1710,7 @@ const FAQSection = () => {
   const { t, ready } = useTranslation(); 
 
   // On ne récupère les données que si 'ready' est true
-  const faqData = ready ? t('landing.faq.questions', { returnObjects: true }) : null;
+  const faqData = ready ? t('faq.questions', { returnObjects: true }) : null;
   const faqs = Array.isArray(faqData) ? faqData : []; 
 
   // Log pour débogage (peut être retiré après résolution)
@@ -1739,10 +1739,10 @@ const FAQSection = () => {
       <Container maxWidth="md">
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, color: theme.palette.primary.main }}>
-            {t('landing.faq.title')}
+            {t('faq.title')}
           </Typography>
           <Typography variant="h6" color={theme.palette.text.secondary}>
-            {t('landing.faq.subtitle')}
+            {t('faq.subtitle')}
           </Typography>
           </Box>
         {faqs.map((faq, idx) => (
@@ -1811,7 +1811,7 @@ const FAQSection = () => {
                 borderRadius: '50px',
               }}
             >
-              {t('landing.faq.ctaButton')}
+              {t('faq.ctaButton')}
             </Button>
         </motion.div>
       </Container>
