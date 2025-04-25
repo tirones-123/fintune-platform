@@ -21,7 +21,7 @@ import ContentManager from '../components/fine-tuning-flow/ContentManager';
 import ConfigManager from '../components/fine-tuning-flow/ConfigManager';
 import CharacterEstimator from '../components/fine-tuning-flow/CharacterEstimator';
 import PsychologyIcon from '@mui/icons-material/Psychology';
-import { projectService, api, helperService } from '../services/apiService'; // Importer helperService
+import { projectService, api, helperService, characterService } from '../services/apiService'; // Importer helperService et characterService
 
 // Copier/Coller depuis ConfigManager ou OnboardingPage
 const providerModels = {
@@ -65,6 +65,8 @@ const NewFineTuningFlowPage = () => {
   const [minCharactersRecommended, setMinCharactersRecommended] = useState(0);
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchError, setLaunchError] = useState(null);
+  // Store user's remaining free character quota
+  const [freeCharactersRemaining, setFreeCharactersRemaining] = useState(null);
 
   // Charger les détails du projet
   useEffect(() => {
@@ -81,6 +83,19 @@ const NewFineTuningFlowPage = () => {
     };
     fetchProject();
   }, [projectId, navigate, enqueueSnackbar, t]);
+
+  // Fetch user's remaining free characters quota on mount
+  useEffect(() => {
+    const fetchUsageStats = async () => {
+      try {
+        const stats = await characterService.getUsageStats();
+        setFreeCharactersRemaining(stats.free_characters_remaining);
+      } catch (error) {
+        console.error("NewFineTuningFlowPage: Error fetching usage stats:", error);
+      }
+    };
+    fetchUsageStats();
+  }, []);
 
   // Callbacks
   const handleContentChange = useCallback((ids) => setSelectedContentIds(ids), []);
@@ -244,6 +259,7 @@ const NewFineTuningFlowPage = () => {
                         selectedContentIds={selectedContentIds} 
                         newlyAddedContent={newlyAddedContent}
                         minCharactersRecommended={minCharactersRecommended}
+                        freeCharactersRemaining={freeCharactersRemaining}
                         onCharacterCountChange={handleCharacterCountChange}
                     />
                  )}
@@ -278,6 +294,7 @@ const NewFineTuningFlowPage = () => {
                  <CharacterEstimator 
                     selectedContentIds={selectedContentIds} 
                     minCharactersRecommended={minCharactersRecommended}
+                    freeCharactersRemaining={freeCharactersRemaining}
                     newlyAddedFiles={newlyAddedContent.files}
                     newlyAddedYouTube={newlyAddedContent.youtube}
                     newlyAddedWebsites={newlyAddedContent.websites}

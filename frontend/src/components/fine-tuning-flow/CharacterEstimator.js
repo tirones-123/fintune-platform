@@ -15,23 +15,20 @@ import StarsIcon from '@mui/icons-material/Stars';
 import { contentService } from '../../services/apiService'; // Pour récupérer le contenu
 import { useTranslation } from 'react-i18next'; // Importer
 
-// --- Constantes copiées de OnboardingPage --- 
+// --- Constantes copiées de OnboardingPage (PRICE_PER_CHARACTER remains static) --- 
 const PRICE_PER_CHARACTER = 0.000365;
-const FREE_CHARACTER_QUOTA = 10000;
 
-// Calculer le coût estimé
-const getEstimatedCost = (characterCount) => {
-    const billableCharacters = Math.max(0, characterCount - FREE_CHARACTER_QUOTA);
+// Calculate estimated cost given a dynamic free character quota
+const getEstimatedCost = (characterCount, freeCredits) => {
+    const billableCharacters = Math.max(0, characterCount - freeCredits);
     return billableCharacters * PRICE_PER_CHARACTER;
   };
 
-// Calculer la progression sur la barre multi-paliers
-const calculateProgressValue = (currentCount, minRecommended) => {
-    if (!minRecommended || minRecommended <= 0) return 0;
-    const freeCredits = 10000;
+// Calculate progress value on multi-step bar with dynamic freeCredits
+const calculateProgressValue = (currentCount, minRecommended, freeCredits) => {
+    if (!minRecommended || minRecommended <= 0 || !freeCredits || freeCredits <= 0) return 0;
     const maxRecommended = minRecommended * 4;
     let progressValue = 0;
-    
     if (currentCount <= freeCredits) {
       progressValue = (currentCount / freeCredits) * 25;
     } else if (currentCount <= minRecommended) {
@@ -47,9 +44,10 @@ const calculateProgressValue = (currentCount, minRecommended) => {
 
 const CharacterEstimator = ({ 
   selectedContentIds = [], 
-  selectedContents = null, // Nouveau: tableau d'objets contenu complet (optionnel)
+  selectedContents = null, // Nouveau: contenu complet (optionnel)
   onCharacterCountChange, 
-  minCharactersRecommended = 5000 
+  minCharactersRecommended = 5000,
+  freeCharactersRemaining // dynamic free quota
 }) => {
   const { t } = useTranslation(); // Initialiser
   const [totalCharacters, setTotalCharacters] = useState(0);
@@ -58,6 +56,11 @@ const CharacterEstimator = ({
   const minRecommended = minCharactersRecommended;
   const maxRecommended = minRecommended * 4;
   
+  // Use default free quota if dynamic value is not yet loaded
+  const effectiveFreeCredits = (typeof freeCharactersRemaining === 'number' && freeCharactersRemaining >= 0)
+    ? freeCharactersRemaining
+    : 10000;
+
   // Fonction utilitaire locale pour obtenir le nombre de caractères d'un objet Content
   const getCharCountFromContent = (content) => {
     // 1. Comptage exact
@@ -154,8 +157,8 @@ const CharacterEstimator = ({
 
   }, [selectedContentIds, selectedContents, onCharacterCountChange]);
 
-  const estimatedCost = getEstimatedCost(totalCharacters);
-  const progressValue = calculateProgressValue(totalCharacters, minRecommended);
+  const estimatedCost = getEstimatedCost(totalCharacters, effectiveFreeCredits);
+  const progressValue = calculateProgressValue(totalCharacters, minRecommended, effectiveFreeCredits);
 
   return (
     <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
@@ -177,7 +180,7 @@ const CharacterEstimator = ({
                 <Box>
                 <Typography variant="body2" color="text.secondary">
                     {t('characterEstimator.estimatedCostLabel')}: 
-                    <strong> {totalCharacters <= FREE_CHARACTER_QUOTA ? t('common.free') : `$${estimatedCost.toFixed(2)}`}</strong>
+                    <strong> {totalCharacters <= effectiveFreeCredits ? t('common.free') : `$${estimatedCost.toFixed(2)}`}</strong>
                 </Typography>
                 </Box>
             </Box>
@@ -196,7 +199,9 @@ const CharacterEstimator = ({
                      />
                      {/* Seuils (simplifié) */}
                      <Tooltip title={t('characterEstimator.tooltip.freeCredits')} placement="top">
-                         <Box sx={{ position: 'absolute', left: '25%', top: 12 }}><Chip label="10k" size="small" sx={{transform: 'translateX(-50%)'}} /></Box>
+                         <Box sx={{ position: 'absolute', left: '25%', top: 12 }}>
+                           <Chip label={`${effectiveFreeCredits.toLocaleString()}`} size="small" sx={{ transform: 'translateX(-50%)' }} />
+                         </Box>
                      </Tooltip>
                      <Tooltip title={t('characterEstimator.tooltip.minRecommended')} placement="top">
                          <Box sx={{ position: 'absolute', left: '50%', top: 12 }}><Chip label={`${t('common.min')} ${minRecommended.toLocaleString()}`} size="small" color="warning" sx={{transform: 'translateX(-50%)'}} /></Box>
