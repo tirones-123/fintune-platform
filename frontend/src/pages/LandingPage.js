@@ -219,14 +219,15 @@ const Hero = () => {
         position: 'relative',
         overflow: 'hidden',
         pt: { xs: 4, md: 8 }, // Réduction de l'espace en haut
-        pb: { xs: 16, md: 24 }, // Plus d'espace en bas
+        pb: { xs: 8, md: 24 }, // Plus d'espace en bas -> Réduction de l'espace en bas sur mobile
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)`,
       }}
     >
-      {/* Fond d'étoiles animées */}
+      {/* Fond d'étoiles animées - SUPPRIMÉ POUR PERFORMANCE */}
+      {/*
       <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: -2 }}>
         {[...Array(50)].map((_, i) => (
           <motion.div
@@ -248,8 +249,10 @@ const Hero = () => {
           />
         ))}
       </Box>
+      */}
 
-      {/* Nébuleuse animée en arrière-plan */}
+      {/* Nébuleuse animée en arrière-plan - SUPPRIMÉ POUR PERFORMANCE */}
+      {/*
       <motion.div
         animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
         transition={{ duration: 15, repeat: Infinity, repeatType: 'reverse' }}
@@ -278,6 +281,7 @@ const Hero = () => {
           zIndex: -1,
         }}
       />
+      */}
 
       <Container maxWidth="lg">
         <Grid container spacing={8} alignItems="center" sx={{ position: 'relative' }}>
