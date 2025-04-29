@@ -326,7 +326,7 @@
       "whereOpenAI2Secondary": "Vous la trouverez peut-être sous 'Settings' ou directement dans le menu.",
       "whereOpenAI3": "Cliquez sur 'Create new secret key'. Donnez-lui un nom (ex: 'FineTuner') et copiez la clé immédiatement – elle ne sera plus affichée.",
       "whereOpenAI3Secondary": "Collez cette clé dans le champ Clé API de FineTuner.",
-      "whereOpenAICredits": "Assurez-vous d'avoir ajouté des crédits à votre compte OpenAI, car le fine-tuning et l'utilisation des modèles sont payants. Vérifiez votre",
+      "whereOpenAICredits": "Assurez-vous d'avoir ajouté des crédits à votre compte OpenAI, car le fine-tuning et l'utilisation des modèles sont payants.",
       "whereOpenAICreditsBillingLink": "Vérifiez votre <0>page de facturation OpenAI</0>.",
       "billingLink": "page de facturation OpenAI",
       "securityTitle": "Sécurité de votre clé",
