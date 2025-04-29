@@ -75,7 +75,7 @@ function HelpPage() {
                   height: '100%',
                   border: 'none'
                 }}
-                src="https://youtu.be/tfpDBGMgEpU"
+                src="https://www.youtube.com/watch?v=tfpDBGMgEpU"
                 title={t('helpPage.howItWorks.videoIframeTitle')}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
