@@ -1390,6 +1390,11 @@ const OnboardingPage = () => {
                 error={!!systemContentError}
                 helperText={systemContentError || t('onboarding.step0.purposeHelper')} // Show helper or error
                 inputProps={{ maxLength: 1000 }}
+                sx={{
+                  '& textarea::placeholder': {
+                    whiteSpace: 'pre-line'
+                  }
+                }}
               />
               {/* Remove redundant helper text if error is shown in helperText */}
               {/* <FormHelperText>
