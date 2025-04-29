@@ -1447,8 +1447,17 @@
       "whyItem2": "Ensure the confidentiality of your data",
       "whyItem3": "Allow you to use this model in your own applications",
       "whereOpenAITitle": "How to get your OpenAI API key",
-      "securityPara": "We never store your API key in plaintext. It is encrypted in our database and only used for the fine-tuning operations you initiate.",
-      "goToOpenAIButton": "Go to OpenAI"
+      "whereTitle": "Where to find your API key?",
+      "whereOpenAI1": "Log in to your OpenAI account, then navigate to the API keys section.",
+      "whereOpenAI2": "Navigate to the 'API Keys' section on the left sidebar.",
+      "whereOpenAI2Secondary": "You might find this under 'Settings' or directly in the navigation menu.",
+      "whereOpenAI3": "Click on 'Create new secret key'. Give it a name (e.g., 'FineTuner') and copy the key immediately – it won't be shown again.",
+      "whereOpenAI3Secondary": "Paste this key into the API key field in FineTuner.",
+      "whereOpenAICredits": "Make sure you have added credits to your OpenAI account, as fine-tuning and model usage are paid services. Check your",
+      "whereOpenAICreditsBillingLink": "Check your <0>OpenAI billing page</0>.",
+      "billingLink": "OpenAI billing page",
+      "securityTitle": "Key Security",
+      "securityPara": "We never store your API key in plaintext. It is encrypted in our database and only used for the fine-tuning operations you initiate."
     },
     "error": {
       "projectCreateFailed": "Error: {{error}}",
