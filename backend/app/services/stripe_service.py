@@ -79,6 +79,7 @@ class StripeService:
                 client_reference_id=str(user_id),
                 customer_email=user.email,
                 metadata=session_metadata,
+                allow_promotion_codes=True,
             )
             
             return checkout_session.url

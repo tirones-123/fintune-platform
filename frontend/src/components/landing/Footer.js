@@ -93,8 +93,6 @@ const Footer = () => {
       title: t('footer.resources.title'),
       links: [
         { name: t('footer.resources.help'), path: '/help' },
-        { name: t('footer.resources.playground'), path: '/playground' },
-        { name: t('footer.resources.apiDocs'), path: 'https://finetuner.io/docs', external: true },
       ],
     },
     {

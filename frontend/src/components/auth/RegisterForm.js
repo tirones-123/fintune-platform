@@ -181,9 +181,13 @@ const RegisterForm = () => {
               }
               label={
                 <Typography variant="body2">
-                  <Trans i18nKey="register.termsAcceptance">
-                    J'accepte les <Link component={RouterLink} to="/terms-of-service" underline="hover">Conditions d{''}utilisation</Link> et la <Link component={RouterLink} to="/privacy-policy" underline="hover">Politique de confidentialité</Link>
-                  </Trans>
+                  <Trans
+                    i18nKey="register.termsAcceptance"
+                    components={{
+                      0: <Link component={RouterLink} to="/terms-of-service" underline="hover" />, 
+                      1: <Link component={RouterLink} to="/privacy-policy" underline="hover" />
+                    }}
+                  />
                 </Typography>
               }
             />
