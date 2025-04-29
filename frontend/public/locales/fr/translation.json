@@ -322,8 +322,12 @@
       "whyItem3": "Récupérer l'identifiant du modèle fine-tuné une fois terminé",
       "whereTitle": "Où trouver votre clé API ?",
       "whereOpenAI1": "Connectez-vous à votre compte sur le site d'OpenAI, puis accédez à la section des clés API.",
-      "whereOpenAI2": "Créez une nouvelle clé secrète (elle commence généralement par \"sk-...\"). Copiez-la et collez-la ici.",
+      "whereOpenAI2": "Accédez à la section 'API Keys' dans le menu latéral gauche.",
+      "whereOpenAI2Secondary": "Vous la trouverez peut-être sous 'Settings' ou directement dans le menu.",
+      "whereOpenAI3": "Cliquez sur 'Create new secret key'. Donnez-lui un nom (ex: 'FineTuner') et copiez la clé immédiatement – elle ne sera plus affichée.",
+      "whereOpenAI3Secondary": "Collez cette clé dans le champ Clé API de FineTuner.",
       "whereOpenAICredits": "Assurez-vous d'avoir ajouté des crédits à votre compte OpenAI, car le fine-tuning et l'utilisation des modèles sont payants. Vérifiez votre",
+      "whereOpenAICreditsBillingLink": "Vérifiez votre <0>page de facturation OpenAI</0>.",
       "billingLink": "page de facturation OpenAI",
       "securityTitle": "Sécurité de votre clé",
       "securityPara": "Votre clé API est sensible. Nous la stockons de manière sécurisée et ne l'utilisons que pour les opérations de fine-tuning que vous lancez via notre plateforme. Elle n'est jamais exposée côté client.",
@@ -484,7 +488,7 @@
       { "label": "Web Apps" },
       { "label": "Mobile Apps" },
       { "label": "Zapier" },
-      { "label": "Slack" },
+      { "label": "Reseaux Sociaux" },
       { "label": "CRM" }
     ],
     "ctaButton": "Intégrer votre IA partout"
@@ -1302,7 +1306,7 @@
     "step0": {
       "infoAlert": "Indiquez le rôle de votre assistant IA, son ton (formel, amical, humoristique...) et les types de tâches qu'il doit accomplir.",
       "purposeLabel": "Objectif de votre assistant IA",
-      "purposePlaceholder": "Exemples :\\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc\\n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\\n- Un expert juridique qui explique le droit du travail américain de façon simple.\\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.",
+      "purposePlaceholder": "Exemples :\n- Une IA qui parle comme Michael Scott, Harry Potter, Gollum, etc\n- Un assistant support client pour une boutique e-commerce qui répond aux questions sur les commandes, retours et produits.\n- Un expert juridique qui explique le droit du travail américain de façon simple.\n- Un coach sportif qui propose des conseils personnalisés et des programmes d'entraînement.",
       "purposeHelper": "Soyez précis sur le domaine d'expertise, le ton à adopter et les capacités souhaitées.",
       "error": {
         "generateFailed": "Erreur : {{error}}",
@@ -1317,6 +1321,7 @@
         "estimatedCount": "Estimation du nombre de caractères",
         "noContent": "Aucun contenu ajouté"
       },
+      "filesProcessed": "fichiers traités",
       "charsCounted": "Caractères comptés : <1>{{count}}</1>",
       "charsEstimated": "Caractères estimés : <1>{{estimated}}</1> (dont {{counted}} comptés)",
       "charsEstimatedZero": "Caractères estimés : <1>0</1>",

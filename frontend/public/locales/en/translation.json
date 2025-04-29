@@ -346,12 +346,16 @@
       "whyItem3": "Retrieve the fine-tuned model ID once completed",
       "whereTitle": "Where to find your API key?",
       "whereOpenAI1": "Log in to your OpenAI account, then navigate to the API keys section.",
-      "whereOpenAI2": "Create a new secret key (it usually starts with \"sk-...\"). Copy it and paste it here.",
+      "whereOpenAI2": "Navigate to the 'API Keys' section on the left sidebar.",
+      "whereOpenAI2Secondary": "You might find this under 'Settings' or directly in the navigation menu.",
+      "whereOpenAI3": "Click on 'Create new secret key'. Give it a name (e.g., 'FineTuner') and copy the key immediately – it won't be shown again.",
+      "whereOpenAI3Secondary": "Paste this key into the API key field in FineTuner.",
       "whereOpenAICredits": "Make sure you have added credits to your OpenAI account, as fine-tuning and model usage are paid services. Check your",
+      "whereOpenAICreditsBillingLink": "Check your <0>OpenAI billing page</0>.",
       "billingLink": "OpenAI billing page",
       "securityTitle": "Key Security",
       "securityPara": "Your API key is sensitive. We store it securely and only use it for the fine-tuning operations you initiate through our platform. It is never exposed client-side.",
-      "goToOpenAIKeys": "Go to OpenAI Keys"
+      "goToOpenAIButton": "Go to OpenAI"
     }
   },
   "contentManager": {
@@ -508,7 +512,7 @@
       { "label": "Web Apps" },
       { "label": "Mobile Apps" },
       { "label": "Zapier" },
-      { "label": "Slack" },
+      { "label": "Socials" },
       { "label": "CRM" }
     ],
     "ctaButton": "Integrate your AI everywhere"
@@ -1337,6 +1341,7 @@
         "estimatedCount": "Estimated character count",
         "noContent": "No content added"
       },
+      "filesProcessed": "files processed",
       "charsCounted": "Characters counted: <1>{{count}}</1>",
       "charsEstimated": "Estimated characters: <1>{{estimated}}</1> (including {{counted}} counted)",
       "charsEstimatedZero": "Estimated characters: <1>0</1>",
