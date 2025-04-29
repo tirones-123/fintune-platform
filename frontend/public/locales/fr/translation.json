@@ -331,6 +331,7 @@
       "billingLink": "page de facturation OpenAI",
       "securityTitle": "Sécurité de votre clé",
       "securityPara": "Votre clé API est sensible. Nous la stockons de manière sécurisée et ne l'utilisons que pour les opérations de fine-tuning que vous lancez via notre plateforme. Elle n'est jamais exposée côté client.",
+      "goToOpenAIButton": "Accéder à OpenAI",
       "goToOpenAIKeys": "Aller aux clés OpenAI"
     }
   },

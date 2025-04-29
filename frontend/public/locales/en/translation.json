@@ -355,7 +355,8 @@
       "billingLink": "OpenAI billing page",
       "securityTitle": "Key Security",
       "securityPara": "We never store your API key in plaintext. It is encrypted in our database and only used for the fine-tuning operations you initiate.",
-      "goToOpenAIButton": "Go to OpenAI"
+      "goToOpenAIButton": "Go to OpenAI",
+      "goToOpenAIKeys": "Go to OpenAI Keys"
     }
   },
   "contentManager": {
@@ -1458,7 +1459,8 @@
       "billingLink": "OpenAI billing page",
       "securityTitle": "Key Security",
       "securityPara": "We never store your API key in plaintext. It is encrypted in our database and only used for the fine-tuning operations you initiate.",
-      "goToOpenAIButton": "Go to OpenAI"
+      "goToOpenAIButton": "Go to OpenAI",
+      "goToOpenAIKeys": "Go to OpenAI Keys"
     },
     "error": {
       "projectCreateFailed": "Error: {{error}}",
