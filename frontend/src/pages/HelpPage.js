@@ -75,7 +75,7 @@ function HelpPage() {
                   height: '100%',
                   border: 'none'
                 }}
-                src="https://www.youtube.com/embed/VIDEO_ID_PLACEHOLDER"
+                src="https://youtu.be/tfpDBGMgEpU"
                 title={t('helpPage.howItWorks.videoIframeTitle')}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
