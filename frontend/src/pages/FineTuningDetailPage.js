@@ -327,7 +327,7 @@ const FineTuningDetailPage = () => {
                 <List>
                   <ListItem>
                     <ListItemText 
-                      primary={t('common.status')} 
+                      primary={t('common.statusLabel')} 
                       secondary={
                         fineTuning.status === 'pending' && dataset?.status === 'processing' ? (
                           <Chip 
