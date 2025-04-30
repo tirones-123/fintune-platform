@@ -101,7 +101,12 @@ const CharacterEstimator = ({
       return { count: content.character_count, isExact: true }; // scrapé, donc exact
     }
 
-    // 5. Fallback
+    // 5. Estimation stockée dans content_metadata (YouTube déjà ajoutée auparavant)
+    if (content?.content_metadata?.estimated_characters) {
+      return { count: content.content_metadata.estimated_characters, isExact: false };
+    }
+
+    // 6. Fallback
     const fallback = content?.size ? content.size * 0.5 : 3000;
     return { count: fallback, isExact: false };
   };

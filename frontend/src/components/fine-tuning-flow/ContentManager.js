@@ -572,6 +572,14 @@ const ContentManager = ({ projectId, onContentChange, initialContentIds = [], on
                              return ` | ${t('common.characters')}: ${Number(content.description.length).toLocaleString()}`;
                            }
 
+                           // Priority 2bis: Check metadata estimated_characters (YouTube déjà enregistré)
+                           if (meta?.estimated_characters) {
+                             const count = Number(meta.estimated_characters);
+                             if (!isNaN(count)) {
+                               return ` | ${t('common.characters')}: ~${count.toLocaleString()}`;
+                             }
+                           }
+
                            // Fallback: Show calculating or N/A
                            return isProcessingContent ? ` | ${t('common.characters')}: ${t('common.calculating')}...` : ` | ${t('common.characters')}: N/A`;
                          })()}
