@@ -156,7 +156,7 @@ class OpenAIProvider(AIProviderBase):
             logger.error(f"Error cancelling OpenAI fine-tuning: {str(e)}")
             raise e
     
-    async def generate_completion(self, prompt: str, model: str = "gpt-4o-mini", system_prompt: Optional[str] = None) -> str:
+    async def generate_completion(self, prompt: str, model: str = "gpt-4.1", system_prompt: Optional[str] = None) -> str:
         """Generate a completion for a prompt using OpenAI."""
         try:
             effective_system_prompt = system_prompt if system_prompt else "You are a helpful assistant."
@@ -168,7 +168,7 @@ class OpenAIProvider(AIProviderBase):
                     {"role": "system", "content": effective_system_prompt},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7, 
+                temperature=0.1, 
                 # max_tokens=1024 
             )
             return response.choices[0].message.content
@@ -176,7 +176,7 @@ class OpenAIProvider(AIProviderBase):
             logger.error(f"Error generating completion with OpenAI: {str(e)}")
             raise e
     
-    def generate_qa_pairs(self, chunk_text: str, model: str = "gpt-4o-mini", system_content: Optional[str] = None) -> List[Dict]:
+    def generate_qa_pairs(self, chunk_text: str, model: str = "gpt-4.1", system_content: Optional[str] = None) -> List[Dict]:
         """Generate question-answer pairs from a text chunk using OpenAI."""
         try:
             system_prompt = """You are a training data creation assistant. 
@@ -215,6 +215,7 @@ Notice how we kept the casual/familiar language exactly as is, with no correctio
 
 This text was provided in order to train an AI on this goal: "{effective_system_content}"
 Based on this text, generate between 2 and 20 question-answer pairs. 
+The answers can be long.
 Each pair should appear as an object with "question" and "answer" fields. 
 Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
 Do not add any information not found in the text. 

@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     MISTRAL_API_KEY: str = Field(default="")
     
     # Content processing settings
-    DEFAULT_AI_MODEL: str = Field(default="gpt-4o-mini")
+    DEFAULT_AI_MODEL: str = Field(default="gpt-4.1")
 
     # Frontend configuration
     FRONTEND_URL: str = Field(default="https://finetuner.io")
