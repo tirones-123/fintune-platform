@@ -91,8 +91,15 @@ const ChatPage = () => {
     setResponding(true);
     
     try {
-      // Tester le modèle via l'API
-      const response = await fineTuningService.testModel(fineTuningId, userMessage);
+      // Construire le prompt en incluant l'historique de la conversation pour un contexte complet
+      const conversationWithCurrent = [...messages, newUserMessage];
+      const historyPrompt = conversationWithCurrent
+        .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+        .join('\n');
+      const finalPrompt = `${historyPrompt}\nAssistant:`;
+
+      // Envoyer le prompt complet au backend pour obtenir la réponse du modèle
+      const response = await fineTuningService.testModel(fineTuningId, finalPrompt);
       
       // Ajouter la réponse du modèle à la conversation
       const assistantMessage = {

@@ -26,6 +26,8 @@
       "generating": "En génération"
     },
     "cancel": "Annuler",
+    "dashboard": "Dashboard",
+    "fineTuning": "Fine-tuning",
     "copyright": "© {{year}} FineTuner. Tous droits réservés.",
     "backButton": "Précédent",
     "nextButton": "Suivant",

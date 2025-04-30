@@ -193,7 +193,8 @@ Important rules:
 8. Include no extra commentary, explanation, or text outside the JSON.
 9. You must produce between 2 and 20 Q&A pairs, no fewer and no more.
 10. All the informations from text need to be in the Q&A pairs.
-11. Use the language of the text to generate the Q&A pairs.
+11. The Q&A pairs can be long.
+12. Use the language of the text to generate the Q&A pairs.
 
 Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
@@ -527,8 +528,10 @@ Important rules:
 6. If the text uses casual or "incorrect" grammar, keep it. If it uses comedic or childish language, keep it.
 7. Return the result strictly as valid JSONl (an array of objects, each with "question" and "answer").
 8. Include no extra commentary, explanation, or text outside the JSON.
-9. You must produce between 2 and 15 Q&A pairs, no fewer and no more.
-10. Use the language of the text to generate the Q&A pairs.
+9. You must produce between 2 and 20 Q&A pairs, no fewer and no more.
+10. All the informations from text need to be in the Q&A pairs.
+11. The Q&A pairs can be long.
+12. Use the language of the text to generate the Q&A pairs.
 
 Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
@@ -548,7 +551,7 @@ Notice how we kept the casual/familiar language exactly as is, with no correctio
 {chunk_text}
 
 This text was provided in order to train an AI on this goal: "{effective_system_content}"
-Based on this text, generate between 2 and 15 question-answer pairs. 
+Based on this text, generate between 2 and 20 question-answer pairs. 
 Each pair should appear as an object with "question" and "answer" fields. 
 Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
 Do not add any information not found in the text. 
@@ -557,7 +560,7 @@ IMPORTANT: Each JSON object must be on its own line, and each line must be a com
             
             response = self.client.messages.create(
                 model=model,
-                max_tokens=1500,
+                max_tokens=3000,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -890,8 +893,10 @@ Important rules:
 6. If the text uses casual or "incorrect" grammar, keep it. If it uses comedic or childish language, keep it.
 7. Return the result strictly as valid JSONl (an array of objects, each with "question" and "answer").
 8. Include no extra commentary, explanation, or text outside the JSON.
-9. You must produce between 2 and 15 Q&A pairs, no fewer and no more.
-10. Use the language of the text to generate the Q&A pairs.
+9. You must produce between 2 and 20 Q&A pairs, no fewer and no more.
+10. All the informations from text need to be in the Q&A pairs.
+11. The Q&A pairs can be long.
+12. Use the language of the text to generate the Q&A pairs.
 
 Each entry MUST follow this exact format:
    {"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "QUESTION"}, {"role": "assistant", "content": "ANSWER"}]}
@@ -911,7 +916,7 @@ Notice how we kept the casual/familiar language exactly as is, with no correctio
 {chunk_text}
 
 This text was provided in order to train an AI on this goal: "{effective_system_content}"
-Based on this text, generate between 2 and 15 question-answer pairs. 
+Based on this text, generate between 2 and 20 question-answer pairs. 
 Each pair should appear as an object with "question" and "answer" fields. 
 Each entry MUST follow this exact format: {{"messages": [{{"role": "system", "content": ""}}, {{"role": "user", "content": "QUESTION"}}, {{"role": "assistant", "content": "ANSWER"}}]}} The style, tone, and vocabulary should precisely match the way it appears in the text (including slang, jokes, unusual grammar, unusual words etc.). 
 Do not add any information not found in the text. 

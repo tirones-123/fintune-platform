@@ -188,13 +188,18 @@ function PlaygroundPage() {
     setPrompt('');
 
     try {
-      let apiResponse;
-      // Utiliser le nouvel endpoint générique pour tous les modèles
-      // L'ID OpenAI est déjà stocké directement dans selectedModel
-      apiResponse = await helperService.generateCompletion(
-          currentModelId,
-          currentPrompt,
-          currentSystemMessage
+      // Construire un historique de la conversation pour donner du contexte au modèle
+      const conversationWithCurrent = [...conversation, newUserMessage];
+      const historyPrompt = conversationWithCurrent
+        .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+        .join('\n');
+      const finalPrompt = `${historyPrompt}\nAssistant:`;
+
+      // Appeler l'API avec le prompt complet
+      const apiResponse = await helperService.generateCompletion(
+        currentModelId,
+        finalPrompt,
+        currentSystemMessage
       );
       
       // Ajouter la réponse de l'assistant à la conversation

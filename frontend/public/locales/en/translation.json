@@ -28,6 +28,8 @@
     "free": "Free",
     "important": "Important",
     "close": "Close",
+    "dashboard": "Dashboard",
+    "fineTuning": "Fine-tuning",
     "generating": "Generating...",
     "regenerate": "Regenerate",
     "category": "Category",
