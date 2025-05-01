@@ -115,7 +115,7 @@ class ContentProcessor:
                 # Paramètres de la requête
                 querystring = {
                     "url": video_url,
-                    "lang": "fr",  # Préférer le français, retombera sur l'anglais si nécessaire
+                    # "lang": "fr",  # Langue omise pour utiliser le défaut API (probablement 'en')
                     "task": "transcribe"
                 }
                 
