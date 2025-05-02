@@ -45,15 +45,15 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 # === Ajouter SessionMiddleware AVANT les autres middlewares/routes si possible ===
 # Utiliser la SECRET_KEY déjà définie dans settings
 app.add_middleware(
-    SessionMiddleware,
+    SessionMiddleware, 
     secret_key=settings.SECRET_KEY,
     # Configuration explicite des cookies pour la session
-    session_cookie="session",
-    max_age=14 * 24 * 60 * 60,
-    same_site='none',
-    https_only=not settings.DEBUG,
-    path="/",
-    domain=".finetuner.io"  # Partage le cookie entre api.finetuner.io et finetuner.io
+    session_cookie="session", # Nom du cookie (optionnel, mais bon à savoir)
+    max_age=14 * 24 * 60 * 60, # Durée de vie (ex: 14 jours, optionnel)
+    same_site='none', # Changé de 'lax' à 'none'. Nécessite https_only=True en prod.
+    https_only=not settings.DEBUG, # Important: Doit être True en production pour same_site='none'
+    path="/" # Ajout du chemin pour s'assurer que le cookie est valide pour tout le site
+    # L'argument 'domain' est retiré car non supporté
 )
 
 # Ajouter le middleware SlowAPI pour le rate limiting
