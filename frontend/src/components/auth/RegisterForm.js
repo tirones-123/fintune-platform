@@ -109,7 +109,7 @@ const RegisterForm = () => {
             '&:hover': { borderColor: 'primary.main' }
           }}
           startIcon={<GoogleIcon />}
-          onClick={() => window.location.href = '/api/auth/google/login'}
+          onClick={() => window.location.href = `${process.env.REACT_APP_API_URL}/api/auth/google/login`}
         >
           {t('register.googleCta')}
         </Button>
