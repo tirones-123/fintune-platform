@@ -109,7 +109,7 @@ const RegisterForm = () => {
             '&:hover': { borderColor: 'primary.main' }
           }}
           startIcon={<GoogleIcon />}
-          onClick={() => window.location.href = 'https://api.finetuner.io/api/auth/google/login'}
+          onClick={() => window.location.href = '/api/auth/google/login'}
         >
           {t('register.googleCta')}
         </Button>
