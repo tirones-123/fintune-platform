@@ -7,6 +7,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AnimatePresence } from 'framer-motion';
 import LoadingScreen from './components/common/LoadingScreen';
 import { Toaster } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -74,6 +75,7 @@ const OnboardingCheck = ({ children }) => {
 // Composant principal avec les routes
 const AppRoutes = () => {
   const { isInitialized } = useAuth();
+  const navigate = useNavigate();
   
   // Vérifier les paramètres d'authentification dans l'URL (après redirection OAuth Google)
   React.useEffect(() => {
@@ -113,11 +115,11 @@ const AppRoutes = () => {
           destination = '/dashboard';
         }
         
-        // Rediriger sans les paramètres d'auth dans l'URL
-        window.location.href = destination;
+        // Rediriger sans les paramètres d'auth dans l'URL en utilisant navigate
+        navigate(destination, { replace: true });
       }
     }
-  }, []);
+  }, [navigate]);
 
   if (!isInitialized) {
     return <LoadingScreen />;
