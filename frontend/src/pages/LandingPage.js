@@ -1852,7 +1852,7 @@ const TutorialVideoSection = () => {
         width: '100%',
         display: 'flex',
         justifyContent: 'center',
-        py: { xs: 3, md: 6 }, // marge verticale réduite
+        py: { xs: 1, md: 3 }, // marge verticale encore réduite
         background: 'transparent',
       }}
     >
