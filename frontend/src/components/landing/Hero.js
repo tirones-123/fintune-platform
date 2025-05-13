@@ -67,7 +67,7 @@ const Hero = () => {
         overflow: 'hidden',
         bgcolor: 'background.paper',
         pt: { xs: 10, md: 12 },
-        pb: { xs: 4, md: 6 },
+        pb: { xs: 1, md: 3 },
       }}
     >
       {/* Éléments décoratifs */}
