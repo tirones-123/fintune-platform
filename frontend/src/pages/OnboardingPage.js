@@ -624,15 +624,6 @@ const OnboardingPage = () => {
       
       await userService.updateUserProfile(userProfilePayload);
       
-      // Ajout de la balise de conversion Google Ads à la fin de l'onboarding
-      // <!-- Google tag (gtag.js) -->
-      if (typeof window !== 'undefined' && window.gtag) {
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'AW-17055852302');
-        console.log('Google Ads Conversion Tag triggered at onboarding completion');
-      }
       
       // Trouver l'apiId correspondant au modèle sélectionné
       const selectedModel = providerModels[provider].find(m => m.id === model);
