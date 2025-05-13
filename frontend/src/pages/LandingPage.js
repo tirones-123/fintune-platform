@@ -1843,6 +1843,49 @@ const FAQSection = () => {
   );
 };
 
+// --- Nouvelle Section: Vidéo tutorielle Finetuner --- //
+const TutorialVideoSection = () => {
+  const theme = useTheme(); // s'assure d'utiliser le thème si nécessaire plus tard
+  return (
+    <Box
+      sx={{
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        py: { xs: 6, md: 10 }, // marge verticale moyenne
+        background: 'transparent',
+      }}
+    >
+      {/* Conteneur responsif pour maintenir un ratio 16/9 */}
+      <Box
+        sx={{
+          position: 'relative',
+          width: { xs: '90%', sm: '80%', md: '60%' }, // taille moyenne
+          paddingTop: '56.25%', // 16/9 ratio
+          boxShadow: 3,
+          borderRadius: 3,
+          overflow: 'hidden',
+        }}
+      >
+        <iframe
+          src="https://www.youtube.com/embed/xRicfQ1zy1I?start=26"
+          title="Finetuner tutorial video"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 0,
+          }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      </Box>
+    </Box>
+  );
+};
+
 const LandingPage = () => {
   const theme = useTheme();
   return (
@@ -1850,6 +1893,7 @@ const LandingPage = () => {
       <Box sx={{ minHeight: '100vh', background: `linear-gradient(180deg, ${alpha("#0a043c", 1)} 0%, ${alpha("#03001e", 1)} 100%)` }}>
         <Navbar />
         <Hero />
+        <TutorialVideoSection />
         {/* Section vidéo de présentation (supprimée) */}
         {/* 
         <Box sx={{
