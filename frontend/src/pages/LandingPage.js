@@ -1861,7 +1861,7 @@ const TutorialVideoSection = () => {
         sx={{
           position: 'relative',
           width: { xs: '90%', sm: '80%', md: '60%' }, // taille moyenne
-          paddingTop: '56.25%', // 16/9 ratio
+          aspectRatio: '16 / 9', // s'adapte au ratio de la vidéo
           boxShadow: 3,
           borderRadius: 3,
           overflow: 'hidden',
