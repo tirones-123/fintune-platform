@@ -95,23 +95,57 @@ def generate_dataset(self: Task, dataset_id: int):
 
         # Récupérer provider et clé API (reste inchangé)
         provider_name = getattr(dataset, "provider", "openai")
-        if not dataset.project or not dataset.project.user_id:
-             logger.error(f"Dataset {dataset_id} is not associated with a project or user.")
-             raise ValueError(f"Dataset {dataset_id} has no valid project/user association.")
 
-        api_key_record = db.query(ApiKey).filter(
-            ApiKey.user_id == dataset.project.user_id,
-            ApiKey.provider == provider_name
-        ).first()
-        if not api_key_record:
-             error_msg = f"API Key for provider {provider_name} not found for user {dataset.project.user_id}"
-             logger.error(error_msg)
-             dataset.status = "error"
-             dataset.error_message = error_msg
-             db.commit()
-             return {"status": "error", "message": error_msg}
+        # -------------------------------------------------------------
+        # Admin-key override : on utilise la clé définie dans settings
+        # (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.) pour générer le dataset.
+        # Si elle est absente on retombe sur la clé utilisateur.
+        # -------------------------------------------------------------
+        admin_key_map = {
+            "openai": settings.OPENAI_API_KEY,
+            "anthropic": settings.ANTHROPIC_API_KEY,
+            "mistral": settings.MISTRAL_API_KEY,
+        }
 
-        provider = get_ai_provider(provider_name, api_key_record.key)
+        admin_key = admin_key_map.get(provider_name)
+
+        if admin_key:
+            logger.info(
+                f"Using admin {provider_name} key for dataset generation (dataset {dataset_id})."
+            )
+            api_key_value = admin_key
+        else:
+            # Fallback : clé utilisateur comme avant
+            if not dataset.project or not dataset.project.user_id:
+                logger.error(
+                    f"Dataset {dataset_id} is not associated with a project or user."
+                )
+                raise ValueError(
+                    f"Dataset {dataset_id} has no valid project/user association."
+                )
+
+            api_key_record = (
+                db.query(ApiKey)
+                .filter(
+                    ApiKey.user_id == dataset.project.user_id,
+                    ApiKey.provider == provider_name,
+                )
+                .first()
+            )
+
+            if not api_key_record:
+                error_msg = (
+                    f"API Key for provider {provider_name} not found for user {dataset.project.user_id}"
+                )
+                logger.error(error_msg)
+                dataset.status = "error"
+                dataset.error_message = error_msg
+                db.commit()
+                return {"status": "error", "message": error_msg}
+
+            api_key_value = api_key_record.key
+
+        provider = get_ai_provider(provider_name, api_key_value)
         model = dataset.model or DEFAULT_MODEL
 
         # --- Logique d'agrégation, chunking, génération QA (reste inchangée) ---
