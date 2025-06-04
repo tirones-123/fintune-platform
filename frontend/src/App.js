@@ -34,6 +34,10 @@ import PlaygroundPage from './pages/PlaygroundPage';
 import HelpPage from './pages/HelpPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
+import SupportChatbotPage from './pages/usecases/SupportChatbotPage';
+import FinetunerVsOpenAIPage from './pages/compare/FinetunerVsOpenAIPage';
+import PineconeAlternativesPage from './pages/alternatives/PineconeAlternativesPage';
+import SlackIntegrationPage from './pages/integrations/SlackIntegrationPage';
 // Layouts
 import DashboardLayout from './components/dashboard/DashboardLayout';
 
@@ -135,6 +139,10 @@ const AppRoutes = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
         <Route path="/help" element={<HelpPage />} />
+        <Route path="/use-cases/support-chatbot" element={<SupportChatbotPage />} />
+        <Route path="/compare/finetuner-vs-openai" element={<FinetunerVsOpenAIPage />} />
+        <Route path="/alternatives/pinecone" element={<PineconeAlternativesPage />} />
+        <Route path="/integrations/slack" element={<SlackIntegrationPage />} />
 
         {/* Route d'onboarding */}
         <Route
