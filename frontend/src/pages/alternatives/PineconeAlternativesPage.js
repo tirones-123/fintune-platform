@@ -18,7 +18,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ScaleIcon from '@mui/icons-material/Scale';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune';
-import OpenSourceIcon from '@mui/icons-material/OpenSource';
+import PublicIcon from '@mui/icons-material/Public';
 import BusinessIcon from '@mui/icons-material/Business';
 import StarIcon from '@mui/icons-material/Star';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
