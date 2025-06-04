@@ -16,7 +16,7 @@ import { motion } from 'framer-motion';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SpeedIcon from '@mui/icons-material/Speed';
-import AccuracyIcon from '@mui/icons-material/Precision';
+import AccuracyIcon from '@mui/icons-material/GpsFixed';
 import DataUsageIcon from '@mui/icons-material/DataUsage';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PageTransition from '../../components/common/PageTransition';
