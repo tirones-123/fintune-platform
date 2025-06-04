@@ -35,7 +35,16 @@ import HelpPage from './pages/HelpPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import SupportChatbotPage from './pages/usecases/SupportChatbotPage';
+import InternalFaqPage from './pages/usecases/InternalFaqPage';
+import SaasOnboardingPage from './pages/usecases/SaasOnboardingPage';
+import LegalDraftingPage from './pages/usecases/LegalDraftingPage';
+import BrandVoicePage from './pages/usecases/BrandVoicePage';
+import SocialMediaPage from './pages/usecases/SocialMediaPage';
+import InstructorVoicePage from './pages/usecases/InstructorVoicePage';
 import FinetunerVsOpenAIPage from './pages/compare/FinetunerVsOpenAIPage';
+import FinetunerVsCustomGPTPage from './pages/compare/FinetunerVsCustomGPTPage';
+import FinetunerVsChatbasePage from './pages/compare/FinetunerVsChatbasePage';
+import FinetunerVsBotpressPage from './pages/compare/FinetunerVsBotpressPage';
 import PineconeAlternativesPage from './pages/alternatives/PineconeAlternativesPage';
 import SlackIntegrationPage from './pages/integrations/SlackIntegrationPage';
 // Layouts
@@ -140,7 +149,16 @@ const AppRoutes = () => {
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/use-cases/support-chatbot" element={<SupportChatbotPage />} />
+        <Route path="/use-cases/internal-faq" element={<InternalFaqPage />} />
+        <Route path="/use-cases/saas-onboarding" element={<SaasOnboardingPage />} />
+        <Route path="/use-cases/legal-drafting" element={<LegalDraftingPage />} />
+        <Route path="/use-cases/brand-voice" element={<BrandVoicePage />} />
+        <Route path="/use-cases/social-media" element={<SocialMediaPage />} />
+        <Route path="/use-cases/instructor-voice" element={<InstructorVoicePage />} />
         <Route path="/compare/finetuner-vs-openai" element={<FinetunerVsOpenAIPage />} />
+        <Route path="/compare/finetuner-vs-customgpt" element={<FinetunerVsCustomGPTPage />} />
+        <Route path="/compare/finetuner-vs-chatbase" element={<FinetunerVsChatbasePage />} />
+        <Route path="/compare/finetuner-vs-botpress" element={<FinetunerVsBotpressPage />} />
         <Route path="/alternatives/pinecone" element={<PineconeAlternativesPage />} />
         <Route path="/integrations/slack" element={<SlackIntegrationPage />} />
 

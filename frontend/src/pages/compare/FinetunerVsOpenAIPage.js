@@ -307,7 +307,7 @@ const ComparisonTableSection = () => {
     },
     {
       category: 'Pricing Model',
-      finetuner: { value: 'Flat monthly rate', rating: 4, icon: <AttachMoneyIcon /> },
+      finetuner: { value: 'Pay-as-you-go per character', rating: 5, icon: <AttachMoneyIcon /> },
       openai: { value: 'Pay-per-token usage', rating: 3, icon: <AttachMoneyIcon /> },
     },
   ];
@@ -432,10 +432,19 @@ const PricingComparisonSection = () => {
                   🎯 Finetuner
                 </Typography>
                 <Typography variant="h3" sx={{ fontWeight: 800 }}>
-                  $29/month
+                  Pay-as-you-go
                 </Typography>
                 <Typography variant="subtitle1" color="text.secondary">
-                  Flat rate, unlimited fine-tuning
+                  Flexibilité maximale
+                </Typography>
+              </Box>
+
+              <Box sx={{ mb: 3, p: 2, bgcolor: alpha('#bf00ff', 0.1), borderRadius: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#bf00ff' }}>
+                  🎁 Offre de lancement
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Les 10 000 premiers caractères de contenu gratuits
                 </Typography>
               </Box>
 
@@ -444,27 +453,45 @@ const PricingComparisonSection = () => {
                   <ListItemIcon>
                     <CheckCircleIcon sx={{ color: 'success.main' }} />
                   </ListItemIcon>
-                  <ListItemText primary="Unlimited fine-tuning jobs" />
+                  <ListItemText 
+                    primary="10 000 caractères gratuits" 
+                    secondary="Pour tester le service sans engagement"
+                  />
                 </ListItem>
                 <ListItem sx={{ px: 0 }}>
                   <ListItemIcon>
                     <CheckCircleIcon sx={{ color: 'success.main' }} />
                   </ListItemIcon>
-                  <ListItemText primary="No per-token charges" />
+                  <ListItemText 
+                    primary="0,000365€ HT / caractère" 
+                    secondary="Au-delà du quota gratuit"
+                  />
                 </ListItem>
                 <ListItem sx={{ px: 0 }}>
                   <ListItemIcon>
                     <CheckCircleIcon sx={{ color: 'success.main' }} />
                   </ListItemIcon>
-                  <ListItemText primary="Predictable monthly costs" />
+                  <ListItemText 
+                    primary="Coûts transparents et prévisibles" 
+                    secondary="Payez uniquement ce que vous utilisez"
+                  />
                 </ListItem>
                 <ListItem sx={{ px: 0 }}>
                   <ListItemIcon>
                     <CheckCircleIcon sx={{ color: 'success.main' }} />
                   </ListItemIcon>
-                  <ListItemText primary="Visual interface included" />
+                  <ListItemText 
+                    primary="Interface visuelle incluse" 
+                    secondary="Aucun développement requis"
+                  />
                 </ListItem>
               </List>
+
+              <Box sx={{ mt: 3, p: 2, bgcolor: alpha(theme.palette.background.paper, 0.5), borderRadius: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  <strong>Exemple :</strong> 100 000 caractères = 10 000 gratuits + 90 000 × 0,000365€ = 32,85€ HT
+                </Typography>
+              </Box>
             </Card>
           </Grid>
 
@@ -536,7 +563,7 @@ const RecommendationSection = () => {
       items: [
         'You want to get started quickly (under 10 minutes)',
         'You prefer no-code solutions',
-        'You need predictable monthly pricing',
+        'You want transparent pay-as-you-go pricing',
         'You want built-in monitoring and analytics',
         'You value dedicated human support',
         'You\'re a business user or non-technical team',
@@ -641,7 +668,7 @@ const ExpertTipsSection = () => {
     },
     {
       title: 'Evaluate Long-term Costs',
-      description: 'While OpenAI may seem cheaper initially, factor in development time, maintenance, and scaling costs. FineTuner\'s predictable pricing often proves more economical.',
+      description: 'While OpenAI may seem cheaper initially, factor in development time, maintenance, and scaling costs. FineTuner\'s transparent pay-as-you-go model eliminates surprises and often proves more economical.',
       category: 'Financial',
       icon: '💰',
     },
@@ -976,7 +1003,7 @@ const CTASection = () => {
               color: 'text.secondary',
             }}
           >
-            Try Finetuner free for 14 days. No credit card required, no coding needed.
+            Start with 10,000 free characters. No credit card required, no coding needed.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button
@@ -993,7 +1020,7 @@ const CTASection = () => {
                 borderRadius: '50px',
               }}
             >
-              Start Free Trial
+              Start with Free Characters
             </Button>
             <Button
               href="https://platform.openai.com/docs/guides/fine-tuning"
@@ -1102,7 +1129,7 @@ const FinetunerVsOpenAIPage = () => {
             "name": "Which is cheaper: FineTuner or OpenAI fine-tuning?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "FineTuner starts at $29/month with predictable pricing, while OpenAI fine-tuning costs $50-500+ monthly depending on usage and requires additional development resources."
+              "text": "FineTuner uses pay-as-you-go pricing at €0.000365 per character (HT) with 10,000 free characters to start, while OpenAI fine-tuning costs vary widely and requires additional development resources."
             }
           },
           {

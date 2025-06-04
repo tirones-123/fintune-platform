@@ -295,18 +295,20 @@ const HowItWorksSection = () => {
           From zero to deployed Slack bot in under 5 minutes. No coding, no complex setup.
         </Typography>
 
-        <Grid container spacing={4}>
+        <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
           {steps.map((step, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
               <Card
                 sx={{
                   p: 3,
-                  height: '100%',
+                  height: 320, // Fixed height for consistency
                   borderRadius: '16px',
                   background: alpha(theme.palette.background.paper, 0.8),
                   border: `2px solid ${alpha('#4A154B', 0.3)}`,
                   transition: 'all 0.3s ease',
                   position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
                   '&:hover': {
                     transform: 'translateY(-8px)',
                     borderColor: alpha('#4A154B', 0.6),
@@ -331,7 +333,7 @@ const HowItWorksSection = () => {
                   Step {index + 1}
                 </Box>
 
-                <Box sx={{ mt: 2, mb: 3, textAlign: 'center' }}>
+                <Box sx={{ mt: 2, mb: 3, textAlign: 'center', flexGrow: 0 }}>
                   <Avatar
                     sx={{
                       width: 60,
@@ -347,20 +349,62 @@ const HowItWorksSection = () => {
                   <Chip
                     label={step.time}
                     size="small"
-                    sx={{ bgcolor: alpha('#00d4ff', 0.1), color: '#00d4ff' }}
+                    sx={{ 
+                      bgcolor: alpha('#00d4ff', 0.1), 
+                      color: '#00d4ff',
+                      fontWeight: 600,
+                    }}
                   />
                 </Box>
 
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, textAlign: 'center' }}>
-                  {step.title}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>
-                  {step.description}
-                </Typography>
+                <Box sx={{ textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, lineHeight: 1.3 }}>
+                    {step.title}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.5 }}>
+                    {step.description}
+                  </Typography>
+                </Box>
               </Card>
             </Grid>
           ))}
         </Grid>
+
+        {/* Connection lines between steps for desktop */}
+        <Box 
+          sx={{ 
+            display: { xs: 'none', md: 'block' }, 
+            position: 'relative', 
+            mt: -20, 
+            mb: 4,
+            height: 2,
+            background: `linear-gradient(to right, transparent 12%, ${alpha('#4A154B', 0.3)} 12%, ${alpha('#4A154B', 0.3)} 88%, transparent 88%)`,
+            zIndex: 0,
+          }} 
+        />
+
+        <Box sx={{ mt: 6, textAlign: 'center' }}>
+          <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary' }}>
+            🚀 <strong style={{ color: '#00d4ff' }}>Total setup time: Under 5 minutes</strong>
+          </Typography>
+          <Button
+            component={RouterLink}
+            to="/register"
+            variant="contained"
+            size="large"
+            startIcon={<PlayArrowIcon />}
+            sx={{
+              py: 2,
+              px: 4,
+              fontSize: '1.1rem',
+              fontWeight: 700,
+              borderRadius: '50px',
+              background: 'linear-gradient(45deg, #4A154B, #bf00ff)',
+            }}
+          >
+            Start Your 5-Min Setup Now
+          </Button>
+        </Box>
       </Container>
     </Box>
   );

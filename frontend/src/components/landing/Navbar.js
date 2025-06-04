@@ -207,13 +207,6 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [anchorEls, setAnchorEls] = useState({});
 
-  // Liens de navigation principaux
-  const mainNavLinks = [
-    { name: t('navbar.home'), path: '/' },
-    { name: t('navbar.howItWorks'), path: '/#process-section' },
-    { name: t('navbar.faq'), path: '/#faq-section' },
-  ];
-
   // Gérer l'ouverture/fermeture du menu mobile
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -274,34 +267,6 @@ const Navbar = () => {
       </Box>
       
       <List>
-        {/* Liens principaux */}
-        {mainNavLinks.map((link) => (
-          <ListItem key={link.name} disablePadding>
-            <ListItemButton
-              onClick={() => {
-                if (link.path.startsWith('/#')) {
-                  if (window.location.pathname === '/' || window.location.pathname === '') {
-                    handleScrollToSection(link.path);
-                  } else {
-                    window.location.href = link.path;
-                  }
-                } else {
-                  window.location.href = link.path;
-                }
-                handleDrawerToggle(); 
-              }}
-              sx={{ py: 1.5 }}
-            >
-              <ListItemText 
-                primary={link.name}
-                primaryTypographyProps={{ fontWeight: 600 }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
-        
-        <Divider sx={{ my: 2 }} />
-        
         {/* Catégories de pages */}
         {Object.entries(pageCategories).map(([categoryKey, category]) => (
           <Box key={categoryKey}>
@@ -451,47 +416,11 @@ const Navbar = () => {
               {!isMobile && (
                 <>
                   <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-                    {/* Liens principaux */}
-                    {mainNavLinks.map((link, index) => (
-                      <motion.div
-                        key={link.name}
-                        custom={index}
-                        initial="hidden"
-                        animate="visible"
-                        variants={navItemVariants}
-                      >
-                        <Button
-                          onClick={() => {
-                            if (link.path.startsWith('/#')) {
-                              if (window.location.pathname === '/' || window.location.pathname === '') {
-                                handleScrollToSection(link.path);
-                              } else {
-                                window.location.href = link.path;
-                              }
-                            } else {
-                              window.location.href = link.path;
-                            }
-                          }}
-                          sx={{
-                            mx: 1,
-                            color: 'text.primary',
-                            fontWeight: 600,
-                            '&:hover': {
-                              backgroundColor: 'transparent',
-                              color: 'primary.main',
-                            },
-                          }}
-                        >
-                          {link.name}
-                        </Button>
-                      </motion.div>
-                    ))}
-
                     {/* Menus déroulants pour les catégories */}
                     {Object.entries(pageCategories).map(([categoryKey, category], index) => (
                       <motion.div
                         key={categoryKey}
-                        custom={mainNavLinks.length + index}
+                        custom={index}
                         initial="hidden"
                         animate="visible"
                         variants={navItemVariants}
@@ -511,21 +440,7 @@ const Navbar = () => {
                             },
                           }}
                         >
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <span style={{ fontSize: '1rem' }}>{category.icon}</span>
-                            {category.label}
-                            <Chip 
-                              label={category.pages.length} 
-                              size="small" 
-                              sx={{ 
-                                height: 16, 
-                                fontSize: '0.65rem',
-                                bgcolor: category.color,
-                                color: 'white',
-                                ml: 0.5,
-                              }} 
-                            />
-                          </Box>
+                          {category.label}
                         </Button>
                         <DropdownMenu
                           category={category}
@@ -540,7 +455,7 @@ const Navbar = () => {
                   
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <motion.div
-                      custom={10}
+                      custom={4}
                       initial="hidden"
                       animate="visible"
                       variants={navItemVariants}
@@ -562,7 +477,7 @@ const Navbar = () => {
                       </Button>
                     </motion.div>
                     <motion.div
-                      custom={11}
+                      custom={5}
                       initial="hidden"
                       animate="visible"
                       variants={navItemVariants}
