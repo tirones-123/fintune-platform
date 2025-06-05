@@ -43,6 +43,8 @@ import SocialMediaPage from './pages/usecases/SocialMediaPage';
 import InstructorVoicePage from './pages/usecases/InstructorVoicePage';
 import FinetunerVsOpenAIPage from './pages/compare/FinetunerVsOpenAIPage';
 import FinetunerVsCustomGPTPage from './pages/compare/FinetunerVsCustomGPTPage';
+import FinetunerVsChatbasePage from './pages/compare/FinetunerVsChatbasePage';
+import FinetunerVsBotpressPage from './pages/compare/FinetunerVsBotpressPage';
 import PineconeAlternativesPage from './pages/alternatives/PineconeAlternativesPage';
 import SlackIntegrationPage from './pages/integrations/SlackIntegrationPage';
 // Layouts
@@ -155,6 +157,8 @@ const AppRoutes = () => {
         <Route path="/use-cases/instructor-voice" element={<InstructorVoicePage />} />
         <Route path="/compare/finetuner-vs-openai" element={<FinetunerVsOpenAIPage />} />
         <Route path="/compare/finetuner-vs-customgpt" element={<FinetunerVsCustomGPTPage />} />
+        <Route path="/compare/finetuner-vs-chatbase" element={<FinetunerVsChatbasePage />} />
+        <Route path="/compare/finetuner-vs-botpress" element={<FinetunerVsBotpressPage />} />
         <Route path="/alternatives/pinecone" element={<PineconeAlternativesPage />} />
         <Route path="/integrations/slack" element={<SlackIntegrationPage />} />
 

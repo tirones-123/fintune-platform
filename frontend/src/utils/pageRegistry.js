@@ -119,6 +119,22 @@ export const pageCategories = {
         keywords: ['finetuner vs customgpt', 'custom gpt builder', 'no-code', 'comparison'],
         competitor: 'CustomGPT.ai',
       },
+      {
+        path: '/compare/finetuner-vs-chatbase',
+        title: 'Finetuner vs Chatbase (Docs → Chatbot)',
+        description: 'See which platform answers docs questions faster and more accurately.',
+        tag: 'New',
+        keywords: ['finetuner vs chatbase', 'knowledge base chat', 'gpt-3.5', 'docs chatbot'],
+        competitor: 'Chatbase',
+      },
+      {
+        path: '/compare/finetuner-vs-botpress',
+        title: 'Finetuner vs Botpress KB',
+        description: 'Evaluate cost, control and maintenance between Botpress Knowledge Base and Finetuner.',
+        tag: 'New',
+        keywords: ['finetuner vs botpress', 'open-source bot', 'knowledge base'],
+        competitor: 'Botpress',
+      },
       // TODO: Ajouter d'autres pages compare ici:
       // - FineTuner vs Anthropic Claude
       // - FineTuner vs Google Vertex AI
