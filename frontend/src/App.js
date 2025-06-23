@@ -51,6 +51,7 @@ import PineconeAlternativesPage from './pages/alternatives/PineconeAlternativesP
 import WeaviateAlternativesPage from './pages/alternatives/WeaviateAlternativesPage';
 import SlackIntegrationPage from './pages/integrations/SlackIntegrationPage';
 import TeamsIntegrationPage from './pages/integrations/TeamsIntegrationPage';
+import NotFoundPage from './pages/NotFoundPage';
 // Layouts
 import DashboardLayout from './components/dashboard/DashboardLayout';
 
@@ -222,7 +223,7 @@ const AppRoutes = () => {
         </Route>
 
         {/* Route par défaut */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AnimatePresence>
   );
