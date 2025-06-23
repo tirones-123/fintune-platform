@@ -166,7 +166,7 @@ const WeaviateAlternativesPage = () => {
         title="7 Best Weaviate Alternatives (2024) - Vector Database Comparison"
         description="Compare the top Weaviate alternatives including Pinecone, Milvus, Qdrant, and ChromaDB. Detailed feature comparison, pricing, and migration guides for vector databases."
         keywords="weaviate alternatives, vector database, embedding database, semantic search, pinecone, milvus, qdrant, chromadb"
-        canonicalUrl="https://finetuner.ai/alternatives/weaviate"
+        canonicalUrl="https://finetuner.io/alternatives/weaviate"
       />
       
       <Helmet>
@@ -185,7 +185,7 @@ const WeaviateAlternativesPage = () => {
               "name": "FineTuner",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://finetuner.ai/logo.png"
+                "url": "https://finetuner.io/logo.png"
               }
             },
             "datePublished": "2024-01-15",
