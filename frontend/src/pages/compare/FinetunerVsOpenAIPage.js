@@ -772,22 +772,6 @@ const ExpertTipsSection = () => {
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button
-              component="a"
-              href="https://calendly.com/finetuner/expert-consultation"
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="contained"
-              size="large"
-              sx={{
-                py: 1.5,
-                px: 4,
-                fontSize: '1rem',
-                borderRadius: '50px',
-              }}
-            >
-              Schedule Expert Consultation
-            </Button>
-            <Button
               component={RouterLink}
               to="/alternatives/pinecone"
               variant="outlined"

@@ -1,5 +1,53 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+# FineTuner Cursor Rules – v1.0 (2025‑06‑04)
+# Purpose: Keep Cursor AI constantly aware of what the SaaS “FineTuner” does, its workflow, pricing, data‑privacy model and integration points, so it can generate accurate completions, docs and examples.
+# NOTE: This file should NOT be mixed with other product rules. Maintain modularity.
+
+<rule>
+name: finetuner_overview_en
+# Short internal description so the assistant remembers key facts.
+description: Memorise the core value‑prop, architecture and policies of FineTuner.
+filters:
+  - type: always  # applies on every completion
+actions:
+  - memo: |
+      **FineTuner – SaaS for Custom LLM Fine‑Tuning**
+
+      ▸ **What it is**  – A no‑code platform that converts user‑supplied content into a clean, optimised dataset and orchestrates the fine‑tuning of cutting‑edge language models (OpenAI GPT‑3.5/4, GPT‑4o).
+
+      ▸ **Data ingestion**  – Accepts PDFs, plain text (.txt / .md), URLs (auto‑scraping), and YouTube links (auto‑transcription). Pipeline performs deduplication, chunking, semantic labelling and formatting to JSONL ready for fine‑tune endpoints.
+
+      ▸ **Ownership model**  – The actual fine‑tuning job runs on the **customer’s own account** (OpenAI or Anthropic). The resulting model (and checkpoints) live under the customer’s tenancy, so the customer retains 100 % IP rights and can delete or retrain at will.
+
+      ▸ **Security & privacy**  – Uploaded data is stored only for the duration needed to create the dataset and initiate the fine‑tune. Data is never re‑used for any other customer or for FineTuner’s own models. GDPR‑compliant, SOC 2 Type II in progress.
+
+      ▸ **Pricing**  – Pay‑as‑you‑go. First **10 000 characters processed are free**. Beyond that, €0.000365 (ex‑VAT) per character processed for dataset prep. Fine‑tune and inference costs are billed directly by OpenAI / Anthropic under the customer’s account.
+
+      ▸ **Output**  – On completion FineTuner returns the provider’s model ID (e.g. `ft:gpt‑4‑1106‑preview:acme_corp:2025‑04‑30‑15‑20‑05`). Customers invoke it through the standard chat/completions API with a single line change.
+
+      ▸ **Integration examples**  – Website chat widgets, mobile apps, customer‑support bots, Zapier / Make automations, CRM enrichment, internal tools.
+
+      ▸ **User skills required**  – Zero coding needed to run a fine‑tune. Basic API familiarity is useful for later integration.
+
+      ▸ **Typical workflow**  – 1) Upload data → 2) Connect provider API key(s) → 43 Launch → 5) Monitor progress dashboard → 6) Retrieve model ID & test.
+
+      ▸ **Tagline**  – “Your voice, your knowledge, your model.”
+</rule>
+
+<rule>
+name: finetuner_content_guidelines
+# Remind Cursor to mention certain points whenever it writes about FineTuner externally.
+description: Ensure public‑facing text mentions control‑ownership model and pay‑as‑you‑go pricing.
+filters:
+  - type: content_generate
+    pattern: "fine\s*tuner|FineTuner"
+actions:
+  - enforce: |
+      - Always state that the fine‑tuned model is trained **on the user’s own OpenAI/Anthropic account**.
+      - Mention the first‑10k‑characters‑free allowance when referencing pricing.
+      - Emphasise that no coding knowledge is required.
+</rule>

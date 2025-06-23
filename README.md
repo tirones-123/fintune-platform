@@ -1,6 +1,6 @@
 # FineTuner
 
-FinTuner est une plateforme SaaS qui permet aux utilisateurs de créer facilement des assistants IA personnalisés en utilisant leurs propres données. La plateforme permet d'importer des contenus, de créer des datasets, et de fine-tuner des modèles de langage sans avoir besoin de compétences techniques avancées.
+FineTuner est une plateforme SaaS qui permet aux utilisateurs de créer facilement des assistants IA personnalisés en utilisant leurs propres données. La plateforme permet d'importer des contenus, de créer des datasets, et de fine-tuner des modèles de langage sans avoir besoin de compétences techniques avancées.
 
 ## Architecture
 

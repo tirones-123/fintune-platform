@@ -1008,22 +1008,6 @@ const ImplementationGuideSection = () => {
             >
               Explore Use Cases
             </Button>
-            <Button
-              component="a"
-              href="https://calendly.com/finetuner/architecture-consultation"
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="text"
-              size="large"
-              sx={{
-                py: 1.5,
-                px: 4,
-                fontSize: '1rem',
-                borderRadius: '50px',
-              }}
-            >
-              Schedule Architecture Review
-            </Button>
           </Stack>
         </Box>
       </Container>
