@@ -65,11 +65,17 @@ export const pageCategories = {
         keywords: ['instructor voice cloning', 'elearning narration', 'voice synthesis', 'course automation', 'training modules'],
         industry: 'Education',
       },
+      {
+        path: '/use-cases/sales-assistant',
+        title: 'AI Sales Assistant Chatbot - Boost Sales by 45%',
+        description: 'Create an AI sales assistant that qualifies leads 3x faster, increases conversion rates by 45%, and saves 60% of your sales team\'s time.',
+        tag: 'New',
+        keywords: ['AI sales assistant', 'sales chatbot', 'lead qualification', 'sales automation', 'CRM integration', 'sales AI'],
+        industry: 'Sales',
+      },
       // TODO: Ajouter d'autres pages use cases ici:
-      // - Sales Assistant Chatbot
       // - Education Tutor Bot
       // - Healthcare Assistant
-      // - Legal Document Analysis
       // - HR Recruitment Bot
     ],
   },
@@ -87,8 +93,15 @@ export const pageCategories = {
         keywords: ['slack', 'integration', 'workspace', 'team collaboration'],
         platform: 'Slack',
       },
+      {
+        path: '/integrations/teams',
+        title: 'Microsoft Teams Integration',
+        description: 'Enterprise-grade AI assistant integration for Microsoft Teams with Azure AD support',
+        tag: 'New',
+        keywords: ['microsoft teams', 'integration', 'enterprise', 'azure ad', 'office 365'],
+        platform: 'Microsoft Teams',
+      },
       // TODO: Ajouter d'autres pages integrations ici:
-      // - Microsoft Teams Integration
       // - Discord Bot Integration
       // - WhatsApp Business API
       // - Telegram Bot
@@ -135,8 +148,15 @@ export const pageCategories = {
         keywords: ['finetuner vs botpress', 'open-source bot', 'knowledge base'],
         competitor: 'Botpress',
       },
+      {
+        path: '/compare/finetuner-vs-anthropic',
+        title: 'Finetuner vs Anthropic Claude',
+        description: 'Compare custom fine-tuning with Anthropic Claude for enterprise AI applications',
+        tag: 'New',
+        keywords: ['finetuner vs anthropic', 'claude comparison', 'constitutional ai', 'enterprise ai'],
+        competitor: 'Anthropic',
+      },
       // TODO: Ajouter d'autres pages compare ici:
-      // - FineTuner vs Anthropic Claude
       // - FineTuner vs Google Vertex AI
       // - FineTuner vs Hugging Face
       // - FineTuner vs Azure OpenAI
@@ -158,8 +178,15 @@ export const pageCategories = {
         keywords: ['pinecone', 'vector database', 'alternatives', 'embedding'],
         category: 'Vector Databases',
       },
+      {
+        path: '/alternatives/weaviate',
+        title: '7 Best Weaviate Alternatives (2024) - Vector Database Comparison',
+        description: 'Compare the top Weaviate alternatives including Pinecone, Milvus, Qdrant, and ChromaDB. Detailed feature comparison, pricing, and migration guides.',
+        tag: 'New',
+        keywords: ['weaviate alternatives', 'vector database', 'embedding database', 'semantic search', 'pinecone', 'milvus', 'qdrant', 'chromadb'],
+        category: 'Vector Databases',
+      },
       // TODO: Ajouter d'autres pages alternatives ici:
-      // - Weaviate Alternatives
       // - Milvus Alternatives
       // - ChromaDB Alternatives
       // - Qdrant Alternatives
