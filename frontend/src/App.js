@@ -41,12 +41,16 @@ import LegalDraftingPage from './pages/usecases/LegalDraftingPage';
 import BrandVoicePage from './pages/usecases/BrandVoicePage';
 import SocialMediaPage from './pages/usecases/SocialMediaPage';
 import InstructorVoicePage from './pages/usecases/InstructorVoicePage';
+import SalesAssistantPage from './pages/usecases/SalesAssistantPage';
 import FinetunerVsOpenAIPage from './pages/compare/FinetunerVsOpenAIPage';
 import FinetunerVsCustomGPTPage from './pages/compare/FinetunerVsCustomGPTPage';
 import FinetunerVsChatbasePage from './pages/compare/FinetunerVsChatbasePage';
 import FinetunerVsBotpressPage from './pages/compare/FinetunerVsBotpressPage';
+import FinetunerVsAnthropicPage from './pages/compare/FinetunerVsAnthropicPage';
 import PineconeAlternativesPage from './pages/alternatives/PineconeAlternativesPage';
+import WeaviateAlternativesPage from './pages/alternatives/WeaviateAlternativesPage';
 import SlackIntegrationPage from './pages/integrations/SlackIntegrationPage';
+import TeamsIntegrationPage from './pages/integrations/TeamsIntegrationPage';
 // Layouts
 import DashboardLayout from './components/dashboard/DashboardLayout';
 
@@ -155,12 +159,16 @@ const AppRoutes = () => {
         <Route path="/use-cases/brand-voice" element={<BrandVoicePage />} />
         <Route path="/use-cases/social-media" element={<SocialMediaPage />} />
         <Route path="/use-cases/instructor-voice" element={<InstructorVoicePage />} />
+        <Route path="/use-cases/sales-assistant" element={<SalesAssistantPage />} />
         <Route path="/compare/finetuner-vs-openai" element={<FinetunerVsOpenAIPage />} />
         <Route path="/compare/finetuner-vs-customgpt" element={<FinetunerVsCustomGPTPage />} />
         <Route path="/compare/finetuner-vs-chatbase" element={<FinetunerVsChatbasePage />} />
         <Route path="/compare/finetuner-vs-botpress" element={<FinetunerVsBotpressPage />} />
+        <Route path="/compare/finetuner-vs-anthropic" element={<FinetunerVsAnthropicPage />} />
         <Route path="/alternatives/pinecone" element={<PineconeAlternativesPage />} />
+        <Route path="/alternatives/weaviate" element={<WeaviateAlternativesPage />} />
         <Route path="/integrations/slack" element={<SlackIntegrationPage />} />
+        <Route path="/integrations/teams" element={<TeamsIntegrationPage />} />
 
         {/* Route d'onboarding */}
         <Route
