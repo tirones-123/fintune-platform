@@ -1,21 +1,127 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Main Pages -->
   <url>
     <loc>https://finetuner.io/</loc>
+    <priority>1.0</priority>
+    <changefreq>weekly</changefreq>
   </url>
   <url>
     <loc>https://finetuner.io/register</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://finetuner.io/login</loc>
+    <priority>0.6</priority>
+    <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://finetuner.io/privacy-policy</loc>
+    <priority>0.3</priority>
+    <changefreq>yearly</changefreq>
   </url>
   <url>
     <loc>https://finetuner.io/terms-of-service</loc>
+    <priority>0.3</priority>
+    <changefreq>yearly</changefreq>
   </url>
   <url>
-    <loc>https://finetuner.io/sitemap</loc>
+    <loc>https://finetuner.io/help</loc>
+    <priority>0.7</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <!-- Use Cases Pages -->
+  <url>
+    <loc>https://finetuner.io/use-cases/support-chatbot</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/use-cases/internal-faq</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/use-cases/saas-onboarding</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/use-cases/legal-drafting</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/use-cases/brand-voice</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/use-cases/social-media</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/use-cases/instructor-voice</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/use-cases/sales-assistant</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <!-- Comparison Pages -->
+  <url>
+    <loc>https://finetuner.io/compare/finetuner-vs-openai</loc>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/compare/finetuner-vs-customgpt</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/compare/finetuner-vs-chatbase</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/compare/finetuner-vs-botpress</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/compare/finetuner-vs-anthropic</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <!-- Integration Pages -->
+  <url>
+    <loc>https://finetuner.io/integrations/slack</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/integrations/teams</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <!-- Alternatives Pages -->
+  <url>
+    <loc>https://finetuner.io/alternatives/pinecone</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://finetuner.io/alternatives/weaviate</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
   </url>
 </urlset> 
