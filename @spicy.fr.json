@@ -1,0 +1,217 @@
+{
+  "meta": {
+    "title": "Questions Spicy - Version Française",
+    "description": "Collection de questions variées pour tester les connaissances",
+    "version": "1.0",
+    "language": "fr",
+    "categories": ["culture", "science", "histoire", "technologie", "divertissement", "sport"]
+  },
+  "questions": [
+    {
+      "id": 1,
+      "category": "culture",
+      "question": "Qui a écrit 'Les Misérables' ?",
+      "options": ["Victor Hugo", "Émile Zola", "Gustave Flaubert", "Honoré de Balzac"],
+      "correct": 0,
+      "difficulty": "facile",
+      "explanation": "Victor Hugo a publié 'Les Misérables' en 1862."
+    },
+    {
+      "id": 2,
+      "category": "science",
+      "question": "Quelle est la vitesse de la lumière dans le vide ?",
+      "options": ["299 792 458 m/s", "300 000 000 m/s", "299 000 000 m/s", "298 792 458 m/s"],
+      "correct": 0,
+      "difficulty": "moyen",
+      "explanation": "La vitesse de la lumière dans le vide est exactement 299 792 458 mètres par seconde."
+    },
+    {
+      "id": 3,
+      "category": "histoire",
+      "question": "En quelle année a eu lieu la Révolution française ?",
+      "options": ["1789", "1792", "1799", "1804"],
+      "correct": 0,
+      "difficulty": "facile",
+      "explanation": "La Révolution française a commencé en 1789 avec la prise de la Bastille le 14 juillet."
+    },
+    {
+      "id": 4,
+      "category": "technologie",
+      "question": "Quel langage de programmation est principalement utilisé pour le développement web côté client ?",
+      "options": ["Python", "JavaScript", "Java", "C++"],
+      "correct": 1,
+      "difficulty": "facile",
+      "explanation": "JavaScript est le langage standard pour la programmation côté client dans les navigateurs web."
+    },
+    {
+      "id": 5,
+      "category": "science",
+      "question": "Combien d'éléments chimiques y a-t-il dans le tableau périodique actuellement ?",
+      "options": ["116", "118", "120", "122"],
+      "correct": 1,
+      "difficulty": "moyen",
+      "explanation": "Le tableau périodique compte actuellement 118 éléments chimiques officiellement reconnus."
+    },
+    {
+      "id": 6,
+      "category": "divertissement",
+      "question": "Quel film a remporté l'Oscar du meilleur film en 2023 ?",
+      "options": ["Top Gun: Maverick", "Everything Everywhere All at Once", "Avatar: The Way of Water", "The Banshees of Inisherin"],
+      "correct": 1,
+      "difficulty": "moyen",
+      "explanation": "'Everything Everywhere All at Once' a remporté l'Oscar du meilleur film en 2023."
+    },
+    {
+      "id": 7,
+      "category": "sport",
+      "question": "Combien de joueurs composent une équipe de rugby à XV sur le terrain ?",
+      "options": ["13", "15", "17", "11"],
+      "correct": 1,
+      "difficulty": "facile",
+      "explanation": "Une équipe de rugby à XV compte 15 joueurs sur le terrain, d'où son nom."
+    },
+    {
+      "id": 8,
+      "category": "histoire",
+      "question": "Qui était le premier empereur romain ?",
+      "options": ["Jules César", "Auguste", "Néron", "Trajan"],
+      "correct": 1,
+      "difficulty": "moyen",
+      "explanation": "Auguste (Octave) fut le premier empereur romain, régnant de 27 av. J.-C. à 14 ap. J.-C."
+    },
+    {
+      "id": 9,
+      "category": "culture",
+      "question": "Dans quelle ville se trouve le musée du Louvre ?",
+      "options": ["Lyon", "Marseille", "Paris", "Bordeaux"],
+      "correct": 2,
+      "difficulty": "facile",
+      "explanation": "Le musée du Louvre se trouve à Paris, dans le 1er arrondissement."
+    },
+    {
+      "id": 10,
+      "category": "technologie",
+      "question": "Qu'est-ce que l'IA générative ?",
+      "options": [
+        "Une IA qui ne fait que classifier",
+        "Une IA capable de créer du contenu original",
+        "Une IA qui optimise les processus",
+        "Une IA qui ne fait que calculer"
+      ],
+      "correct": 1,
+      "difficulty": "moyen",
+      "explanation": "L'IA générative peut créer du nouveau contenu comme du texte, des images, ou du code à partir de prompts."
+    },
+    {
+      "id": 11,
+      "category": "science",
+      "question": "Quelle est la planète la plus proche du Soleil ?",
+      "options": ["Vénus", "Mercure", "Mars", "Terre"],
+      "correct": 1,
+      "difficulty": "facile",
+      "explanation": "Mercure est la planète la plus proche du Soleil dans notre système solaire."
+    },
+    {
+      "id": 12,
+      "category": "sport",
+      "question": "Combien de Grand Chelem existe-t-il en tennis ?",
+      "options": ["3", "4", "5", "6"],
+      "correct": 1,
+      "difficulty": "facile",
+      "explanation": "Il y a 4 tournois du Grand Chelem : Wimbledon, Roland-Garros, US Open et Open d'Australie."
+    },
+    {
+      "id": 13,
+      "category": "histoire",
+      "question": "Quelle guerre mondiale a duré de 1914 à 1918 ?",
+      "options": ["Première Guerre mondiale", "Deuxième Guerre mondiale", "Guerre de Corée", "Guerre du Vietnam"],
+      "correct": 0,
+      "difficulty": "facile",
+      "explanation": "La Première Guerre mondiale s'est déroulée de 1914 à 1918."
+    },
+    {
+      "id": 14,
+      "category": "technologie",
+      "question": "Que signifie 'HTTP' ?",
+      "options": [
+        "Hypertext Transfer Protocol",
+        "High Technology Transfer Protocol",
+        "Hypertext Transmission Protocol",
+        "High Transfer Text Protocol"
+      ],
+      "correct": 0,
+      "difficulty": "moyen",
+      "explanation": "HTTP signifie Hypertext Transfer Protocol, le protocole de communication du web."
+    },
+    {
+      "id": 15,
+      "category": "culture",
+      "question": "Qui a peint 'La Joconde' ?",
+      "options": ["Michel-Ange", "Léonard de Vinci", "Raphaël", "Donatello"],
+      "correct": 1,
+      "difficulty": "facile",
+      "explanation": "Léonard de Vinci a peint 'La Joconde' vers 1503-1506."
+    },
+    {
+      "id": 16,
+      "category": "science",
+      "question": "Quelle est la formule chimique de l'eau ?",
+      "options": ["H2O", "CO2", "NaCl", "CH4"],
+      "correct": 0,
+      "difficulty": "facile",
+      "explanation": "L'eau a pour formule chimique H2O (deux atomes d'hydrogène et un atome d'oxygène)."
+    },
+    {
+      "id": 17,
+      "category": "divertissement",
+      "question": "Quel est le nom du dragon dans 'Le Seigneur des Anneaux' ?",
+      "options": ["Smaug", "Balerion", "Drogon", "Ancalagon"],
+      "correct": 0,
+      "difficulty": "moyen",
+      "explanation": "Smaug est le dragon dans 'Le Hobbit', œuvre liée à l'univers du Seigneur des Anneaux de Tolkien."
+    },
+    {
+      "id": 18,
+      "category": "sport",
+      "question": "Quelle est la distance d'un marathon ?",
+      "options": ["40,195 km", "41,195 km", "42,195 km", "43,195 km"],
+      "correct": 2,
+      "difficulty": "moyen",
+      "explanation": "Un marathon fait exactement 42,195 kilomètres."
+    },
+    {
+      "id": 19,
+      "category": "technologie",
+      "question": "Quel est le système d'exploitation mobile développé par Google ?",
+      "options": ["iOS", "Android", "Windows Phone", "BlackBerry OS"],
+      "correct": 1,
+      "difficulty": "facile",
+      "explanation": "Android est le système d'exploitation mobile développé par Google."
+    },
+    {
+      "id": 20,
+      "category": "histoire",
+      "question": "En quelle année l'homme a-t-il marché sur la Lune pour la première fois ?",
+      "options": ["1967", "1968", "1969", "1970"],
+      "correct": 2,
+      "difficulty": "moyen",
+      "explanation": "Neil Armstrong a été le premier homme à marcher sur la Lune le 20 juillet 1969."
+    }
+  ],
+  "stats": {
+    "total_questions": 20,
+    "by_difficulty": {
+      "facile": 10,
+      "moyen": 10,
+      "difficile": 0
+    },
+    "by_category": {
+      "culture": 3,
+      "science": 4,
+      "histoire": 4,
+      "technologie": 4,
+      "divertissement": 2,
+      "sport": 3
+    }
+  }
+}
